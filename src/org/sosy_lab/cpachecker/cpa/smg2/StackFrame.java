@@ -23,13 +23,9 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -44,7 +40,7 @@ public final class StackFrame {
   private final PersistentMap<String, SMGObject> stackVariables;
 
   /** Function to which this stack frame belongs */
-  private final AFunctionDeclaration stackFunction;
+  private final CFunctionDeclaration stackFunction;
 
   /** An object to store function return value. The Object is Null if function has Void-type. */
   private final Optional<SMGObject> returnValueObject;
@@ -53,7 +49,7 @@ public final class StackFrame {
   private final Optional<ImmutableList<Value>> variableArguments;
 
   private StackFrame(
-      AFunctionDeclaration pDeclaration,
+      CFunctionDeclaration pDeclaration,
       PersistentMap<String, SMGObject> pVariables,
       Optional<SMGObject> pReturnValueObject,
       Optional<ImmutableList<Value>> pVariableArguments) {
@@ -92,18 +88,6 @@ public final class StackFrame {
       returnValueObject = Optional.of(SMGObject.of(0, returnValueSize, BigInteger.ZERO));
     }
     variableArguments = Optional.ofNullable(pVariableArguments);
-  }
-
-  /** ACSL predicate stack frame */
-  public StackFrame(AcslFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
-    stackVariables = PathCopyingPersistentTreeMap.of();
-    stackFunction = pDeclaration;
-    Type returnType = pDeclaration.getType().getReturnType();
-    checkArgument(returnType instanceof AcslBuiltinLogicType);
-    // We always assume void for ACSL functions/predicates
-    returnValueObject = Optional.empty();
-
-    variableArguments = Optional.empty();
   }
 
   /**
@@ -182,11 +166,7 @@ public final class StackFrame {
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
 
-  public CFunctionDeclaration getCFunctionDefinition() {
-    return (CFunctionDeclaration) stackFunction;
-  }
-
-  public AFunctionDeclaration getAFunctionDefinition() {
+  public CFunctionDeclaration getFunctionDefinition() {
     return stackFunction;
   }
 

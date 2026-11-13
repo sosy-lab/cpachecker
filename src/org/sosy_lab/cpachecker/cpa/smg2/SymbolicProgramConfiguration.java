@@ -49,7 +49,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -344,8 +343,8 @@ public class SymbolicProgramConfiguration {
       }
       StackFrame thisFrame = thisStackFrames.next();
       StackFrame otherFrame = otherStackFrames.next();
-      CFunctionDeclaration thisFunDef = thisFrame.getCFunctionDefinition();
-      CFunctionDeclaration otherFunDef = otherFrame.getCFunctionDefinition();
+      CFunctionDeclaration thisFunDef = thisFrame.getFunctionDefinition();
+      CFunctionDeclaration otherFunDef = otherFrame.getFunctionDefinition();
       if (!thisFunDef.equals(otherFunDef)) {
         return Optional.empty();
       }
@@ -2100,7 +2099,7 @@ public class SymbolicProgramConfiguration {
               // none!
               checkState(o1VarName == null);
               o1VarName = variable1.getKey();
-              o1StackFuncDef = frame1.getCFunctionDefinition();
+              o1StackFuncDef = frame1.getFunctionDefinition();
             }
           }
         }
@@ -2114,7 +2113,7 @@ public class SymbolicProgramConfiguration {
               // none!
               checkState(o2VarName == null);
               o2VarName = variable2.getKey();
-              o2StackFuncDef = frame2.getCFunctionDefinition();
+              o2StackFuncDef = frame2.getFunctionDefinition();
             }
           }
         }
@@ -2133,13 +2132,13 @@ public class SymbolicProgramConfiguration {
               // We copied the object initially
               isAlreadyOnStack = true;
               newObjVarName = newVar.getKey();
-              newObjStackFuncDef = newFrame.getCFunctionDefinition();
+              newObjStackFuncDef = newFrame.getFunctionDefinition();
             } else if (newVar.getKey().equals(o2VarName)) {
               // We did not copy it initially, OR the copy happened and the join produced a new
               // object
               isAlreadyOnStack = true;
               newObjVarName = newVar.getKey();
-              newObjStackFuncDef = newFrame.getCFunctionDefinition();
+              newObjStackFuncDef = newFrame.getFunctionDefinition();
               // The object needs to be replaced in this case. Meaning also that all pointers to it
               // need to be replaced, this is doof, and we don't want that. Instead, we should not
               // copy them initially (and check for recursion there) and then simply add them back
@@ -3013,7 +3012,7 @@ public class SymbolicProgramConfiguration {
     // Restriction because of tests that don't emulate stack frames
     if (pVarName.contains(":")) {
       String functionName = pVarName.substring(0, pVarName.indexOf(":"));
-      checkArgument(currentFrame.getCFunctionDefinition().getQualifiedName().equals(functionName));
+      checkArgument(currentFrame.getFunctionDefinition().getQualifiedName().equals(functionName));
     }
 
     PersistentStack<StackFrame> tmpStack = stackVariableMapping.popAndCopy();
@@ -3045,7 +3044,7 @@ public class SymbolicProgramConfiguration {
     PersistentStack<StackFrame> topStack = PersistentStack.of();
     StackFrame currentFrame = stackVariableMapping.peek();
     PersistentStack<StackFrame> tmpStack = stackVariableMapping.popAndCopy();
-    while (!currentFrame.getCFunctionDefinition().getQualifiedName().equals(functionName)) {
+    while (!currentFrame.getFunctionDefinition().getQualifiedName().equals(functionName)) {
       topStack = topStack.pushAndCopy(currentFrame);
       currentFrame = tmpStack.peek();
       tmpStack = tmpStack.popAndCopy();
@@ -3122,36 +3121,6 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap.putAndCopy(
             pFunctionDefinition.getQualifiedName() + "::__retval__", returnType),
-        mallocZeroMemory,
-        readBlacklist,
-        valueToTypeMap,
-        options);
-  }
-
-  /**
-   * Copies this {@link SymbolicProgramConfiguration} and adds a {@link StackFrame} based on the
-   * entered model and function definition. More information on StackFrames can be found in the
-   * Stackframe class.
-   *
-   * @param pFunctionDefinition - The {@link AcslFunctionDeclaration} that the {@link StackFrame}
-   *     will be based upon.
-   * @param model - The {@link MachineModel} the new {@link StackFrame} be based upon.
-   * @return The SPC copy with the new {@link StackFrame}.
-   */
-  public SymbolicProgramConfiguration copyAndAddStackFrame(
-      AcslFunctionDeclaration pFunctionDefinition, MachineModel model) {
-    StackFrame newStackFrame = new StackFrame(pFunctionDefinition, model);
-    checkArgument(newStackFrame.getReturnObject().isEmpty());
-
-    return of(
-        smg,
-        globalVariableMapping,
-        atExitStack,
-        stackVariableMapping.pushAndCopy(newStackFrame),
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
         mallocZeroMemory,
         readBlacklist,
         valueToTypeMap,
@@ -4123,7 +4092,7 @@ public class SymbolicProgramConfiguration {
     if (pName.contains("::")) {
       String variableFunctionName = pName.substring(0, pName.indexOf(':'));
       if (!currentFrame
-          .getCFunctionDefinition()
+          .getFunctionDefinition()
           .getQualifiedName()
           .contentEquals(variableFunctionName)) {
         // Check 1 frame above, sometimes CPAchecker forces us to look there
@@ -4131,7 +4100,7 @@ public class SymbolicProgramConfiguration {
           currentFrame = stackVariableMapping.popAndCopy().peek();
           checkArgument(
               currentFrame
-                  .getCFunctionDefinition()
+                  .getFunctionDefinition()
                   .getQualifiedName()
                   .contentEquals(variableFunctionName));
         }
@@ -4151,7 +4120,7 @@ public class SymbolicProgramConfiguration {
     if (currentFrame.hasVariableArguments()) {
       sizeOfVariables = sizeOfVariables + currentFrame.getVariableArguments().size();
     }
-    if (sizeOfVariables < currentFrame.getCFunctionDefinition().getParameters().size()) {
+    if (sizeOfVariables < currentFrame.getFunctionDefinition().getParameters().size()) {
       // We are currently creating a function and may ask for a value from the old function for
       // array size
       if (stackVariableMapping.size() > 1) {
@@ -4565,7 +4534,7 @@ public class SymbolicProgramConfiguration {
       String qualifiedName = localVariable.getKey();
       CType variableType = variableToTypeMap.get(qualifiedName);
       MemoryLocation memLoc = MemoryLocation.fromQualifiedName(qualifiedName);
-      checkState(memLoc.isOnFunctionStack(stack.getCFunctionDefinition().getQualifiedName()));
+      checkState(memLoc.isOnFunctionStack(stack.getFunctionDefinition().getQualifiedName()));
       trackedLocations.put(memLoc, new SimpleEntry<>(variableType, memory));
     }
 
@@ -4584,7 +4553,7 @@ public class SymbolicProgramConfiguration {
       checkArgument(smg.isValid(memory));
       String qualifiedName = globalEntry.getKey();
       CType variableType = variableToTypeMap.get(qualifiedName);
-      MemoryLocation memLoc = MemoryLocation.fromQualifiedName(qualifiedName, 0);
+      MemoryLocation memLoc = MemoryLocation.fromQualifiedName(qualifiedName);
       checkState(!memLoc.isOnFunctionStack());
       trackedLocations.put(memLoc, new SimpleEntry<>(variableType, memory));
     }
@@ -4623,7 +4592,7 @@ public class SymbolicProgramConfiguration {
 
     for (StackFrame stackframe : stackVariableMapping) {
       if (stackframe.getReturnObject().isPresent()) {
-        String funName = stackframe.getCFunctionDefinition().getQualifiedName();
+        String funName = stackframe.getFunctionDefinition().getQualifiedName();
         // There is a return object!
         for (SMGHasValueEdge valueEdge : smg.getEdges(stackframe.getReturnObject().orElseThrow())) {
           MemoryLocation memLoc =
@@ -4686,7 +4655,7 @@ public class SymbolicProgramConfiguration {
       getFunctionDeclarationsFromStackFrames() {
     PersistentStack<CFunctionDeclarationAndOptionalValue> decls = PersistentStack.of();
     for (StackFrame frame : stackVariableMapping) {
-      CFunctionDeclaration funcDef = frame.getCFunctionDefinition();
+      CFunctionDeclaration funcDef = frame.getFunctionDefinition();
       if (funcDef == null) {
         // Test frame
         continue;
@@ -4702,7 +4671,7 @@ public class SymbolicProgramConfiguration {
           decls =
               decls.pushAndCopy(
                   CFunctionDeclarationAndOptionalValue.of(
-                      frame.getCFunctionDefinition(), Optional.empty()));
+                      frame.getFunctionDefinition(), Optional.empty()));
           continue;
         }
         checkArgument(edges.size() == 1);
@@ -4710,7 +4679,7 @@ public class SymbolicProgramConfiguration {
         decls =
             decls.pushAndCopy(
                 CFunctionDeclarationAndOptionalValue.of(
-                    frame.getCFunctionDefinition(), Optional.of(returnValue)));
+                    frame.getFunctionDefinition(), Optional.of(returnValue)));
       }
     }
     return decls;
@@ -5112,7 +5081,7 @@ public class SymbolicProgramConfiguration {
     builder.append("Local Variables per StackFrame:");
     builder.append("\n");
     for (StackFrame stackframe : stackVariableMapping) {
-      CFunctionDeclaration funDef = stackframe.getCFunctionDefinition();
+      CFunctionDeclaration funDef = stackframe.getFunctionDefinition();
       String funName;
       if (funDef != null) {
         funName = funDef.getQualifiedName();

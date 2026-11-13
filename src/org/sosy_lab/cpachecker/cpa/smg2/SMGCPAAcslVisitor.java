@@ -17,6 +17,8 @@ import static org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation.representsBoo
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -43,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
@@ -105,6 +108,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -143,6 +151,13 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator.BooleanAndSMGState;
@@ -183,7 +198,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
  *    && (start)@(end) && (start->next)@(start)
  *    && pred_sll(start->next, end)
  *
- *
+ * TODO: replace @ with separated and move recursive calls inside
  * Idea: we get the function call and its arguments first. We process the arguments
  * (none are known in the beginning) and remember their definitions. This allows us to find recursive calls later (i.e. we process the first function call, remember it, when we process it again, we know its recursive. This should be done as trace, to respect multiple possible recursive calls)
  *
@@ -262,22 +277,19 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     originCfaEdge = pCfaEdge;
   }
 
+  /**
+   * Checks whether it is allowed to access the memory of {@link SMGObject} {@code
+   * memoryObjAccessed} from [accessOffsetInBits,accessOffsetInBits + accessSizeInBits).
+   */
   private BooleanAndSMGState checkCanAccessMemory(
-      CExpression exprLeadingToMemory,
-      SMGObject memoryObjAccessed,
-      Value accessOffsetInBits,
-      SMGState state)
+      Value accessOffsetInBits, Value accessSizeInBits, SMGObject memoryObjAccessed, SMGState state)
       throws CPATransferException {
     checkNotNull(memoryObjAccessed);
     checkNotNull(accessOffsetInBits);
     checkNotNull(state);
     checkArgument(!(memoryObjAccessed instanceof SMGSinglyLinkedListSegment));
     return evaluator.checkMemoryAccess(
-        SMGCPAExpressionEvaluator.getCanonicalType(exprLeadingToMemory),
-        memoryObjAccessed,
-        accessOffsetInBits,
-        state,
-        originCfaEdge);
+        accessOffsetInBits, accessSizeInBits, memoryObjAccessed, state, originCfaEdge);
   }
 
   /**
@@ -813,19 +825,67 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     checkArgument(
         !cArguments.isEmpty(),
         "Pure ACSL expressions (without C expression arguments) are currently not supported");
-    verify(cParameterDeclarations.size() == cArguments.size());
 
+    final AFunctionDeclaration funDeclOfInitialStackFrame =
+        initialState.getStackFrameTopFunctionDefinition();
+
+    // TODO: extract creation of pseudo C function-call into dedicated method
+    FileLocation loc = pAcslPredicateApplicationPredicate.getFileLocation();
+    String pseudoCFunName = funDecl.getName();
+    CFANode predecessorNode = CFANode.newDummyCFANode();
+    List<CType> pseudoCFunParameterTypes =
+        cParameterDeclarations.stream()
+            .map(d -> d.getType().getCanonicalType())
+            .collect(ImmutableList.toImmutableList());
+    // We model this without a return type as we model it through the visitors returns
+    CFunctionDeclaration pseudoCFunDecl =
+        new CFunctionDeclaration(
+            loc,
+            new CFunctionType(CVoidType.VOID, pseudoCFunParameterTypes, false),
+            pseudoCFunName,
+            cParameterDeclarations,
+            ImmutableSet.of());
+    String rawStatement = calledBody.toASTString();
+    CFunctionEntryNode pseudoCFunEntryNode =
+        new CFunctionEntryNode(loc, pseudoCFunDecl, null, Optional.empty());
+    // TODO: i have no idea whether the CIdExpr is correct. But we don't access it anyway...
+    CIdExpression pseudoCFunNameIdExpr =
+        new CIdExpression(loc, CVoidType.VOID, pseudoCFunName, pseudoCFunDecl);
+    CFunctionCallExpression pseudoFunCallExpr =
+        new CFunctionCallExpression(
+            loc, CVoidType.VOID, pseudoCFunNameIdExpr, cArguments, pseudoCFunDecl);
+    CFunctionCall pseudoCFunctionCall = new CFunctionCallStatement(loc, pseudoFunCallExpr);
+    CFunctionSummaryEdge pseudoCFunSummaryEdge =
+        new CFunctionSummaryEdge(
+            rawStatement,
+            loc,
+            predecessorNode,
+            CFANode.newDummyCFANode(),
+            pseudoCFunctionCall,
+            pseudoCFunEntryNode);
+    CFunctionCallEdge pseudoCFunCallEdge =
+        new CFunctionCallEdge(
+            rawStatement,
+            loc,
+            predecessorNode,
+            pseudoCFunEntryNode,
+            pseudoCFunctionCall,
+            pseudoCFunSummaryEdge);
     SMGState stateWithNewStackFrameAndVars =
-        callingTransfer.handleAcslPredicateFunctionCall(
-            initialState, originCfaEdge, funDecl, cArguments, cParameterDeclarations);
+        callingTransfer.handleCFunctionCall(
+            initialState, pseudoCFunCallEdge, pseudoCFunDecl, cArguments, cParameterDeclarations);
 
     Set<SMGState> processedStates =
         calledBody.accept(copyWithNewState(stateWithNewStackFrameAndVars));
 
     ImmutableSet.Builder<SMGState> finalStates = ImmutableSet.builder();
     for (SMGState processedState : processedStates) {
-      verify(processedState.getStackFrameTopFunctionDefinition() == funDecl);
-      finalStates.add(processedState.dropStackFrame());
+      assert processedState.getStackFrameTopFunctionName().equals(pseudoCFunName);
+      SMGState processedStateAfterDrop = processedState.dropStackFrame();
+      verify(
+          processedStateAfterDrop.getStackFrameTopFunctionDefinition()
+              == funDeclOfInitialStackFrame);
+      finalStates.add(processedStateAfterDrop);
     }
     return finalStates.build();
 
@@ -962,6 +1022,24 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     return cArgumentsBuilder.build();
   }
 
+  /**
+   * Returns the given argument of the given {@link AcslCanAccessPredicate} as {@link CExpression}.
+   * Arguments that are pure ACSL terms are not supported yet.
+   */
+  private static CExpression getCExpressionArgument(
+      AExpression pArgument, AcslCanAccessPredicate pAcslCanAccessPredicate) {
+    return switch (pArgument) {
+      case CExpression cExpression -> cExpression;
+      case AcslCExpressionTerm pAcslCExpressionTerm -> pAcslCExpressionTerm.getCExpression();
+      case AcslCIdExpression pAcslCIdExpression -> pAcslCIdExpression.getCIdExpression();
+      case AcslCLeftHandSideTerm pAcslCLeftHandSideTerm ->
+          pAcslCLeftHandSideTerm.getCLeftHandSideExpression();
+      default ->
+          throw new UnsupportedOperationException(
+              "Validation of ACSL arguments of " + pAcslCanAccessPredicate + " is not supported");
+    };
+  }
+
   /** Pulls the body for the given predicate application out of the known logic-definitions. */
   private AcslTerm getBodyForAcslPredicateApplicationPredicate(
       AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
@@ -1007,100 +1085,141 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     return pAcslPredicateTerm.getTerm().accept(this);
   }
 
+  /**
+   * {@code \canAccess(x, len)}: Returns 1 if all memory regions from x to x+len-1 are allocated,
+   * i.e., for all 0 <= i < len dereferencing x + i does not result in undefined behavior, and 0
+   * otherwise. In this case, x must be a pointer and len must be of size_t. When evaluating x,
+   * every evaluation of the indirection operator and pointer arithmetic is checked for conditions
+   * imposed on them by the C standard (C11 §6.5.6, §6.5.3.2, §6.2.4, §7.22.3). If any of those
+   * conditions is violated, {@code \canAccess(x, len)} immediately evaluates to false. For {@code
+   * \canAccess(x, len)} checking all the conditions imposed by the C standard in practice means
+   * that if the evaluation of x has undefined behavior related to MemSafety, e.g. for a[100] as
+   * argument with a of type int*[50][50], the witness is still valid, however {@code \canAccess(x,
+   * len)} returns false. Defined in <a
+   * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/7997352a6937ab042e08265c09f081210ab76a0f/user-guide/Witness-Format.md">witness
+   * format version 2.4</a>, added via <a
+   * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/merge_requests/111">MR!111 for
+   * witness format 2.4</a>. TODO: use proper links once 2.4 is merged.
+   */
   @Override
   public Set<SMGState> visit(AcslCanAccessPredicate pAcslCanAccessPredicate)
       throws CPATransferException {
-    CExpression exprTargetingMemory = pAcslCanAccessPredicate.getCExpressionTargetingMemory();
 
-    // Theoretically this may materialize a list, returning 2 elements. We need to keep working with
-    // the new states, as otherwise our validity mapping does not match!
-    List<SMGStateAndOptionalSMGObjectAndOffset> targetMemories =
-        exprTargetingMemory.accept(
-            new SMGCPAAddressVisitor(evaluator, initialState, originCfaEdge, logger, options));
+    verify(!initialState.hasMemoryErrors());
+
+    // We model \canAccess() by simply handing checking the returned memory errors
+    // after checking the access
+    CExpression exprTargetingMemory =
+        getCExpressionArgument(
+            pAcslCanAccessPredicate.getExpressionTargetingMemory(), pAcslCanAccessPredicate);
+    CType accessTypeTargetingMemory = exprTargetingMemory.getExpressionType().getCanonicalType();
+
+    // Access from exprTargetingMemory up to exprTargetingMemory + lenArgExpr - 1
+    // needs to be guaranteed
+    CExpression lenArgExpr =
+        getCExpressionArgument(
+            pAcslCanAccessPredicate.getLengthExpression(), pAcslCanAccessPredicate);
 
     ImmutableSet.Builder<SMGState> resultStates = ImmutableSet.builder();
-    for (SMGStateAndOptionalSMGObjectAndOffset targetMemory : targetMemories) {
-      if (!targetMemory.hasSMGObjectAndOffset()) {
-        // Invalid witness
-        throw new IllegalArgumentException(
-            "MemSafety witness failed to find the target memory for: " + pAcslCanAccessPredicate);
-        // TODO: switch to the return. I only put the exception there to see whether this happens.
-        // return ImmutableSet.of();
-      }
 
-      BooleanAndSMGState accessResult =
-          checkCanAccessMemory(
-              exprTargetingMemory,
-              targetMemory.getSMGObject(),
-              targetMemory.getOffsetForObject(),
-              targetMemory.getSMGState());
+    for (ValueAndSMGState lenArgAndState :
+        new SMGCPAValueVisitor(evaluator, initialState, originCfaEdge, logger, options)
+            .evaluate(lenArgExpr, lenArgExpr.getExpressionType().getCanonicalType())) {
 
-      if (!accessResult.getBoolean()) {
-        return ImmutableSet.of();
+      Value lenValueInBytes = lenArgAndState.getValue();
+
+      for (SMGStateAndOptionalSMGObjectAndOffset targetMemory :
+          exprTargetingMemory.accept(
+              new SMGCPAAddressVisitor(
+                  evaluator, lenArgAndState.getState(), originCfaEdge, logger, options))) {
+
+        if (!targetMemory.hasSMGObjectAndOffset()) {
+          // Invalid witness
+          throw new IllegalArgumentException(
+              "MemSafety witness failed to find the target memory for: " + pAcslCanAccessPredicate);
+          // TODO: switch to the return. I only put the exception there to see whether this happens.
+          // return ImmutableSet.of();
+        }
+
+        BooleanAndSMGState accessResult =
+            checkCanAccessMemory(
+                targetMemory.getOffsetForObject(),
+                evaluator.multiplyBitOffsetValues(
+                    lenValueInBytes,
+                    BigInteger.valueOf(initialState.getMachineModel().getSizeofCharInBits())),
+                targetMemory.getSMGObject(),
+                targetMemory.getSMGState());
+
+        if (accessResult.getBoolean()) {
+          // Access is valid, but we also check for side effects
+          SMGState accessValidState = checkNotNull(accessResult.getSMGState());
+          if (!accessValidState.hasMemoryErrors()) {
+            resultStates.add(accessValidState);
+          }
+        }
       }
-      resultStates.add(checkNotNull(accessResult.getSMGState()));
     }
 
     return resultStates.build();
   }
 
-  // Our separating conjunction, e.g. '(start) @ (start->next)', showing that the 2 memory regions
-  // are
-  // distinct.
+  /**
+   * Our separating conjunction {@code \separated(e1, ..., en)}, e.g. {@code \separated(start,
+   * start->next)}, showing that the memory regions of the arguments are disjunct, for n >= 1. More
+   * complex example: {@code \separated(\canAccess(start, sizeof(struct sll)), sll_seg(start->next,
+   * end)))} Trying to access a memory region outside of ones arguments partition of memory is
+   * interpreted as invalid dereference!
+   */
   @Override
   public Set<SMGState> visit(
       AcslSeparateMemoryConjunctionPredicate pAcslSeparateMemoryConjunctionPredicate)
       throws CPATransferException {
-    CExpression leftExpr =
-        pAcslSeparateMemoryConjunctionPredicate.getLeftCExpressionTargetingMemory();
-    CExpression rightExpr =
-        pAcslSeparateMemoryConjunctionPredicate.getRightCExpressionTargetingMemory();
-
-    // Theoretically this may materialize a list, returning 2 elements. We need to keep working with
-    // the new states, as otherwise our validity mapping does not match!
-    List<SMGStateAndOptionalSMGObjectAndOffset> targetMemoriesLeft =
-        leftExpr.accept(
-            new SMGCPAAddressVisitor(evaluator, initialState, originCfaEdge, logger, options));
 
     ImmutableSet.Builder<SMGState> resultStates = ImmutableSet.builder();
-    for (SMGStateAndOptionalSMGObjectAndOffset targetMemoryLeft : targetMemoriesLeft) {
-      if (!targetMemoryLeft.hasSMGObjectAndOffset()) {
-        // Invalid witness
-        throw new IllegalArgumentException(
-            "MemSafety witness failed to find the left target memory for: "
-                + pAcslSeparateMemoryConjunctionPredicate);
-        // TODO: switch to the return. I only put the exception there to see whether this happens.
-        // return ImmutableSet.of();
-      }
+    List<AExpression> separatedExpressions =
+        pAcslSeparateMemoryConjunctionPredicate.getSeparatedArguments();
+    Collection<SMGState> currentStates = ImmutableList.of(initialState);
 
-      List<SMGStateAndOptionalSMGObjectAndOffset> targetMemoriesRight =
-          rightExpr.accept(
-              new SMGCPAAddressVisitor(
-                  evaluator, targetMemoryLeft.getSMGState(), originCfaEdge, logger, options));
+    for (AExpression separateExpr : separatedExpressions) {
+      ImmutableSet.Builder<SMGState> evaluatedStates = ImmutableSet.builder();
 
-      for (SMGStateAndOptionalSMGObjectAndOffset targetMemoryRight : targetMemoriesRight) {
-        if (!targetMemoryRight.hasSMGObjectAndOffset()) {
-          // Invalid witness
-          throw new IllegalArgumentException(
-              "MemSafety witness failed to find the left target memory for: "
-                  + pAcslSeparateMemoryConjunctionPredicate);
-          // TODO: switch to the return. I only put the exception there to see whether this happens.
-          // return ImmutableSet.of();
-        }
+      for (SMGState currentState : currentStates) {
+        if (separateExpr instanceof CExpression sepCExpr) {
+          // CExpression, e.g. just a pointer, but we might visit multiple heap sections
+          // (SMGObjects)!
+          // Resolve the memory, and make sure we don't touch it in the other arguments.
+          // TODO: Tomas wraps at least the first argument always in \canAccess in SEAL.
+          //  We might want to look into that as well.
+          evaluatedStates.addAll(
+              sepCExpr
+                  .accept(
+                      new SMGCPAValueVisitor(
+                          evaluator, currentState, originCfaEdge, logger, options))
+                  .stream()
+                  .map(ValueAndSMGState::getState)
+                  .collect(ImmutableList.toImmutableList()));
 
-        if (!targetMemoryRight.getSMGObject().equals(targetMemoryLeft.getSMGObject())) {
-          resultStates.add(targetMemoryRight.getSMGState());
+        } else if (separateExpr instanceof AcslPredicate pSepACSLPredicate) {
+          // Handle via this visitor, as it is a ACSL expression.
+          // E.g. a \canAccess() or a recursive predicate
+          // TODO: resolve all touched memory in those via a class variable somehow
+          //  (this is actually hard...), e.g. via a new CExpression visitor that gives all partial
+          //  expressions or all visited objects, e.g. for start->next->*(nested.data) we get the
+          //  expressions and or SMGObjects for start, start->next, start->next->nested,
+          //  and start->next->*(nested.data). We could modify the AddressVisitor for this purpose.
+          //  This must collect all abstracted memory without unfolding though, as otherwise we
+          //  might loop endlessly. Alternatively, collect all memory when working on it,
+          //  but this is a giant hassle with many chances of fucking it up.
+          //  This also needs to be used in the CExpression case above.
+
+          evaluatedStates.addAll(pSepACSLPredicate.accept(copyWithNewState(currentState)));
 
         } else {
-          // Invalid witness
-          throw new IllegalArgumentException(
-              "MemSafety witness validation failed due to for: "
-                  + pAcslSeparateMemoryConjunctionPredicate);
-          // TODO: remove this branch. I just wanted to know whether this works correctly. The else
-          //  is not even correct in all cases, as a materialization might happen and fulfill it in
-          //  one, but not the other case!
+          throw new UnsupportedOperationException(
+              "Unhandled type of argument in separated conjunction: " + separateExpr);
         }
       }
+      currentStates = evaluatedStates.build();
     }
 
     return resultStates.build();

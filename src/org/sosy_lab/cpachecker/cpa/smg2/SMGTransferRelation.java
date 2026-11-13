@@ -39,10 +39,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -421,7 +419,7 @@ public class SMGTransferRelation
     CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
     checkArgument(
-        state.getMemoryModel().getStackFrames().peek().getCFunctionDefinition()
+        state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
             == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
@@ -582,7 +580,13 @@ public class SMGTransferRelation
       }
     }
 
-    return ImmutableList.of(handleCFunctionCall(state, callEdge, arguments, paramDecl));
+    return ImmutableList.of(
+        handleCFunctionCall(
+            state,
+            callEdge,
+            callEdge.getSuccessor().getFunctionDefinition(),
+            arguments,
+            paramDecl));
   }
 
   /**
@@ -599,66 +603,15 @@ public class SMGTransferRelation
    *     new local variables.
    * @throws CPATransferException in case of a critical error.
    */
-  protected SMGState handleCFunctionCall(
-      SMGState initialState,
-      CFunctionCallEdge callEdge,
-      List<CExpression> arguments,
-      List<CParameterDeclaration> paramDecl)
-      throws CPATransferException {
-    CFunctionDeclaration funcDecl = callEdge.getSuccessor().getFunctionDefinition();
-    return handleAFunctionCall(initialState, callEdge, funcDecl, arguments, paramDecl);
-  }
-
-  /**
-   * Creates a new C stack frame for the ACSL predicate (that can be seen as a function call), then
-   * creates the local variables for the parameters and fills them using the value visitor with the
-   * values given. This should only be called if the number of arguments and paramDecls entered
-   * match.
-   *
-   * @param initialState the current state.
-   * @param callEdge the edge of the function call.
-   * @param arguments the function call arguments {@link CExpression}s.
-   * @param paramDecl the {@link CParameterDeclaration} for the arguments.
-   * @return a state with a new stack frame and all parameters evaluated to values and assigned to
-   *     new local variables.
-   * @throws CPATransferException in case of a critical error.
-   */
-  protected SMGState handleAcslPredicateFunctionCall(
+  SMGState handleCFunctionCall(
       SMGState initialState,
       CFAEdge callEdge,
-      AcslPredicateDeclaration funDecl,
-      List<CExpression> arguments,
-      List<CParameterDeclaration> paramDecl)
-      throws CPATransferException {
-    return handleAFunctionCall(initialState, callEdge, funDecl, arguments, paramDecl);
-  }
-
-  /**
-   * This is not meant to be called directly (like ever). Please use the 2 functions with input
-   * validation. Creates a new stack frame for function calls, then creates the local variables for
-   * the parameters and fills them using the value visitor with the values given. This should only
-   * be called if the number of arguments and paramDecls entered match. This function also checks
-   * for variable arguments and saves them in an array in the order they appear.
-   *
-   * @param initialState the current state.
-   * @param callEdge the edge of the function call.
-   * @param funDecl function declaration used to define the stack frame.
-   * @param arguments the function call arguments {@link CExpression}s.
-   * @param paramDecl the {@link CParameterDeclaration} for the arguments.
-   * @return a state with a new stack frame and all parameters evaluated to values and assigned to
-   *     new local variables.
-   * @throws CPATransferException in case of a critical error.
-   */
-  private SMGState handleAFunctionCall(
-      SMGState initialState,
-      CFAEdge callEdge,
-      AFunctionDeclaration funDecl,
+      CFunctionDeclaration funDecl,
       List<CExpression> arguments,
       List<CParameterDeclaration> paramDecl)
       throws CPATransferException {
     // Create a variable for each parameter, then evaluate all given parameters and assign them to
     // their variables
-    // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
     SMGState currentState = initialState;
     ImmutableList.Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
     BigInteger overallVarArgsSizeInBits = BigInteger.ZERO;
@@ -726,13 +679,13 @@ public class SMGTransferRelation
     ImmutableList<Value> readValuesInOrder = readValuesInOrderBuilder.build();
     // Add the new stack frame based on the function def, but only after we read the values from the
     // old stack frame
-    if (funDecl instanceof CFunctionDeclaration cFunDecl && cFunDecl.getType().takesVarArgs()) {
+    if (funDecl.getType().takesVarArgs()) {
       // Get the var args and save them in the stack frame
       ImmutableList.Builder<Value> varArgsBuilder = ImmutableList.builder();
       for (int i = paramDecl.size(); i < arguments.size(); i++) {
         varArgsBuilder.add(readValuesInOrder.get(i));
       }
-      currentState = currentState.copyAndAddStackFrame(cFunDecl, varArgsBuilder.build());
+      currentState = currentState.copyAndAddStackFrame(funDecl, varArgsBuilder.build());
     } else {
       currentState = currentState.copyAndAddStackFrame(funDecl);
     }
@@ -741,13 +694,12 @@ public class SMGTransferRelation
       Value paramValue = readValuesInOrder.get(i);
       CType valueType = SMGCPAExpressionEvaluator.getCanonicalType(arguments.get(i));
 
-      // Normal variable with a name
-      String varName = paramDecl.get(i).getQualifiedName();
-      CType cParamType = SMGCPAExpressionEvaluator.getCanonicalType(paramDecl.get(i));
+      // Parameter as a variable with a name
+      CParameterDeclaration declaration = paramDecl.get(i);
 
       currentState =
           handleFunctionParameterAssignments(
-              varName, valueType, paramValue, cParamType, callEdge, currentState);
+              declaration, valueType, paramValue, callEdge, currentState);
     }
     return currentState;
   }
@@ -757,14 +709,15 @@ public class SMGTransferRelation
    * Note: the action depends on the types. See method for more details.
    */
   private SMGState handleFunctionParameterAssignments(
-      String varName,
+      CParameterDeclaration pCParamDeclaration,
       CType valueType,
       Value paramValue,
-      CType cParamType,
       CFAEdge callEdge,
       SMGState pCurrentState)
       throws CPATransferException {
 
+    CType cParamType = pCParamDeclaration.getType().getCanonicalType();
+    String varName = pCParamDeclaration.asVariableDeclaration().getQualifiedName();
     SMGState currentState = pCurrentState;
     if ((valueType instanceof CArrayType || valueType instanceof CPointerType)
         && cParamType instanceof CArrayType) {
@@ -1149,19 +1102,19 @@ public class SMGTransferRelation
           && cFuncDecl.getQualifiedName().equals(cfa.getMainFunction().getFunctionName())) {
         if (cFuncDecl.getParameters() != null) {
           // Init main parameters if there are any
-          for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
-            CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameters.getType());
+          for (CParameterDeclaration parameterDecl : cFuncDecl.getParameters()) {
+            CType paramType = SMGCPAExpressionEvaluator.getCanonicalType(parameterDecl.getType());
             Value paramSizeInBits = evaluator.getBitSizeof(currentState, paramType, edge);
             if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
               currentState =
                   currentState.copyAndAddLocalVariable(
-                      paramSizeInBits, parameters.getQualifiedName(), paramType, true);
+                      paramSizeInBits, parameterDecl.getQualifiedName(), paramType, true);
             } else {
               // argc and argv are also allocated here if they are in the program
               // argc is some nondet > 1 while argv is non-null array of unknown values size argc
               currentState =
                   currentState.copyAndAddLocalVariable(
-                      paramSizeInBits, parameters.getQualifiedName(), paramType);
+                      paramSizeInBits, parameterDecl.getQualifiedName(), paramType);
             }
           }
         }
@@ -1258,6 +1211,9 @@ public class SMGTransferRelation
                       "implement me. The error added is not part of the automaton yet!");
                 }
               }
+            } else {
+              // No invariant to validate, e.g., for specification automata
+              result.addAll(strengthenedStates);
             }
 
           } catch (SolverException e) {

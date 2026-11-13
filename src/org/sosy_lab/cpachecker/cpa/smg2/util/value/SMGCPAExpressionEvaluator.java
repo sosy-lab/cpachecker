@@ -154,7 +154,10 @@ public class SMGCPAExpressionEvaluator {
    * symbolic predicates using an SMT solver should the correct option be set (i.e. symbolic
    * execution).
    *
-   * @param accessSizeInBits access size in bits that needs to be valid. Access is checked from accessOffsetInBits up to, but excluding the last bit of, accessOffsetInBits + accessSizeInBits. This is equal to access to a memory region of a type with a size equal to accessSizeInBits starting at the offset specified.
+   * @param accessSizeInBits access size in bits that needs to be valid. Access is checked from
+   *     accessOffsetInBits up to, but excluding the last bit of, accessOffsetInBits +
+   *     accessSizeInBits. This is equal to access to a memory region of a type with a size equal to
+   *     accessSizeInBits starting at the offset specified.
    * @param accessOffsetInBits offset of the access in the memory object.
    * @param memoryObjAccessed {@link SMGObject} accessed. Needs to be known to the SMG in the given
    *     state.

@@ -12,22 +12,33 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.ProgramSubject.assertUsing;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.WitnessType.GRAPHML_VIOLATION;
+import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.WitnessType.YML_CORRECTNESS;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Fact;
 import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.SimpleSubjectBuilder;
 import com.google.common.truth.Subject;
 import com.google.common.truth.TruthJUnit;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -36,13 +47,25 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionContractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 /**
  * Base class to execute common configurations of the SMG2-CPA with test programs for multiple
@@ -50,6 +73,9 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
  */
 @RunWith(Parameterized.class)
 public abstract class SMGCPAIntegrationTest0 {
+
+  /** File name template for YAML witnesses, '%s' is replaced by the witness version. */
+  private static final String YAML_WITNESS_FILE_TEMPLATE = "witness-%s.yml";
 
   enum WitnessType {
     GRAPHML_VIOLATION {
@@ -60,7 +86,12 @@ public abstract class SMGCPAIntegrationTest0 {
     },
     GRAPHML_CORRECTNESS,
     YML_VIOLATION,
-    YML_CORRECTNESS
+    YML_CORRECTNESS {
+      @Override
+      public String toString() {
+        return YAML_WITNESS_FILE_TEMPLATE;
+      }
+    }
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -166,6 +197,14 @@ public abstract class SMGCPAIntegrationTest0 {
    */
   protected void onlyTestSMGSymbolicExecutionConfiguration() {
     assume().that(configToUse).isEqualTo(SMG_SYMBOLIC_EXECUTION);
+  }
+
+  /**
+   * Skips all specifications for a test except the MemSafety specification, starting from the
+   * position this method is used.
+   */
+  protected void onlyTestMemSafetySpecification() {
+    assume().that(specToUse).isEqualTo(MEMSAFETY_SPECIFICATION);
   }
 
   /**
@@ -343,6 +382,74 @@ public abstract class SMGCPAIntegrationTest0 {
       return Path.of(tempFolder.getRoot().getAbsolutePath(), witnessTypeForName.toString());
     }
 
+    /**
+     * Check that the analysis result of the program is SAFE in the current analysis, and that a
+     * YAML correctness witness in version 2.4 is returned that consists of a single invariant set
+     * with a loop invariant at the given location. The value of the loop invariant has to contain
+     * all given expressions. All exported expressions may only use variable names of the input
+     * program.
+     */
+    public void returnsCorrectnessWitnessV2d4WithLoopInvariantContaining(
+        String function, int line, int column, Iterable<String> expectedContainedExpressions)
+        throws Exception {
+      TestResults res =
+          runAnalysisWithOutputFiles(
+              ImmutableMap.of(
+                  "witness.yamlexporter.witnessVersions",
+                  YAMLWitnessVersion.V2d4.name(),
+                  "cpa.arg.yamlProofWitness",
+                  getDefaultWitnessOutputPathFor(YML_CORRECTNESS).toString()));
+      isExpectedResult(res, Result.TRUE, "TRUE (safe program for chosen specification)");
+      res.getCheckerResult().writeOutputFiles();
+      String witness =
+          getWitnessContentCheckingOutputCorrectness(
+              res,
+              getDefaultWitnessOutputPathFor(YML_CORRECTNESS)
+                  .resolveSibling(
+                      String.format(YAML_WITNESS_FILE_TEMPLATE, YAMLWitnessVersion.V2d4)));
+
+      List<AbstractEntry> entries;
+      try (InputStream witnessStream = new ByteArrayInputStream(witness.getBytes(UTF_8))) {
+        entries = AutomatonWitnessV2ParserUtils.parseYAML(witnessStream);
+      }
+      assertWithMessage("entries of witness %s", witness).that(entries).hasSize(1);
+      assertWithMessage("entry of witness %s", witness)
+          .that(entries.getFirst())
+          .isInstanceOf(InvariantSetEntry.class);
+      InvariantSetEntry invariantSet = (InvariantSetEntry) entries.getFirst();
+      assertThat(invariantSet.getMetadata().getFormatVersion())
+          .isEqualTo(YAMLWitnessVersion.V2d4.toString());
+
+      List<InvariantEntry> loopInvariants = new ArrayList<>();
+      for (AbstractInvariantEntry invariantEntry : invariantSet.content) {
+        if (invariantEntry instanceof InvariantEntry invariant) {
+          // Only expressions of the input program are allowed in witnesses
+          assertThat(invariant.getValue()).doesNotContain("::");
+          assertThat(invariant.getValue()).doesNotContain("__CPAchecker_");
+          if (invariant.getType().equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())
+              && invariant.getLocation().getLine() == line
+              && invariant.getLocation().getColumn().equals(OptionalInt.of(column))
+              && invariant.getLocation().getFunction().equals(function)) {
+            loopInvariants.add(invariant);
+          }
+        } else if (invariantEntry instanceof FunctionContractEntry contract) {
+          // Contracts in witness format 2.4 are always given as ext_c_expression
+          assertThat(contract.getFormat()).isEqualTo(YAMLWitnessExpressionType.EXT_C);
+        }
+      }
+
+      assertWithMessage(
+              "loop invariants in function %s at line %s, column %s of witness %s",
+              function, line, column, witness)
+          .that(loopInvariants)
+          .hasSize(1);
+      InvariantEntry loopInvariant = loopInvariants.getFirst();
+      assertThat(loopInvariant.getFormat()).isEqualTo(YAMLWitnessExpressionType.C);
+      for (String expectedExpression : expectedContainedExpressions) {
+        assertThat(loopInvariant.getValue()).contains(expectedExpression);
+      }
+    }
+
     private String getWitnessContentCheckingOutputCorrectness(
         TestResults pResult, Path pWitnessOutputPath) throws IOException {
 
@@ -371,12 +478,29 @@ public abstract class SMGCPAIntegrationTest0 {
      * current tempFolder
      */
     private TestResults runAnalysisWithOutputFiles() throws Exception {
-      Configuration configWithOutputFiles =
+      return runAnalysisWithOutputFiles(ImmutableMap.of());
+    }
+
+    /**
+     * Runs the analysis with the given additional options, writing output files into the current
+     * tempFolder of this subject.
+     */
+    private TestResults runAnalysisWithOutputFiles(Map<String, String> additionalOptions)
+        throws Exception {
+      String outputPath = tempFolder.getRoot().getAbsolutePath();
+      // The file type converter resolves the output paths, so it needs to know the output path
+      FileTypeConverter fileTypeConverter =
+          FileTypeConverter.create(
+              Configuration.builder().setOption("output.path", outputPath).build());
+      ConfigurationBuilder configWithOutputFiles =
           Configuration.builder()
               .copyFrom(config)
-              .setOption("output.path", tempFolder.getRoot().getAbsolutePath())
-              .build();
-      return runAnalysis(configWithOutputFiles);
+              .setOption("output.path", outputPath)
+              .addConverter(FileOption.class, fileTypeConverter);
+      for (Entry<String, String> option : additionalOptions.entrySet()) {
+        configWithOutputFiles.setOption(option.getKey(), option.getValue());
+      }
+      return runAnalysis(configWithOutputFiles.build());
     }
 
     private TestResults runAnalysis(Configuration configToRun) throws Exception {

@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -199,35 +198,37 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
   private ConcreteState createConcreteStateFrom(
       SMGState pSMGState, List<ValueAssignment> modelToUse) {
+    ImmutableMap<LeftHandSide, Object> variableAssignments = ImmutableMap.of();
+    if (options.exportVariableAssignmentsForViolations()) {
+      variableAssignments = getConcreteValuesForAllVariablesInScope(pSMGState, modelToUse, options);
+    }
     return new ConcreteState(
-        getConcreteValuesForVariables(pSMGState, modelToUse, options),
+        variableAssignments,
         ImmutableMap.of(),
         ImmutableMap.of(),
         exp -> MEMORY_NAME,
         pSMGState.getMachineModel());
   }
 
-  private static Map<LeftHandSide, Object> getConcreteValuesForVariables(
+  private static ImmutableMap<LeftHandSide, Object> getConcreteValuesForAllVariablesInScope(
       SMGState state, List<ValueAssignment> modelToUse, SMGOptions options) {
     ImmutableMap.Builder<LeftHandSide, Object> result = ImmutableMap.builder();
 
-    if (options.exportVariableAssignmentsForViolations()) {
-      for (Entry<MemoryLocation, BigInteger> memLocsAndValues :
-          state.getVariablesWithConcreteValues(modelToUse).entrySet()) {
+    // We only want concrete assignments of variables in the original program!
+    for (Entry<MemoryLocation, BigInteger> assignment :
+        state.getVariablesWithConcreteValuesForV1Witnesses(modelToUse).entrySet()) {
 
-        MemoryLocation location = memLocsAndValues.getKey();
-        BigInteger value = memLocsAndValues.getValue();
+      BigInteger value = assignment.getValue();
 
-        Optional<LeftHandSide> maybeLhs = createLeftHandSideFor(location, options);
-        // We can't handle local arrays or field references currently, as we only have an offset,
-        // and someone decided that THE ONE INFORMATION THAT C NEEDS TO DETERMINE WHERE WE ARE IN
-        // MEMORY IS NOT NEEDED IN CPACHECKER
-        if (maybeLhs.isPresent()) {
-          LeftHandSide lhs = maybeLhs.orElseThrow();
-          checkState(lhs.isGlobal() == !location.isOnFunctionStack());
-          checkState(!location.isReference() || lhs instanceof FieldReference);
-          result.put(lhs, value);
-        }
+      Optional<LeftHandSide> maybeLhs = createLeftHandSideFor(assignment.getKey(), options);
+      // We can't handle local arrays or field references currently, as we only have an offset,
+      // and someone decided that THE ONE INFORMATION THAT C NEEDS TO DETERMINE WHERE WE ARE IN
+      // MEMORY IS NOT NEEDED IN CPACHECKER
+      if (maybeLhs.isPresent()) {
+        LeftHandSide lhs = maybeLhs.orElseThrow();
+        checkState(lhs.isGlobal() == !assignment.getKey().isOnFunctionStack());
+        checkState(!assignment.getKey().isReference() || lhs instanceof FieldReference);
+        result.put(lhs, value);
       }
     }
 

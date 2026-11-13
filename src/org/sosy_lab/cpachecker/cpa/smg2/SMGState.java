@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cpa.smg2.SMGStateToCExpressionVisitor.resolveAssignmentsAndInvariantsForVariable;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.EQUAL;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT;
 
@@ -20,12 +21,15 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
@@ -41,6 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -50,27 +55,39 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -110,6 +127,11 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -139,13 +161,32 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  * CPAState, while the memory state is represented by the SPC. This class therefore hands down
  * write/read and other memory operations. It is expected that in the SPC no CPA specific stuff is
  * handled.
+ *
+ * <ul>
+ *   Explanation for the implemented interfaces:
+ * </ul>
+ *
+ * <ul>
+ *   <li>{@link ExpressionTreeReportingState} is used for witness v2 (YAML) export.
+ *   <li>{@link Graphable} is used for dumping the state into Graphviz labels, improving CPAcheckers
+ *       output.
+ *   <li>{@link AbstractQueryableState} is used for evaluating String-encoded Properties and returns
+ *       whether they are satisfied in concrete states represented by the AbstractState.
+ *   <li>{@link Partitionable} is used to define the partition keys of states used to partition
+ *       them, e.g. to make the stop/merge operators more efficient by only applying them in their
+ *       partitions.
+ *   <li>{@link LatticeAbstractState} is used to implement the merge operator.
+ *   <li>{@link ImmutableForgetfulState} is used for path-based CEGAR and allows states to produce
+ *       immutable copies of themselves that "forgot" a program variable (via {@link
+ *       MemoryLocation}s).
  */
 public class SMGState
     implements ImmutableForgetfulState<SMGInformation>,
         LatticeAbstractState<SMGState>,
         Partitionable,
         AbstractQueryableState,
-        Graphable {
+        Graphable,
+        ExpressionTreeReportingState {
 
   // Properties:
   private static final String HAS_INVALID_FREES = "has-invalid-frees";
@@ -866,7 +907,7 @@ public class SMGState
         StackFrame thisFrame = existingFrames.next();
         CFunctionDeclarationAndOptionalValue otherFunDefAndReturnValue = shouldBeFrames.next();
         CFunctionDeclaration otherFunDef = otherFunDefAndReturnValue.getCFunctionDeclaration();
-        checkArgument(thisFrame.getCFunctionDefinition().equals(otherFunDef));
+        checkArgument(thisFrame.getFunctionDefinition().equals(otherFunDef));
       } else {
         // Start adding to the current
         CFunctionDeclarationAndOptionalValue otherFunDefAndReturnValue = shouldBeFrames.next();
@@ -1270,21 +1311,6 @@ public class SMGState
    */
   public boolean checkVariableExists(SMGState pState, String variableName) {
     return pState.getMemoryModel().getObjectForVisibleVariable(variableName).isPresent();
-  }
-
-  /**
-   * Copy SMGState and adds a new ACSL frame for the function.
-   *
-   * @param pFunctionDefinition A function for which to create a new stack frame
-   */
-  public SMGState copyAndAddStackFrame(AFunctionDeclaration pFunctionDefinition) {
-    if (pFunctionDefinition instanceof CFunctionDeclaration pCFunctionDeclaration) {
-      return copyAndAddStackFrame(pCFunctionDeclaration);
-    } else if (pFunctionDefinition instanceof AcslFunctionDeclaration acslFunDecl) {
-      return copyAndReplaceMemoryModel(memoryModel.copyAndAddStackFrame(acslFunDecl, machineModel));
-    }
-    throw new UnsupportedOperationException(
-        "Unsupported function definition: " + pFunctionDefinition);
   }
 
   /**
@@ -6828,7 +6854,7 @@ public class SMGState
   private SMGObject getReturnObjectForMemoryLocation(MemoryLocation memLoc) {
     String funcName = memLoc.getFunctionName();
     for (StackFrame stack : memoryModel.getStackFrames()) {
-      if (stack.getCFunctionDefinition().getQualifiedName().equals(funcName)) {
+      if (stack.getFunctionDefinition().getQualifiedName().equals(funcName)) {
         return stack.getReturnObject().orElseThrow();
       }
     }
@@ -6862,7 +6888,7 @@ public class SMGState
   public boolean hasStackFrameForFunctionDef(CFunctionDeclaration edgeToCheck) {
     for (StackFrame frame : memoryModel.getStackFrames()) {
       // Yes == !
-      if (frame.getCFunctionDefinition() == edgeToCheck) {
+      if (frame.getFunctionDefinition() == edgeToCheck) {
         return true;
       }
     }
@@ -6876,221 +6902,213 @@ public class SMGState
    * returned for it. Only returns values for simple types (int, long etc.) or null for pointers
    * currently.
    */
-  public Map<MemoryLocation, BigInteger> getVariablesWithConcreteValues(
-      List<ValueAssignment> modelToUse) {
-    Map<SymbolicIdentifier, Value> solverAssignments =
+  public Map<MemoryLocation, BigInteger> getVariablesWithConcreteValuesForV1Witnesses(
+      final List<ValueAssignment> modelToUse) {
+
+    final Map<SymbolicIdentifier, Value> solverAssignments =
         extractSolverAssignmentsFromModel(modelToUse);
+    final FileLocation loc = FileLocation.DUMMY;
+
+    ImmutableSet<AExpression> globalVarAssignments =
+        getGlobalVariableAssignmentsAndInvariants(solverAssignments, loc, true);
+    // Local vars are only the vars of the current function
+    ImmutableSet<AExpression> localVarAssignments =
+        getLocalVariableAssignmentsAndInvariants(solverAssignments, loc, true);
 
     ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
+    // TODO: are floats allowed in v1 export here?
+    for (AExpression maybeGlobalAssignment : globalVarAssignments) {
+      extractValueAssignmentForV1Witnesses(maybeGlobalAssignment, memLocAndValueBuilder);
+    }
+    for (AExpression maybeLocalAssignment : localVarAssignments) {
+      extractValueAssignmentForV1Witnesses(maybeLocalAssignment, memLocAndValueBuilder);
+    }
 
-    Map<MemoryLocation, Entry<CType, SMGObject>> globalVars =
-        memoryModel.getGlobalVariablesWithTypes();
-    memLocAndValueBuilder.putAll(getConcreteValuesFor(globalVars, solverAssignments));
-    // Local vars are only the vars of the current function
-    Map<MemoryLocation, Entry<CType, SMGObject>> localVars =
-        memoryModel.getCurrentStackVariablesWithTypes();
-    memLocAndValueBuilder.putAll(getConcreteValuesFor(localVars, solverAssignments));
-
-    return memLocAndValueBuilder.buildOrThrow();
+    return memLocAndValueBuilder.build();
   }
 
   /**
-   * Tries to read the values from the SMG (memory-model) with the types provided, from the provided
-   * object. If the type is not available, or the object is invalid, the entry is skipped and
-   * nothing is returned for it. Only returns values for simple types (int, long etc.) or references
-   * to numeric values in struct fields of depth 1 (due to how the concrete error path states and
-   * {@link MemoryLocation} work).
+   * Tries to resolve all sensible assignments, and ACSL based invariants, if exportOnlyAssignments
+   * is false, for all global variables.
    */
-  public Map<MemoryLocation, BigInteger> getConcreteValuesFor(
+  private ImmutableSet<AExpression> getGlobalVariableAssignmentsAndInvariants(
+      final Map<SymbolicIdentifier, Value> solverAssignmentsToApply,
+      final FileLocation fileLocation,
+      final boolean exportOnlyAssignments) {
+    return getGlobalVariableAssignmentsAndInvariants(
+        solverAssignmentsToApply,
+        fileLocation,
+        exportOnlyAssignments,
+        Predicates.alwaysTrue(),
+        Function.identity());
+  }
+
+  /**
+   * Tries to resolve all sensible assignments, and ACSL based invariants, if exportOnlyAssignments
+   * is false, for all global variables that match the given filter. The names of the variables in
+   * the returned expressions are renamed using the given renaming function.
+   */
+  private ImmutableSet<AExpression> getGlobalVariableAssignmentsAndInvariants(
+      final Map<SymbolicIdentifier, Value> solverAssignmentsToApply,
+      final FileLocation fileLocation,
+      final boolean exportOnlyAssignments,
+      final Predicate<MemoryLocation> variableFilter,
+      final Function<String, String> variableRenamingFunction) {
+    Map<MemoryLocation, Entry<CType, SMGObject>> globalVars =
+        Maps.filterKeys(memoryModel.getGlobalVariablesWithTypes(), variableFilter);
+    return getVariableAssignments(
+        globalVars,
+        solverAssignmentsToApply,
+        fileLocation,
+        exportOnlyAssignments,
+        variableRenamingFunction);
+  }
+
+  /**
+   * Tries to resolve all sensible assignments, and ACSL based invariants, if exportOnlyAssignments
+   * is false, for all visible local variables of the current stack frame.
+   */
+  private ImmutableSet<AExpression> getLocalVariableAssignmentsAndInvariants(
+      final Map<SymbolicIdentifier, Value> solverAssignmentsToApply,
+      final FileLocation fileLocation,
+      final boolean exportOnlyAssignments) {
+    return getLocalVariableAssignmentsAndInvariants(
+        solverAssignmentsToApply,
+        fileLocation,
+        exportOnlyAssignments,
+        Predicates.alwaysTrue(),
+        Function.identity());
+  }
+
+  /**
+   * Tries to resolve all sensible assignments, and ACSL based invariants, if exportOnlyAssignments
+   * is false, for all visible local variables of the current stack frame that match the given
+   * filter. The names of the variables in the returned expressions are renamed using the given
+   * renaming function.
+   */
+  private ImmutableSet<AExpression> getLocalVariableAssignmentsAndInvariants(
+      final Map<SymbolicIdentifier, Value> solverAssignmentsToApply,
+      final FileLocation fileLocation,
+      final boolean exportOnlyAssignments,
+      final Predicate<MemoryLocation> variableFilter,
+      final Function<String, String> variableRenamingFunction) {
+    Map<MemoryLocation, Entry<CType, SMGObject>> localVars =
+        Maps.filterKeys(memoryModel.getCurrentStackVariablesWithTypes(), variableFilter);
+    return getVariableAssignments(
+        localVars,
+        solverAssignmentsToApply,
+        fileLocation,
+        exportOnlyAssignments,
+        variableRenamingFunction);
+  }
+
+  private void extractValueAssignmentForV1Witnesses(
+      AExpression maybeGlobalAssignment,
+      Builder<MemoryLocation, BigInteger> memLocAndValueBuilder) {
+    if (maybeGlobalAssignment instanceof CBinaryExpression binaryExpr
+        && binaryExpr.getOperator().equals(BinaryOperator.EQUALS)
+        && binaryExpr.getOperand2() instanceof CIntegerLiteralExpression rightHandSide) {
+      BigInteger assignedIntegerValue = rightHandSide.getValue();
+      CExpression leftHandSide = binaryExpr.getOperand1();
+
+      if (leftHandSide instanceof CIdExpression cIdExprLeft) {
+        memLocAndValueBuilder.put(
+            MemoryLocation.forDeclaration(cIdExprLeft.getDeclaration()), assignedIntegerValue);
+      } else if (leftHandSide instanceof CFieldReference fieldRef
+          && fieldRef.getFieldOwner() instanceof CIdExpression fieldOwnerIdExpr
+          && fieldRef.getExpressionType() instanceof CCompositeType fieldRefExprType) {
+        final String fieldName = fieldRef.getFieldName();
+        Optional<BigInteger> fieldOffsetInBytes =
+            machineModel.getFieldOffsetInBytes(fieldRefExprType, fieldName);
+        if (fieldOffsetInBytes.isPresent()) {
+          memLocAndValueBuilder.put(
+              MemoryLocation.forDeclaration(fieldOwnerIdExpr.getDeclaration())
+                  .withOffset(fieldOffsetInBytes.orElseThrow().longValueExact()),
+              assignedIntegerValue);
+        }
+      }
+    }
+  }
+
+  /**
+   * Tries to resolve as much useful information out of the given variables (local or global) in the
+   * current scope as possible. This might consist of concrete value assignments (e.g. x == 5;),
+   * relational (memory) information (e.g. x == y; or x != z; with x,y,z possibly being of integer,
+   * float or pointer types), and even ACSL memory invariants.
+   *
+   * @param solverAssignmentsToApply the model of an SMT solver used to resolve symbolic values to
+   *     concrete values.
+   * @param exportOnlyAssignments if false; invariants and (in)equalities are returned, potentially
+   *     in ACSL style. If true, only concrete value assignments in {@link CBinaryExpression}s with
+   *     {@link BinaryOperator#EQUALS} are returned.
+   */
+  public ImmutableSet<AExpression> getVariableAssignments(
       Map<MemoryLocation, Entry<CType, SMGObject>> variablesToRead,
-      Map<SymbolicIdentifier, Value> solverAssignmentsToApply) {
-    ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
+      Map<SymbolicIdentifier, Value> solverAssignmentsToApply,
+      FileLocation fileLocationForReturnedExpressions,
+      boolean exportOnlyAssignments) {
+    return getVariableAssignments(
+        variablesToRead,
+        solverAssignmentsToApply,
+        fileLocationForReturnedExpressions,
+        exportOnlyAssignments,
+        Function.identity());
+  }
+
+  /**
+   * Same as {@link #getVariableAssignments(Map, Map, FileLocation, boolean)}, but renames the
+   * variables in the returned expressions using the given renaming function. The renaming is
+   * applied to the name and original name, but not the qualified name, of the variables.
+   */
+  private ImmutableSet<AExpression> getVariableAssignments(
+      Map<MemoryLocation, Entry<CType, SMGObject>> variablesToRead,
+      Map<SymbolicIdentifier, Value> solverAssignmentsToApply,
+      FileLocation fileLocationForReturnedExpressions,
+      boolean exportOnlyAssignments,
+      Function<String, String> variableRenamingFunction) {
+    ImmutableSet.Builder<AExpression> assignmentsBuilder = ImmutableSet.builder();
 
     for (Entry<MemoryLocation, Entry<CType, SMGObject>> variableToRead :
         variablesToRead.entrySet()) {
-      MemoryLocation baseMemoryLoc = variableToRead.getKey();
-      @Nullable CType variableType = variableToRead.getValue().getKey();
-      SMGObject object = variableToRead.getValue().getValue();
-
+      MemoryLocation variableMemLoc = variableToRead.getKey();
+      checkArgument(!variableMemLoc.isReference());
+      String varName = variableMemLoc.getIdentifier();
+      String qualVarName = variableMemLoc.getQualifiedName();
+      SMGObject objectOfVar = variableToRead.getValue().getValue();
+      CType variableType = variableToRead.getValue().getKey();
       if (variableType == null) {
-        // TODO: just get all edges from the object and check if its filling the entire object?
+        // The type of the variable might be unknown, in which case we can not resolve it
         continue;
       }
 
-      try {
-        switch (variableType) {
-          case CSimpleType simpleVariableType -> {
-            // Simple types like int, etc., that return only 1 memory-location
-            BigInteger typeSize = machineModel.getSizeofInBits(variableType);
-            // Don't materialize abstracted memory, as we are reading a variable here, it is
-            // impossible to hit anything abstracted.
-            List<ValueAndSMGState> possibleValue =
-                readValue(object, BigInteger.ZERO, typeSize, simpleVariableType, true, false);
-            checkState(possibleValue.size() == 1);
+      // TODO: switch to saving variable declarations for each variable instead of our current
+      //  way and use them here
+      CVariableDeclaration declaration =
+          new CVariableDeclaration(
+              fileLocationForReturnedExpressions,
+              !variableMemLoc.isOnFunctionStack(),
+              CStorageClass.AUTO,
+              variableType,
+              varName,
+              varName,
+              qualVarName,
+              null);
 
-            Value readValue = possibleValue.getFirst().getValue();
-            readValue = applySolverAssignment(readValue, solverAssignmentsToApply);
-
-            if (readValue instanceof NumericValue numValue) {
-              // The offset NEEDS to be NULL! Anything else is interpreted as reference!
-              if (baseMemoryLoc.isReference()) {
-                baseMemoryLoc = baseMemoryLoc.getReferenceStart();
-              }
-              memLocAndValueBuilder.put(baseMemoryLoc, numValue.bigIntegerValue());
-            }
-          }
-
-          case CPointerType pointerVariableType -> {
-            // First, check for 0 at offset 0
-            if (!object.isZero() && memoryModel.isObjectValid(object)) {
-              BigInteger typeSize = machineModel.getSizeofInBits(variableType);
-              // Don't materialize abstracted memory, as we are reading a variable here, it is
-              // impossible to hit anything abstracted.
-              List<ValueAndSMGState> possibleValue =
-                  readValue(object, BigInteger.ZERO, typeSize, pointerVariableType, true, false);
-              checkState(possibleValue.size() == 1);
-              Value readValue = possibleValue.getFirst().getValue();
-
-              if (readValue instanceof NumericValue numValue
-                  && numValue.bigIntegerValue().equals(BigInteger.ZERO)) {
-                // The offset NEEDS to be NULL! Anything else is interpreted as reference!
-                if (baseMemoryLoc.isReference()) {
-                  baseMemoryLoc = baseMemoryLoc.getReferenceStart();
-                }
-                memLocAndValueBuilder.put(baseMemoryLoc, numValue.bigIntegerValue());
-                continue;
-              }
-
-              // TODO: problematic, fix
-              // Pointers to structs (or better to one field of these) can be represented
-              // in the current CEX/witness system, but can be expensive!
-              /*
-                if (pointerVariableType.getType().getCanonicalType()
-                    instanceof CCompositeType compositePointerTargetType) {
-                  BigInteger pointerSize = machineModel.getSizeofInBits(pointerVariableType);
-                  // Don't materialize abstracted memory, we detect it below and ignore it for now
-                  List<ValueAndSMGState> possiblePointerValue =
-                      readValue(object, BigInteger.ZERO, pointerSize, pointerVariableType, true, false);
-                  checkState(possiblePointerValue.size() == 1);
-
-                  Value pointer = possiblePointerValue.getFirst().getValue();
-                  SMGState currentState = possiblePointerValue.getFirst().getState(); // Should be this
-                  verify(currentState.isPointer(pointer));
-                  SMGPointsToEdge pte =
-                      currentState
-                          .getMemoryModel()
-                          .getSmg()
-                          .getPTEdge(
-                              currentState.getMemoryModel().getSMGValueFromValue(pointer).orElseThrow())
-                          .orElseThrow();
-
-                  // Ignore abstracted memory for now
-                  if (pte.getOffset() instanceof NumericValue numericOffsetInBits
-                      && pte.targetSpecifier().isRegion()) {
-
-                    BigInteger referenceOffsetInBytes =
-                        numericOffsetInBits.bigIntegerValue().divide(BigInteger.valueOf(8));
-                    Optional<CCompositeTypeMemberDeclaration> fieldToRead = Optional.empty();
-                    for (Entry<CCompositeTypeMemberDeclaration, BigInteger> field :
-                        machineModel.getAllFieldOffsetsInBits(compositePointerTargetType).entrySet()) {
-                      if (field.getValue().equals(numericOffsetInBits.bigIntegerValue())) {
-                        fieldToRead = Optional.of(field.getKey());
-                        break;
-                      }
-                    }
-
-                    SMGObject pointerTarget = pte.pointsTo();
-                    checkState(pointerTarget.getOffset().equals(BigInteger.ZERO));
-                    if (fieldToRead.isPresent()
-                        && !pointerTarget.isZero()
-                        && currentState.getMemoryModel().isObjectValid(pointerTarget)) {
-                      CType fieldType = fieldToRead.orElseThrow().getType().getCanonicalType();
-                      // TODO: pipe into nested evaluation from here
-                      BigInteger typeSize = machineModel.getSizeofInBits(fieldType);
-                      // Don't materialize abstracted memory, as we are reading a variable here, it is
-                      // impossible to hit anything abstracted.
-                      List<ValueAndSMGState> possibleValue =
-                          readValue(
-                              pointerTarget,
-                              numericOffsetInBits.bigIntegerValue(),
-                              typeSize,
-                              fieldType,
-                              true,
-                              false);
-                      checkState(possibleValue.size() == 1);
-
-                      Value readValue = possibleValue.getFirst().getValue();
-                      readValue = applySolverAssignment(readValue, solverAssignmentsToApply);
-
-                      if (readValue instanceof NumericValue numValue) {
-                        // The offset needs to be non-null and the offset of the field
-                        memLocAndValueBuilder.put(
-                            baseMemoryLoc.withAddedOffset(referenceOffsetInBytes.longValueExact()),
-                            numValue.bigIntegerValue());
-                      }
-                    }
-                  }
-              */
-            }
-          }
-          // TODO: case variableType instanceof CArrayType
-
-          // TODO: case variableType instanceof CBitFieldType
-
-          // TODO: Structs are delayed, as i don't want to search for the field 3 times just because
-          // the interface of the CEX/Witness layer does not use ANY of the strcutures used by the
-          // rest of CPAchecker.
-          /*
-          case CCompositeType compositeType
-              when compositeType.getKind() == ComplexTypeKind.STRUCT -> {
-            // Local structs. Can be represented using class FieldReference (with all fields). We need the fields accessed, e.g. a.b.c
-            Map<CCompositeTypeMemberDeclaration, BigInteger> memberTypesAndOffset =
-                machineModel.getAllFieldOffsetsInBits(compositeType.getCanonicalType());
-
-            CCompositeTypeMemberDeclaration fieldMember = null;
-            for (Entry<CCompositeTypeMemberDeclaration, BigInteger> field :
-                memberTypesAndOffset.entrySet()) {
-              if (field.getValue().equals(BigInteger.ZERO)) {
-                fieldMember = field.getKey();
-                break;
-              }
-            }
-            checkNotNull(fieldMember);
-            CType fieldType = fieldMember.getType();
-            // TODO: pipe into nested evaluation from here
-
-            BigInteger typeSize = machineModel.getSizeofInBits(fieldType);
-            // Don't materialize abstracted memory, as we are reading a variable here, it is
-            // impossible to hit anything abstracted, but we may hit a pointer towards something
-            // abstracted (which we don't follow).
-            List<ValueAndSMGState> possibleValue =
-                readValue(object, BigInteger.ZERO, typeSize, fieldType, true, false);
-            checkState(possibleValue.size() == 1);
-
-            Value readValue = possibleValue.getFirst().getValue();
-            readValue = applySolverAssignment(readValue, solverAssignmentsToApply);
-
-            if (readValue instanceof NumericValue numValue) {
-              checkArgument(!baseMemoryLoc.isReference());
-              memLocAndValueBuilder.put(baseMemoryLoc.withAddedOffset(offsetInBits), numValue.bigIntegerValue());
-            }
-          }
-          */
-          //  } else if (variableType instanceof CElaboratedType elabType) {
-
-          // } else if (variableType instanceof CEnumType enumType) {
-
-          default -> {}
-        }
-        // Fallthrough for:
-        // CProblemType, CVoidType, CFunctionType, CTypedefType etc.
-        // Skip for now (what would we even return here?)
-
-      } catch (SMGException smgEx) {
-        // Just skip for now
-      }
+      assignmentsBuilder.addAll(
+          resolveAssignmentsAndInvariantsForVariable(
+              declaration,
+              objectOfVar,
+              variableType,
+              this,
+              evaluator,
+              logger,
+              solverAssignmentsToApply,
+              fileLocationForReturnedExpressions,
+              !exportOnlyAssignments,
+              variableRenamingFunction));
     }
-    return memLocAndValueBuilder.buildOrThrow();
+
+    return assignmentsBuilder.build();
   }
 
   private Map<SymbolicIdentifier, Value> extractSolverAssignmentsFromModel(
@@ -7107,8 +7125,13 @@ public class SMGState
     return assignmentBuilder.buildOrThrow();
   }
 
-  private Value applySolverAssignment(
+  protected Optional<NumericValue> applySolverAssignment(
       Value readValue, Map<SymbolicIdentifier, Value> solverAssignments) {
+
+    if (readValue instanceof NumericValue numericValue) {
+      return Optional.of(numericValue);
+    }
+
     if (readValue instanceof SymbolicValue symValue && !isPointer(readValue)) {
       // TODO: get all symIdents in symbolic expr, if at least one in assignments, use value
       //  visitor and substitute the symIdents with the assignments to get a full evaluation
@@ -7117,16 +7140,16 @@ public class SMGState
         symValue = nestedSymValue;
       }
       if (symValue instanceof SymbolicIdentifier symIdent
-          && solverAssignments.containsKey(symIdent)
           && !isPointer(symValue)
           && !isPointer(symIdent)) {
-        Value assignedValue = solverAssignments.get(symIdent);
-        if (assignedValue != null && assignedValue.isNumericValue()) {
-          readValue = assignedValue;
+
+        @Nullable Value assignedValue = solverAssignments.get(symIdent);
+        if (assignedValue instanceof NumericValue numericValue) {
+          return Optional.of(numericValue);
         }
       }
     }
-    return readValue;
+    return Optional.empty();
   }
 
   @Override
@@ -8094,13 +8117,14 @@ public class SMGState
     return false;
   }
 
-  /** Get the (qualified) name of the topmost stack frame function. */
+  /** Get the qualified name of the topmost stack frame function. */
   public String getStackFrameTopFunctionName() {
-    return memoryModel.getStackFrames().peek().getAFunctionDefinition().getQualifiedName();
+    return memoryModel.getStackFrames().peek().getFunctionDefinition().getQualifiedName();
   }
 
-  public AFunctionDeclaration getStackFrameTopFunctionDefinition() {
-    return memoryModel.getStackFrames().peek().getAFunctionDefinition();
+  /** Get the {@link CFunctionDeclaration} of the topmost stack frame function. */
+  public CFunctionDeclaration getStackFrameTopFunctionDefinition() {
+    return memoryModel.getStackFrames().peek().getFunctionDefinition();
   }
 
   /*
@@ -8298,6 +8322,160 @@ public class SMGState
     // Log the error in the logger
     logMemoryError(errorMSG, false);
     return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  // Version 2 (YAML) correctness witness export for all variables in the scope of the program,
+  // including internal variables etc.
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
+      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      throws InterruptedException, TranslationToExpressionTreeFailedException {
+
+    // TODO: it is usually not good to use the model present in every state!
+    Map<SymbolicIdentifier, Value> solverAssignmentsToApply =
+        extractSolverAssignmentsFromModel(getModel());
+
+    FileLocation loc = resolveWitnessV2Location(pFunctionScope, pLocation);
+
+    ImmutableSet.Builder<AExpression> assignmentsAndInvariantsBuilder = ImmutableSet.builder();
+    // We don't need invariants for this, as the info from this method does not end up in witnesses
+    assignmentsAndInvariantsBuilder.addAll(
+        getGlobalVariableAssignmentsAndInvariants(solverAssignmentsToApply, loc, true));
+    assignmentsAndInvariantsBuilder.addAll(
+        getLocalVariableAssignmentsAndInvariants(solverAssignmentsToApply, loc, true));
+
+    return transformToExpressionTree(assignmentsAndInvariantsBuilder.build());
+  }
+
+  // Version 2 (YAML) correctness witness export for all variables in the scope of the
+  // original program (i.e. excluding internal variables etc.)
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
+      FunctionEntryNode pFunctionScope,
+      CFANode pLocation,
+      AstCfaRelation pAstCfaRelation,
+      boolean useOldKeywordForVariables)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
+
+    checkArgument(getStackFrameTopFunctionName().equals(pFunctionScope.getFunctionName()));
+
+    Function<String, String> renamingFunction =
+        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName;
+
+    // Only variables of the input program that are in scope at the location are allowed in
+    // witnesses, i.e., no variables introduced by CPAchecker or of other scopes.
+    Optional<FluentIterable<AbstractSimpleDeclaration>> variablesInScope =
+        pAstCfaRelation.getVariablesAndParametersInScope(pLocation);
+    if (variablesInScope.isEmpty()) {
+      throw new TranslationToExpressionTreeFailedException(
+          "The variables in scope at location " + pLocation + " are not available.");
+    }
+    ImmutableSet<String> qualifiedNamesOfVariablesInScope =
+        variablesInScope
+            .orElseThrow()
+            .transform(AbstractSimpleDeclaration::getQualifiedName)
+            .toSet();
+    Predicate<MemoryLocation> isInputProgramVariableInScope =
+        memLoc ->
+            qualifiedNamesOfVariablesInScope.contains(memLoc.getQualifiedName())
+                && !memLoc.getIdentifier().contains("__CPAchecker_");
+
+    // TODO: it is usually not good to use the model present in every state!
+    Map<SymbolicIdentifier, Value> solverAssignmentsToApply =
+        extractSolverAssignmentsFromModel(getModel());
+
+    FileLocation loc = resolveWitnessV2Location(pFunctionScope, pLocation);
+
+    ImmutableSet.Builder<AExpression> assignmentsAndInvariantsBuilder = ImmutableSet.builder();
+    assignmentsAndInvariantsBuilder.addAll(
+        getGlobalVariableAssignmentsAndInvariants(
+            solverAssignmentsToApply, loc, true, isInputProgramVariableInScope, renamingFunction));
+    assignmentsAndInvariantsBuilder.addAll(
+        getLocalVariableAssignmentsAndInvariants(
+            solverAssignmentsToApply, loc, true, isInputProgramVariableInScope, renamingFunction));
+
+    return transformToExpressionTree(assignmentsAndInvariantsBuilder.build());
+  }
+
+  // Version 2 (YAML) correctness witness export for function return variables
+  @Override
+  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
+      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      throws InterruptedException,
+          ReportingMethodNotImplementedException,
+          TranslationToExpressionTreeFailedException {
+
+    checkArgument(pFunctionReturnVariable instanceof CIdExpression);
+    CIdExpression functionReturnVariableExpr = (CIdExpression) pFunctionReturnVariable;
+    // SMG2 does not retain the return variable decl currently, so we just use the supplied one
+    CSimpleDeclaration simpleDeclaration = functionReturnVariableExpr.getDeclaration();
+    CVariableDeclaration varDecl;
+    if (simpleDeclaration instanceof CParameterDeclaration paramDecl) {
+      varDecl = paramDecl.asVariableDeclaration();
+    } else if (simpleDeclaration instanceof CVariableDeclaration declAsVarDecl) {
+      varDecl = declAsVarDecl;
+    } else {
+      throw new UnsupportedOperationException(
+          "Unhandled return variable declaration of type " + simpleDeclaration);
+    }
+
+    FileLocation loc = functionReturnVariableExpr.getFileLocation();
+    CType type = functionReturnVariableExpr.getExpressionType().getCanonicalType();
+
+    if (memoryModel.getStackFrames().isEmpty()
+        || !getStackFrameTopFunctionName().equals(pFunctionScope.getFunctionName())) {
+      // The stack frame of the function was already removed, e.g. after returning from main
+      return ExpressionTrees.getTrue();
+    }
+
+    Optional<SMGObject> maybeReturnObj = memoryModel.getReturnObjectForCurrentStackFrame();
+
+    Map<SymbolicIdentifier, Value> solverAssignmentsToApply =
+        extractSolverAssignmentsFromModel(getModel());
+
+    if (maybeReturnObj.isPresent()) {
+      // We don't need invariants for return variables
+      Set<AExpression> assignments =
+          resolveAssignmentsAndInvariantsForVariable(
+              varDecl,
+              maybeReturnObj.orElseThrow(),
+              type,
+              this,
+              evaluator,
+              logger,
+              solverAssignmentsToApply,
+              loc,
+              false,
+              Function.identity());
+
+      return transformToExpressionTree(assignments);
+    }
+
+    return ExpressionTrees.getTrue();
+  }
+
+  private static ExpressionTree<Object> transformToExpressionTree(
+      Set<AExpression> assignmentsAndInvariants) {
+
+    if (assignmentsAndInvariants.isEmpty()) {
+      return ExpressionTrees.getTrue();
+    }
+
+    ImmutableSet.Builder<ExpressionTree<Object>> leafBuilder = ImmutableSet.builder();
+    for (AExpression assignmentOrInv : assignmentsAndInvariants) {
+      leafBuilder.add(LeafExpression.of(assignmentOrInv));
+    }
+    return And.of(leafBuilder.build());
+  }
+
+  // We only want some approximation for the location of the information extracted.
+  private FileLocation resolveWitnessV2Location(
+      FunctionEntryNode pFunctionScope, CFANode pCurrentLocation) {
+    return pCurrentLocation.getNumEnteringEdges() > 0
+        ? pCurrentLocation.getEnteringEdge(0).getFileLocation()
+        : pFunctionScope.getFileLocation();
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find
