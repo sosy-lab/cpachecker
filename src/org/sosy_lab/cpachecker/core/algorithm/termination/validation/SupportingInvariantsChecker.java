@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2Parser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
@@ -170,7 +171,12 @@ public final class SupportingInvariantsChecker {
     ReachedSet reachedSet =
         coreComponents.createInitializedReachedSet(supportingInvariantsCPA, pCfa.getMainFunction());
 
-    AlgorithmStatus status = invariantCheckingAlgorithm.run(reachedSet);
+    AlgorithmStatus status;
+    try {
+      status = invariantCheckingAlgorithm.run(reachedSet);
+    } catch (RefinementFailedException e) {
+      return InvariantCheckResult.UNKNOWN;
+    }
     // An interrupted analysis may look as if it finished, so it must not be reported as valid
     pShutdownNotifier.shutdownIfNecessary();
     if (reachedSet.wasTargetReached()) {
