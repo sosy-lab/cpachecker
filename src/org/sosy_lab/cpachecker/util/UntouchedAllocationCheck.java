@@ -100,9 +100,10 @@ final class UntouchedAllocationCheck {
   /**
    * Returns whether the given call of <code>__VERIFIER_nondet_memory</code> havocs a block that is
    * not accessed between its allocation in memory and the call to <code>__VERIFIER_nondet_memory
-   * </code>.
+   * </code>. Only returns <code>true</code> if this can be determined with high precision,
+   * and <code>false</code> in all other cases (so this method is over-approximating).
    *
-   * <p>The most trivial case for this:
+   * <p>The most trivial case for a return of <code>true</code>:
    *
    * <pre>
    * int * p = malloc(4 * sizeof(int));
