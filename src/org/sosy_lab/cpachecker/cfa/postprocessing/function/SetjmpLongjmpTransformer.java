@@ -76,8 +76,9 @@ public final class SetjmpLongjmpTransformer {
       ImmutableSet.of("longjmp", "_longjmp", "siglongjmp");
   private static final ImmutableSet<String> THREAD_CREATE =
       ImmutableSet.of("pthread_create", "pthread_once");
-  private static final String VALUE_VAR = "__CPAchecker_longjmp_value";
-  private static final String TMP_VAR = "__CPAchecker_longjmp_TMP_";
+  // the prefix __CPAchecker_TMP_ keeps these variables out of exported invariants
+  private static final String VALUE_VAR = "__CPAchecker_TMP_longjmp_value";
+  private static final String TMP_VAR = "__CPAchecker_TMP_longjmp_";
 
   private final MutableCFA cfa;
   private final LogManager logger;
