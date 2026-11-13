@@ -405,6 +405,11 @@ public class TerminationWitnessValidator implements Algorithm {
             try {
               invariantFormula = invariant.getFormula(fmgr, pfmgr, pfmgr.makeEmptyPathFormula());
             } catch (CPATransferException e) {
+              logger.logfUserException(
+                  Level.INFO,
+                  e,
+                  "The supporting invariant %s cannot be converted to a formula, so true is used",
+                  invariant.asExpressionTree());
               invariantFormula = bfmgr.makeTrue();
             }
             builder.put(loop, invariantFormula);
@@ -444,6 +449,11 @@ public class TerminationWitnessValidator implements Algorithm {
             invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
           }
         } catch (CPATransferException e) {
+          logger.logfUserException(
+              Level.INFO,
+              e,
+              "The transition invariant %s cannot be converted to a formula, so true is used",
+              invariant.asExpressionTree());
           invariantFormula = bfmgr.makeTrue();
         }
         invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormula);
