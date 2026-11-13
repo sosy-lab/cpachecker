@@ -260,16 +260,17 @@ public class TerminationWitnessValidator implements Algorithm {
         logger.log(Level.INFO, "A loop is not reachable !");
         continue;
       }
-      // E.g., the transition invariant of the witness could not be parsed
-      if (!loopsToTransitionInvariants.containsKey(loop)) {
-        logger.log(Level.INFO, "A loop has no transition invariant.");
-        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+      // E.g., the transition invariant of the witness could not be parsed. True is a transition
+      // invariant of every loop.
+      BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
+      if (invariant == null) {
+        logger.log(Level.INFO, "A loop has no transition invariant, so true is used.");
+        invariant = bfmgr.makeTrue();
       }
 
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
           joinPrevDeclarationMapsForLoop(loop, invariants);
       useScopeOfLoop(loop, mapPrevVarsToCurrVars);
-      BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
 
       if (!checkWithInfiniteSpace) {
@@ -284,7 +285,7 @@ public class TerminationWitnessValidator implements Algorithm {
               invariant, supportingInvariants, loop, mapPrevVarsToCurrVars)
           && isCandidateInvariantTransitionInvariant(
               loop,
-              loopsToTransitionInvariants.get(loop),
+              invariant,
               supportingInvariants,
               mapPrevVarsToCurrVars,
               // k = 1, for R^1 => T check
@@ -319,11 +320,7 @@ public class TerminationWitnessValidator implements Algorithm {
         }
         // Base case of the induction, i.e. R^k(s,s') => T(s,s')
         if (!isCandidateInvariantTransitionInvariant(
-            loop,
-            loopsToTransitionInvariants.get(loop),
-            supportingInvariants,
-            mapPrevVarsToCurrVars,
-            k)) {
+            loop, invariant, supportingInvariants, mapPrevVarsToCurrVars, k)) {
           return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         }
 
@@ -331,11 +328,7 @@ public class TerminationWitnessValidator implements Algorithm {
         // T(s,t_0) && R(t_0,t_1) && ... && R(t_{k-1},t_k) && T(s,t_1) && ... && T(s,t_{k-1})
         //   => T(s,t_k)
         if (isCandidateInvariantInductiveTransitionInvariant(
-            loop,
-            loopsToTransitionInvariants.get(loop),
-            supportingInvariants,
-            mapPrevVarsToCurrVars,
-            k)) {
+            loop, invariant, supportingInvariants, mapPrevVarsToCurrVars, k)) {
           break;
         }
       }
