@@ -25,6 +25,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
@@ -198,6 +199,22 @@ public class ArgToSvLibCorrectnessWitnessExport {
       for (SvLibTagReference tag : correspondingTag) {
         SvLibAnnotateTagCommand loopInvariantCommand = createLoopInvariant(argStates, tag);
         witnessCommands.add(loopInvariantCommand);
+      }
+    }
+
+    // A validator needs an invariant on each cycle, also on the ones that the ARG does not reach
+    for (CFANode node : loopHeads) {
+      if (!loopInvariants.containsKey(node)) {
+        for (SvLibTagReference tag : svLibMetadata.tagReferences().get(node)) {
+          witnessCommands.add(
+              new SvLibAnnotateTagCommand(
+                  tag.getTagName(),
+                  ImmutableList.of(
+                      new SvLibInvariantTag(
+                          new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+                          FileLocation.DUMMY)),
+                  FileLocation.DUMMY));
+        }
       }
     }
 
