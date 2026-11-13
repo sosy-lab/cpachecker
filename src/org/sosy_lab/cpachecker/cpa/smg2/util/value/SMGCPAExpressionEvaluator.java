@@ -1736,14 +1736,15 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
-   * Implementation of strcmp(). Compares the characters behind the 2 memory addresses and offsets
-   * until a \0 is found or the characters don't equal. If they equal in the entire memory until \0
-   * is found a 0 is returned. If not the difference of them numerically is returned.
+   * Implementation of strcmp(). Compares the characters in the 2 memory regions beginning at the
+   * given offsets until a \0 is found or the characters don't equal. If they equal in the entire
+   * memory until \0 is found a 0 is returned. If not the difference of them numerically is
+   * returned.
    *
-   * @param firstAddress {@link Value} leading to the first memory/String.
-   * @param pFirstOffsetInBits offset to begin reading the first address in bits.
-   * @param secondAddress {@link Value} leading to the second memory/String.
-   * @param pSecondOffsetInBits offset to begin reading the second address in bits.
+   * @param firstObject {@link SMGObject} of the first String.
+   * @param pFirstOffsetInBits offset of the first String in firstObject in bits.
+   * @param secondObject {@link SMGObject} of the second String.
+   * @param pSecondOffsetInBits offset of the second String in secondObject in bits.
    * @param pState initial {@link SMGState}.
    * @return {@link ValueAndSMGState} with a numeric value and the compare result if the values were
    *     concrete or comparable + the non error state. The Value may also be symbolic. If an error
@@ -1752,72 +1753,15 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException for critical errors
    */
   public ValueAndSMGState stringCompare(
-      Value firstAddress,
+      SMGObject firstObject,
       BigInteger pFirstOffsetInBits,
-      Value secondAddress,
+      SMGObject secondObject,
       BigInteger pSecondOffsetInBits,
       SMGState pState)
       throws SMGException, SMGSolverException {
-    // Dereference the pointers and get the first/second memory and offset
-    // Start with first
     SMGState currentState = pState;
-    List<SMGStateAndOptionalSMGObjectAndOffset> maybefirstMemorysAndOffsets =
-        currentState.dereferencePointer(firstAddress);
-    checkArgument(maybefirstMemorysAndOffsets.size() == 1);
-    SMGStateAndOptionalSMGObjectAndOffset maybefirstMemoryAndOffset =
-        maybefirstMemorysAndOffsets.getFirst();
-    currentState = maybefirstMemoryAndOffset.getSMGState();
-    if (!maybefirstMemoryAndOffset.hasSMGObjectAndOffset()) {
-      // The value is unknown and therefore does not point to a valid memory location
-      return ValueAndSMGState.ofUnknownValue(
-          currentState.withUnknownPointerDereferenceWhenReading(firstAddress),
-          "Returned unknown value due to unknown value in string comparing expression with invalid"
-              + " dereference.");
-    }
-    SMGObject firstObject = maybefirstMemoryAndOffset.getSMGObject();
-
-    // The object may be null if no such object exists, check and log if 0
-    if (firstObject.isZero()) {
-      return ValueAndSMGState.ofUnknownValue(
-          currentState.withNullPointerDereferenceWhenReading(
-              "when comparing 2 strings, the first argument was zero"),
-          "Returned unknown value due to unknown value in string comparing expression with invalid"
-              + " dereference.");
-    }
-
-    // The offset of the pointer used. (the pointer might point to an offset != 0, the other offset
-    // needs to the added to that!)
-    Value firstOffsetInBits =
-        addBitOffsetValues(maybefirstMemoryAndOffset.getOffsetForObject(), pFirstOffsetInBits);
-
-    // The same for the second address
-    List<SMGStateAndOptionalSMGObjectAndOffset> maybeSecondMemorysAndOffsets =
-        currentState.dereferencePointer(secondAddress);
-    checkArgument(maybeSecondMemorysAndOffsets.size() == 1);
-    SMGStateAndOptionalSMGObjectAndOffset maybeSecondMemoryAndOffset =
-        maybeSecondMemorysAndOffsets.getFirst();
-    currentState = maybeSecondMemoryAndOffset.getSMGState();
-    if (!maybeSecondMemoryAndOffset.hasSMGObjectAndOffset()) {
-      // The value is unknown and therefore does not point to a valid memory location
-      return ValueAndSMGState.ofUnknownValue(
-          currentState.withUnknownPointerDereferenceWhenReading(secondAddress),
-          "Returned unknown value due to unknown value in string comparing expression with invalid"
-              + " dereference.");
-    }
-    SMGObject secondObject = maybeSecondMemoryAndOffset.getSMGObject();
-
-    // The object may be null if no such object exists, check and log if 0
-    if (secondObject.isZero()) {
-      return ValueAndSMGState.ofUnknownValue(
-          currentState.withNullPointerDereferenceWhenWriting(secondObject),
-          "Returned unknown value due to unknown value in string comparing expression with invalid"
-              + " dereference.");
-    }
-
-    // The offset of the pointer used. (the pointer might point to an offset != 0, the other offset
-    // needs to the added to that!)
-    Value secondOffsetInBits =
-        addBitOffsetValues(maybeSecondMemoryAndOffset.getOffsetForObject(), pSecondOffsetInBits);
+    Value firstOffsetInBits = new NumericValue(pFirstOffsetInBits);
+    Value secondOffsetInBits = new NumericValue(pSecondOffsetInBits);
 
     // Check that they are not ==, if they are the returned value is trivial 0
     if (firstObject.equals(secondObject) && firstOffsetInBits.equals(secondOffsetInBits)) {

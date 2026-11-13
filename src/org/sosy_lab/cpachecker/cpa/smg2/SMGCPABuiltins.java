@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -3481,85 +3482,31 @@ public class SMGCPABuiltins {
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
-    for (ValueAndSMGState firstValueAndSMGState :
-        getFunctionParameterValue(STRCMP_FIRST_PARAMETER, pFunctionCall, pState, pCfaEdge)) {
-
-      // If the Value is no AddressExpression we can't work with it
-      // The buffer is type * and has to be an AddressExpression with a not unknown value and a
-      // concrete offset to be used correctly
-      Value firstAddress = firstValueAndSMGState.getValue();
-      NumericValue firstAddressOffset = new NumericValue(0);
-      if (firstAddress instanceof AddressExpression firstAddressExpr) {
-        if (!(firstAddressExpr.getOffset() instanceof NumericValue firstAddressExprOffset)) {
-          // Write the target region to unknown
-          resultBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  firstValueAndSMGState.getState(),
-                  "Returned unknown for unknown offset in first address in function strcmp in ",
-                  pCfaEdge));
-          continue;
-        }
-        firstAddress = firstAddressExpr.getMemoryAddress();
-        firstAddressOffset = firstAddressExprOffset;
-
-      } else if (!pState.getMemoryModel().isPointer(firstAddress)) {
-        // The value can be unknown
+    // Like strlen, this handles pointers, arrays and string literals
+    for (SMGStateAndOptionalSMGObjectAndOffset firstStringAndState :
+        dereferenceCharPointers(
+            pFunctionCall.getParameterExpressions().get(STRCMP_FIRST_PARAMETER),
+            pState,
+            pCfaEdge)) {
+      if (!firstStringAndState.hasSMGObjectAndOffset()) {
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
-                firstValueAndSMGState.getState(),
-                "Returned unknown for unknown address in first address in function strcmp in ",
+                firstStringAndState.getSMGState(),
+                "Returned unknown for unknown or invalid first argument in function strcmp in ",
                 pCfaEdge));
         continue;
       }
 
-      for (ValueAndSMGState secondValueAndSMGState :
-          getFunctionParameterValue(
-              STRCMP_SECOND_PARAMETER, pFunctionCall, firstValueAndSMGState.getState(), pCfaEdge)) {
-        Value secondAddress = secondValueAndSMGState.getValue();
-        // If the Value is no AddressExpression we can't work with it
-        // The buffer is type * and has to be an AddressExpression with a not unknown value and a
-        // concrete offset to be used correctly
-        if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
-          if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
-            throw new SMGException(
-                "Function strcmp() with symbolic handling not supported with option"
-                    + " UnknownFunctionHandling.STRICT enabled");
-          }
-          // Unknown addresses happen only of we don't have a memory associated
-          // TODO: decide what to do here and when this happens
+      for (SMGStateAndOptionalSMGObjectAndOffset secondStringAndState :
+          dereferenceCharPointers(
+              pFunctionCall.getParameterExpressions().get(STRCMP_SECOND_PARAMETER),
+              firstStringAndState.getSMGState(),
+              pCfaEdge)) {
+        if (!secondStringAndState.hasSMGObjectAndOffset()) {
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
-                  secondValueAndSMGState.getState(),
-                  "Returned unknown for unknown target or offset in second address in function"
-                      + " strcmp in ",
-                  pCfaEdge));
-          continue;
-        } else if (!(secondAddress instanceof AddressExpression)) {
-          if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
-            throw new SMGException(
-                "Function strcmp() with symbolic handling not supported with option"
-                    + " UnknownFunctionHandling.STRICT enabled");
-          }
-          // The value can be unknown
-          resultBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  secondValueAndSMGState.getState(),
-                  "Returned unknown for unknown address in second address in function strcmp in ",
-                  pCfaEdge));
-          continue;
-        }
-        AddressExpression secondAddressExpr = (AddressExpression) secondAddress;
-        if (!(secondAddressExpr.getOffset() instanceof NumericValue secondAddressExprOffset)) {
-          if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
-            throw new SMGException(
-                "Function strcmp() with symbolic handling not supported with option"
-                    + " UnknownFunctionHandling.STRICT enabled");
-          }
-          // Write the target region to unknown
-          resultBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  secondValueAndSMGState.getState(),
-                  "Returned unknown for unknown offset in second address in function strcmp in ",
+                  secondStringAndState.getSMGState(),
+                  "Returned unknown for unknown or invalid second argument in function strcmp in ",
                   pCfaEdge));
           continue;
         }
@@ -3568,11 +3515,11 @@ public class SMGCPABuiltins {
         // const char *secondStringPointer)' (c99 * 7.21.4.2)
         resultBuilder.add(
             evaluator.stringCompare(
-                firstAddress,
-                firstAddressOffset.bigIntegerValue(),
-                secondAddressExpr.getMemoryAddress(),
-                secondAddressExprOffset.bigIntegerValue(),
-                secondValueAndSMGState.getState()));
+                firstStringAndState.getSMGObject(),
+                ((NumericValue) firstStringAndState.getOffsetForObject()).bigIntegerValue(),
+                secondStringAndState.getSMGObject(),
+                ((NumericValue) secondStringAndState.getOffsetForObject()).bigIntegerValue(),
+                secondStringAndState.getSMGState()));
       }
     }
     return resultBuilder.build();
@@ -3638,36 +3585,49 @@ public class SMGCPABuiltins {
    */
   private SMGStateAndOptionalSMGObjectAndOffset dereferenceCharPointer(
       CExpression charPointerExpr, SMGState pState, CFAEdge pCfaEdge) throws CPATransferException {
+    List<SMGStateAndOptionalSMGObjectAndOffset> objsAndStates =
+        dereferenceCharPointers(charPointerExpr, pState, pCfaEdge);
+    checkArgument(objsAndStates.size() == 1);
+    return objsAndStates.getFirst();
+  }
+
+  /**
+   * Like {@link #dereferenceCharPointer(CExpression, SMGState, CFAEdge)}, but returns all results,
+   * e.g., for the materialization of abstracted memory.
+   */
+  private List<SMGStateAndOptionalSMGObjectAndOffset> dereferenceCharPointers(
+      CExpression charPointerExpr, SMGState pState, CFAEdge pCfaEdge) throws CPATransferException {
     while (charPointerExpr instanceof CCastExpression castExpr) {
       charPointerExpr = castExpr.getOperand();
     }
-    // The address visitor returns the memory of string literals directly, while all other
-    // expressions are dereferenced
+    // The address visitor returns the memory of string literals and arrays directly, while all
+    // other expressions are dereferenced
     CExpression firstCharExpr =
         charPointerExpr instanceof CStringLiteralExpression
+                || charPointerExpr.getExpressionType().getCanonicalType() instanceof CArrayType
             ? charPointerExpr
             : new CPointerExpression(
                 charPointerExpr.getFileLocation(), CNumericTypes.CHAR, charPointerExpr);
-    List<SMGStateAndOptionalSMGObjectAndOffset> objsAndStates =
-        firstCharExpr.accept(new SMGCPAAddressVisitor(evaluator, pState, pCfaEdge, logger));
-    checkArgument(objsAndStates.size() == 1);
-    SMGStateAndOptionalSMGObjectAndOffset objAndState = objsAndStates.getFirst();
-    SMGState currentState = objAndState.getSMGState();
-
-    if (!objAndState.hasSMGObjectAndOffset()) {
-      // Unknown address, the state might already be an error state for invalid dereferences
-      return objAndState;
+    ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> resultBuilder =
+        ImmutableList.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset objAndState :
+        firstCharExpr.accept(new SMGCPAAddressVisitor(evaluator, pState, pCfaEdge, logger))) {
+      SMGState currentState = objAndState.getSMGState();
+      if (!objAndState.hasSMGObjectAndOffset()) {
+        // Unknown address, the state might already be an error state for invalid dereferences
+        resultBuilder.add(objAndState);
+      } else if (objAndState.getSMGObject().isZero()) {
+        resultBuilder.add(
+            SMGStateAndOptionalSMGObjectAndOffset.of(
+                currentState.withNullPointerDereferenceWhenReading(
+                    "Error: null-pointer dereference in " + pCfaEdge)));
+      } else if (!(objAndState.getOffsetForObject() instanceof NumericValue)) {
+        resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
+      } else {
+        resultBuilder.add(objAndState);
+      }
     }
-    SMGObject obj = objAndState.getSMGObject();
-    if (obj.isZero()) {
-      return SMGStateAndOptionalSMGObjectAndOffset.of(
-          currentState.withNullPointerDereferenceWhenReading(
-              "Error: null-pointer dereference in " + pCfaEdge));
-    }
-    if (!(objAndState.getOffsetForObject() instanceof NumericValue)) {
-      return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
-    }
-    return objAndState;
+    return resultBuilder.build();
   }
 
   /**
