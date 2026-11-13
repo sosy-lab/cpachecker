@@ -93,6 +93,30 @@ public class InterpreterCPAIntegrationTest {
             "nonterminating.c",
             Result.UNKNOWN,
             ImmutableMap.of("limits.time.cpu", "10s")),
+        // The SMG analysis executes programs with pointers, and both outcomes of each allocation.
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "address-taken-loop-true.c",
+            Result.TRUE),
+        task("interpreter-smg--termination", "termination", "allocation-list-true.c", Result.TRUE),
+        new Task(
+            "interpreter-smg--termination",
+            "termination",
+            "allocation-failure-nonterminating.c",
+            Result.UNKNOWN,
+            ImmutableMap.of("limits.time.cpu", "10s")),
+        // Ignored side effects and undefined behavior make the execution unsound.
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "unknown-function-unknown.c",
+            Result.UNKNOWN),
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "use-after-free-unknown.c",
+            Result.UNKNOWN),
         // Both outcomes of an allocation that may fail are executed.
         new Task(
             "interpreter-smg",
