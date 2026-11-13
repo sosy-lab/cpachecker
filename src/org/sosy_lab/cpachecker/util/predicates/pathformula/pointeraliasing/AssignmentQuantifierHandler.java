@@ -758,7 +758,7 @@ class AssignmentQuantifierHandler {
     pts.addEssentialFields(ImmutableList.of(CompositeField.of(baseType, modifier.field())));
 
     // handle depending on type of base, normally should be either unaliased or aliased
-    // also can be nondet due to bitfields that we do not currently handle
+    // also can be nondet, e.g., for extern functions returning composites
     Expression base = resolved.expression();
 
     if (base.isUnaliasedLocation()) {
@@ -776,8 +776,7 @@ class AssignmentQuantifierHandler {
               base.asAliasedLocation(), CompositeField.of(baseType, modifier.field()));
       return new ResolvedSlice(adjustedExpression, fieldType);
     } else if (base.isNondetValue()) {
-      // should only happen due to bitfields that we do not currently handle
-      // silently pass through with the new type
+      // e.g., for extern functions returning composites, silently pass through with the new type
       return new ResolvedSlice(Value.nondetValue(), fieldType);
     } else {
       // should never happen

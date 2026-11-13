@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.terminationviamemory")
@@ -182,6 +184,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         ImmutableList<BooleanFormula> sameStateFormulas =
             buildComparingFormulas(
                 terminationState.getStoredValues().get(programCounter),
+                terminationState.getPathFormulaFull().orElseThrow().getFormula(),
                 largestIndices,
                 terminationState.getNumberOfIterationsAtLoopHead(programCounter) - 1);
 
@@ -517,49 +520,78 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       PathFormula prefixPathFormula,
       CFANode pLocation)
       throws InterruptedException, SolverException {
+    if (sameStateFormulas.isEmpty()) {
+      return Optional.empty();
+    }
 
-    for (int i = 0; i < sameStateFormulas.size(); i++) {
-      boolean isTargetStateReachable;
+    // The part of the formula that is the same for all saved states is asserted only once, and
+    // the formula of each saved state is pushed on top of it. Otherwise, the solver would
+    // preprocess the (possibly large) common part again for every saved state, which costs time
+    // and memory, because the terms created by the preprocessing are never freed.
+    BooleanFormula commonPart;
+    PartitionedRelationFormula wrappedIterationFormula = iterationFormula;
+    if (isOverapproximating) {
       // Construct formula:
       // T(x__PREV, x__CURR) and Tr(x__CURR, x__CURR2) and x__PREV = x_CURR2
-      if (isOverapproximating) {
-        PartitionedRelationFormula candidateTransInv = pCandidateTransInv.orElseThrow();
+      // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
+      PartitionedRelationFormula candidateTransInv =
+          pCandidateTransInv
+              .orElseThrow()
+              .withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD)
+              .withCurrVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
 
-        // Construct formula instantiated to x__PREV = x__CURR2
-        PartitionedRelationFormula sameStateFormulaRelation =
-            new PartitionedRelationFormula(sameStateFormulas.get(i), fmgr);
-        sameStateFormulaRelation =
-            sameStateFormulaRelation.withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD);
-        sameStateFormulaRelation =
-            sameStateFormulaRelation.withCurrVarsWrapped(EMPTY_PREFIX, CURR2_KEYWORD);
+      // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
+      wrappedIterationFormula =
+          iterationFormula
+              .withPrevVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD)
+              .withCurrVarsWrapped(EMPTY_PREFIX, CURR2_KEYWORD);
 
-        // Set the prev vars in T to match x__PREV and the curr cars to match x__CURR
-        candidateTransInv = candidateTransInv.withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD);
-        candidateTransInv = candidateTransInv.withCurrVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
+      // The supporting invariants hold in the state x__CURR where the iteration starts
+      commonPart =
+          bfmgr.and(
+              candidateTransInv.getFormula(),
+              getSupportingInvariants(pLocation),
+              wrappedIterationFormula.getFormula());
+    } else {
+      commonPart = bfmgr.and(prefixPathFormula.getFormula(), iterationFormula.getFormula());
+    }
 
-        // Set the prev vars in Tr to match x__CURR and the curr cars to match x__CURR2
-        iterationFormula = iterationFormula.withPrevVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
-        iterationFormula = iterationFormula.withCurrVarsWrapped(EMPTY_PREFIX, CURR2_KEYWORD);
-
-        // The supporting invariants hold in the state x__CURR where the iteration starts
-        isTargetStateReachable =
-            !solver.isUnsat(
-                bfmgr.and(
-                    candidateTransInv.getFormula(),
-                    getSupportingInvariants(pLocation),
-                    iterationFormula.getFormula(),
-                    buildFrameCondition(sameStateFormulaRelation.getFormula(), iterationFormula),
-                    sameStateFormulaRelation.getFormula()));
-      } else {
-        isTargetStateReachable =
-            !solver.isUnsat(
-                bfmgr.and(
-                    prefixPathFormula.getFormula(),
-                    iterationFormula.getFormula(),
-                    sameStateFormulas.get(i)));
+    // The formulas of different saved states may be equal after renaming the variables
+    Set<BooleanFormula> unsatSameStateFormulas = new HashSet<>();
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      prover.push(commonPart);
+      // MathSAT5 can wrongly report SAT for an unsatisfiable common part after some
+      // push-check-pop rounds (termination-bwb/parity0)
+      if (prover.isUnsat()) {
+        return Optional.empty();
       }
-      if (isTargetStateReachable) {
-        return Optional.of(i);
+      for (int i = 0; i < sameStateFormulas.size(); i++) {
+        BooleanFormula sameStateFormula;
+        if (isOverapproximating) {
+          // Construct formula instantiated to x__PREV = x__CURR2
+          BooleanFormula sameStateFormulaRelation =
+              new PartitionedRelationFormula(sameStateFormulas.get(i), fmgr)
+                  .withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD)
+                  .withCurrVarsWrapped(EMPTY_PREFIX, CURR2_KEYWORD)
+                  .getFormula();
+          sameStateFormula =
+              bfmgr.and(
+                  buildFrameCondition(sameStateFormulaRelation, wrappedIterationFormula),
+                  sameStateFormulaRelation);
+        } else {
+          sameStateFormula = sameStateFormulas.get(i);
+        }
+
+        if (unsatSameStateFormulas.contains(sameStateFormula)) {
+          continue;
+        }
+        prover.push(sameStateFormula);
+        boolean isTargetStateReachable = !prover.isUnsat();
+        prover.pop();
+        if (isTargetStateReachable) {
+          return Optional.of(i);
+        }
+        unsatSameStateFormulas.add(sameStateFormula);
       }
     }
     return Optional.empty();
@@ -799,20 +831,42 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     }
   }
 
+  /**
+   * Builds for every earlier visit of the loop head the formula that the current state equals the
+   * state at that visit. The state consists of the variables of the path with an SSA index at the
+   * current visit, also the memory that a variable moves to when its address is taken. A variable
+   * without SSA index at an earlier visit has there the index 1 of uninitialized variables.
+   *
+   * @param pPath the path formula until the current visit
+   */
   private ImmutableList<BooleanFormula> buildComparingFormulas(
-      Map<Integer, ImmutableSet<Formula>> storedValues, SSAMap pLatestValues, int pMaxIndex) {
+      Map<Integer, SSAMap> storedValues,
+      BooleanFormula pPath,
+      SSAMap pLatestValues,
+      int pMaxIndex) {
+    ImmutableSet.Builder<Formula> stateVariablesBuilder = ImmutableSet.builder();
+    for (Entry<String, Formula> variable : fmgr.extractVariables(pPath).entrySet()) {
+      if (pLatestValues.containsVariable(
+          FormulaManagerView.parseName(variable.getKey()).getFirst())) {
+        stateVariablesBuilder.add(fmgr.uninstantiate(variable.getValue()));
+      }
+    }
+    ImmutableSet<Formula> stateVariables = stateVariablesBuilder.build();
+
     ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
-    for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
-      if (savedVariables.getKey().intValue() >= pMaxIndex) {
+    for (Entry<Integer, SSAMap> savedIndices : storedValues.entrySet()) {
+      if (savedIndices.getKey().intValue() >= pMaxIndex) {
         continue;
       }
+      SSAMap indicesAtVisit = savedIndices.getValue().withDefault(1);
       BooleanFormula comparingFormula = bfmgr.makeTrue();
-      for (Formula oldVariable : savedVariables.getValue()) {
+      for (Formula variable : stateVariables) {
         comparingFormula =
             bfmgr.and(
                 comparingFormula,
                 fmgr.assignment(
-                    fmgr.instantiate(fmgr.uninstantiate(oldVariable), pLatestValues), oldVariable));
+                    fmgr.instantiate(variable, pLatestValues),
+                    fmgr.instantiate(variable, indicesAtVisit)));
       }
       comparingFormulas.add(comparingFormula);
     }

@@ -549,11 +549,12 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
 
   @Override
   public VisitResult visit(SvLibLabelStatement pSvLibLabelStatement) throws NoException {
-    trackTagPropertiesForStatementStartingWithNode(pSvLibLabelStatement, currentStartingNode);
-
     String label = pSvLibLabelStatement.getLabel();
     CFANode labelNode = labelsToNodes.get(pSvLibLabelStatement.getLabel());
     allNodesCollector.add(Objects.requireNonNull(labelNode));
+
+    // A goto reaches the label at the label node and not at the node before it
+    trackTagPropertiesForStatementStartingWithNode(pSvLibLabelStatement, labelNode);
 
     if (!waitingForLabel) {
       // If we are not waiting for a label, the label came before the goto, so we need to add it

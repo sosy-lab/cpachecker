@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import java.io.PrintStream;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -28,8 +29,11 @@ abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
   @Override
   public MemoryRegion makeMemoryRegion(
       CType pFieldOwnerType, CCompositeTypeMemberDeclaration pMember) {
+    final CType type = typeHandler.getSimplifiedType(pMember);
     return makeMemoryRegion(
-        pFieldOwnerType, typeHandler.getSimplifiedType(pMember), pMember.getName());
+        pFieldOwnerType,
+        type instanceof CBitFieldType bitFieldType ? bitFieldType.getType() : type,
+        pMember.getName());
   }
 
   @Override

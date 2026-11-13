@@ -15,16 +15,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
+import com.google.common.graph.Traverser;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
@@ -37,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -198,6 +202,30 @@ public class ArgToSvLibCorrectnessWitnessExport {
       for (SvLibTagReference tag : correspondingTag) {
         SvLibAnnotateTagCommand loopInvariantCommand = createLoopInvariant(argStates, tag);
         witnessCommands.add(loopInvariantCommand);
+      }
+    }
+
+    // A validator needs an invariant on each cycle, also on the ones that the ARG does not reach.
+    // These include cycles of labels in dead code, which the CFA does not contain.
+    ImmutableSet<CFANode> reachedNodes =
+        FluentIterable.from(
+                Traverser.forGraph(ARGState::getChildren).depthFirstPreOrder(pRootState))
+            .transform(AbstractStates::extractLocation)
+            .filter(Objects::nonNull)
+            .toSet();
+    for (CFANode node : svLibMetadata.tagReferences().keySet()) {
+      if ((loopHeads.contains(node) || node instanceof CFALabelNode)
+          && !reachedNodes.contains(node)) {
+        for (SvLibTagReference tag : svLibMetadata.tagReferences().get(node)) {
+          witnessCommands.add(
+              new SvLibAnnotateTagCommand(
+                  tag.getTagName(),
+                  ImmutableList.of(
+                      new SvLibInvariantTag(
+                          new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+                          FileLocation.DUMMY)),
+                  FileLocation.DUMMY));
+        }
       }
     }
 
