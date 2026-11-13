@@ -32,6 +32,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
 
   private final ARGToWitnessV2 argToWitnessV2;
   private final ARGToWitnessV2d1 argToWitnessV2d1;
+  private final ARGToWitnessV2d4 argToWitnessV2d4;
 
   public ARGToYAMLWitnessExport(
       Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
@@ -39,6 +40,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
     super(pConfig, pCfa, pSpecification, pLogger);
     argToWitnessV2 = new ARGToWitnessV2(pConfig, pCfa, pSpecification, pLogger);
     argToWitnessV2d1 = new ARGToWitnessV2d1(pConfig, pCfa, pSpecification, pLogger);
+    argToWitnessV2d4 = new ARGToWitnessV2d4(pConfig, pCfa, pSpecification, pLogger);
   }
 
   /** Export some information to the user about the guarantees provided by the witness. */
@@ -106,6 +108,10 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
             case V2d1 -> {
               logger.log(Level.INFO, "Exporting witnesses in Version 2.1 is currently WIP.");
               yield argToWitnessV2d1.exportWitness(pRootState, outputFile);
+            }
+            case V2d4 -> {
+              logger.log(Level.INFO, "Exporting witnesses in Version 2.4 is currently WIP.");
+              yield argToWitnessV2d4.exportWitness(pRootState, outputFile);
             }
           };
       witnessExportResults.put(witnessVersion, witnessExportResult);

@@ -94,13 +94,15 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
    *     abstractions at that location
    * @param functionContractEnsures a mapping from function exit nodes to ARG states encoding the *
    *     abstractions at that location
+   * @param pContractFormat the expression format of the requires and ensures clauses
    * @return a list of function contracts, one for each of the functions whose entry nodes have been
    *     given
    * @throws InterruptedException if the execution is interrupted
    */
   private ImmutableList<FunctionContractCreationResult> handleFunctionContract(
       Multimap<FunctionEntryNode, ARGState> functionContractRequires,
-      Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures)
+      Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures,
+      YAMLWitnessExpressionType pContractFormat)
       throws InterruptedException, ReportingMethodNotImplementedException {
     ImmutableList.Builder<FunctionContractCreationResult> functionContractRecords =
         new ImmutableList.Builder<>();
@@ -153,7 +155,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
               new FunctionContractEntry(
                   String.join(" && ", ensuresClause.build()),
                   requiresClause,
-                  YAMLWitnessExpressionType.ACSL,
+                  pContractFormat,
                   LocationRecord.createLocationRecordAtStart(
                       location, functionEntryNode.getFunctionName())),
               translationSuccessful));
@@ -164,6 +166,29 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
 
   WitnessExportResult exportWitness(ARGState pRootState, Path pOutputFile)
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
+    InvariantSetContentResult content =
+        createInvariantSetContent(pRootState, YAMLWitnessExpressionType.ACSL);
+
+    exportEntries(
+        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), content.entries()),
+        pOutputFile);
+
+    return new WitnessExportResult(content.translationAlwaysSuccessful());
+  }
+
+  /**
+   * Create the content of an invariant set from the ARG, i.e., loop invariants and function
+   * contracts.
+   *
+   * @param pRootState the root state of the ARG
+   * @param pContractFormat the expression format of the requires and ensures clauses of function
+   *     contracts
+   * @return the loop invariants and function contracts of the invariant set
+   * @throws InterruptedException if the execution is interrupted
+   */
+  protected InvariantSetContentResult createInvariantSetContent(
+      ARGState pRootState, YAMLWitnessExpressionType pContractFormat)
+      throws InterruptedException, ReportingMethodNotImplementedException {
     // Collect the information about the states which contain the information about the invariants
     CollectedARGStates statesCollector = getRelevantStates(pRootState);
 
@@ -187,7 +212,9 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
     // If we are exporting to witness version 3.0 then we want to include function contracts
     ImmutableList<FunctionContractCreationResult> functionContractCreationResult =
         handleFunctionContract(
-            statesCollector.functionContractRequires(), statesCollector.functionContractEnsures());
+            statesCollector.functionContractRequires(),
+            statesCollector.functionContractEnsures(),
+            pContractFormat);
     entries.addAll(
         FluentIterable.from(functionContractCreationResult)
             .transform(FunctionContractCreationResult::functionContractEntry));
@@ -196,9 +223,10 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
         FluentIterable.from(functionContractCreationResult)
             .allMatch(FunctionContractCreationResult::translationSuccessful);
 
-    exportEntries(
-        new InvariantSetEntry(getMetadata(YAMLWitnessVersion.V2d1), entries.build()), pOutputFile);
-
-    return new WitnessExportResult(translationAlwaysSuccessful);
+    return new InvariantSetContentResult(entries.build(), translationAlwaysSuccessful);
   }
+
+  /** The content of an invariant set and whether its translation was always successful. */
+  protected record InvariantSetContentResult(
+      ImmutableList<AbstractInvariantEntry> entries, boolean translationAlwaysSuccessful) {}
 }
