@@ -23,7 +23,6 @@ string_literals/*.yml
 string_functions/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
-witness_output/*.yml
 witness_validation/*.yml
 type_tests/*.yml
 pointer_arithmetics/*.yml
@@ -33,5 +32,8 @@ termination-nested/*.yml
 mathFunctions/*.yml
 memset/*.yml
 union_arrays/*.yml
+bitfields/*.yml
 scanf/*.yml
 str_functions/*.yml
+explicit/symbolic/*.yml
+symbolic_array_subscript/*.yml

@@ -537,8 +537,10 @@ public class CFAUtils {
     ImmutableSet<CFAEdge> conditionEdges =
         iteration.orElseThrow().getControllingExpression().orElseThrow().edges();
     ImmutableSet<CFANode> bodyEntries;
+    ImmutableSet<CFANode> exitEntries;
     try {
       bodyEntries = iteration.orElseThrow().getNodesBetweenConditionAndBody();
+      exitEntries = iteration.orElseThrow().getNodesBetweenConditionAndExit();
     } catch (BoundaryNodesComputationFailed e) {
       return Optional.empty();
     }
@@ -553,7 +555,12 @@ public class CFAUtils {
     List<ExpressionTree<CExpression>> pathConditions = new ArrayList<>();
     for (CFANode entry : conditionEntries) {
       if (!collectPathConditions(
-          entry, conditionEdges, bodyEntries, PersistentLinkedList.of(), pathConditions)) {
+          entry,
+          conditionEdges,
+          bodyEntries,
+          exitEntries,
+          PersistentLinkedList.of(),
+          pathConditions)) {
         return Optional.empty();
       }
     }
@@ -576,11 +583,19 @@ public class CFAUtils {
       CFANode pNode,
       ImmutableSet<CFAEdge> pConditionEdges,
       ImmutableSet<CFANode> pBodyEntries,
+      ImmutableSet<CFANode> pExitEntries,
       PersistentLinkedList<ExpressionTree<CExpression>> pReversedPath,
       List<ExpressionTree<CExpression>> pPathConditions) {
     if (pBodyEntries.contains(pNode)) {
       pPathConditions.add(And.of(pReversedPath.reversed()));
       return true;
+    }
+    if (pExitEntries.contains(pNode)) {
+      return true;
+    }
+    if (!pNode.getLeavingEdges().anyMatch(pConditionEdges::contains)) {
+      // The path continues with side effects of an operand, e.g., `y = 1` in `x && (y = 1)`
+      return false;
     }
     if (pReversedPath.size() > pConditionEdges.size()) {
       // The condition edges contain a cycle
@@ -603,7 +618,12 @@ public class CFAUtils {
         return false;
       }
       if (!collectPathConditions(
-          edge.getSuccessor(), pConditionEdges, pBodyEntries, reversedPath, pPathConditions)) {
+          edge.getSuccessor(),
+          pConditionEdges,
+          pBodyEntries,
+          pExitEntries,
+          reversedPath,
+          pPathConditions)) {
         return false;
       }
     }

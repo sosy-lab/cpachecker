@@ -183,7 +183,7 @@ public final class IterationElement extends BranchingElement {
     Pair<ImmutableSet<CFANode>, ImmutableSet<CFANode>> borderElements =
         computeNodesConditionBoundaryNodes(
             controllingExpression.orElseThrow().edges(),
-            Optional.of(body.edges()),
+            body.edges().isEmpty() ? Optional.empty() : Optional.of(body.edges()),
             Optional.empty());
     nodesBetweenConditionAndBody = borderElements.getFirst();
     nodesBetweenConditionAndExit = borderElements.getSecond();

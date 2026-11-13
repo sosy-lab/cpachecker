@@ -14,6 +14,13 @@ Changes since CPAchecker 4.2.2
   most configurations of CPAchecker
   will start requiring Ubuntu 24.04 / Debian 13 or newer
   after the next CPAchecker release.
+* CPAchecker's predicate analysis now supports
+  the special function `void __VERIFIER_nondet_memory(void *dest, size_t size)`.
+  This function needs to be declared, but not defined,
+  and is interpreted by CPAchecker to havoc the byte region of size 'size'
+  that 'dest' points to.
+  See the C programs in directory `test/programs/simple/verifier-nondet-memory-sanity/`
+  for examples on how to use the method.
 
 
 Changes from CPAchecker 4.2.1 to CPAchecker 4.2.2

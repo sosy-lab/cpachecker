@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -50,6 +51,16 @@ public class CFAUtilsTest {
     assertThat(expressionLocation.getStartColumnInLine()).isEqualTo(pExpectedStartColumnInLine);
     assertThat(expressionLocation.getEndingLineNumber()).isEqualTo(pExpectedEndingLine);
     assertThat(expressionLocation.getEndColumnInLine()).isEqualTo(pExpectedEndColumnInLine);
+  }
+
+  /** The assignment in the first operand of {@code ||} is not part of the loop condition. */
+  @Test
+  public void loopConditionWithSideEffectInOperand() throws Exception {
+    CFA cfa =
+        TestCfaUtils.makeCfaFromFile(
+            "test/programs/simple/witness_validation/loop-with-side-effect-in-operand.c");
+    CFANode loopHead = Iterables.getOnlyElement(cfa.getAllLoopHeads().orElseThrow());
+    assertThat(CFAUtils.computeLoopCondition(loopHead, cfa.getAstCfaRelation())).isEmpty();
   }
 
   /**

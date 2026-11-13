@@ -37,6 +37,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -209,10 +210,10 @@ class AssignmentFormulaHandler {
     CType lhsType = lhsResolved.type();
 
     if (lhsResolved.expression().isNondetValue()) {
-      // can only occur due to non-supported bit-fields, warn and return
       conv.logger.logfOnce(
           Level.WARNING,
-          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
+          "%s: Ignoring assignment to %s because bit fields that do not fit into their declared"
+              + " type at their first byte are not supported (possible in packed structs)",
           edge.getFileLocation(),
           lhsType);
       return bfmgr.makeTrue();
@@ -221,6 +222,15 @@ class AssignmentFormulaHandler {
     // construct the RHS expression
     ResolvedSlice rhsResult =
         resolveCompleteRhs(lhsResolved, targetType, rhsList, assignmentOptions);
+
+    if (lhsResolved.expression().isAliasedLocation()
+        && lhsResolved.expression().asAliasedLocation().isBitField()) {
+      // assign the value of the declared type at the bit field's address, retaining other bits
+      final AliasedLocation bitFieldLocation = lhsResolved.expression().asAliasedLocation();
+      rhsResult = insertBitFieldValue(bitFieldLocation, lhsType, rhsResult);
+      lhsType = rhsResult.type();
+      lhsResolved = new ResolvedSlice(bitFieldLocation.withoutBitFieldOffset(), lhsType);
+    }
 
     // determine whether it is desired to use old SSA indices because we are doing
     // an initialization assignment
@@ -256,6 +266,48 @@ class AssignmentFormulaHandler {
     }
 
     return result;
+  }
+
+  /**
+   * Returns the value of the declared type of a bit field at its address after setting the bit
+   * field to a new value. The other bits of this value are retained.
+   *
+   * @param bitFieldLocation The location of the bit field.
+   * @param bitFieldType The type of the bit field.
+   * @param bitFieldValue The new value of the bit field.
+   * @return The new value of the declared type at the address of the bit field.
+   */
+  private ResolvedSlice insertBitFieldValue(
+      final AliasedLocation bitFieldLocation,
+      final CType bitFieldType,
+      final ResolvedSlice bitFieldValue) {
+    final CType declaredType = ((CBitFieldType) bitFieldType).getType();
+    final long declaredBitSize = typeHandler.getExactBitSizeof(declaredType);
+    final long lsb = bitFieldLocation.getBitFieldOffset();
+    final long end = lsb + typeHandler.getExactBitSizeof(bitFieldType);
+    final BitvectorFormula previousValue =
+        conv.makeValueReinterpretationToBitvector(
+            declaredType,
+            addressHandler.getValueFormula(
+                bitFieldLocation.withoutBitFieldOffset(), declaredType, false));
+
+    BitvectorFormula result =
+        conv.makeValueReinterpretationToBitvector(
+            bitFieldType,
+            addressHandler.getValueFormula(bitFieldValue.expression(), bitFieldType, false));
+    if (lsb > 0) {
+      result =
+          bvmgr.concat(result, extractRangeOfBitvector(previousValue, Range.closedOpen(0L, lsb)));
+    }
+    if (end < declaredBitSize) {
+      result =
+          bvmgr.concat(
+              extractRangeOfBitvector(previousValue, Range.closedOpen(end, declaredBitSize)),
+              result);
+    }
+    return new ResolvedSlice(
+        Value.ofValue(conv.makeValueReinterpretationFromBitvector(declaredType, result)),
+        declaredType);
   }
 
   /**
@@ -1190,7 +1242,10 @@ class AssignmentFormulaHandler {
                       ssa)))) {
 
         final OptionalLong offset = typeHandler.getOffset(lvalueCompositeType, memberDeclaration);
-        if (!offset.isPresent()) {
+
+        // The code below would write to the wrong heap (e.g., to "unsigned int: 3" instead of
+        // "unsigned int"), so we ignore bit fields here. Best fix would be #1092.
+        if (!offset.isPresent() || newLvalueType instanceof CBitFieldType) {
           continue; // TODO this looses values of bit fields
         }
         final Formula offsetFormula =

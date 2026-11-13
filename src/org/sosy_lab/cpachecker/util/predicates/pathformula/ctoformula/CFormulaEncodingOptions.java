@@ -29,6 +29,14 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
   @Option(
       secure = true,
       description =
+          "Give up at writes through pointers if pointer aliasing is not handled. Otherwise they"
+              + " write to a fresh variable, which is unsound if the pointer points to another"
+              + " variable.")
+  private boolean abortOnPointerWrites = false;
+
+  @Option(
+      secure = true,
+      description =
           "Set of functions that should be considered as giving "
               + "a non-deterministic return value. "
               + "If you specify this option, the default values are not added automatically "
@@ -142,6 +150,10 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
 
   public boolean handleFieldAccess() {
     return handleFieldAccess;
+  }
+
+  public boolean abortOnPointerWrites() {
+    return abortOnPointerWrites;
   }
 
   public boolean isNondetFunction(String function) {

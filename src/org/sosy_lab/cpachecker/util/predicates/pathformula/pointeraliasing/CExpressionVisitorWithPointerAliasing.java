@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -490,6 +491,9 @@ class CExpressionVisitorWithPointerAliasing
             final CCompositeType compositeType =
                 (CCompositeType) CTypeUtils.checkIsSimplified(pointerType.getType());
             usedFields.add(CompositeField.of(compositeType, fieldName));
+            if (typeHandler.getSimplifiedType(field) instanceof CBitFieldType) {
+              throw new UnrecognizedCodeException("Taking address of bit fields is not allowed", e);
+            }
             final long fieldOffset =
                 typeHandler
                     .getOffset(compositeType, fieldName)
