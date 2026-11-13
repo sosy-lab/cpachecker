@@ -12,9 +12,11 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.AT_PREFIX;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.AT_PREFIX_NON_C;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
@@ -24,6 +26,9 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.Term;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -87,6 +93,73 @@ public class TerminationArgumentsToWitnessUtils {
     CSimpleDeclaration variable =
         pScope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(pVariable));
     return variable == null ? pVariable : pScope.createScopedNameOf(variable.getOrigName());
+  }
+
+  /**
+   * Returns the name in the input program as {@link #toNameInInputProgram}, or empty for a
+   * temporary variable of CPAchecker, which the input program does not have.
+   */
+  private static Optional<String> toVariableInInputProgram(String pVariable, Scope pScope) {
+    String name = toNameInInputProgram(pVariable, pScope);
+    if (TransitionInvariantUtils.removeFunctionFromVarsName(name)
+        .startsWith(CParserUtils.CPACHECKER_TMP_PREFIX)) {
+      return Optional.empty();
+    }
+    return Optional.of(name);
+  }
+
+  /**
+   * Returns the C expression with the names of the input program of a variable of a termination
+   * argument, e.g., (*p) for the heap cell (*int |main::p|) of the heap encoding with UFs. It is
+   * empty if there is none, e.g., for a heap cell at an offset of a pointer.
+   */
+  private static Optional<String> toCExpression(IProgramVar pVariable, Scope pScope) {
+    if (RankVar.getDereferencedPointer(pVariable.getTerm()).isEmpty()) {
+      return toVariableInInputProgram(pVariable.toString(), pScope);
+    }
+    return toCExpression(pVariable.getTerm(), pScope);
+  }
+
+  private static Optional<String> toCExpression(Term pTerm, Scope pScope) {
+    Optional<Term> pointer = RankVar.getDereferencedPointer(pTerm);
+    if (pointer.isPresent()) {
+      return toCExpression(pointer.orElseThrow(), pScope).map(p -> "(*" + p + ")");
+    }
+    if (pTerm instanceof ApplicationTerm variable
+        && variable.getParameters().length == 0
+        && !variable.getFunction().isInterpreted()) {
+      return toVariableInInputProgram(CharMatcher.is('|').trimFrom(pTerm.toStringDirect()), pScope);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Returns whether all integer literals in the given expression are integer constants of C, i.e.,
+   * not larger than the maximal value of long long.
+   */
+  private static boolean hasOnlyIntegerConstantsOfC(String pExpression) {
+    // A sequence of digits that is not part of a name, e.g., not the 128 in __int128
+    return Pattern.compile("(?<![\\w.])\\d+")
+        .matcher(pExpression)
+        .results()
+        .allMatch(literal -> new BigInteger(literal.group()).bitLength() < Long.SIZE);
+  }
+
+  /**
+   * Returns the C expressions of the given variables of a termination argument by their names, or
+   * empty if a variable has none.
+   */
+  private static Optional<ImmutableMap<String, String>> toCExpressions(
+      Iterable<IProgramVar> pVariables, Scope pScope) {
+    ImmutableMap.Builder<String, String> expressions = ImmutableMap.builder();
+    for (IProgramVar variable : pVariables) {
+      Optional<String> expression = toCExpression(variable, pScope);
+      if (expression.isEmpty()) {
+        return Optional.empty();
+      }
+      expressions.put(variable.toString(), expression.orElseThrow());
+    }
+    return Optional.of(expressions.buildKeepingLast());
   }
 
   /**
@@ -174,8 +247,11 @@ public class TerminationArgumentsToWitnessUtils {
         .replaceAll(match -> Matcher.quoteReplacement(pReplacement.apply(match.group(1))));
   }
 
-  /** Converts supporting invariant into an invariant entry. */
-  public static InvariantEntry convertSupportingInvariantToInvariantEntry(
+  /**
+   * Converts supporting invariant into an invariant entry, or returns empty if it cannot be
+   * expressed in C.
+   */
+  public static Optional<InvariantEntry> convertSupportingInvariantToInvariantEntry(
       SupportingInvariant pSupportingInvariant,
       CFANode pLoopHead,
       CFAEdge pIncomingLoopEdge,
@@ -198,16 +274,21 @@ public class TerminationArgumentsToWitnessUtils {
             pProgramScope,
             getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation),
             pAstCfaRelation);
-    String invariant =
-        wrapTheVariablesWithCastToLongLong(
-            pSupportingInvariant.toString(),
-            pSupportingInvariant.getVariables(),
-            variable -> toNameInInputProgram(variable, scope));
-    return new InvariantEntry(
-        TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
-        InvariantRecordType.LOOP_INVARIANT.getKeyword(),
-        YAMLWitnessExpressionType.C,
-        locationRecord);
+    Optional<ImmutableMap<String, String>> names =
+        toCExpressions(pSupportingInvariant.getVariables(), scope);
+    return names
+        .map(
+            n ->
+                wrapTheVariablesWithCastToLongLong(
+                    pSupportingInvariant.toString(), pSupportingInvariant.getVariables(), n::get))
+        .filter(TerminationArgumentsToWitnessUtils::hasOnlyIntegerConstantsOfC)
+        .map(
+            invariant ->
+                new InvariantEntry(
+                    TransitionInvariantUtils.removeFunctionFromVarsName(invariant),
+                    InvariantRecordType.LOOP_INVARIANT.getKeyword(),
+                    YAMLWitnessExpressionType.C,
+                    locationRecord));
   }
 
   /**
@@ -220,7 +301,7 @@ public class TerminationArgumentsToWitnessUtils {
       CFAEdge pIncomingLoopEdge,
       AstCfaRelation pAstCfaRelation,
       CProgramScope pProgramScope) {
-    ImmutableList.Builder<String> transitionInvariants = ImmutableList.builder();
+    ImmutableList.Builder<Optional<String>> transitionInvariants = ImmutableList.builder();
 
     // Ideally, this should be done via AstToCFARelation, however, this breaks due to copying of CFA
     // This is planned in https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/1483
@@ -235,25 +316,26 @@ public class TerminationArgumentsToWitnessUtils {
             pProgramScope,
             getLoopStartInOriginalCfa(fileLocation, pLoopHead, pAstCfaRelation),
             pAstCfaRelation);
-    Function<String, String> names = variable -> toNameInInputProgram(variable, scope);
     for (TerminationArgument argument : pArguments) {
       RankingFunction rankingFunction = argument.getRankingFunction();
       if (rankingFunction instanceof LexicographicRankingFunction pLexicographicRankingFunction) {
         for (int i = 0; i < pLexicographicRankingFunction.getComponents().length; i++) {
-          String componentConjunction =
+          Optional<String> componentConjunction =
               constructTransitionInvariantRelation(
                   pLexicographicRankingFunction.getComponents()[i].toString(),
                   pLexicographicRankingFunction.getComponents()[i].getVariables(),
                   true,
-                  names);
+                  scope);
           for (int j = 0; j < pLexicographicRankingFunction.getComponents().length; j++) {
-            componentConjunction +=
-                "&&"
-                    + constructTransitionInvariantRelation(
-                        pLexicographicRankingFunction.getComponents()[j].toString(),
-                        pLexicographicRankingFunction.getComponents()[j].getVariables(),
-                        false,
-                        names);
+            Optional<String> relation =
+                constructTransitionInvariantRelation(
+                    pLexicographicRankingFunction.getComponents()[j].toString(),
+                    pLexicographicRankingFunction.getComponents()[j].getVariables(),
+                    false,
+                    scope);
+            componentConjunction =
+                componentConjunction.flatMap(
+                    conjunction -> relation.map(r -> conjunction + "&&" + r));
           }
           transitionInvariants.add(componentConjunction);
         }
@@ -265,42 +347,56 @@ public class TerminationArgumentsToWitnessUtils {
                   nestedRankingFunction.toString(),
                   nestedRankingFunction.getVariables(),
                   true,
-                  names));
+                  scope));
         }
       } else {
         transitionInvariants.add(
             constructTransitionInvariantRelation(
-                rankingFunction.toString(), rankingFunction.getVariables(), true, names));
+                rankingFunction.toString(), rankingFunction.getVariables(), true, scope));
       }
     }
+    ImmutableList<Optional<String>> disjuncts = transitionInvariants.build();
+    // Weakening a transition invariant to true keeps it a transition invariant
+    String transitionInvariant =
+        disjuncts.stream().allMatch(Optional::isPresent)
+            ? FluentIterable.from(disjuncts)
+                .transform(disjunct -> "(" + disjunct.orElseThrow() + ")")
+                .join(Joiner.on(" || "))
+            : "1";
     return new InvariantEntry(
-        TransitionInvariantUtils.removeFunctionFromVarsName(
-            FluentIterable.from(transitionInvariants.build())
-                .transform(disjunct -> "(" + disjunct + ")")
-                .join(Joiner.on(" || "))),
+        TransitionInvariantUtils.removeFunctionFromVarsName(transitionInvariant),
         InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
         YAMLWitnessExpressionType.EXT_C,
         locationRecord);
   }
 
-  private static String constructTransitionInvariantRelation(
+  /**
+   * Returns the relation between the values of the ranking function in the previous and the current
+   * state as C expression, or empty if it cannot be expressed in C.
+   */
+  private static Optional<String> constructTransitionInvariantRelation(
       String rankingFunction,
       Iterable<IProgramVar> variables,
       boolean strictRelation,
-      Function<String, String> pNames) {
+      Scope pScope) {
+    Optional<ImmutableMap<String, String>> names = toCExpressions(variables, pScope);
+    if (names.isEmpty()) {
+      return Optional.empty();
+    }
     String prevRank =
         rightSideOfRankingFunction(
-            wrapTheVariablesWithAtAnyPrev(rankingFunction, variables, pNames));
+            wrapTheVariablesWithAtAnyPrev(rankingFunction, variables, names.orElseThrow()::get));
     String currentRank =
         rightSideOfRankingFunction(
-            wrapTheVariablesWithCastToLongLong(rankingFunction, variables, pNames));
-    if (prevRank.contains(CParserUtils.CPACHECKER_TMP_PREFIX)) {
-      return "0";
+            wrapTheVariablesWithCastToLongLong(
+                rankingFunction, variables, names.orElseThrow()::get));
+    if (!hasOnlyIntegerConstantsOfC(prevRank)) {
+      return Optional.empty();
     }
     if (strictRelation) {
-      return prevRank + " > " + currentRank;
+      return Optional.of(prevRank + " > " + currentRank);
     }
-    return prevRank + " >= " + currentRank;
+    return Optional.of(prevRank + " >= " + currentRank);
   }
 
   public static Set<TerminationArgument> collectArgumentsForNestedLoops(
