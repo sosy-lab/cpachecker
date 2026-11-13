@@ -151,6 +151,16 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
               + "Only relevant if enableMemoryAssignmentFunctions is set to true.")
   private boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Handle a call to a function of the program that is known to behave like memset (cf."
+              + " cfa.detectKnownFunctionBehavior) additionally like a call to memset, which sets"
+              + " the typed memory of the destination. The body of the function is still analyzed."
+              + " Independent of enableMemoryAssignmentFunctions. Only has an effect if the"
+              + " detection is enabled.")
+  private boolean handleKnownFunctionBehavior = true;
+
   public CFormulaEncodingWithPointerAliasingOptions(Configuration config)
       throws InvalidConfigurationException {
     super(config);
@@ -279,6 +289,10 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
 
   boolean enableMemoryAssignmentFunctions() {
     return enableMemoryAssignmentFunctions;
+  }
+
+  boolean handleKnownFunctionBehavior() {
+    return handleKnownFunctionBehavior;
   }
 
   boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions() {

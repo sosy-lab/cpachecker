@@ -14,6 +14,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.io.Serial;
@@ -29,6 +30,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.KnownFunctionBehavior;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -145,7 +147,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pCfa.getMachineModel(),
         pCfa.getVarClassification(),
         pDirection,
-        pCfa.getLanguage());
+        pCfa.getLanguage(),
+        pCfa.getMetadata().getKnownFunctionBehaviors().orElse(ImmutableMap.of()));
   }
 
   public PathFormulaManagerImpl(
@@ -157,6 +160,29 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       Optional<VariableClassification> pVariableClassification,
       AnalysisDirection pDirection,
       Language pLanguage)
+      throws InvalidConfigurationException {
+    this(
+        pFmgr,
+        config,
+        pLogger,
+        pShutdownNotifier,
+        pMachineModel,
+        pVariableClassification,
+        pDirection,
+        pLanguage,
+        ImmutableMap.of());
+  }
+
+  private PathFormulaManagerImpl(
+      FormulaManagerView pFmgr,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel,
+      Optional<VariableClassification> pVariableClassification,
+      AnalysisDirection pDirection,
+      Language pLanguage,
+      ImmutableMap<String, KnownFunctionBehavior> pKnownFunctionBehaviors)
       throws InvalidConfigurationException {
 
     config.inject(this, PathFormulaManagerImpl.class);
@@ -202,7 +228,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                   logger,
                   shutdownNotifier,
                   aliasingTypeHandler,
-                  pDirection);
+                  pDirection,
+                  pKnownFunctionBehaviors);
 
           wpConverter = null;
 

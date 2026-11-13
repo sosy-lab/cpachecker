@@ -1211,6 +1211,12 @@ cfa.checkNullPointers = false
 # pointer dereferences or to have separate nodes for each dereference
 cfa.checkNullPointers.singleTargetPerFunction = true
 
+# Detect functions of the program that behave like a well-known function (so
+# far, byte-wise implementations of memset and wrappers of them) and store
+# them in the CFA metadata. The CFA itself is not changed. Needs the loop
+# structure (analysis.useLoopStructure).
+cfa.detectKnownFunctionBehavior = false
+
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
 cfa.expandFunctionPointerArrayAssignments = false
@@ -2949,6 +2955,13 @@ cpa.predicate.handleFieldAccess = false
 # If disabled, all implicitly initialized fields and elements are treated as
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
+
+# Handle a call to a function of the program that is known to behave like
+# memset (cf. cfa.detectKnownFunctionBehavior) additionally like a call to
+# memset, which sets the typed memory of the destination. The body of the
+# function is still analyzed. Independent of enableMemoryAssignmentFunctions.
+# Only has an effect if the detection is enabled.
+cpa.predicate.handleKnownFunctionBehavior = true
 
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.

@@ -17,6 +17,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -35,9 +36,11 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.KnownFunctionBehavior;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -68,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -75,9 +79,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -128,6 +134,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final Formula nullPointer;
   private MemoryRegionManager regionMgr;
 
+  /** The functions of the program that behave like a well-known function. */
+  private final ImmutableMap<String, KnownFunctionBehavior> knownFunctionBehaviors;
+
   public CToFormulaConverterWithPointerAliasing(
       final CFormulaEncodingWithPointerAliasingOptions pOptions,
       final FormulaManagerView formulaManagerView,
@@ -137,6 +146,33 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final ShutdownNotifier pShutdownNotifier,
       final TypeHandlerWithPointerAliasing pTypeHandler,
       final AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
+    this(
+        pOptions,
+        formulaManagerView,
+        pMachineModel,
+        pVariableClassification,
+        logger,
+        pShutdownNotifier,
+        pTypeHandler,
+        pDirection,
+        ImmutableMap.of());
+  }
+
+  /**
+   * Creates a converter that also uses the given known behavior of functions of the program, see
+   * {@link org.sosy_lab.cpachecker.cfa.CfaMetadata#getKnownFunctionBehaviors()}.
+   */
+  public CToFormulaConverterWithPointerAliasing(
+      final CFormulaEncodingWithPointerAliasingOptions pOptions,
+      final FormulaManagerView formulaManagerView,
+      final MachineModel pMachineModel,
+      final Optional<VariableClassification> pVariableClassification,
+      final LogManager logger,
+      final ShutdownNotifier pShutdownNotifier,
+      final TypeHandlerWithPointerAliasing pTypeHandler,
+      final AnalysisDirection pDirection,
+      final ImmutableMap<String, KnownFunctionBehavior> pKnownFunctionBehaviors)
       throws InvalidConfigurationException {
     super(
         pOptions,
@@ -156,6 +192,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
+    knownFunctionBehaviors = checkNotNull(pKnownFunctionBehaviors);
 
     if (options.useMemoryRegions()) {
       // create BnB regions here
@@ -1282,10 +1319,78 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           errorConditions);
     }
 
+    if (options.handleKnownFunctionBehavior()
+        && knownFunctionBehaviors.get(entryNode.getFunctionName())
+            == KnownFunctionBehavior.MEMSET) {
+      handleCallOfKnownMemset(edge, callerFunction, ssa, pts, constraints, errorConditions);
+    }
+
     BooleanFormula result =
         super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
     return result;
+  }
+
+  /**
+   * Handles a call to a function of the program that is known to behave like {@code memset} (see
+   * {@link KnownFunctionBehavior#MEMSET}) additionally like a call to {@code memset} with the
+   * arguments of the caller. This sets the typed memory of the destination, which a byte-wise
+   * implementation in the body of the function only writes as {@code char}s. The body of the
+   * function is still analyzed as usual.
+   *
+   * <p>Nothing is done if the destination has no type besides bytes at this call (e.g., a wrapper
+   * that passes on its {@code void *} parameter), because then the body already writes it, and the
+   * typed destination is only known at the outer call.
+   */
+  private void handleCallOfKnownMemset(
+      final CFunctionCallEdge edge,
+      final String callerFunction,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws InterruptedException {
+    CFunctionCallExpression call = edge.getFunctionCallExpression();
+    List<CExpression> arguments = call.getParameterExpressions();
+    if (options.useByteArrayForHeap()
+        || arguments.size() != 3
+        || !hasTypedDestination(arguments.getFirst())) {
+      return;
+    }
+    MemoryManipulationFunctionHandler memoryFunctionHandler =
+        new MemoryManipulationFunctionHandler(
+            this, edge, callerFunction, ssa, pts, constraints, errorConditions, regionMgr);
+    try {
+      memoryFunctionHandler.handleMemoryAssignmentFunction("memset", call);
+    } catch (UnrecognizedCodeException e) {
+      // The body of the function still models the call, only less precisely.
+      logger.logfOnce(
+          Level.WARNING,
+          "%s: Cannot handle call to %s like memset: %s",
+          edge.getFileLocation(),
+          edge.getSuccessor().getFunctionName(),
+          e.getMessage());
+    }
+  }
+
+  /**
+   * Whether the given destination of a memset has a type besides bytes, i.e., it is not (after
+   * removing a cast to {@code void *}) a pointer to {@code void} or to a character type.
+   */
+  private static boolean hasTypedDestination(CExpression pDestination) {
+    CExpression destination = pDestination;
+    if (destination instanceof CCastExpression cast
+        && cast.getCastType().getCanonicalType() instanceof CPointerType castType
+        && castType.getType().getCanonicalType() instanceof CVoidType) {
+      destination = cast.getOperand();
+    }
+    if (!(CTypes.adjustFunctionOrArrayType(destination.getExpressionType().getCanonicalType())
+        instanceof CPointerType pointerType)) {
+      return false;
+    }
+    CType target = pointerType.getType().getCanonicalType();
+    return !(target instanceof CVoidType)
+        && !(target instanceof CSimpleType simpleType && simpleType.getType() == CBasicType.CHAR);
   }
 
   /**
