@@ -97,6 +97,7 @@ final class PathSequence {
     PathSequence s1 = this;
     PathSequence s2 = pOther;
     while (s1 != s2) {
+      checkArgument(s1.size == s2.size);
       if (!s1.last.equals(s2.last)) {
         return false;
       }
