@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Decides whether a call to <code>__VERIFIER_nondet_memory</code> havocs a block that is not
@@ -65,11 +66,12 @@ final class UntouchedAllocationCheck {
 
   /**
    * A point of the backward walk: the walk is at <code>node</code>, the havoc target is held by
-   * <code>trackedVariable</code>, and <code>callStack</code> holds the function activations of the
+   * <code>trackedLocation</code>, and <code>callStack</code> holds the function activations of the
    * walk, outermost first and innermost last. The call stack is never empty, and its last frame is
    * the function of <code>node</code>.
    */
-  private record WalkState(CFANode node, String trackedVariable, ImmutableList<Frame> callStack) {}
+  private record WalkState(
+      CFANode node, MemoryLocation trackedLocation, ImmutableList<Frame> callStack) {}
 
   /** The outcome of walking backward over one edge. */
   private sealed interface StepResult {}
@@ -118,7 +120,7 @@ final class UntouchedAllocationCheck {
    *     __VERIFIER_nondet_memory</code>
    */
   boolean isHavocOfUntouchedAllocation(CStatementEdge pNondetMemoryCall) {
-    Optional<String> target = getTargetVariable(pNondetMemoryCall);
+    Optional<MemoryLocation> target = getTargetOfNondetMemory(pNondetMemoryCall);
     if (target.isEmpty()) {
       return false;
     }
@@ -126,7 +128,7 @@ final class UntouchedAllocationCheck {
     return doAllPathsBackwardReachAllocationWithoutUse(startNode, target.orElseThrow());
   }
 
-  private Optional<String> getTargetVariable(CStatementEdge pNondetMemoryCall) {
+  private Optional<MemoryLocation> getTargetOfNondetMemory(CStatementEdge pNondetMemoryCall) {
     checkArgument(
         CFAUtils.getFunctionCallName(pNondetMemoryCall)
             .equals(Optional.of(VerifierNondetFunctions.getFunctionNameNondetMemory())),
@@ -141,10 +143,11 @@ final class UntouchedAllocationCheck {
     checkArgument(
         !nondetMemoryCallArguments.isEmpty(), "Call without arguments: %s", pNondetMemoryCall);
 
-    return getVariableNameIfCastIdExpression(nondetMemoryCallArguments.getFirst());
+    return getLocationIfCastIdExpression(nondetMemoryCallArguments.getFirst());
   }
 
-  private boolean doAllPathsBackwardReachAllocationWithoutUse(CFANode pStartNode, String target) {
+  private boolean doAllPathsBackwardReachAllocationWithoutUse(
+      CFANode pStartNode, MemoryLocation target) {
     WalkState start =
         new WalkState(
             pStartNode,
@@ -219,7 +222,7 @@ final class UntouchedAllocationCheck {
       case CDeclarationEdge declarationEdge ->
           backwardsStepOverDeclaration(declarationEdge, pCurrentState);
       default ->
-          cleanPathToPredecessor(pEdge, pCurrentState.trackedVariable(), pCurrentState.callStack());
+          cleanPathToPredecessor(pEdge, pCurrentState.trackedLocation(), pCurrentState.callStack());
     };
   }
 
@@ -267,7 +270,7 @@ final class UntouchedAllocationCheck {
     if (isOnCallChain(currentFunction, pState)) {
       return new DirtyPath();
     }
-    String trackedVariable = pState.trackedVariable();
+    MemoryLocation trackedLocation = pState.trackedLocation();
     if (summaryEdge.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
       // If the return value is assigned to some value, check whether this is a pointer dereference
       // -> may change our target between allocation and __VERIFIER_nondet_memory
@@ -276,7 +279,7 @@ final class UntouchedAllocationCheck {
         return new DirtyPath();
       }
 
-      if (isVariableWithName(assigneeOfFunctionCall, trackedVariable)) {
+      if (refersToLocation(assigneeOfFunctionCall, trackedLocation)) {
         // the tracked variable is directly assigned the return value of the called function
         // -> because we are going backwards, we are now interested in how the return variable is
         // assigned
@@ -288,13 +291,13 @@ final class UntouchedAllocationCheck {
           // Instead let's be lenient and just say that the path is dirty.
           return new DirtyPath();
         }
-        trackedVariable = returnVariable.orElseThrow().getQualifiedName();
+        trackedLocation = MemoryLocation.forDeclaration(returnVariable.orElseThrow());
       }
     }
     Frame calleeFrame =
         new Frame(summaryEdge.getFunctionEntry().getFunctionName(), Optional.of(summaryEdge));
     return cleanPathToPredecessor(
-        pEdge, trackedVariable, listAndElement(pState.callStack(), calleeFrame));
+        pEdge, trackedLocation, listAndElement(pState.callStack(), calleeFrame));
   }
 
   private boolean isOnCallChain(String pFunctionName, WalkState pState) {
@@ -318,14 +321,14 @@ final class UntouchedAllocationCheck {
 
   private StepResult backwardsStepOutOfCall(CFunctionCallEdge pEdge, WalkState pState) {
     ImmutableList<Frame> callStack = pState.callStack();
-    Optional<String> maybeTrackedVariable =
-        resolveVariableToAssignmentOutsideOfFunctionCall(pState.trackedVariable(), pEdge);
-    if (maybeTrackedVariable.isEmpty()) {
+    Optional<MemoryLocation> maybeTrackedLocation =
+        resolveLocationToAssignmentOutsideOfFunctionCall(pState.trackedLocation(), pEdge);
+    if (maybeTrackedLocation.isEmpty()) {
       // We were not able to directly map the tracked variable to its parameter
       // -> over-approximate by saying the path is dirty.
       return new DirtyPath();
     }
-    String trackedVariable = maybeTrackedVariable.orElseThrow();
+    MemoryLocation trackedLocation = maybeTrackedLocation.orElseThrow();
 
     ImmutableList<Frame> poppedCallStack = callStack.subList(0, callStack.size() - 1);
     // Leaving the outermost frame reveals its caller, which becomes the new outermost frame.
@@ -338,25 +341,25 @@ final class UntouchedAllocationCheck {
       poppedCallStack =
           ImmutableList.of(new Frame(pEdge.getPredecessor().getFunctionName(), Optional.empty()));
     }
-    return cleanPathToPredecessor(pEdge, trackedVariable, poppedCallStack);
+    return cleanPathToPredecessor(pEdge, trackedLocation, poppedCallStack);
   }
 
-  private Optional<String> resolveVariableToAssignmentOutsideOfFunctionCall(
-      String pVariable, CFunctionCallEdge pFunctionCall) {
+  private Optional<MemoryLocation> resolveLocationToAssignmentOutsideOfFunctionCall(
+      MemoryLocation pLocation, CFunctionCallEdge pFunctionCall) {
     List<CParameterDeclaration> parameters = pFunctionCall.getSuccessor().getFunctionParameters();
     List<CExpression> arguments = pFunctionCall.getArguments();
     for (int i = 0; i < parameters.size(); i++) {
-      if (parameters.get(i).getQualifiedName().equals(pVariable)) {
-        return getVariableNameIfCastIdExpression(arguments.get(i));
+      if (MemoryLocation.forDeclaration(parameters.get(i)).equals(pLocation)) {
+        return getLocationIfCastIdExpression(arguments.get(i));
       }
     }
     // If the variable is scoped to the function but not one of the function's parameters,
     // then it was declared inside the function and we have no assignment from the outside.
-    if (pVariable.startsWith(pFunctionCall.getSuccessor().getFunctionName() + "::")) {
+    if (pLocation.isOnFunctionStack(pFunctionCall.getSuccessor().getFunctionName())) {
       return Optional.empty();
     }
     // If the variable is not scoped to the function, we just continue tracking it directly
-    return Optional.of(pVariable);
+    return Optional.of(pLocation);
   }
 
   private StepResult backwardsStepOverReturnStatement(
@@ -365,17 +368,17 @@ final class UntouchedAllocationCheck {
     if (maybeReturnAssignment.isPresent()) {
       CAssignment returnAssignment = maybeReturnAssignment.orElseThrow();
       CLeftHandSide returnVariable = returnAssignment.getLeftHandSide();
-      if (isVariableWithName(returnVariable, pState.trackedVariable())) {
+      if (refersToLocation(returnVariable, pState.trackedLocation())) {
         return backwardsStepForAssignment(
             pEdge, returnAssignment.getRightHandSide(), pState.callStack());
       }
     }
-    return cleanPathToPredecessor(pEdge, pState.trackedVariable(), pState.callStack());
+    return cleanPathToPredecessor(pEdge, pState.trackedLocation(), pState.callStack());
   }
 
   private StepResult backwardsStepOverStatement(CStatementEdge pEdge, WalkState pState) {
     if (pEdge.getStatement() instanceof CAssignment assignment
-        && isVariableWithName(assignment.getLeftHandSide(), pState.trackedVariable())) {
+        && refersToLocation(assignment.getLeftHandSide(), pState.trackedLocation())) {
       if (assignment instanceof CFunctionCallAssignmentStatement callAssignment) {
         // The path ends successfully at an allocation and fails at any other call.
         return isAllocationCall(callAssignment.getRightHandSide())
@@ -384,24 +387,24 @@ final class UntouchedAllocationCheck {
       }
       return backwardsStepForAssignment(pEdge, assignment.getRightHandSide(), pState.callStack());
     }
-    return cleanPathToPredecessor(pEdge, pState.trackedVariable(), pState.callStack());
+    return cleanPathToPredecessor(pEdge, pState.trackedLocation(), pState.callStack());
   }
 
   private StepResult backwardsStepOverDeclaration(CDeclarationEdge pEdge, WalkState pState) {
     if (pEdge.getDeclaration() instanceof CVariableDeclaration declaration
-        && declaration.getQualifiedName().equals(pState.trackedVariable())) {
+        && MemoryLocation.forDeclaration(declaration).equals(pState.trackedLocation())) {
       return declaration.getInitializer() instanceof CInitializerExpression initializer
           ? backwardsStepForAssignment(pEdge, initializer.getExpression(), pState.callStack())
           : new DirtyPath();
     }
-    return cleanPathToPredecessor(pEdge, pState.trackedVariable(), pState.callStack());
+    return cleanPathToPredecessor(pEdge, pState.trackedLocation(), pState.callStack());
   }
 
   private StepResult backwardsStepForAssignment(
       CFAEdge pEdge, CRightHandSide pValue, ImmutableList<Frame> pCallStack) {
-    Optional<String> source =
+    Optional<MemoryLocation> source =
         pValue instanceof CExpression value
-            ? getVariableNameIfCastIdExpression(value)
+            ? getLocationIfCastIdExpression(value)
             : Optional.empty();
     return source.isPresent()
         ? cleanPathToPredecessor(pEdge, source.orElseThrow(), pCallStack)
@@ -409,9 +412,9 @@ final class UntouchedAllocationCheck {
   }
 
   private StepResult cleanPathToPredecessor(
-      CFAEdge pEdge, String pTrackedVariable, ImmutableList<Frame> pCallStack) {
+      CFAEdge pEdge, MemoryLocation pTrackedLocation, ImmutableList<Frame> pCallStack) {
     return new PotentialCleanPath(
-        new WalkState(pEdge.getPredecessor(), pTrackedVariable, pCallStack));
+        new WalkState(pEdge.getPredecessor(), pTrackedLocation, pCallStack));
   }
 
   /**
@@ -426,17 +429,23 @@ final class UntouchedAllocationCheck {
             && mayAccessMemory(call.getFunctionCallExpression()));
   }
 
-  private boolean isVariableWithName(CLeftHandSide pLeftHandSide, String pName) {
+  private boolean refersToLocation(CLeftHandSide pLeftHandSide, MemoryLocation pLocation) {
     return pLeftHandSide instanceof CIdExpression variable
-        && variable.getDeclaration().getQualifiedName().equals(pName);
+        && MemoryLocation.forDeclaration(variable.getDeclaration()).equals(pLocation);
   }
 
-  private Optional<String> getVariableNameIfCastIdExpression(CExpression pExpression) {
+  /**
+   * Returns the memory location that the expression reads. Empty if the expression is not an
+   * identifier that we can map to a memory location (ignoring casts).
+   */
+  private Optional<MemoryLocation> getLocationIfCastIdExpression(CExpression pExpression) {
     if (pExpression instanceof CCastExpression cast) {
-      return getVariableNameIfCastIdExpression(cast.getOperand());
+      return getLocationIfCastIdExpression(cast.getOperand());
     }
-    if (pExpression instanceof CIdExpression variable) {
-      return Optional.of(variable.getDeclaration().getQualifiedName());
+    if (pExpression instanceof CIdExpression idExpression
+        && (idExpression.getDeclaration() instanceof CVariableDeclaration
+            || idExpression.getDeclaration() instanceof CParameterDeclaration)) {
+      return Optional.of(MemoryLocation.forDeclaration(idExpression.getDeclaration()));
     }
     return Optional.empty();
   }
