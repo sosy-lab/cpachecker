@@ -299,8 +299,9 @@ final class UntouchedAllocationCheck {
         Optional<CVariableDeclaration> returnVariable =
             summaryEdge.getFunctionEntry().getReturnVariable();
         if (returnVariable.isEmpty()) {
-          // Not sure when this would happen, but I also don't want to crash.
-          // Instead let's be lenient and just say that the path is dirty.
+          // Void functions have no return variable, so this is an invalid assignment of a void
+          // call. The frontend accepts it and predicate analysis rejects it when it reaches this
+          // edge, so we only say that the path is dirty here.
           return new DirtyPath();
         }
         trackedLocation = MemoryLocation.forDeclaration(returnVariable.orElseThrow());
