@@ -235,7 +235,8 @@ public class LassoAnalysis {
             pCfa.getMachineModel(),
             pLogger,
             formulaManagerView,
-            formulaManager.getFormulaCreator());
+            formulaManager.getFormulaCreator(),
+            pConfig);
 
     return new LassoAnalysis(
         lassoBuilder,

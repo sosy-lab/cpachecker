@@ -213,7 +213,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
             pCfa.getMachineModel(),
             pLogger,
             formulaManagerView,
-            formulaManager.getFormulaCreator());
+            formulaManager.getFormulaCreator(),
+            pConfig);
     lassoAnalysis =
         LassoAnalysis.create(
             lassoBuilder,

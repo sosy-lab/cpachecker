@@ -21,7 +21,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createDereferencedVariable;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtils.createPrimedVariable;
 
-import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -33,6 +32,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.Serial;
@@ -42,6 +42,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -53,8 +55,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
@@ -80,11 +85,16 @@ public class RankingRelationBuilder {
 
   private final FormulaCreator<Term, ?, ?, ?> formulaCreator;
 
+  /** Names the UFs of the heap encoding with UFs, from which the lassos are built. */
+  private final TypeHandlerWithPointerAliasing typeHandler;
+
   public RankingRelationBuilder(
       MachineModel pMachineModel,
       LogManager pLogger,
       FormulaManagerView pFormulaManagerView,
-      FormulaCreator<Term, ?, ?, ?> pFormulaCreator) {
+      FormulaCreator<Term, ?, ?, ?> pFormulaCreator,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     cExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
     fmgr = checkNotNull(pFormulaManagerView);
@@ -92,6 +102,9 @@ public class RankingRelationBuilder {
     ifmgr = fmgr.getIntegerFormulaManager();
     zero = ifmgr.makeNumber(0L);
     formulaCreator = checkNotNull(pFormulaCreator);
+    typeHandler =
+        new TypeHandlerWithPointerAliasing(
+            pLogger, pMachineModel, new CFormulaEncodingWithPointerAliasingOptions(pConfig));
   }
 
   public RankingRelation fromTerminationArgument(
@@ -390,16 +403,22 @@ public class RankingRelationBuilder {
       CIdExpression variable = new CIdExpression(DUMMY, variableDecl.orElseThrow());
       return Pair.of(primedVariable, variable);
 
-    } else if (RankVar.getDereferencedPointer(pRankVar.getTerm()).isPresent()) {
+    } else if (pRankVar.getTerm() instanceof ApplicationTerm heapCell
+        && !heapCell.getFunction().isInterpreted()
+        && heapCell.getParameters().length == 1
+        && heapCell.getParameters()[0] instanceof ApplicationTerm innerVariableTerm) {
+      // a heap cell of the heap encoding with UFs, e.g., (*int |main::p|) for *p
 
-      Term innerVariableTerm = RankVar.getDereferencedPointer(pRankVar.getTerm()).orElseThrow();
-      String innerVariableName = CharMatcher.is('|').trimFrom(innerVariableTerm.toStringDirect());
+      String innerVariableName = innerVariableTerm.getFunction().getName();
       RankVar innerDummyRankVar =
           new RankVar(innerVariableName, pRankVar.isGlobal(), innerVariableTerm);
       Pair<CIdExpression, CExpression> innerVariables =
           getVariable(innerDummyRankVar, pRelevantVariables);
 
       CSimpleDeclaration innerPrimedVariable = innerVariables.getFirstNotNull().getDeclaration();
+      if (!isHeapCellOfPointer(heapCell, innerPrimedVariable)) {
+        throw new RankingRelationException("Cannot handle term " + pRankVar.getTerm());
+      }
       CExpression innerVariable = innerVariables.getSecondNotNull();
       CVariableDeclaration primedVariableDecl = createDereferencedVariable(innerPrimedVariable);
       CExpression variable =
@@ -409,8 +428,20 @@ public class RankingRelationBuilder {
 
     } else {
       // e.g. array, binary operators, etc. are not supported
-      throw new RankingRelationException("Cannot handle term " + pRankVar);
+      throw new RankingRelationException("Cannot handle term " + pRankVar.getTerm());
     }
+  }
+
+  /**
+   * Returns whether the given application of a UF of the heap encoding is the heap cell that the
+   * given pointer points to, i.e., whether the UF is the one for the target type of the pointer.
+   */
+  private boolean isHeapCellOfPointer(ApplicationTerm pHeapCell, CSimpleDeclaration pPointer) {
+    String heapName = pHeapCell.getFunction().getName();
+    // A cell of the byte array of the heap is a single byte, not a value of the target type
+    return pPointer.getType() instanceof CPointerType pointerType
+        && !TypeHandlerWithPointerAliasing.isByteArrayAccessName(heapName)
+        && typeHandler.getPointerAccessNameForType(pointerType.getType()).equals(heapName);
   }
 
   private static Optional<CExpression> createLiteral(BigInteger value) {
