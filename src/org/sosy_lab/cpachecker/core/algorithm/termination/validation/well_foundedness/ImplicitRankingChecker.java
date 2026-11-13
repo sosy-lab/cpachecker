@@ -53,17 +53,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.CachingVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToCodeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -315,54 +311,29 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
 
   /**
    * Returns the condition of the loop, where the expressions with previous values are replaced by
-   * the variables for their values. The assumptions that refer to variables that the generated
-   * program does not declare, e.g., pointers, are replaced by true. If the condition cannot be
-   * computed, the condition true overapproximates it.
+   * the variables for their values. If the condition refers to variables that the generated program
+   * does not declare, e.g., pointers, or cannot be computed, the condition true overapproximates
+   * it.
    */
   private String computeLoopCondition(CFANode pLoopHead) {
     Optional<ExpressionTree<CExpression>> condition =
-        CFAUtils.computeLoopConditionTree(pLoopHead, cfa.getAstCfaRelation());
-    if (condition.isEmpty()) {
+        CFAUtils.computeLoopConditionTree(pLoopHead, cfa.getAstCfaRelation())
+            .map(
+                tree ->
+                    ExpressionTrees.convert(
+                        tree,
+                        expression ->
+                            TransitionInvariantUtils.replaceExpressionsByVariables(
+                                expression, expressionVariables)));
+    if (condition.isEmpty()
+        || !FluentIterable.from(ExpressionTrees.traverseRecursively(condition.orElseThrow()))
+            .allMatch(
+                node ->
+                    !(node instanceof LeafExpression<CExpression> leaf)
+                        || isDeclaredInGeneratedProgram(leaf.getExpression()))) {
       return "1";
     }
-    // The tree has no negations except of its leaves, so replacing a leaf by true weakens it
-    ExpressionTree<CExpression> weakenedCondition =
-        condition
-            .orElseThrow()
-            .accept(
-                new CachingVisitor<CExpression, ExpressionTree<CExpression>, NoException>() {
-                  @Override
-                  protected ExpressionTree<CExpression> cacheMissAnd(And<CExpression> pAnd) {
-                    return And.of(FluentIterable.from(pAnd).transform(child -> child.accept(this)));
-                  }
-
-                  @Override
-                  protected ExpressionTree<CExpression> cacheMissOr(Or<CExpression> pOr) {
-                    return Or.of(FluentIterable.from(pOr).transform(child -> child.accept(this)));
-                  }
-
-                  @Override
-                  protected ExpressionTree<CExpression> cacheMissLeaf(
-                      LeafExpression<CExpression> pLeaf) {
-                    CExpression expression =
-                        TransitionInvariantUtils.replaceExpressionsByVariables(
-                            pLeaf.getExpression(), expressionVariables);
-                    return isDeclaredInGeneratedProgram(expression)
-                        ? LeafExpression.of(expression, pLeaf.assumeTruth())
-                        : ExpressionTrees.getTrue();
-                  }
-
-                  @Override
-                  protected ExpressionTree<CExpression> cacheMissTrue() {
-                    return ExpressionTrees.getTrue();
-                  }
-
-                  @Override
-                  protected ExpressionTree<CExpression> cacheMissFalse() {
-                    return ExpressionTrees.getFalse();
-                  }
-                });
-    return weakenedCondition.accept(new ToCodeVisitor<>(CExpression::toASTString));
+    return condition.orElseThrow().accept(new ToCodeVisitor<>(CExpression::toASTString));
   }
 
   /**
