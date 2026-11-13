@@ -100,8 +100,8 @@ final class UntouchedAllocationCheck {
   /**
    * Returns whether the given call of <code>__VERIFIER_nondet_memory</code> havocs a block that is
    * not accessed between its allocation in memory and the call to <code>__VERIFIER_nondet_memory
-   * </code>. Only returns <code>true</code> if this can be determined with high precision,
-   * and <code>false</code> in all other cases (so this method is over-approximating).
+   * </code>. Only returns <code>true</code> if this can be determined with high precision, and
+   * <code>false</code> in all other cases (so this method is over-approximating).
    *
    * <p>The most trivial case for a return of <code>true</code>:
    *
@@ -126,7 +126,7 @@ final class UntouchedAllocationCheck {
       return false;
     }
     CFANode startNode = pNondetMemoryCall.getPredecessor();
-    return doAllPathsBackwardReachAllocationWithoutUse(startNode, target.orElseThrow());
+    return isSinglePathBackwardsReachingAllocationAndWithoutUse(startNode, target.orElseThrow());
   }
 
   private Optional<MemoryLocation> getTargetOfNondetMemory(CStatementEdge pNondetMemoryCall) {
@@ -147,7 +147,7 @@ final class UntouchedAllocationCheck {
     return getLocationIfCastIdExpression(nondetMemoryCallArguments.getFirst());
   }
 
-  private boolean doAllPathsBackwardReachAllocationWithoutUse(
+  private boolean isSinglePathBackwardsReachingAllocationAndWithoutUse(
       CFANode pStartNode, MemoryLocation target) {
     WalkState start =
         new WalkState(
@@ -169,20 +169,25 @@ final class UntouchedAllocationCheck {
       if (enteringEdges.isEmpty()) {
         return false;
       }
-      for (CFAEdge edge : enteringEdges) {
-        switch (backwardsStep(edge, state)) {
-          case DirtyPath foundDirtyPath -> {
-            return false;
-          }
-          case ConfirmedCleanPath confirmedCleanPath -> {
-            // Only one path is considered clean yet. We do not need to continue
-            // this path, but still have to consider the other paths in the waitlist
-          }
-          case PotentialCleanPath(WalkState predecessor) -> {
-            // The current path is clean so far, but hasn't reached a memory allocation yet.
-            if (visited.add(predecessor)) {
-              worklist.push(predecessor);
-            }
+      // Traversing a node with more than one predecessor may become expensive
+      // because it may traverse the whole CFA. For now we only care about trivial, cheap cases;
+      // so return false.
+      if (enteringEdges.size() > 1) {
+        return false;
+      }
+      CFAEdge edge = enteringEdges.first().get();
+      switch (backwardsStep(edge, state)) {
+        case DirtyPath foundDirtyPath -> {
+          return false;
+        }
+        case ConfirmedCleanPath confirmedCleanPath -> {
+          // Only one path is considered clean yet. We do not need to continue
+          // this path, but still have to consider the other paths in the waitlist
+        }
+        case PotentialCleanPath(WalkState predecessor) -> {
+          // The current path is clean so far, but hasn't reached a memory allocation yet.
+          if (visited.add(predecessor)) {
+            worklist.push(predecessor);
           }
         }
       }
