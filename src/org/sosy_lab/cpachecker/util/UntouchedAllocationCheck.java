@@ -241,6 +241,9 @@ final class UntouchedAllocationCheck {
    * function pointer and may reach any function. For these functions we can't determine their
    * behavior, so we count any potential memory access. But: We still assume that functions have no
    * side-effects.
+   *
+   * <p>TODO: Handle functions with known side effects more precisely once there is a shared list of
+   * such builtin functions, cf. #1811.
    */
   private boolean mayAccessMemory(CFunctionCallExpression pCall) {
     if (!(pCall.getFunctionNameExpression() instanceof CIdExpression functionName)) {
