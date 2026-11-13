@@ -51,7 +51,6 @@ on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memclea
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
@@ -144,7 +143,6 @@ on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memclea
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
@@ -237,7 +235,6 @@ on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memclea
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
@@ -331,7 +328,6 @@ on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memclea
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">

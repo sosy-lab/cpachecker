@@ -58,6 +58,51 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
+  /** BAM does not handle the write through a pointer to a variable of the caller. */
+  @Test(timeout = 9000)
+  public void validate_recursion_with_pointer_write() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "recursion-with-pointer-write.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "recursion-with-pointer-write.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.UNKNOWN, specificationFilePath, witnessFilePath);
+  }
+
+  /** The condition of the branching waypoint calls a function in its second operand. */
+  @Test(timeout = 3000)
+  public void validate_branching_at_condition_with_calls() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "branching-at-condition-with-calls.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "branching-at-condition-with-calls.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 3000)
+  public void reject_wrong_branch_at_condition_with_calls() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "branching-at-condition-with-calls.c");
+    Path witnessFilePath =
+        Path.of(
+            UNREACH_CALL_TEST_DIR_PATH,
+            "branching-at-condition-with-calls.wrong-branch.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  /** Branching waypoints at a loop with an empty body and at a condition with constants. */
+  @Test(timeout = 3000)
+  public void validate_branching_at_empty_loop_body_and_constant_operand() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "empty-loop-body-and-constant-operand.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "empty-loop-body-and-constant-operand.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
   /** Function-enter and function-return waypoints exist since format version 2.0. */
   @Test(timeout = 3000)
   public void validate_function_waypoints() throws Exception {

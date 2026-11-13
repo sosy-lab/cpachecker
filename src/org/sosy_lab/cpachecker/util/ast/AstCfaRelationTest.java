@@ -52,6 +52,51 @@ public class AstCfaRelationTest {
         .isEqualTo("if (x > 5) t = 1;".length());
   }
 
+  /** The call in the second operand of {@code &&} is inside the condition. */
+  @Test
+  public void nodesBetweenConditionWithCallsAndBranches() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "branching-at-condition-with-calls.c");
+    CFAEdge abort = TestCfaUtils.getEdge("{abort();}", cfa);
+    CFAEdge secondOperandTrue = TestCfaUtils.getEdge("[!(__CPAchecker_TMP_1 == 0)]", cfa);
+
+    IfElement ifElement =
+        cfa.getAstCfaRelation().getIfStructureForConditionEdge(secondOperandTrue).orElseThrow();
+    assertThat(ifElement.getNodesBetweenConditionAndThenBranch())
+        .containsExactly(abort.getPredecessor());
+    assertThat(ifElement.getNodesBetweenConditionAndElseBranch())
+        .containsExactly(secondOperandTrue.getSuccessor());
+  }
+
+  /** The assume edges of the condition tell which node enters the empty body of the loop. */
+  @Test
+  public void nodesBetweenConditionAndEmptyLoopBody() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "empty-loop-body-and-constant-operand.c");
+    CFAEdge enterBody = TestCfaUtils.getEdge("[i < n]", cfa);
+    CFAEdge exit = TestCfaUtils.getEdge("[!(i < n)]", cfa);
+
+    IterationElement loop =
+        cfa.getAstCfaRelation()
+            .getTightestIterationStructureForNode(enterBody.getPredecessor())
+            .orElseThrow();
+    assertThat(loop.getNodesBetweenConditionAndBody()).containsExactly(enterBody.getSuccessor());
+    assertThat(loop.getNodesBetweenConditionAndExit()).containsExactly(exit.getSuccessor());
+  }
+
+  /** The constant operand {@code 0} of {@code ||} leads to the else branch. */
+  @Test
+  public void nodesBetweenConditionWithConstantOperandAndBranches() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "empty-loop-body-and-constant-operand.c");
+    CFAEdge lastOperandTrue = TestCfaUtils.getEdge("[i == 2]", cfa);
+    CFAEdge afterIf = TestCfaUtils.getEdge("return 0;", cfa);
+
+    IfElement ifElement =
+        cfa.getAstCfaRelation().getIfStructureForConditionEdge(lastOperandTrue).orElseThrow();
+    assertThat(ifElement.getNodesBetweenConditionAndThenBranch())
+        .containsExactly(lastOperandTrue.getSuccessor());
+    assertThat(ifElement.getNodesBetweenConditionAndElseBranch())
+        .containsExactly(afterIf.getPredecessor());
+  }
+
   /** The else branch starts after the negated condition also if it is an empty block. */
   @Test
   public void nodesBeforeEmptyElseBranch() throws Exception {
