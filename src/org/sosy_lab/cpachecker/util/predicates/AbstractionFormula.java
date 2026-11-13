@@ -150,12 +150,12 @@ public class AbstractionFormula implements Serializable {
                     name ->
                         pScope.hasVariableForQualifiedName(
                             FormulaToSvLibVisitor.nameWithoutSSA(name)));
-    BooleanFormula formula = asFormula();
-    if (!inScope.apply(formula)) {
-      formula = fMgr.filterLiterals(formula, inScope);
+    BooleanFormula formulaInScope = asFormula();
+    if (!inScope.apply(formulaInScope)) {
+      formulaInScope = fMgr.filterLiterals(formulaInScope, inScope);
     }
     FormulaToSvLibVisitor visitor = new FormulaToSvLibVisitor(fMgr, pScope);
-    return fMgr.visit(formula, visitor);
+    return fMgr.visit(formulaInScope, visitor);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */
