@@ -222,7 +222,8 @@ public class ConstraintsSolver {
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will build a new,
    * empty SMT solver instance (i.e. {@link ProverEnvironment}) to calculate results.
    *
-   * @param pConstraintsToCheck the single constraint to check.
+   * @param pConstraintsToCheck the constraints to check. (All constraints will be used for the SAT
+   *     check!)
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
