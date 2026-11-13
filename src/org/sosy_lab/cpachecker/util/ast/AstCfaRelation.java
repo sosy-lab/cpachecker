@@ -487,6 +487,23 @@ public final class AstCfaRelation {
         .toSet();
   }
 
+  /**
+   * Returns the column of the first closing parenthesis of a function call in the given line, which
+   * is where a waypoint at a call without a column points to.
+   */
+  public OptionalInt getColumnOfFirstCallInLine(int pLine) {
+    return FluentIterable.from(getEdgesOfCallsWithClosingParenthesisAt(pLine, OptionalInt.empty()))
+        .transform(AstCfaRelation::getCalledFunction)
+        .filter(Optional::isPresent)
+        .transform(call -> getClosingParenthesisOfFunctionCall(call.orElseThrow()))
+        .filter(Optional::isPresent)
+        .transform(Optional::orElseThrow)
+        .filter(parenthesis -> parenthesis.getStartingLineInOrigin() == pLine)
+        .stream()
+        .mapToInt(FileLocation::getStartColumnInLine)
+        .min();
+  }
+
   /** Returns the tightest statement that contains the given line and column. */
   private Optional<ASTElement> getTightestStatementContaining(int pLine, int pColumn) {
     // Of the statements containing the location, the tightest one starts last

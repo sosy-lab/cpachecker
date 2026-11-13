@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
@@ -427,22 +428,23 @@ class AutomatonTransition {
               return pExpression;
             }
             String functionName = CProgramScope.getFunctionNameOfArtificialReturnVar(idExpression);
-            if (pEdge instanceof AStatementEdge aStatementEdge) {
-              AStatement statement = aStatementEdge.getStatement();
-              if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
-                AExpression functionNameExpression =
-                    functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
-                // a per-thread clone of the CFA renames the called function, but keeps its
-                // original name in the declaration
-                if (functionNameExpression instanceof AIdExpression aIdExpression
-                    && (aIdExpression.getName().equals(functionName)
-                        || (aIdExpression.getDeclaration() != null
-                            && aIdExpression
-                                .getDeclaration()
-                                .getOrigName()
-                                .equals(functionName)))) {
-                  return (CExpression) functionCallAssignment.getLeftHandSide();
-                }
+            // a call of a defined function returns via a function-return edge
+            AStatement statement =
+                switch (pEdge) {
+                  case AStatementEdge aStatementEdge -> aStatementEdge.getStatement();
+                  case FunctionReturnEdge returnEdge -> returnEdge.getFunctionCall();
+                  default -> null;
+                };
+            if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
+              AExpression functionNameExpression =
+                  functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
+              // a per-thread clone of the CFA renames the called function, but keeps its
+              // original name in the declaration
+              if (functionNameExpression instanceof AIdExpression aIdExpression
+                  && (aIdExpression.getName().equals(functionName)
+                      || (aIdExpression.getDeclaration() != null
+                          && aIdExpression.getDeclaration().getOrigName().equals(functionName)))) {
+                return (CExpression) functionCallAssignment.getLeftHandSide();
               }
             }
             throw new ExpressionSubstitution.SubstitutionException(
