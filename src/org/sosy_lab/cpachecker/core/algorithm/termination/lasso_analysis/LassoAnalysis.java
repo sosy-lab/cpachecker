@@ -532,7 +532,11 @@ public class LassoAnalysis {
 
               proverEnv.push(rankingRelation.asFormula());
               if (!proverEnv.isUnsat()) {
-                statistics.synthesizedTerminationArgument(pLoop, terminationArgument);
+                statistics.synthesizedTerminationArgument(
+                    pLoop,
+                    terminationArgument,
+                    rankingRelationBuilder.getCExpressionsOfVariables(
+                        terminationArgument, pRelevantVariables));
                 return LassoAnalysisResult.fromTerminationArgument(rankingRelation);
               }
 

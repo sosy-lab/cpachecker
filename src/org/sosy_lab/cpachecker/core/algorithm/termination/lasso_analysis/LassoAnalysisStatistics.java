@@ -14,10 +14,13 @@ import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multiset;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -43,6 +46,12 @@ public abstract class LassoAnalysisStatistics implements Statistics {
 
   protected final Multimap<Loop, TerminationArgument> terminationArguments =
       MultimapBuilder.linkedHashKeys().arrayListValues().build();
+
+  /**
+   * The C expressions of the variables of the termination arguments, see {@link
+   * RankingRelationBuilder#getCExpressionsOfVariables}. Only used for lookups.
+   */
+  protected final Map<IProgramVar, CExpression> cExpressionsOfVariables = new HashMap<>();
 
   protected final Map<Loop, NonTerminationArgument> nonTerminationArguments =
       new ConcurrentHashMap<>();
@@ -96,8 +105,11 @@ public abstract class LassoAnalysisStatistics implements Statistics {
   }
 
   protected void synthesizedTerminationArgument(
-      Loop pLoop, TerminationArgument pTerminationArgument) {
+      Loop pLoop,
+      TerminationArgument pTerminationArgument,
+      Map<IProgramVar, CExpression> pCExpressionsOfVariables) {
     terminationArguments.put(pLoop, pTerminationArgument);
+    cExpressionsOfVariables.putAll(pCExpressionsOfVariables);
   }
 
   public void stemAndLoopConstructionStarted() {

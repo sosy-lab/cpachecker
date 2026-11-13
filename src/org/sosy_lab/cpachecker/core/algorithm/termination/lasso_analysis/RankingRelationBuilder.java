@@ -23,6 +23,8 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtil
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.SupportingInvariant;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
@@ -106,6 +108,31 @@ public class RankingRelationBuilder {
     Collection<BooleanFormula> supportingInvariants =
         extractSupportingInvariants(pTerminationArgument, pRelevantVariables);
     return rankingRelation.withSupportingInvariants(supportingInvariants);
+  }
+
+  /**
+   * Returns the C expressions of the variables of the ranking function and the supporting
+   * invariants of the given termination argument, e.g., {@code *p} for the heap cell that the
+   * pointer {@code p} points to. Variables without a C expression, e.g., a heap cell at an offset
+   * of a pointer, are left out.
+   */
+  public ImmutableMap<IProgramVar, CExpression> getCExpressionsOfVariables(
+      TerminationArgument pTerminationArgument, Set<CVariableDeclaration> pRelevantVariables) {
+    ImmutableMap.Builder<IProgramVar, CExpression> cExpressions = ImmutableMap.builder();
+    for (IProgramVar programVar :
+        FluentIterable.from(pTerminationArgument.getRankingFunction().getVariables())
+            .append(
+                FluentIterable.from(pTerminationArgument.getSupportingInvariants())
+                    .transformAndConcat(SupportingInvariant::getVariables))) {
+      RankVar rankVar = (RankVar) programVar; // Only RankVars were passed to LassoRanker!
+      try {
+        cExpressions.put(rankVar, getVariable(rankVar, pRelevantVariables).getSecondNotNull());
+      } catch (RankingRelationException e) {
+        logger.logDebugException(e, "No C expression for " + rankVar);
+      }
+    }
+    // A variable can occur in the ranking function and in several supporting invariants
+    return cExpressions.buildKeepingLast();
   }
 
   private Collection<BooleanFormula> extractSupportingInvariants(

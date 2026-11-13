@@ -75,10 +75,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -219,8 +219,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final MachineModel machineModel;
 
   private final CFA cfa;
-  // The scope of the input program, which is created before the analysis adds edges to the CFA
-  private final CProgramScope programScope;
   // The supporting invariants that are invariants of the program, see confirmSupportingInvariants
   private ImmutableSet<InvariantEntry> confirmedSupportingInvariants = ImmutableSet.of();
 
@@ -239,7 +237,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     cfa = checkNotNull(pCFA);
-    programScope = new CProgramScope(cfa, pLogger);
     totalLoops = pTotalNumberOfLoops;
     machineModel = pCFA.getMachineModel();
 
@@ -325,9 +322,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   }
 
   @Override
-  public void synthesizedTerminationArgument(Loop pLoop, TerminationArgument pTerminationArgument) {
+  public void synthesizedTerminationArgument(
+      Loop pLoop,
+      TerminationArgument pTerminationArgument,
+      Map<IProgramVar, CExpression> pCExpressionsOfVariables) {
     checkState(analysedLoops.contains(pLoop));
-    super.synthesizedTerminationArgument(pLoop, pTerminationArgument);
+    super.synthesizedTerminationArgument(pLoop, pTerminationArgument, pCExpressionsOfVariables);
   }
 
   @Override
@@ -564,11 +564,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             // program, so only the confirmed ones are exported, see confirmSupportingInvariants.
             for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
               TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
-                      supportingInvariant,
-                      loopHead,
-                      incomingLoopEdge,
-                      cfa.getAstCfaRelation(),
-                      programScope)
+                      supportingInvariant, loopHead, incomingLoopEdge, cExpressionsOfVariables)
                   .filter(confirmedSupportingInvariants::contains)
                   .ifPresent(entries::add);
             }
@@ -581,8 +577,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                     loop, pTerminationArguments.keySet(), pTerminationArguments),
                 loopHead,
                 incomingLoopEdge,
-                cfa.getAstCfaRelation(),
-                programScope));
+                cExpressionsOfVariables));
       }
     }
     return entries.build();
@@ -612,11 +607,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         for (TerminationArgument argument : terminationArguments.get(loop)) {
           for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
             TerminationArgumentsToWitnessUtils.convertSupportingInvariantToInvariantEntry(
-                    supportingInvariant,
-                    loopHead,
-                    incomingLoopEdge,
-                    cfa.getAstCfaRelation(),
-                    programScope)
+                    supportingInvariant, loopHead, incomingLoopEdge, cExpressionsOfVariables)
                 .ifPresent(supportingInvariants::add);
           }
         }
