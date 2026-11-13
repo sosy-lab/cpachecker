@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.TreeMultimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collections;
@@ -178,6 +179,11 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
   public void setLoopStructure(LoopStructure pLoopStructure) {
     metadata = metadata.withLoopStructure(pLoopStructure);
+  }
+
+  public void setKnownFunctionBehaviors(
+      ImmutableMap<String, KnownFunctionBehavior> pKnownFunctionBehaviors) {
+    metadata = metadata.withKnownFunctionBehaviors(pKnownFunctionBehaviors);
   }
 
   public void setVariableClassification(@Nullable VariableClassification pVariableClassification) {

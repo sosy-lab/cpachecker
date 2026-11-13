@@ -14,6 +14,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -48,6 +49,7 @@ public final class CfaMetadata {
   private final @Nullable LiveVariables liveVariables;
   private final @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> edgesToAnnotations;
   private final @Nullable SvLibCfaMetadata svLibCfaMetadata;
+  private final @Nullable ImmutableMap<String, KnownFunctionBehavior> knownFunctionBehaviors;
 
   private final @Nullable ProgramTransformation transformation;
 
@@ -64,6 +66,7 @@ public final class CfaMetadata {
       @Nullable LiveVariables pLiveVariables,
       @Nullable ImmutableListMultimap<CFAEdge, ACSLAnnotation> pEdgesToAnnotations,
       @Nullable SvLibCfaMetadata pSvLibCfaMetadata,
+      @Nullable ImmutableMap<String, KnownFunctionBehavior> pKnownFunctionBehaviors,
       @Nullable ProgramTransformation pProgramTransformation) {
     machineModel = checkNotNull(pMachineModel);
     cfaLanguage = checkNotNull(pCFALanguage);
@@ -78,6 +81,7 @@ public final class CfaMetadata {
     liveVariables = pLiveVariables;
     edgesToAnnotations = pEdgesToAnnotations;
     svLibCfaMetadata = pSvLibCfaMetadata;
+    knownFunctionBehaviors = pKnownFunctionBehaviors;
     transformation = pProgramTransformation;
   }
 
@@ -117,6 +121,7 @@ public final class CfaMetadata {
         null,
         null,
         null,
+        null,
         null);
   }
 
@@ -145,6 +150,7 @@ public final class CfaMetadata {
             liveVariables,
             edgesToAnnotations,
             svLibCfaMetadata,
+            knownFunctionBehaviors,
             pTransformation);
     return newMetadata;
   }
@@ -212,6 +218,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
+        knownFunctionBehaviors,
         transformation);
   }
 
@@ -245,6 +252,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
+        knownFunctionBehaviors,
         transformation);
   }
 
@@ -291,6 +299,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
+        knownFunctionBehaviors,
         transformation);
   }
 
@@ -328,6 +337,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         pSvLibCfaMetadata,
+        knownFunctionBehaviors,
         transformation);
   }
 
@@ -352,6 +362,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
+        knownFunctionBehaviors,
         transformation);
   }
 
@@ -388,6 +399,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
+        knownFunctionBehaviors,
         transformation);
   }
 
@@ -423,6 +435,7 @@ public final class CfaMetadata {
         pLiveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
+        knownFunctionBehaviors,
         transformation);
   }
 
@@ -462,6 +475,47 @@ public final class CfaMetadata {
         liveVariables,
         pedgesToAnnotations,
         svLibCfaMetadata,
+        knownFunctionBehaviors,
+        transformation);
+  }
+
+  /**
+   * Returns the functions of the program whose behavior is known to be the same as that of a known
+   * function (e.g., a user-defined implementation of {@code memset}), if this information is stored
+   * in this metadata instance.
+   *
+   * @return If this metadata instance contains the known function behaviors, an optional containing
+   *     the map from function names to their behavior is returned. Otherwise, if the detection did
+   *     not run, an empty optional is returned.
+   */
+  public Optional<ImmutableMap<String, KnownFunctionBehavior>> getKnownFunctionBehaviors() {
+    return Optional.ofNullable(knownFunctionBehaviors);
+  }
+
+  /**
+   * Returns a copy of this metadata instance, but with the specified known function behaviors.
+   *
+   * @param pKnownFunctionBehaviors the map from function names to their behavior to store in the
+   *     returned metadata instance (use {@code null} to create an instance without this
+   *     information)
+   * @return a copy of this metadata instance, but with the specified known function behaviors
+   */
+  public CfaMetadata withKnownFunctionBehaviors(
+      @Nullable ImmutableMap<String, KnownFunctionBehavior> pKnownFunctionBehaviors) {
+    return new CfaMetadata(
+        machineModel,
+        cfaLanguage,
+        inputLanguage,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        astCFARelation,
+        loopStructure,
+        variableClassification,
+        liveVariables,
+        edgesToAnnotations,
+        svLibCfaMetadata,
+        pKnownFunctionBehaviors,
         transformation);
   }
 
@@ -479,6 +533,7 @@ public final class CfaMetadata {
         liveVariables,
         edgesToAnnotations,
         svLibCfaMetadata,
+        knownFunctionBehaviors,
         transformation);
   }
 
@@ -500,6 +555,7 @@ public final class CfaMetadata {
         && Objects.equals(edgesToAnnotations, other.edgesToAnnotations)
         && Objects.equals(astCFARelation, other.astCFARelation)
         && Objects.equals(svLibCfaMetadata, other.svLibCfaMetadata)
+        && Objects.equals(knownFunctionBehaviors, other.knownFunctionBehaviors)
         && Objects.equals(transformation, other.transformation);
   }
 
@@ -516,6 +572,7 @@ public final class CfaMetadata {
         .add("variableClassification", variableClassification)
         .add("liveVariables", liveVariables)
         .add("edgesToAnnotations", edgesToAnnotations)
+        .add("knownFunctionBehaviors", knownFunctionBehaviors)
         .add("transformation", transformation)
         .toString();
   }

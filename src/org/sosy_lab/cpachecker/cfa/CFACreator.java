@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -90,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.KnownFunctionBehaviorDetector;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.TrivialLoopRemover;
@@ -324,6 +326,16 @@ public class CFACreator {
 
   @Option(
       secure = true,
+      name = "cfa.detectKnownFunctionBehavior",
+      description =
+          "Detect functions of the program that behave like a well-known function (so far,"
+              + " byte-wise implementations of memset and wrappers of them) and store them in the"
+              + " CFA metadata. The CFA itself is not changed. Needs the loop structure"
+              + " (analysis.useLoopStructure).")
+  private boolean detectKnownFunctionBehavior = false;
+
+  @Option(
+      secure = true,
       name = "cfa.useFunctionCallUnwinding",
       description = "unwind recursive functioncalls (bounded to max call stack size)")
   private boolean useFunctionCallUnwinding = false;
@@ -385,6 +397,8 @@ public class CFACreator {
     private final Timer processingTime = new Timer();
     private final Timer exportTime = new Timer();
     private final Timer loopStructureTime = new Timer();
+    private final Timer knownFunctionBehaviorTime = new Timer();
+    private int knownFunctionBehaviors = 0;
     private final Timer astStructureTime = new Timer();
     private final List<Statistics> statisticsCollection;
     private final LogManager logger;
@@ -410,6 +424,10 @@ public class CFACreator {
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
       out.println("    Time for loop structure:  " + loopStructureTime);
+      if (knownFunctionBehaviorTime.getNumberOfIntervals() > 0) {
+        out.println("    Time for known functions: " + knownFunctionBehaviorTime);
+        out.println("  Number of functions with known behavior: " + knownFunctionBehaviors);
+      }
       out.println("    Time for AST structure:   " + astStructureTime);
 
       if (exportThread != null) {
@@ -717,6 +735,25 @@ public class CFACreator {
       stats.loopStructureTime.start();
       addLoopStructure(cfa);
       stats.loopStructureTime.stop();
+    }
+
+    // find functions that behave like well-known functions
+    // (needs loop information, and each function has to be a separate graph)
+    if (detectKnownFunctionBehavior && language == Language.C) {
+      stats.knownFunctionBehaviorTime.start();
+      Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+      if (loopStructure.isPresent()) {
+        ImmutableMap<String, KnownFunctionBehavior> knownFunctionBehaviors =
+            KnownFunctionBehaviorDetector.detect(cfa, loopStructure.orElseThrow(), logger);
+        cfa.setKnownFunctionBehaviors(knownFunctionBehaviors);
+        stats.knownFunctionBehaviors = knownFunctionBehaviors.size();
+      } else {
+        logger.log(
+            Level.WARNING,
+            "Cannot detect functions with known behavior without loop structure"
+                + " (analysis.useLoopStructure).");
+      }
+      stats.knownFunctionBehaviorTime.stop();
     }
 
     // FOURTH, insert call and return edges and build the supergraph
