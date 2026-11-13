@@ -307,6 +307,7 @@ class ASTConverter {
   private static final String FUNC_OFFSETOF = "__builtin_offsetof";
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
+  private static final String FUNC_CHOOSE_EXPR = "__builtin_choose_expr";
 
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
@@ -1069,7 +1070,8 @@ class ASTConverter {
 
   /**
    * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
-   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type, and
+   * the operand if it already has the union type.
    *
    * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
    * member type. If no member matches (or the union is empty), this method throws a {@link
@@ -1083,11 +1085,18 @@ class ASTConverter {
       return null;
     }
 
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
+    if (operandType
+        .withQualifiersSetTo(CTypeQualifiers.NONE)
+        .equals(compositeType.withQualifiersSetTo(CTypeQualifiers.NONE))) {
+      // GCC accepts casts of a union to its own type
+      return castOperand;
+    }
+
     if (compositeType.getMembers().isEmpty()) {
       throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
     }
 
-    CType operandType = castOperand.getExpressionType().getCanonicalType();
     CCompositeTypeMemberDeclaration matchingMember =
         findUnionMemberWithExactType(compositeType, operandType);
 
@@ -1363,6 +1372,19 @@ class ASTConverter {
           }
         }
       }
+    }
+
+    if (functionNameExpression instanceof CIdExpression idExpression
+        && FUNC_CHOOSE_EXPR.equals(idExpression.getName())
+        && e.getArguments().length == 3
+        && scope.lookupFunction(FUNC_CHOOSE_EXPR) == null) {
+      // GCC evaluates only the argument that the constant condition chooses
+      boolean condition =
+          evaluateIntegerConstantExpression(toExpression(e.getArguments()[0])).signum() != 0;
+      IASTExpression chosen = toExpression(e.getArguments()[condition ? 1 : 2]);
+      return chosen instanceof IASTFunctionCallExpression call
+          ? convert(call)
+          : convertExpressionWithoutSideEffects(chosen);
     }
 
     List<CExpression> params = new ArrayList<>();
