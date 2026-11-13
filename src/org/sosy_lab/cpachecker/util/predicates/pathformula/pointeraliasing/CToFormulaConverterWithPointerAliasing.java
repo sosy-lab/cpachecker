@@ -384,7 +384,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return The value of the bit field.
    */
   Formula makeBitFieldValue(
-      final Formula value, final long bitFieldOffset, final CType bitFieldType) {
+      final Formula value, final int bitFieldOffset, final CType bitFieldType) {
     final CType declaredType = ((CBitFieldType) bitFieldType.getCanonicalType()).getType();
     final long bitSize = typeHandler.getExactBitSizeof(bitFieldType);
     checkArgument(
@@ -394,7 +394,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         bitFieldOffset);
     final BitvectorFormula bits =
         verifyNotNull(makeValueReinterpretationToBitvector(declaredType, value));
-    final int lsb = Math.toIntExact(bitFieldOffset);
+    final int lsb = bitFieldOffset;
     final int msb = Math.toIntExact(lsb + bitSize - 1);
     return verifyNotNull(
         makeValueReinterpretationFromBitvector(
@@ -586,11 +586,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /**
    * Adds the constraint for the value import of a bit field, which is imported into the value of
-   * its declared type at its address.
+   * its declared type at its address. This address is {@code address} plus {@code byteOffset}, the
+   * offset in bytes of the first byte of the bit field within its composite.
    */
   private void addBitFieldValueImportConstraint(
       final Formula address,
-      final long offset,
+      final long byteOffset,
       final PointerBase base,
       final CCompositeType compositeType,
       final CCompositeTypeMemberDeclaration member,
@@ -601,13 +602,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (!hasIndex(base.name(), bitFieldType, ssa)) {
       return;
     }
-    final long bitFieldOffset =
-        typeHandler.getBitOffset(compositeType, member)
-            - offset * machineModel.getSizeofCharInBits();
+    final int bitFieldOffset =
+        Math.toIntExact(
+            typeHandler.getBitOffset(compositeType, member)
+                - byteOffset * machineModel.getSizeofCharInBits());
     final Formula value =
         makeSafeDereference(
             region.getType(),
-            fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
+            fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, byteOffset)),
             ssa,
             region);
     constraints.addConstraint(

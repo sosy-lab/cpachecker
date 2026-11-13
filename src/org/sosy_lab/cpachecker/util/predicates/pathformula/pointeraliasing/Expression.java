@@ -31,7 +31,7 @@ abstract class Expression {
       }
 
       static AliasedLocation ofBitField(
-          final Formula address, final MemoryRegion region, final long bitFieldOffset) {
+          final Formula address, final MemoryRegion region, final int bitFieldOffset) {
         return new AliasedLocation(checkNotNull(address), checkNotNull(region), bitFieldOffset);
       }
 
@@ -46,7 +46,7 @@ abstract class Expression {
       }
 
       private AliasedLocation(
-          final Formula address, final MemoryRegion region, final long bitFieldOffset) {
+          final Formula address, final MemoryRegion region, final int bitFieldOffset) {
         this.address = address;
         this.region = region;
         this.bitFieldOffset = bitFieldOffset;
@@ -60,7 +60,11 @@ abstract class Expression {
         return bitFieldOffset != null;
       }
 
-      long getBitFieldOffset() {
+      /**
+       * Returns the offset in bits from the start of the value at the address of this location to
+       * the start of the bit field.
+       */
+      int getBitFieldOffset() {
         checkState(isBitField());
         return bitFieldOffset;
       }
@@ -110,7 +114,7 @@ abstract class Expression {
 
       private final @Nullable MemoryRegion region;
 
-      private final @Nullable Long bitFieldOffset;
+      private final @Nullable Integer bitFieldOffset;
 
       @Nullable MemoryRegion getMemoryRegion() {
         return region;

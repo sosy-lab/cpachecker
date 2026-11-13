@@ -89,9 +89,10 @@ final class AddressHandler {
     final MemoryRegion region =
         regionMgr.makeMemoryRegion(fieldOwnerType, field.getFieldDeclaration());
     if (fieldType instanceof CBitFieldType) {
-      final long bitFieldOffset =
-          typeHandler.getBitOffset(field.getOwnerType(), field.getFieldDeclaration())
-              - fieldOffset.orElseThrow() * conv.machineModel.getSizeofCharInBits();
+      final int bitFieldOffset =
+          Math.toIntExact(
+              typeHandler.getBitOffset(field.getOwnerType(), field.getFieldDeclaration())
+                  - fieldOffset.orElseThrow() * conv.machineModel.getSizeofCharInBits());
       return AliasedLocation.ofBitField(address, region, bitFieldOffset);
     }
     return AliasedLocation.ofAddressWithRegion(address, region);
