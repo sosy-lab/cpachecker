@@ -3324,20 +3324,15 @@ class ASTConverter {
       }
 
       if (!areInitializerAssignable(type, initializedExpression)) {
-        CType initializerType = initializedExpression.getExpressionType().getCanonicalType();
-        // Compilers only warn here, and assignments of such values are not checked
         if (type.getCanonicalType() instanceof CPointerType
-            && (CTypes.isIntegerType(initializerType)
-                || initializerType instanceof CPointerType
-                || initializerType instanceof CArrayType)) {
+            && CTypes.isIntegerType(initializedExpression.getExpressionType())) {
           if (declaration != null) {
             logger.logf(
                 Level.WARNING,
-                "%s: Initialization of pointer variable %s with expression %s of type %s.",
+                "%s: Initialization of pointer variable %s with integer expression %s.",
                 initializedExpression.getFileLocation(),
                 type.toASTString(declaration.getName()),
-                initializedExpression,
-                initializerType);
+                initializedExpression);
           }
         } else {
           throw parseContext.parseError(
