@@ -65,7 +65,9 @@ import org.sosy_lab.cpachecker.util.Pair;
  * returns this value. After each call of a function that can call longjmp, the global variable is
  * checked. The local variables of F keep their values (C11 7.13.2.1 makes those that are not
  * volatile and were changed after setjmp indeterminate). A longjmp while F is not active has
- * undefined behavior and ends the program path.
+ * undefined behavior and ends the program path. A longjmp while F is active but before its call of
+ * setjmp was executed also has undefined behavior, but continues after the call of setjmp, because
+ * the transformation does not track whether setjmp was executed.
  *
  * <p>The CFA of all other programs is not changed, so their calls of longjmp stay unsupported.
  */
