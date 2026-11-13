@@ -1242,6 +1242,9 @@ class AssignmentFormulaHandler {
                       ssa)))) {
 
         final OptionalLong offset = typeHandler.getOffset(lvalueCompositeType, memberDeclaration);
+
+        // The code below would write to the wrong heap (e.g., to "unsigned int: 3" instead of
+        // "unsigned int"), so we ignore bit fields here. Best fix would be #1092."
         if (!offset.isPresent() || newLvalueType instanceof CBitFieldType) {
           continue; // TODO this looses values of bit fields
         }
