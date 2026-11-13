@@ -102,6 +102,16 @@ public final class CCompositeType implements CComplexType {
     return members;
   }
 
+  public CCompositeTypeMemberDeclaration getMember(String pMemberName) {
+    checkNotNull(pMemberName);
+    for (CCompositeTypeMemberDeclaration member : getMembers()) {
+      if (member.getName().equals(pMemberName)) {
+        return member;
+      }
+    }
+    throw new IllegalArgumentException("No member " + pMemberName + " in " + this);
+  }
+
   public void setMembers(List<CCompositeTypeMemberDeclaration> list) {
     checkState(members == null, "list of CCompositeType members already initialized");
     checkMembers(list);

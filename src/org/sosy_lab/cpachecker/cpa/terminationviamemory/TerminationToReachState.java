@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -88,7 +87,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private final ImmutableSet<PartitionedRelationFormula> transitionPredicates;
 
   private final Optional<PathFormula> pathFormulaFull;
-  private final ImmutableList<CFANode> pathSequence;
+  private final PathSequence pathSequence;
 
   /** The visits of loop heads on the path to this abstract state, in the order of the path. */
   private final ImmutableList<LoopHeadVisit> loopHeadVisits;
@@ -103,7 +102,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
       ImmutableMap<ProgramCounter, PathFormula> pPathFormulaAtLastVisit,
       ImmutableMap<ProgramCounter, PathFormula> pPathFormulaSinceLastVisit,
       Optional<PathFormula> pPathFormulaFull,
-      ImmutableList<CFANode> pPathSequence,
+      PathSequence pPathSequence,
       ImmutableList<LoopHeadVisit> pLoopHeadVisits,
       ImmutableSet<PartitionedRelationFormula> pTransitionInvariants,
       ImmutableSet<PartitionedRelationFormula> pAvailableTransitionPredicates) {
@@ -131,7 +130,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     pathFormulaAtLastVisit = ImmutableMap.of();
     pathFormulaSinceLastVisit = ImmutableMap.of();
     pathFormulaFull = Optional.empty();
-    pathSequence = ImmutableList.of();
+    pathSequence = PathSequence.empty();
     loopHeadVisits = ImmutableList.of();
     isTarget = false;
     transitionInvariants = ImmutableSet.of();
@@ -175,8 +174,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return pathFormulaFull;
   }
 
-  // TODO: use PersistentStack for pathSequence
-  public ImmutableList<CFANode> getPathSequence() {
+  public PathSequence getPathSequence() {
     return pathSequence;
   }
 

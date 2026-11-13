@@ -1,0 +1,33 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.1"
+    uuid: "3f1b8a52-7d0e-4c55-9a51-2b7f0c9e1a02"
+    creation_time: "2026-11-12T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/bitwise-and-loop.c"
+      input_file_hashes:
+        "../../simple/witness_validation/bitwise-and-loop.c": "4ab5d9bd77894eb466ac27de7c04ba9c7c30172216be0399bd393f0621472fc8"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "loop_transition_invariant"
+        location:
+          file_name: "../../simple/witness_validation/bitwise-and-loop.c"
+          line: 13
+          column: 3
+          function: "main"
+        value: "\\at(x, AnyPrev) >= 0 && \\at(x, AnyPrev) > x"
+        format: "ext_c_expression"
