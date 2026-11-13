@@ -275,9 +275,10 @@ public class ExpressionSimplificationVisitor
             return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           }
           case FLOAT, DOUBLE, FLOAT128 -> {
-            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, exprType);
+            CType floatType = exprType.getCanonicalType();
+            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, floatType);
             return new CFloatLiteralExpression(
-                loc, machineModel, exprType, negatedValue.floatingPointValue(precision));
+                loc, machineModel, floatType, negatedValue.floatingPointValue(precision));
           }
           default -> {
             // return the original expression below
