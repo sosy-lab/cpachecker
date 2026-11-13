@@ -5214,8 +5214,12 @@ public class SMGState
     SatisfiabilityAndSMGState maybeAssignmentResultAndState;
     if (identsToReplace.size() == 1) {
       // Some nested variable is to be replaced
-      // The solver checks only the constraints related to the last added constraint, so we make a
-      // constraint with the variable the last added one to get the variable into the model
+
+      // The solver only checks the last added constraint and the constraints sharing symbolic
+      // identifiers with it, and its model only assigns identifiers of the checked constraints.
+      // To get the identifier into the model, we re-add an existing constraint over it. This does
+      // not change the set of constraints, but makes it the last added constraint so that the SAT
+      // check is based on it.
       SymbolicIdentifier identToReplace = identsToReplace.iterator().next();
       SMGState stateToCheck = this;
       for (Constraint constraint : getConstraints()) {
