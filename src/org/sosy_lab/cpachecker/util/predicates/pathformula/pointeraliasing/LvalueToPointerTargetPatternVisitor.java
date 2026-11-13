@@ -209,7 +209,7 @@ class LvalueToPointerTargetPatternVisitor
 
         final OptionalLong offset = typeHandler.getOffset(cCompositeType, e.getFieldName());
         if (!offset.isPresent()) {
-          return null; // TODO this looses values of bit fields
+          return null; // TODO this loses values of bit fields that do not fit into a cell
         }
         result.shift(containerType, offset.orElseThrow());
         return result;
