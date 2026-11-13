@@ -112,10 +112,11 @@ final class UntouchedAllocationCheck {
    *
    * This method returns <code>false</code> if there is a code path to the <code>
    * __VERIFIER_nondet_memory</code> that does not allocate the havocked memory. The result is not
-   * sound for multi-threaded programs, because another thread may access the block in between.
-   * Recursive calls through function pointers are not supported yet: the result is not sound for
-   * analyses that skip such calls, or that skip recursive calls in general, because a skipped call
-   * may assign the havocked pointer.
+   * sound for multi-threaded programs, because another thread may access the block in between. The
+   * check interprets the CFA as given and does not know about analysis options that skip calls,
+   * like <code>cpa.callstack.skipVoidRecursion</code>. Its result may thus be inconsistent with
+   * such an analysis, but these options are unsound anyway and the inconsistency does not make this
+   * worse.
    *
    * @throws IllegalArgumentException if edge 'pNondetMemoryCall' is not a call to <code>
    *     __VERIFIER_nondet_memory</code>
