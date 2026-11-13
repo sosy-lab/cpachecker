@@ -14,6 +14,7 @@ extern void reach_error(void);
 typedef long time_t;
 typedef long long_int;
 typedef int myint;
+typedef double dbl;
 
 static const long_int mktime_min =
     (!((time_t)0 < (time_t)-1))
@@ -24,11 +25,13 @@ static const long_int mktime_min =
 
 static const myint neg = -(myint)5 < 0 ? -(myint)5 : 0;
 
+static const int negDouble = -(dbl)1 < 0 ? 1 : 0;
+
 int main(void) {
   if (mktime_min >= 0 || ~mktime_min != (((time_t)1 << (sizeof(time_t) * 8 - 2)) - 1) * 2 + 1) {
     reach_error();
   }
-  if (neg != -5) {
+  if (neg != -5 || negDouble != 1) {
     reach_error();
   }
   return 0;
