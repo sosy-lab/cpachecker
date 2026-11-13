@@ -2187,6 +2187,12 @@ public class SMGCPAExpressionEvaluator {
    * with an initializer, the length is determined by the initializer (C11 6.7.9 (22)). The frontend
    * does this already in most cases, but not in all, e.g. not for {@code const char a[] = "abc";}.
    * In these cases the length is computed here.
+   *
+   * <p>Note: this is a temporary workaround for <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/265">issue #265</a>, which
+   * results in arrays not returning the known length in its type. This also includes a workaround
+   * for braced initializer strings, see {@link #getStringLiteralInitializerOfCharArray(CArrayType,
+   * CInitializer)} for details on that.
    */
   private CType getCompletedTypeOfDeclaration(CVariableDeclaration pVarDecl) {
     CType cType = SMGCPAExpressionEvaluator.getCanonicalType(pVarDecl);
@@ -2218,7 +2224,12 @@ public class SMGCPAExpressionEvaluator {
   /**
    * Returns the string literal that initializes the given array of character type, if there is one.
    * The string literal might be enclosed in braces, e.g. {@code char a[] = { "abc" };} (C11 6.7.9
-   * (14)). TODO: we currently disallow multi-dimensional arrays in these cases and abort instead
+   * (14)). TODO: we currently disallow multi-dimensional arrays in these cases and abort instead.
+   *
+   * <p>Note: this is a temporary workaround for <a
+   * href="https://gitlab.com/sosy-lab/software/cpachecker/-/work_items/537">issue #537</a>. The
+   * frontend should transform braced initializers like {@code char a[] = { "abc" };} into {@code
+   * char a[4] = "abc";}. But due to a bug we get {@code a[1] = { "abc" };} currently.
    */
   private static Optional<CStringLiteralExpression> getStringLiteralInitializerOfCharArray(
       CArrayType pArrayType, CInitializer pInitializer) {
