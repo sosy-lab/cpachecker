@@ -3330,7 +3330,9 @@ class ASTConverter {
 
       if (type.getCanonicalType() instanceof CPointerType
           && initializedExpression.getExpressionType().getCanonicalType()
-              instanceof CArrayType initializerType) {
+              instanceof CArrayType initializerType
+          // String literals are kept as they are, which is easier for analyses (#1536).
+          && !(initializedExpression instanceof CStringLiteralExpression)) {
         // TODO This is part of #1035 but should probably be handled generally somewhere else and
         // removed here.
         CType elementType = initializerType.getType();
@@ -3379,6 +3381,7 @@ class ASTConverter {
       CType pDeclarationType, CExpression pInitializerExpression) {
     return pDeclarationType.canBeAssignedFrom(pInitializerExpression.getExpressionType())
         || isStringInitialization(pDeclarationType, pInitializerExpression)
+        || isStringElementAddressInitialization(pDeclarationType, pInitializerExpression)
         || ((pInitializerExpression instanceof CIntegerLiteralExpression cIntegerLiteralExpression)
             // the literal '0' is by default treated as a Null-Pointer in context
             // of pointers (C-Standard 11 §6.3.2.3 (3))
@@ -3405,15 +3408,30 @@ class ASTConverter {
       // neither array nor pointer and allows to drop a redundant second check for CArrayType or
       // CPointerType
       CType canonicalType = CPointerType.POINTER_TO_VOID;
-      if (pDeclarationType instanceof CArrayType cArrayType) {
+      CType declarationType = pDeclarationType.getCanonicalType();
+      if (declarationType instanceof CArrayType cArrayType) {
         canonicalType = cArrayType.getType().getCanonicalType();
       }
-      if (pDeclarationType instanceof CPointerType cPointerType) {
+      if (declarationType instanceof CPointerType cPointerType) {
         canonicalType = cPointerType.getType().getCanonicalType();
       }
       return canonicalType.asUnqualified().equals(CNumericTypes.CHAR);
     }
     return false;
+  }
+
+  /**
+   * Whether a pointer to char is initialized with the address of a character of a string literal,
+   * e.g., {@code &("abc"[0])}. This is legal C, because string literals have the type {@code
+   * char[]} in C and not {@code const char[]} as in CPAchecker.
+   */
+  private boolean isStringElementAddressInitialization(
+      CType pDeclarationType, CExpression pInitializerExpression) {
+    return pDeclarationType.getCanonicalType() instanceof CPointerType
+        && pInitializerExpression instanceof CUnaryExpression unaryExpression
+        && unaryExpression.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unaryExpression.getOperand() instanceof CArraySubscriptExpression subscriptExpression
+        && isStringInitialization(pDeclarationType, subscriptExpression.getArrayExpression());
   }
 
   private List<CParameterDeclaration> convert(IASTParameterDeclaration[] ps) {

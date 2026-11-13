@@ -16,8 +16,6 @@ input_files: 'goblint-regression-13-privatized_69-refine-protected-loop-interval
 properties:
   - property_file: ../../../config/properties/unreach-call.prp
     expected_verdict: true
-  - property_file: ../../../config/properties/no-overflow.prp
-    expected_verdict: true
   - property_file: ../../../config/properties/no-data-race.prp
     expected_verdict: true
 

@@ -2686,6 +2686,11 @@ cpa.pointerA.stop = "SEP"
 # (heuristic, often we would just waste time otherwise)
 cpa.predicate.abortOnLargeArrays = true
 
+# Give up at writes through pointers if pointer aliasing is not handled.
+# Otherwise they write to a fresh variable, which is unsound if the pointer
+# points to another variable.
+cpa.predicate.abortOnPointerWrites = false
+
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
   enum:     [CHRONOLOGICAL, FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE,

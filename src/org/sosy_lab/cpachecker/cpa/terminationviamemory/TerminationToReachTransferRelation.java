@@ -62,7 +62,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
             terminationState.getPathFormulaAtLastVisit(),
             terminationState.getPathFormulaSinceLastVisit(),
             terminationState.getPathFormulaFull(),
-            Collections3.listAndElement(terminationState.getPathSequence(), cfaEdge.getSuccessor()),
+            terminationState.getPathSequence().append(cfaEdge.getSuccessor()),
             terminationState.getLoopHeadVisits(),
             ImmutableSet.of(),
             terminationState.getTransitionPredicates());
