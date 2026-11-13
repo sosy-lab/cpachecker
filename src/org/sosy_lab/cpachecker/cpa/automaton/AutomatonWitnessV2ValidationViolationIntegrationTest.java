@@ -81,6 +81,17 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
   }
 
+  /** Branching waypoints at a loop with an empty body and at a condition with constants. */
+  @Test(timeout = 3000)
+  public void validate_branching_at_empty_loop_body_and_constant_operand() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "empty-loop-body-and-constant-operand.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "empty-loop-body-and-constant-operand.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
   /** The exported assumption names the inner of two variables as in the input program. */
   @Test(timeout = 9000)
   public void validate_shadowed_variable_roundtrip() throws Exception {
