@@ -198,8 +198,7 @@ public class TerminationToReachValidationPrecisionAdjustment
     // The values at the current visit have the last key
     int currentVisit = pState.getNumberOfIterationsAtLoopHead(programCounter) - 1;
     try {
-      for (Entry<Integer, ImmutableSet<Formula>> visit :
-          pState.getStoredValues().get(programCounter).entrySet()) {
+      for (Entry<Integer, SSAMap> visit : pState.getStoredValues().get(programCounter).entrySet()) {
         if (visit.getKey() >= currentVisit) {
           continue;
         }
@@ -224,31 +223,21 @@ public class TerminationToReachValidationPrecisionAdjustment
    * @return the instantiated formula, or nothing if a variable has no value
    */
   private Optional<BooleanFormula> instantiateBetween(
-      BooleanFormula pTransitionInvariant,
-      ImmutableSet<Formula> pValuesAtVisit,
-      SSAMap pCurrentIndices) {
-    ImmutableMap.Builder<String, Formula> valuesAtVisitBuilder = ImmutableMap.builder();
-    for (Formula value : pValuesAtVisit) {
-      valuesAtVisitBuilder.put(fmgr.uninstantiate(value).toString(), value);
-    }
-    ImmutableMap<String, Formula> valuesAtVisit = valuesAtVisitBuilder.buildKeepingLast();
+      BooleanFormula pTransitionInvariant, SSAMap pIndicesAtVisit, SSAMap pCurrentIndices) {
     ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
     for (Formula variable : fmgr.extractVariables(pTransitionInvariant).values()) {
       Formula variableName = fmgr.uninstantiate(variable);
       String name = variableName.toString();
-      Formula value;
+      SSAMap indices = pCurrentIndices;
       if (name.contains(TRANS_INV_KEYWORD)) {
-        value = valuesAtVisit.get(TransitionInvariantUtils.removeKeyWordAfterTransInv(name));
-      } else {
-        value =
-            pCurrentIndices.containsVariable(name)
-                ? fmgr.instantiate(variableName, pCurrentIndices)
-                : null;
+        name = TransitionInvariantUtils.removeKeyWordAfterTransInv(name);
+        variableName = fmgr.makeVariable(fmgr.getFormulaType(variable), name);
+        indices = pIndicesAtVisit;
       }
-      if (value == null) {
+      if (!indices.containsVariable(name)) {
         return Optional.empty();
       }
-      substitution.put(variable, value);
+      substitution.put(variable, fmgr.instantiate(variableName, indices));
     }
     return Optional.of(fmgr.substitute(pTransitionInvariant, substitution.buildOrThrow()));
   }

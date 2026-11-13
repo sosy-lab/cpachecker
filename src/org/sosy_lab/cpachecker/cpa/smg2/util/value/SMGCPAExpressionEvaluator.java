@@ -1410,7 +1410,14 @@ public class SMGCPAExpressionEvaluator {
     return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
   }
 
-  // Used for finding value assignments
+  /**
+   * Checks satisfiability of all relevant constraints to the last added {@link Constraint} in the
+   * given {@link SMGState}. Only the last added constraint ({@link
+   * SMGState#getLastAddedConstraint()}), as well as the constraints that transitively share
+   * symbolic identifiers with it, are checked for satisfiability. The returned {@link SMGState}s
+   * symbolic value assignments and definite assignments are updated to the model returned by the
+   * solver for {@link Satisfiability#SAT} results.
+   */
   public SatisfiabilityAndSMGState checkIsUnsatWithCurrentConstraints(SMGState currentState)
       throws SMGSolverException {
     try {
