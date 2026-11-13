@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -75,7 +76,8 @@ public final class SetjmpLongjmpTransformer {
   private static final ImmutableSet<String> LONGJMP =
       ImmutableSet.of("longjmp", "_longjmp", "siglongjmp");
   private static final ImmutableSet<String> THREAD_CREATE =
-      ImmutableSet.of("pthread_create", "pthread_once");
+      ImmutableSet.of(
+          ThreadingTransferRelation.THREAD_START, ThreadingTransferRelation.THREAD_ONCE);
   // the prefix __CPAchecker_TMP_ keeps these variables out of exported invariants
   private static final String VALUE_VAR = "__CPAchecker_TMP_longjmp_value";
   private static final String TMP_VAR = "__CPAchecker_TMP_longjmp_";
