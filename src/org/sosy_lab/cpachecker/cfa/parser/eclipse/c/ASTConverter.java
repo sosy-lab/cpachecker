@@ -3364,6 +3364,7 @@ class ASTConverter {
       CType pDeclarationType, CExpression pInitializerExpression) {
     return pDeclarationType.canBeAssignedFrom(pInitializerExpression.getExpressionType())
         || isStringInitialization(pDeclarationType, pInitializerExpression)
+        || isStringElementAddressInitialization(pDeclarationType, pInitializerExpression)
         || ((pInitializerExpression instanceof CIntegerLiteralExpression cIntegerLiteralExpression)
             // the literal '0' is by default treated as a Null-Pointer in context
             // of pointers (C-Standard 11 §6.3.2.3 (3))
@@ -3400,6 +3401,20 @@ class ASTConverter {
       return canonicalType.asUnqualified().equals(CNumericTypes.CHAR);
     }
     return false;
+  }
+
+  /**
+   * Whether a pointer to char is initialized with the address of a character of a string literal,
+   * e.g., {@code &("abc"[0])}. This is legal C, because string literals have the type {@code
+   * char[]} in C and not {@code const char[]} as in CPAchecker.
+   */
+  private boolean isStringElementAddressInitialization(
+      CType pDeclarationType, CExpression pInitializerExpression) {
+    return pDeclarationType.getCanonicalType() instanceof CPointerType
+        && pInitializerExpression instanceof CUnaryExpression unaryExpression
+        && unaryExpression.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unaryExpression.getOperand() instanceof CArraySubscriptExpression subscriptExpression
+        && isStringInitialization(pDeclarationType, subscriptExpression.getArrayExpression());
   }
 
   private List<CParameterDeclaration> convert(IASTParameterDeclaration[] ps) {

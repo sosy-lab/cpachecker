@@ -21,8 +21,9 @@ int main(void) {
   string b = typedefGlobal;
   unsigned char *u = unsignedGlobal;
   char *f = firstElement;
+  char *localElement = &("xy"[1]);
   if (a != global || *p != staticGlobal || b != typedefGlobal || local != local
-      || u != unsignedGlobal || f != firstElement) {
+      || u != unsignedGlobal || f != firstElement || localElement != localElement) {
   ERROR:
     return 1;
   }
