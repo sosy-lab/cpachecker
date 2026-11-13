@@ -2501,7 +2501,12 @@ class ASTConverter {
    * <p>Example: {@code int a[] = { 1, 2 };} will be converted to {@code int a[2] = { 1, 2 };}
    */
   private CType addArrayLengthFromInitializer(
-      final CArrayType arrayType, final IASTInitializerClause initializer) {
+      final CArrayType arrayType, IASTInitializerClause initializer) {
+    if (initializer instanceof IASTInitializerList list
+        && isBracedStringInitializer(list, arrayType)) {
+      initializer = unpackBracedInitializer(list);
+    }
+
     if (arrayType.getLength() != null) {
       return arrayType;
 
@@ -3257,7 +3262,9 @@ class ASTConverter {
       IASTInitializerList iList, CType type, @Nullable CVariableDeclaration declaration) {
 
     if (declaration != null && iList.getSize() == 1) {
-      if (type instanceof CSimpleType || type instanceof CPointerType) {
+      if (type instanceof CSimpleType
+          || type instanceof CPointerType
+          || (type.equals(declaration.getType()) && isBracedStringInitializer(iList, type))) {
         IASTInitializerClause result = unpackBracedInitializer(iList);
         if (result != null) {
           return convert(result, type, declaration);
@@ -3271,6 +3278,16 @@ class ASTConverter {
     } else {
       return convertInitializerListForNonCompositeType(iList, type, declaration);
     }
+  }
+
+  /** Whether {"abc"} initializes a char array like "abc" (C11 § 6.7.9 (14)). */
+  private static boolean isBracedStringInitializer(IASTInitializerList pList, CType pType) {
+    return pList.getSize() == 1
+        && pList.getClauses()[0] instanceof IASTLiteralExpression literal
+        && literal.getKind() == IASTLiteralExpression.lk_string_literal
+        && pType.getCanonicalType() instanceof CArrayType arrayType
+        && arrayType.getType().getCanonicalType() instanceof CSimpleType elemType
+        && elemType.getType() == CBasicType.CHAR;
   }
 
   private @Nullable IASTInitializerClause unpackBracedInitializer(IASTInitializerList pIList) {
