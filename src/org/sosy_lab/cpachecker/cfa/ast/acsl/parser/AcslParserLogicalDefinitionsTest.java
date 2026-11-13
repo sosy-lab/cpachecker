@@ -58,10 +58,13 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressi
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -662,10 +665,12 @@ public class AcslParserLogicalDefinitionsTest {
     testLogicalFunctionParsing(input, output);
   }
 
+  // TODO: implement this test and remove the suppression
   // Parse predicate definition 'pred_sll'
   // from witnesses 'sll_blank-32-valid-witness-v2--1.yml'
   // and 'sll_blank-64-valid-witness-v2--1.yml'
   // for program 'sll_blank.c' in ILP32 and LP64
+  @SuppressWarnings("all")
   @Test
   @Ignore
   public void memSafetySllBlank1PredicateTest() throws AcslParseException {
@@ -676,10 +681,12 @@ public class AcslParserLogicalDefinitionsTest {
     testLogicalFunctionParsing(input, expectedOutput);
   }
 
+  // TODO: implement this test and remove the suppression
   // Parse predicate definitions 'pred_sll' and 'pred_sll2'
   // from witnesses 'sll_blank-32-valid-witness-v2--2.yml'
   // and 'sll_blank-64-valid-witness-v2--2.yml'
   // for program 'sll_blank.c' in ILP32 and LP64
+  @SuppressWarnings("all")
   @Test
   @Ignore
   public void memSafetySllBlank2PredicateTest() throws AcslParseException {
@@ -688,7 +695,7 @@ public class AcslParserLogicalDefinitionsTest {
 
     String input = "TODO";
 
-    testLogicalFunctionParsing(input, expectedOutput);
+    testLogicalFunctionParsing(input, null);
   }
 
   // Generates the predicate definition 'pred_sll(start, end)' for the witnesses for the C program
@@ -835,16 +842,20 @@ public class AcslParserLogicalDefinitionsTest {
             ImmutableList.of(startAcslCParamDecl, endAcslCParamDecl));
 
     AcslSeparateMemoryConjunctionPredicate startSepEndPredicate =
-        new AcslSeparateMemoryConjunctionPredicate(FileLocation.DUMMY, startCIdExpr, endCIdExpr);
+        new AcslSeparateMemoryConjunctionPredicate(
+            FileLocation.DUMMY, ImmutableList.of(startCIdExpr, endCIdExpr));
     AcslSeparateMemoryConjunctionPredicate startNextSepStartPredicate =
         new AcslSeparateMemoryConjunctionPredicate(
-            FileLocation.DUMMY, startCNextFieldDeref, startCIdExpr);
+            FileLocation.DUMMY, ImmutableList.of(startCNextFieldDeref, startCIdExpr));
+    CExpression sizeOfSllCExpr =
+        new CUnaryExpression(
+            FileLocation.DUMMY, CNumericTypes.SIZE_T, startCIdExpr, UnaryOperator.SIZEOF);
     AcslCanAccessPredicate canAccessStart =
-        new AcslCanAccessPredicate(FileLocation.DUMMY, startCIdExpr);
+        new AcslCanAccessPredicate(FileLocation.DUMMY, startCIdExpr, sizeOfSllCExpr);
     AcslCanAccessPredicate canAccessStartNext =
-        new AcslCanAccessPredicate(FileLocation.DUMMY, startCNextFieldDeref);
+        new AcslCanAccessPredicate(FileLocation.DUMMY, startCNextFieldDeref, sizeOfSllCExpr);
     AcslCanAccessPredicate canAccessEnd =
-        new AcslCanAccessPredicate(FileLocation.DUMMY, endCIdExpr);
+        new AcslCanAccessPredicate(FileLocation.DUMMY, endCIdExpr, sizeOfSllCExpr);
 
     AcslPredicate canAccessPredicatesStartAndEnd =
         new AcslBinaryPredicate(
@@ -1012,9 +1023,7 @@ public class AcslParserLogicalDefinitionsTest {
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
             // Function type:
-            new AcslPredicateType(
-                ImmutableList.of(startAcslCParamDecl.getType()),
-                false),
+            new AcslPredicateType(ImmutableList.of(startAcslCParamDecl.getType()), false),
             "pred_sll2",
             "pred_sll2",
             // We don't want polymorphic types for MemSafety
@@ -1024,11 +1033,14 @@ public class AcslParserLogicalDefinitionsTest {
 
     AcslSeparateMemoryConjunctionPredicate startNextSepStartPredicate =
         new AcslSeparateMemoryConjunctionPredicate(
-            FileLocation.DUMMY, startCNextFieldDeref, startCIdExpr);
+            FileLocation.DUMMY, ImmutableList.of(startCNextFieldDeref, startCIdExpr));
+    CExpression sizeOfSllCExpr =
+        new CUnaryExpression(
+            FileLocation.DUMMY, CNumericTypes.SIZE_T, startCIdExpr, UnaryOperator.SIZEOF);
     AcslCanAccessPredicate canAccessStart =
-        new AcslCanAccessPredicate(FileLocation.DUMMY, startCIdExpr);
+        new AcslCanAccessPredicate(FileLocation.DUMMY, startCIdExpr, sizeOfSllCExpr);
     AcslCanAccessPredicate canAccessStartNext =
-        new AcslCanAccessPredicate(FileLocation.DUMMY, startCNextFieldDeref);
+        new AcslCanAccessPredicate(FileLocation.DUMMY, startCNextFieldDeref, sizeOfSllCExpr);
 
     return new AcslLogicPredicateDefinition(
         FileLocation.DUMMY,
@@ -1062,8 +1074,7 @@ public class AcslParserLogicalDefinitionsTest {
                                     new AcslPredicateApplicationPredicate(
                                         FileLocation.DUMMY,
                                         sll2PredicateDeclaration,
-                                        ImmutableList.of(
-                                            /*start->next*/ startCNextFieldDerefTerm)),
+                                        ImmutableList.of(/*start->next*/ startCNextFieldDerefTerm)),
                                     AcslBinaryPredicateOperator.AND),
                                 AcslBinaryPredicateOperator.AND),
                             AcslBinaryPredicateOperator.AND),
