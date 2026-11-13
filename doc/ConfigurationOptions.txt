@@ -3811,7 +3811,7 @@ cpa.smg2.allocateExternalVariables = true
 cpa.smg2.allowNondetFunctionsWithArbitraryTypes = true
 
 # If this Option is enabled, variable array length may be symbolic.
-cpa.smg2.allowSymbolicVariableArrayLength = false
+cpa.smg2.allowSymbolicVariableArrayLength = true
 
 # Specifies the handling for all concrete arithmetic and bitwise operations
 # resulting in undefined behavior. Examples: divisions by zero as a result of

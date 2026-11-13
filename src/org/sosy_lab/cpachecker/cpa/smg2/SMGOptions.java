@@ -284,7 +284,7 @@ public class SMGOptions {
       secure = true,
       name = "allowSymbolicVariableArrayLength",
       description = "If this Option is enabled, variable array length may be symbolic.")
-  private boolean allowSymbolicVariableArrayLength = false;
+  private boolean allowSymbolicVariableArrayLength = true;
 
   // TODO: add findConcreteValuesForSymbolicTypeSize to text!
   @Option(
