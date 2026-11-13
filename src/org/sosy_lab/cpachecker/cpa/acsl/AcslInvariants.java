@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -99,17 +101,14 @@ public final class AcslInvariants {
   public static ImmutableList<AcslPredicate> preState(AcslFunctionContract pContract) {
     ImmutableList.Builder<AcslPredicate> predicates = ImmutableList.builder();
     predicates.addAll(
-        FluentIterable.from(pContract.getRequiresClauses())
-            .transform(AcslRequires::getPredicate)
-            .toList());
+        transformedImmutableListCopy(pContract.getRequiresClauses(), AcslRequires::getPredicate));
     for (AcslBehavior behavior : pContract.getBehaviors()) {
       if (!behavior.getRequiresClauses().isEmpty()) {
         predicates.add(
             or(
                 conjunction(
-                    FluentIterable.from(behavior.getRequiresClauses())
-                        .transform(AcslRequires::getPredicate)
-                        .toList()),
+                    transformedImmutableListCopy(
+                        behavior.getRequiresClauses(), AcslRequires::getPredicate)),
                 not(assumption(behavior))));
       }
     }
@@ -120,17 +119,14 @@ public final class AcslInvariants {
   public static ImmutableList<AcslPredicate> postState(AcslFunctionContract pContract) {
     ImmutableList.Builder<AcslPredicate> predicates = ImmutableList.builder();
     predicates.addAll(
-        FluentIterable.from(pContract.getEnsuresClauses())
-            .transform(AcslEnsures::getPredicate)
-            .toList());
+        transformedImmutableListCopy(pContract.getEnsuresClauses(), AcslEnsures::getPredicate));
     for (AcslBehavior behavior : pContract.getBehaviors()) {
       if (!behavior.getEnsuresClauses().isEmpty()) {
         predicates.add(
             or(
                 conjunction(
-                    FluentIterable.from(behavior.getEnsuresClauses())
-                        .transform(AcslEnsures::getPredicate)
-                        .toList()),
+                    transformedImmutableListCopy(
+                        behavior.getEnsuresClauses(), AcslEnsures::getPredicate)),
                 not(new AcslOldPredicate(FileLocation.DUMMY, assumption(behavior)))));
       }
     }
@@ -139,9 +135,7 @@ public final class AcslInvariants {
 
   private static AcslPredicate assumption(AcslBehavior pBehavior) {
     return conjunction(
-        FluentIterable.from(pBehavior.getAssumesClauses())
-            .transform(AcslAssumes::getPredicate)
-            .toList());
+        transformedImmutableListCopy(pBehavior.getAssumesClauses(), AcslAssumes::getPredicate));
   }
 
   /** Returns the conjunction of the predicates, which is true for no predicates. */

@@ -116,7 +116,8 @@ public class AcslRoundTripTest {
   /** Replaces each annotation in the program by its printed form and keeps the line numbers. */
   private static String printAnnotations(String pProgram, AcslMetadata pMetadata) {
     List<AAcslAnnotation> annotations =
-        ImmutableList.<AAcslAnnotation>builder()
+        /* TODO refactor: copying into list is likely unnecessary before using stream() */ ImmutableList
+            .<AAcslAnnotation>builder()
             .addAll(pMetadata.assertions().values())
             .addAll(pMetadata.loopAnnotations().values())
             .addAll(pMetadata.functionContracts().values())

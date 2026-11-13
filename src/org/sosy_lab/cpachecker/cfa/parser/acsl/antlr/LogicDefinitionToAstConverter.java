@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -44,10 +45,7 @@ class LogicDefinitionToAstConverter extends AbstractAntlrToAstConverter<AcslLogi
 
   /** Returns the scope with the type variables of a definition, in which its types are parsed. */
   private AcslScope scopeWithTypeVariables(List<AcslTypeVariableDeclaration> pTypeVariables) {
-    if (FluentIterable.from(pTypeVariables)
-            .transform(AcslTypeVariableDeclaration::getName)
-            .toSet()
-            .size()
+    if (transformedImmutableSetCopy(pTypeVariables, AcslTypeVariableDeclaration::getName).size()
         != pTypeVariables.size()) {
       throw new AcslParseRuntimeException("A type variable is declared twice in " + pTypeVariables);
     }

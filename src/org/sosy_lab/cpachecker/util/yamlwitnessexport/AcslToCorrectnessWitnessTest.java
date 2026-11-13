@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -75,7 +76,7 @@ public class AcslToCorrectnessWitnessTest {
             witnessDirectory.resolve(YAMLWitnessVersion.V2d2 + ".yml"));
     assertThat(entries).hasSize(1);
     List<AbstractInvariantEntry> content = ((InvariantSetEntry) entries.getFirst()).content;
-    assertThat(FluentIterable.from(content).transform(AbstractInvariantEntry::getFormat).toSet())
+    assertThat(transformedImmutableSetCopy(content, AbstractInvariantEntry::getFormat))
         .containsExactly(YAMLWitnessExpressionType.ACSL);
     assertThat(FluentIterable.from(content).transform(AcslToCorrectnessWitnessTest::describe))
         .containsAtLeast(

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -102,7 +104,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
   public AcslStatementContract visitForBehaviorsContract(ForBehaviorsContractContext ctx) {
     return new AcslStatementContract(
         fileLocationFromContext(ctx),
-        FluentIterable.from(ctx.id()).transform(IdContext::getText).toList(),
+        transformedImmutableListCopy(ctx.id(), IdContext::getText),
         visitFunctionContract(ctx.functionContract()));
   }
 
@@ -130,7 +132,7 @@ class AnnotationToAstConverter extends AbstractAntlrToAstConverter<AAcslAnnotati
         ctx.getChild(0).getText().equals("complete")
             ? AcslCompletenessClause.Kind.COMPLETE
             : AcslCompletenessClause.Kind.DISJOINT,
-        FluentIterable.from(ctx.id()).transform(IdContext::getText).toList());
+        transformedImmutableListCopy(ctx.id(), IdContext::getText));
   }
 
   private FluentIterable<AAcslAnnotation> visitClauses(@Nullable List<ParseTree> pClauses) {
