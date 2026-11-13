@@ -252,10 +252,11 @@ public class ExpressionSimplificationVisitor
     }
 
     final CExpression op = recursive(operand);
-    assert op.getExpressionType().equals(operandType) : "simplification should not change type";
+    assert op.getExpressionType().getCanonicalType().equals(operandType.getCanonicalType())
+        : "simplification should not change type";
     final NumericValue value = getValue(op);
 
-    if (value != null && operandType instanceof CSimpleType cSimpleType) {
+    if (value != null && operandType.getCanonicalType() instanceof CSimpleType cSimpleType) {
       if (unaryOperator == UnaryOperator.MINUS) {
         // we have to cast the value, because it can overflow, for example for the unary-expression
         // "-2147483648" (=MIN_INT),
@@ -274,9 +275,10 @@ public class ExpressionSimplificationVisitor
             return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           }
           case FLOAT, DOUBLE, FLOAT128 -> {
-            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, exprType);
+            CType floatType = exprType.getCanonicalType();
+            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, floatType);
             return new CFloatLiteralExpression(
-                loc, machineModel, exprType, negatedValue.floatingPointValue(precision));
+                loc, machineModel, floatType, negatedValue.floatingPointValue(precision));
           }
           default -> {
             // return the original expression below

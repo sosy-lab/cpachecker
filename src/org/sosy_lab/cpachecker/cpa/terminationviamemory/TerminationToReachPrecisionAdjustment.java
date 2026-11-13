@@ -559,6 +559,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     Set<BooleanFormula> unsatSameStateFormulas = new HashSet<>();
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
       prover.push(commonPart);
+      // MathSAT5 can wrongly report SAT for an unsatisfiable common part after some
+      // push-check-pop rounds (termination-bwb/parity0)
+      if (prover.isUnsat()) {
+        return Optional.empty();
+      }
       for (int i = 0; i < sameStateFormulas.size(); i++) {
         BooleanFormula sameStateFormula;
         if (isOverapproximating) {
