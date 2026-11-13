@@ -2503,9 +2503,9 @@ class ASTConverter {
    */
   private CType addArrayLengthFromInitializer(
       final CArrayType arrayType, IASTInitializerClause initializer) {
-    IASTLiteralExpression bracedString = getBracedStringLiteral(initializer);
-    if (bracedString != null && isCharArray(arrayType)) {
-      initializer = bracedString;
+    if (initializer instanceof IASTInitializerList list
+        && isBracedStringInitializer(list, arrayType)) {
+      initializer = unpackBracedInitializer(list);
     }
 
     if (arrayType.getLength() != null) {
@@ -3262,16 +3262,10 @@ class ASTConverter {
   private CInitializer convert(
       IASTInitializerList iList, CType type, @Nullable CVariableDeclaration declaration) {
 
-    IASTLiteralExpression bracedString = getBracedStringLiteral(iList);
-    if (bracedString != null
-        && declaration != null
-        && type.equals(declaration.getType())
-        && isCharArray(type)) {
-      return convert(bracedString, type, declaration);
-    }
-
     if (declaration != null && iList.getSize() == 1) {
-      if (type instanceof CSimpleType || type instanceof CPointerType) {
+      if (type instanceof CSimpleType
+          || type instanceof CPointerType
+          || (type.equals(declaration.getType()) && isBracedStringInitializer(iList, type))) {
         IASTInitializerClause result = unpackBracedInitializer(iList);
         if (result != null) {
           return convert(result, type, declaration);
@@ -3287,20 +3281,12 @@ class ASTConverter {
     }
   }
 
-  /** Returns "abc" for {"abc"}, which initializes a char array like "abc" (C11 § 6.7.9 (14)). */
-  private static @Nullable IASTLiteralExpression getBracedStringLiteral(
-      IASTInitializerClause pClause) {
-    if (pClause instanceof IASTInitializerList list
-        && list.getSize() == 1
-        && list.getClauses()[0] instanceof IASTLiteralExpression literal
-        && literal.getKind() == IASTLiteralExpression.lk_string_literal) {
-      return literal;
-    }
-    return null;
-  }
-
-  private static boolean isCharArray(CType pType) {
-    return pType.getCanonicalType() instanceof CArrayType arrayType
+  /** Whether {"abc"} initializes a char array like "abc" (C11 § 6.7.9 (14)). */
+  private static boolean isBracedStringInitializer(IASTInitializerList pList, CType pType) {
+    return pList.getSize() == 1
+        && pList.getClauses()[0] instanceof IASTLiteralExpression literal
+        && literal.getKind() == IASTLiteralExpression.lk_string_literal
+        && pType.getCanonicalType() instanceof CArrayType arrayType
         && arrayType.getType().getCanonicalType() instanceof CSimpleType elemType
         && elemType.getType() == CBasicType.CHAR;
   }
