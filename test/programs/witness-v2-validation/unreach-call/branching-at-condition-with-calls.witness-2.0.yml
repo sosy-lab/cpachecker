@@ -1,0 +1,56 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.0"
+    uuid: "0d6f2b1e-1c55-4a52-8f43-3c7f8f7c1a01"
+    creation_time: "2026-11-12T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+      version: "1"
+    task:
+      input_files:
+        - "../../simple/witness_validation/branching-at-condition-with-calls.c"
+      input_file_hashes:
+        "../../simple/witness_validation/branching-at-condition-with-calls.c": "5156b8b7517dbc5d6a96e3be5fc5bd33edce03900453632c4b0ac3dde61092c5"
+      specification: "G ! call(reach_error())"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "false"
+            location:
+              file_name: "../../simple/witness_validation/branching-at-condition-with-calls.c"
+              line: 16
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/branching-at-condition-with-calls.c"
+              line: 17
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "target"
+            action: "follow"
+            location:
+              file_name: "../../simple/witness_validation/branching-at-condition-with-calls.c"
+              line: 18
+              column: 5
+              function: "main"

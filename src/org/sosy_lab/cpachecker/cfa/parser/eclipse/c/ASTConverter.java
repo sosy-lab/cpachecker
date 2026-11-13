@@ -307,6 +307,7 @@ class ASTConverter {
   private static final String FUNC_OFFSETOF = "__builtin_offsetof";
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
+  private static final String FUNC_CHOOSE_EXPR = "__builtin_choose_expr";
 
   private final ExpressionSimplificationVisitor expressionSimplificator;
   private final NonRecursiveExpressionSimplificationVisitor nonRecursiveExpressionSimplificator;
@@ -1049,6 +1050,13 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
+    // No-op cast (GCC allows such casts also for structs and unions).
+    // Casts of char literals stay: their value is read unsigned, the cast fixes e.g. (char)'\xff'.
+    if (!(operand instanceof CCharLiteralExpression)
+        && castType.getCanonicalType().equals(operand.getExpressionType().getCanonicalType())) {
+      return operand;
+    }
+
     // Cast-to-union extension (GCC): initialize the union member whose type is an exact match of
     // the operand's type.
     // https://gcc.gnu.org/onlinedocs/gcc/Cast-to-Union.html
@@ -1069,8 +1077,7 @@ class ASTConverter {
 
   /**
    * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
-   * designated initializer. Returns {@code null} if this cast is not a cast to a union type, and
-   * the operand if it already has the union type.
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
    *
    * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
    * member type. If no member matches (or the union is empty), this method throws a {@link
@@ -1084,18 +1091,11 @@ class ASTConverter {
       return null;
     }
 
-    CType operandType = castOperand.getExpressionType().getCanonicalType();
-    if (operandType
-        .withQualifiersSetTo(CTypeQualifiers.NONE)
-        .equals(compositeType.withQualifiersSetTo(CTypeQualifiers.NONE))) {
-      // GCC accepts casts of a union to its own type
-      return castOperand;
-    }
-
     if (compositeType.getMembers().isEmpty()) {
       throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
     }
 
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
     CCompositeTypeMemberDeclaration matchingMember =
         findUnionMemberWithExactType(compositeType, operandType);
 
@@ -1371,6 +1371,19 @@ class ASTConverter {
           }
         }
       }
+    }
+
+    if (functionNameExpression instanceof CIdExpression idExpression
+        && FUNC_CHOOSE_EXPR.equals(idExpression.getName())
+        && e.getArguments().length == 3
+        && scope.lookupFunction(FUNC_CHOOSE_EXPR) == null) {
+      // GCC evaluates only the argument that the constant condition chooses
+      boolean condition =
+          evaluateIntegerConstantExpression(toExpression(e.getArguments()[0])).signum() != 0;
+      IASTExpression chosen = toExpression(e.getArguments()[condition ? 1 : 2]);
+      return chosen instanceof IASTFunctionCallExpression call
+          ? convert(call)
+          : convertExpressionWithoutSideEffects(chosen);
     }
 
     List<CExpression> params = new ArrayList<>();
@@ -2488,7 +2501,12 @@ class ASTConverter {
    * <p>Example: {@code int a[] = { 1, 2 };} will be converted to {@code int a[2] = { 1, 2 };}
    */
   private CType addArrayLengthFromInitializer(
-      final CArrayType arrayType, final IASTInitializerClause initializer) {
+      final CArrayType arrayType, IASTInitializerClause initializer) {
+    if (initializer instanceof IASTInitializerList list
+        && isBracedStringInitializer(list, arrayType)) {
+      initializer = unpackBracedInitializer(list);
+    }
+
     if (arrayType.getLength() != null) {
       return arrayType;
 
@@ -3244,7 +3262,9 @@ class ASTConverter {
       IASTInitializerList iList, CType type, @Nullable CVariableDeclaration declaration) {
 
     if (declaration != null && iList.getSize() == 1) {
-      if (type instanceof CSimpleType || type instanceof CPointerType) {
+      if (type instanceof CSimpleType
+          || type instanceof CPointerType
+          || (type.equals(declaration.getType()) && isBracedStringInitializer(iList, type))) {
         IASTInitializerClause result = unpackBracedInitializer(iList);
         if (result != null) {
           return convert(result, type, declaration);
@@ -3258,6 +3278,16 @@ class ASTConverter {
     } else {
       return convertInitializerListForNonCompositeType(iList, type, declaration);
     }
+  }
+
+  /** Whether {"abc"} initializes a char array like "abc" (C11 § 6.7.9 (14)). */
+  private static boolean isBracedStringInitializer(IASTInitializerList pList, CType pType) {
+    return pList.getSize() == 1
+        && pList.getClauses()[0] instanceof IASTLiteralExpression literal
+        && literal.getKind() == IASTLiteralExpression.lk_string_literal
+        && pType.getCanonicalType() instanceof CArrayType arrayType
+        && arrayType.getType().getCanonicalType() instanceof CSimpleType elemType
+        && elemType.getType() == CBasicType.CHAR;
   }
 
   private @Nullable IASTInitializerClause unpackBracedInitializer(IASTInitializerList pIList) {
@@ -3316,7 +3346,9 @@ class ASTConverter {
 
       if (type.getCanonicalType() instanceof CPointerType
           && initializedExpression.getExpressionType().getCanonicalType()
-              instanceof CArrayType initializerType) {
+              instanceof CArrayType initializerType
+          // String literals are kept as they are, which is easier for analyses (#1536).
+          && !(initializedExpression instanceof CStringLiteralExpression)) {
         // TODO This is part of #1035 but should probably be handled generally somewhere else and
         // removed here.
         CType elementType = initializerType.getType();
@@ -3365,6 +3397,7 @@ class ASTConverter {
       CType pDeclarationType, CExpression pInitializerExpression) {
     return pDeclarationType.canBeAssignedFrom(pInitializerExpression.getExpressionType())
         || isStringInitialization(pDeclarationType, pInitializerExpression)
+        || isStringElementAddressInitialization(pDeclarationType, pInitializerExpression)
         || ((pInitializerExpression instanceof CIntegerLiteralExpression cIntegerLiteralExpression)
             // the literal '0' is by default treated as a Null-Pointer in context
             // of pointers (C-Standard 11 §6.3.2.3 (3))
@@ -3391,15 +3424,30 @@ class ASTConverter {
       // neither array nor pointer and allows to drop a redundant second check for CArrayType or
       // CPointerType
       CType canonicalType = CPointerType.POINTER_TO_VOID;
-      if (pDeclarationType instanceof CArrayType cArrayType) {
+      CType declarationType = pDeclarationType.getCanonicalType();
+      if (declarationType instanceof CArrayType cArrayType) {
         canonicalType = cArrayType.getType().getCanonicalType();
       }
-      if (pDeclarationType instanceof CPointerType cPointerType) {
+      if (declarationType instanceof CPointerType cPointerType) {
         canonicalType = cPointerType.getType().getCanonicalType();
       }
       return canonicalType.asUnqualified().equals(CNumericTypes.CHAR);
     }
     return false;
+  }
+
+  /**
+   * Whether a pointer to char is initialized with the address of a character of a string literal,
+   * e.g., {@code &("abc"[0])}. This is legal C, because string literals have the type {@code
+   * char[]} in C and not {@code const char[]} as in CPAchecker.
+   */
+  private boolean isStringElementAddressInitialization(
+      CType pDeclarationType, CExpression pInitializerExpression) {
+    return pDeclarationType.getCanonicalType() instanceof CPointerType
+        && pInitializerExpression instanceof CUnaryExpression unaryExpression
+        && unaryExpression.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unaryExpression.getOperand() instanceof CArraySubscriptExpression subscriptExpression
+        && isStringInitialization(pDeclarationType, subscriptExpression.getArrayExpression());
   }
 
   private List<CParameterDeclaration> convert(IASTParameterDeclaration[] ps) {
