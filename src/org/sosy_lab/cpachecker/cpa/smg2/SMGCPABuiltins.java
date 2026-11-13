@@ -557,21 +557,6 @@ public class SMGCPABuiltins {
     // TODO: many more math.h functions are missing!
 
     if (BuiltinFunctions.isBuiltinFunction(functionName)) {
-      // TODO: this block needs to be sensibly refactored into dedicated methods!
-      CType functionType = BuiltinFunctions.getFunctionType(functionName);
-
-      // TODO: do we need this?!
-      if (isUnspecifiedType(functionType) && !functionName.equals("__builtin_alloca")) {
-        // unsupported formula
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                state,
-                "Returned unknown value due to unknown function "
-                    + functionName
-                    + " in expression in ",
-                cfaEdge));
-      }
-
       List<CExpression> parameterExpressions = funCallExpr.getParameterExpressions();
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
