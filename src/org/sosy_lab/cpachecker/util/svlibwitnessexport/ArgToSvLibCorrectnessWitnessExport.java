@@ -95,7 +95,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
   }
 
   protected SvLibTerm getOverapproximationOfStates(
-      Collection<ARGState> pArgStates, SvLibScope pScope) {
+      Collection<ARGState> pArgStates, SvLibScope pScope) throws InterruptedException {
     FluentIterable<SvLibTermReportingState> reportingStates =
         FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)
@@ -120,7 +120,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   public SvLibAnnotateTagCommand createRequires(
-      Collection<ARGState> argStates, SvLibTagReference pTag) {
+      Collection<ARGState> argStates, SvLibTagReference pTag) throws InterruptedException {
     SvLibTerm precondition =
         getOverapproximationOfStates(argStates, svLibMetadata.tagReferenceToScope().get(pTag));
     return new SvLibAnnotateTagCommand(
@@ -131,7 +131,8 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   public SvLibAnnotateTagCommand createEnsures(
-      Collection<FunctionEntryExitPair> pArgStates, SvLibTagReference pTag) {
+      Collection<FunctionEntryExitPair> pArgStates, SvLibTagReference pTag)
+      throws InterruptedException {
     // Build state for precondition
     ImmutableSet.Builder<SvLibRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
     for (FunctionEntryExitPair pair : pArgStates) {
@@ -171,7 +172,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   private SvLibAnnotateTagCommand createLoopInvariant(
-      Collection<ARGState> argStates, SvLibTagReference pTag) {
+      Collection<ARGState> argStates, SvLibTagReference pTag) throws InterruptedException {
     return new SvLibAnnotateTagCommand(
         pTag.getTagName(),
         ImmutableList.of(
@@ -182,7 +183,8 @@ public class ArgToSvLibCorrectnessWitnessExport {
         FileLocation.DUMMY);
   }
 
-  public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState) {
+  public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState)
+      throws InterruptedException {
     CollectedARGStates relevantStates =
         new RootExplorationArgStateCollector(loopHeads).getRelevantStates(pRootState);
 
