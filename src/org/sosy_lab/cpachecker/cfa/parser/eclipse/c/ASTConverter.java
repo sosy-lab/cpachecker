@@ -1049,8 +1049,10 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    if (castType.getCanonicalType().equals(operand.getExpressionType().getCanonicalType())) {
-      // No-op cast (GCC allows such casts also for structs and unions)
+    // No-op cast (GCC allows such casts also for structs and unions).
+    // Casts of char literals stay: their value is read unsigned, the cast fixes e.g. (char)'\xff'.
+    if (!(operand instanceof CCharLiteralExpression)
+        && castType.getCanonicalType().equals(operand.getExpressionType().getCanonicalType())) {
       return operand;
     }
 
