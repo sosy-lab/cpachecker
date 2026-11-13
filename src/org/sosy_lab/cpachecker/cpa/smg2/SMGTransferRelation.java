@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
@@ -660,10 +661,7 @@ public class SMGTransferRelation
           newStatesAndReadValues.add(
               Pair.of(
                   valueAndState.getState(),
-                  ImmutableList.<Value>builder()
-                      .addAll(stateAndReadValues.getSecond())
-                      .add(valueAndState.getValue())
-                      .build()));
+                  listAndElement(stateAndReadValues.getSecond(), valueAndState.getValue())));
         }
       }
       statesAndReadValues = newStatesAndReadValues.build();
