@@ -102,13 +102,13 @@ public final class CCompositeType implements CComplexType {
     return members;
   }
 
-  public CCompositeTypeMemberDeclaration getMember(String name) {
+  public CCompositeTypeMemberDeclaration getMember(String pMemberName) {
     for (CCompositeTypeMemberDeclaration member : getMembers()) {
-      if (member.getName().equals(name)) {
+      if (member.getName().equals(pMemberName)) {
         return member;
       }
     }
-    throw new IllegalArgumentException("No member " + name + " in " + this);
+    throw new IllegalArgumentException("No member " + pMemberName + " in " + this);
   }
 
   public void setMembers(List<CCompositeTypeMemberDeclaration> list) {
