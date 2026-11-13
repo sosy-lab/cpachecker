@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 /**
  * Tracks already seen states at loop-head locations and within the same call-stack. In the
@@ -34,15 +34,10 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private boolean isTarget;
 
   /**
-   * The following map keeps track of all the variables as type of @Formula, so that they can be
-   * directly used in the further formulas by precision-adjustment operator. For every loop-head
-   * (i.e. given by location and call-stack), it keeps track of which variables (with SSA indices)
-   * where the most recent ones after how many iteration. In other words, it maps location and
-   * call-stack states of loop-heads to a map with information about which variables were seen after
-   * which unrolling of the loop.
+   * For every loop-head (i.e. given by location and call-stack), it maps the number of unrollings
+   * of the loop to the SSA indices of the variables at that visit of the loop head.
    */
-  private final ImmutableMap<ProgramCounter, ImmutableMap<Integer, ImmutableSet<Formula>>>
-      storedValues;
+  private final ImmutableMap<ProgramCounter, ImmutableMap<Integer, SSAMap>> storedValues;
 
   /**
    * For every loop-head (given by location and call-stack), we track how many times have we passed
@@ -95,7 +90,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
   private final int numberOfTargetStateVisitsBeforeInfiniteLoop;
 
   public TerminationToReachState(
-      ImmutableMap<ProgramCounter, ImmutableMap<Integer, ImmutableSet<Formula>>> pStoredValues,
+      ImmutableMap<ProgramCounter, ImmutableMap<Integer, SSAMap>> pStoredValues,
       ImmutableMap<ProgramCounter, Integer> pNumberOfIterations,
       ImmutableMap<ProgramCounter, PathFormula> pPathFormulaForIteration,
       Optional<PathFormula> pPathFormulaForPrefix,
@@ -149,8 +144,7 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
     return numberOfIterations;
   }
 
-  public ImmutableMap<ProgramCounter, ImmutableMap<Integer, ImmutableSet<Formula>>>
-      getStoredValues() {
+  public ImmutableMap<ProgramCounter, ImmutableMap<Integer, SSAMap>> getStoredValues() {
     return storedValues;
   }
 
