@@ -72,6 +72,8 @@ public class AutomatonWitnessV2d0Parser {
                 new AutomatonWitnessV2d0ParserCorrectness(config, logger, shutdownNotifier, cfa);
             case V2d1 ->
                 new AutomatonWitnessV2d1ParserCorrectness(config, logger, shutdownNotifier, cfa);
+            // TODO: add Memsafety correctness witnesses in V2d4
+            case V2d4 -> throw new UnsupportedOperationException("implement me");
           };
       return parser.createCorrectnessAutomatonFromEntries(entries);
     } else {
@@ -81,6 +83,8 @@ public class AutomatonWitnessV2d0Parser {
                 new AutomatonWitnessViolationV2d0Parser(config, logger, shutdownNotifier, cfa);
             case V2d1 ->
                 new AutomatonWitnessViolationV2d1Parser(config, logger, shutdownNotifier, cfa);
+            // TODO: add violation witnesses in V2d4
+            case V2d4 -> throw new UnsupportedOperationException("implement me");
           };
       return parser.createViolationAutomatonFromEntries(entries);
     }

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PredicateDefinitionSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
 public class AutomatonWitnessV2ParserUtils {
@@ -146,6 +147,8 @@ public class AutomatonWitnessV2ParserUtils {
       return Optional.of(YAMLWitnessVersion.V2);
     } else if (allEntriesHaveVersion("2.1", entries)) {
       return Optional.of(YAMLWitnessVersion.V2d1);
+    } else if (allEntriesHaveVersion("2.4", entries)) {
+      return Optional.of(YAMLWitnessVersion.V2d4);
     }
     return Optional.empty();
   }
@@ -157,7 +160,12 @@ public class AutomatonWitnessV2ParserUtils {
                 (e instanceof ViolationSequenceEntry pViolationEntry
                         && pViolationEntry.getMetadata().getFormatVersion().equals(pVersion))
                     || (e instanceof InvariantSetEntry pInvariantEntry
-                        && pInvariantEntry.getMetadata().getFormatVersion().equals(pVersion)));
+                        && pInvariantEntry.getMetadata().getFormatVersion().equals(pVersion))
+                    || (e instanceof PredicateDefinitionSetEntry pPredicateDefinitionSetEntry
+                        && pPredicateDefinitionSetEntry
+                            .getMetadata()
+                            .getFormatVersion()
+                            .equals(pVersion)));
   }
 
   static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {
