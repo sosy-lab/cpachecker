@@ -34,6 +34,7 @@ memset/*.yml
 union_arrays/*.yml
 bitfields/*.yml
 scanf/*.yml
+setjmp/*.yml
 str_functions/*.yml
 explicit/symbolic/*.yml
 symbolic_array_subscript/*.yml
