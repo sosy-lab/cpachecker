@@ -3332,12 +3332,6 @@ cpa.predicate.refinement.useUCBRefinement = false
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
 
-# Reject counterexamples that depend on accesses through a character type to
-# an object of another type (e.g., a memset of a struct). The heap encoding
-# with one SMT array per type does not model such accesses precisely, so such
-# counterexamples may be infeasible.
-cpa.predicate.rejectByteAccessesToTypedObjects = no default value
-
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
