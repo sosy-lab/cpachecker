@@ -12,8 +12,7 @@ Changes since CPAchecker 4.2.2
 -------------------------------------------------
 * Due to system requirements from common SMT solvers,
   most configurations of CPAchecker
-  will start requiring Ubuntu 24.04 / Debian 13 or newer
-  after the next CPAchecker release.
+  now require Ubuntu 24.04 / Debian 13 or newer.
 * CPAchecker's predicate analysis now supports
   the special function `void __VERIFIER_nondet_memory(void *dest, size_t size)`.
   This function needs to be declared, but not defined,

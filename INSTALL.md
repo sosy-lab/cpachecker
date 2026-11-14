@@ -17,8 +17,8 @@ Note that right now CPAchecker works best on Linux (64-bit x86)
 because not for all external dependencies native binaries
 are supplied for other platforms.
 So some configurations or features might not work on other platforms.
-For full support of modern SMT solvers,
-please use at least Ubuntu 24.04, Debian 13,
+In particular the SMT solver used by CPAchecker in most configurations
+requires running on at least Ubuntu 24.04, Debian 13,
 or a similarly recent Linux distribution.
 As an alternative our container images are available.
 
