@@ -40,6 +40,15 @@ public class AstCfaRelationTest {
     assertThat(cfa.getAstCfaRelation().getStatementStartingAtNode(statementStart)).isPresent();
   }
 
+  /** The edges of the body of {@code step} include the return edge from {@code aux}. */
+  @Test
+  public void nodeForStatementLocationOfBodyWithCall() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "parameter-at-start-of-body.c");
+    CFANode bodyStart = cfa.getAstCfaRelation().getNodeForStatementLocation(20, 1).orElseThrow();
+
+    assertThat(bodyStart.getFunctionName()).isEqualTo("step");
+  }
+
   /** A condition edge of two if statements belongs to the inner one, whose condition it is. */
   @Test
   public void ifStructureForConditionEdgeOfNestedIfStatements() throws Exception {
