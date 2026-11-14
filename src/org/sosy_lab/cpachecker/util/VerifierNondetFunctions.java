@@ -30,6 +30,11 @@ public final class VerifierNondetFunctions {
     return PREFIX + getSuffix(pType);
   }
 
+  /** Returns the name of the function that sets a memory region to nondeterministic values. */
+  public static String getFunctionNameNondetMemory() {
+    return PREFIX + "memory";
+  }
+
   /**
    * Returns the declaration of the function that returns nondeterministic values of the given type,
    * e.g., {@code unsigned int __VERIFIER_nondet_uint(void);}, see {@link #getFunctionName}.

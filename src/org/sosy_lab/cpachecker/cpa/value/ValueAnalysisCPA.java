@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -290,7 +291,11 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new ValueAnalysisState(cfa.getMachineModel());
+    return new ValueAnalysisState(
+        cfa.getMachineModel(),
+        transferOptions.isOptimizeBooleanVariables() && cfa.getVarClassification().isPresent()
+            ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+            : ImmutableSet.of());
   }
 
   @Override
