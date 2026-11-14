@@ -53,6 +53,7 @@ import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharI
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -79,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -118,6 +121,27 @@ public class SMGCPABuiltins {
 
   /** Name of the internal global variable that models {@code errno}. */
   private static final String ERRNO_VARIABLE_NAME = "__CPAchecker_INTERNAL_errno";
+
+  /**
+   * Name of the internal global variable that models the character classification table of glibc
+   * returned (indirectly) by {@code __ctype_b_loc()}.
+   */
+  private static final String CTYPE_B_TABLE_VARIABLE_NAME = "__CPAchecker_INTERNAL_ctype_b_table";
+
+  /**
+   * Name of the internal global variable that models the (thread-local) pointer to the character
+   * classification table, whose address is returned by {@code __ctype_b_loc()}.
+   */
+  private static final String CTYPE_B_POINTER_VARIABLE_NAME = "__CPAchecker_INTERNAL_ctype_b";
+
+  /**
+   * Number of entries of the character classification table before the entry for the character 0,
+   * i.e. the table is indexed with values from -128 (signed char) up to 255 (unsigned char).
+   */
+  private static final int CTYPE_B_TABLE_NEGATIVE_ENTRIES = 128;
+
+  /** Number of entries of the character classification table, i.e. for indices -128 to 255. */
+  private static final int CTYPE_B_TABLE_LENGTH = 384;
 
   private final SMGCPAExpressionEvaluator evaluator;
 
@@ -757,6 +781,8 @@ public class SMGCPABuiltins {
 
       case "__errno_location" -> evaluateErrnoLocation(funCallExpr, state);
 
+      case "__ctype_b_loc" -> evaluateCtypeBLoc(funCallExpr, state, cfaEdge);
+
       default -> handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
     };
   }
@@ -1038,6 +1064,177 @@ public class SMGCPABuiltins {
     return ImmutableList.of(
         evaluator.createAddressForLocalOrGlobalVariable(
             ERRNO_VARIABLE_NAME, pFunctionCall.getExpressionType(), currentState));
+  }
+
+  /**
+   * The function {@code const unsigned short int **__ctype_b_loc(void)} is not part of the C
+   * standard, but of the glibc ABI (specified by the Linux Standard Base). It returns the address
+   * of a pointer of the calling thread that points into the character classification table of the
+   * current locale. glibc implements the character classification macros of {@code <ctype.h>} with
+   * it, e.g. {@code isspace(c)} is defined as {@code ((*__ctype_b_loc())[(int) (c)] & (unsigned
+   * short int) _ISspace)}, so every use of these macros in a preprocessed program dereferences the
+   * result of this function. The returned pointer is never null, points to a valid pointer with
+   * thread storage duration that the program never frees, and is the same for all calls within one
+   * thread. The table pointer points to the entry of the character 0 of a table of {@value
+   * #CTYPE_B_TABLE_LENGTH} {@code unsigned short int} entries, such that it can be indexed with all
+   * values of {@code signed char} and {@code unsigned char}, as well as {@code EOF}, i.e. with
+   * indices from -{@value #CTYPE_B_TABLE_NEGATIVE_ENTRIES} to 255. Each entry is a bit set of the
+   * character classes (e.g. {@code _ISspace}) of the character.
+   *
+   * <p>We model the table as one global object with the internal name {@value
+   * #CTYPE_B_TABLE_VARIABLE_NAME} and the pointer to it as one global object with the internal name
+   * {@value #CTYPE_B_POINTER_VARIABLE_NAME}. Both are created at the first call, and every call
+   * returns a pointer to the pointer object. As we do not distinguish threads, all threads share
+   * these objects. The objects are global, so it is valid to read them and they are not reported by
+   * memtrack. Indexing the table outside of its bounds is reported as an invalid read. We assume
+   * the "C" locale, as we do not model {@code setlocale()}, and fill the table with the character
+   * classes of the "C" locale as defined by glibc (see {@link #getCLocaleCharacterClasses(int)}),
+   * i.e. only the entries of the characters 0 to 127 are not 0.
+   *
+   * @param pFunctionCall the {@link CFunctionCallExpression} of the call to {@code __ctype_b_loc}.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return the pointer to the pointer to the character classification table and the state with
+   *     both objects.
+   * @throws CPATransferException if the table can not be written.
+   */
+  private List<ValueAndSMGState> evaluateCtypeBLoc(
+      CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    SMGState currentState = pState;
+    if (!currentState.isGlobalVariablePresent(CTYPE_B_POINTER_VARIABLE_NAME)) {
+      currentState = createCtypeBTableAndPointer(currentState, pCfaEdge);
+    }
+    return ImmutableList.of(
+        evaluator.createAddressForLocalOrGlobalVariable(
+            CTYPE_B_POINTER_VARIABLE_NAME, pFunctionCall.getExpressionType(), currentState));
+  }
+
+  /**
+   * Creates the global objects for the character classification table of the "C" locale and the
+   * pointer to its entry for the character 0, see {@link
+   * #evaluateCtypeBLoc(CFunctionCallExpression, SMGState, CFAEdge)}.
+   */
+  private SMGState createCtypeBTableAndPointer(SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    CType entryType = CNumericTypes.UNSIGNED_SHORT_INT;
+    BigInteger entrySizeInBits = machineModel.getSizeofInBits(entryType);
+    CType tableType =
+        new CArrayType(
+            CTypeQualifiers.NONE,
+            entryType,
+            CIntegerLiteralExpression.createDummyLiteral(CTYPE_B_TABLE_LENGTH, CNumericTypes.INT));
+    BigInteger tableSizeInBits = entrySizeInBits.multiply(BigInteger.valueOf(CTYPE_B_TABLE_LENGTH));
+
+    SMGState currentState =
+        pState.copyAndAddGlobalVariable(
+            new NumericValue(tableSizeInBits), CTYPE_B_TABLE_VARIABLE_NAME, tableType);
+    SMGObject tableObj =
+        currentState
+            .getMemoryModel()
+            .getObjectForVisibleVariable(CTYPE_B_TABLE_VARIABLE_NAME)
+            .orElseThrow();
+    // All entries except the ones of the characters 0 to 127 are 0
+    currentState =
+        currentState.writeValueWithChecks(
+            tableObj,
+            new NumericValue(BigInteger.ZERO),
+            new NumericValue(tableSizeInBits),
+            new NumericValue(BigInteger.ZERO),
+            tableType,
+            pCfaEdge);
+    for (int character = 0; character < 128; character++) {
+      BigInteger offsetInBits =
+          entrySizeInBits.multiply(BigInteger.valueOf(CTYPE_B_TABLE_NEGATIVE_ENTRIES + character));
+      currentState =
+          currentState.writeValueWithChecks(
+              tableObj,
+              new NumericValue(offsetInBits),
+              new NumericValue(entrySizeInBits),
+              new NumericValue(getCLocaleCharacterClasses(character)),
+              entryType,
+              pCfaEdge);
+    }
+
+    // The pointer points to the entry of the character 0
+    CType pointerType = new CPointerType(CTypeQualifiers.NONE, entryType);
+    BigInteger pointerSizeInBits = machineModel.getSizeofInBits(pointerType);
+    currentState =
+        currentState.copyAndAddGlobalVariable(
+            new NumericValue(pointerSizeInBits), CTYPE_B_POINTER_VARIABLE_NAME, pointerType);
+    SMGObject pointerObj =
+        currentState
+            .getMemoryModel()
+            .getObjectForVisibleVariable(CTYPE_B_POINTER_VARIABLE_NAME)
+            .orElseThrow();
+    ValueAndSMGState addressAndState =
+        currentState.searchOrCreateAddress(
+            tableObj,
+            pointerType,
+            entrySizeInBits.multiply(BigInteger.valueOf(CTYPE_B_TABLE_NEGATIVE_ENTRIES)));
+    currentState = addressAndState.getState();
+    return currentState.writeValueWithChecks(
+        pointerObj,
+        new NumericValue(BigInteger.ZERO),
+        new NumericValue(pointerSizeInBits),
+        addressAndState.getValue(),
+        pointerType,
+        pCfaEdge);
+  }
+
+  /**
+   * Returns the entry of the character classification table of glibc for the given character in the
+   * "C" locale, i.e. the bit set of the character classes of the character. The classes are as
+   * defined by POSIX for the "C" locale, e.g. only ' ', '\t', '\n', '\v', '\f' and '\r' are
+   * whitespace. The bits are as defined by the enum in the {@code <ctype.h>} of glibc, which
+   * depends on the byte order of the machine, e.g. {@code _ISspace} is 8192 for little endian.
+   *
+   * @param pCharacter a character from 0 to 127.
+   * @return the bit set of the character classes of the character.
+   */
+  private long getCLocaleCharacterClasses(int pCharacter) {
+    checkArgument(pCharacter >= 0 && pCharacter < 128);
+    boolean isUpper = pCharacter >= 'A' && pCharacter <= 'Z';
+    boolean isLower = pCharacter >= 'a' && pCharacter <= 'z';
+    boolean isAlpha = isUpper || isLower;
+    boolean isDigit = pCharacter >= '0' && pCharacter <= '9';
+    boolean isXdigit =
+        isDigit
+            || (pCharacter >= 'a' && pCharacter <= 'f')
+            || (pCharacter >= 'A' && pCharacter <= 'F');
+    // ' ', '\t', '\n', '\v', '\f' and '\r'
+    boolean isSpace = pCharacter == ' ' || (pCharacter >= '\t' && pCharacter <= '\r');
+    boolean isPrint = pCharacter >= ' ' && pCharacter <= '~';
+    boolean isGraph = pCharacter > ' ' && pCharacter <= '~';
+    boolean isBlank = pCharacter == ' ' || pCharacter == '\t';
+    boolean isCntrl = pCharacter < ' ' || pCharacter == 127;
+    boolean isAlnum = isAlpha || isDigit;
+    boolean isPunct = isGraph && !isAlnum;
+
+    // The order of the classes is the order of the bits in glibc, i.e. _ISupper is bit 0
+    ImmutableList<Boolean> classes =
+        ImmutableList.of(
+            isUpper, isLower, isAlpha, isDigit, isXdigit, isSpace, isPrint, isGraph, isBlank,
+            isCntrl, isPunct, isAlnum);
+    long result = 0;
+    for (int bit = 0; bit < classes.size(); bit++) {
+      if (classes.get(bit)) {
+        result |= getGlibcCharacterClassBit(bit);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Returns the value of the character class with the given bit number as defined by the macro
+   * {@code _ISbit} in the {@code <ctype.h>} of glibc. For little endian, the two bytes are swapped,
+   * so that the low byte of the {@code unsigned short int} entry contains the bits 8 to 15.
+   */
+  private long getGlibcCharacterClassBit(int pBit) {
+    if (machineModel.getEndianness() == ByteOrder.BIG_ENDIAN) {
+      return 1L << pBit;
+    }
+    return pBit < 8 ? (1L << pBit) << 8 : (1L << pBit) >> 8;
   }
 
   /**
