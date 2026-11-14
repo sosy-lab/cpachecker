@@ -184,6 +184,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         ImmutableList<BooleanFormula> sameStateFormulas =
             buildComparingFormulas(
                 terminationState.getStoredValues().get(programCounter),
+                terminationState.getPathFormulaFull().orElseThrow().getFormula(),
                 largestIndices,
                 terminationState.getNumberOfIterationsAtLoopHead(programCounter) - 1);
 
@@ -559,6 +560,11 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     Set<BooleanFormula> unsatSameStateFormulas = new HashSet<>();
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
       prover.push(commonPart);
+      // MathSAT5 can wrongly report SAT for an unsatisfiable common part after some
+      // push-check-pop rounds (termination-bwb/parity0)
+      if (prover.isUnsat()) {
+        return Optional.empty();
+      }
       for (int i = 0; i < sameStateFormulas.size(); i++) {
         BooleanFormula sameStateFormula;
         if (isOverapproximating) {
@@ -825,20 +831,42 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     }
   }
 
+  /**
+   * Builds for every earlier visit of the loop head the formula that the current state equals the
+   * state at that visit. The state consists of the variables of the path with an SSA index at the
+   * current visit, also the memory that a variable moves to when its address is taken. A variable
+   * without SSA index at an earlier visit has there the index 1 of uninitialized variables.
+   *
+   * @param pPath the path formula until the current visit
+   */
   private ImmutableList<BooleanFormula> buildComparingFormulas(
-      Map<Integer, ImmutableSet<Formula>> storedValues, SSAMap pLatestValues, int pMaxIndex) {
+      Map<Integer, SSAMap> storedValues,
+      BooleanFormula pPath,
+      SSAMap pLatestValues,
+      int pMaxIndex) {
+    ImmutableSet.Builder<Formula> stateVariablesBuilder = ImmutableSet.builder();
+    for (Entry<String, Formula> variable : fmgr.extractVariables(pPath).entrySet()) {
+      if (pLatestValues.containsVariable(
+          FormulaManagerView.parseName(variable.getKey()).getFirst())) {
+        stateVariablesBuilder.add(fmgr.uninstantiate(variable.getValue()));
+      }
+    }
+    ImmutableSet<Formula> stateVariables = stateVariablesBuilder.build();
+
     ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
-    for (Entry<Integer, ImmutableSet<Formula>> savedVariables : storedValues.entrySet()) {
-      if (savedVariables.getKey().intValue() >= pMaxIndex) {
+    for (Entry<Integer, SSAMap> savedIndices : storedValues.entrySet()) {
+      if (savedIndices.getKey().intValue() >= pMaxIndex) {
         continue;
       }
+      SSAMap indicesAtVisit = savedIndices.getValue().withDefault(1);
       BooleanFormula comparingFormula = bfmgr.makeTrue();
-      for (Formula oldVariable : savedVariables.getValue()) {
+      for (Formula variable : stateVariables) {
         comparingFormula =
             bfmgr.and(
                 comparingFormula,
                 fmgr.assignment(
-                    fmgr.instantiate(fmgr.uninstantiate(oldVariable), pLatestValues), oldVariable));
+                    fmgr.instantiate(variable, pLatestValues),
+                    fmgr.instantiate(variable, indicesAtVisit)));
       }
       comparingFormulas.add(comparingFormula);
     }

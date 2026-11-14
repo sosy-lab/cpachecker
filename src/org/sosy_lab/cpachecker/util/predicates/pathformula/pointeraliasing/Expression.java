@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.errorprone.annotations.InlineMe;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -29,6 +30,11 @@ abstract class Expression {
         return new AliasedLocation(checkNotNull(address), checkNotNull(region));
       }
 
+      static AliasedLocation ofBitField(
+          final Formula address, final MemoryRegion region, final int bitFieldOffset) {
+        return new AliasedLocation(checkNotNull(address), checkNotNull(region), bitFieldOffset);
+      }
+
       private AliasedLocation(final Formula address) {
         this(address, null);
       }
@@ -36,10 +42,36 @@ abstract class Expression {
       private AliasedLocation(final Formula address, @Nullable final MemoryRegion region) {
         this.address = address;
         this.region = region;
+        bitFieldOffset = null;
+      }
+
+      private AliasedLocation(
+          final Formula address, final MemoryRegion region, final int bitFieldOffset) {
+        this.address = address;
+        this.region = region;
+        this.bitFieldOffset = bitFieldOffset;
       }
 
       Formula getAddress() {
         return address;
+      }
+
+      boolean isBitField() {
+        return bitFieldOffset != null;
+      }
+
+      /**
+       * Returns the offset in bits from the start of the value at the address of this location to
+       * the start of the bit field.
+       */
+      int getBitFieldOffset() {
+        checkState(isBitField());
+        return bitFieldOffset;
+      }
+
+      AliasedLocation withoutBitFieldOffset() {
+        checkState(isBitField());
+        return ofAddressWithRegion(address, checkNotNull(region));
       }
 
       @Override
@@ -81,6 +113,8 @@ abstract class Expression {
       private final Formula address;
 
       private final @Nullable MemoryRegion region;
+
+      private final @Nullable Integer bitFieldOffset;
 
       @Nullable MemoryRegion getMemoryRegion() {
         return region;

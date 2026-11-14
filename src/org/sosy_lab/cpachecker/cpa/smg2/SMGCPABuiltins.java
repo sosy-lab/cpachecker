@@ -116,6 +116,9 @@ public class SMGCPABuiltins {
 
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
+  /** Name of the internal global variable that models {@code errno}. */
+  private static final String ERRNO_VARIABLE_NAME = "__CPAchecker_INTERNAL_errno";
+
   private final SMGCPAExpressionEvaluator evaluator;
 
   private final MachineModel machineModel;
@@ -557,21 +560,6 @@ public class SMGCPABuiltins {
     // TODO: many more math.h functions are missing!
 
     if (BuiltinFunctions.isBuiltinFunction(functionName)) {
-      // TODO: this block needs to be sensibly refactored into dedicated methods!
-      CType functionType = BuiltinFunctions.getFunctionType(functionName);
-
-      // TODO: do we need this?!
-      if (isUnspecifiedType(functionType) && !functionName.equals("__builtin_alloca")) {
-        // unsupported formula
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                state,
-                "Returned unknown value due to unknown function "
-                    + functionName
-                    + " in expression in ",
-                cfaEdge));
-      }
-
       List<CExpression> parameterExpressions = funCallExpr.getParameterExpressions();
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
@@ -751,17 +739,23 @@ public class SMGCPABuiltins {
         yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
 
-      case "__builtin_va_start" -> evaluateVaStart(funCallExpr, cfaEdge, state);
-
-      case "__builtin_va_arg" -> evaluateVaArg(funCallExpr, cfaEdge, state);
-
-      case "__builtin_va_copy" -> evaluateVaCopy(funCallExpr, cfaEdge, state);
-
-      case "__builtin_va_end" -> evaluateVaEnd(funCallExpr, cfaEdge, state);
+      // TODO: the handlers evaluateVaStart(), evaluateVaArg(), evaluateVaCopy() and evaluateVaEnd()
+      //  are unfinished, e.g. va_arg() is not supported and the memory allocated by va_start() is
+      //  never freed. Use them once they are complete.
+      case "__builtin_va_start", "__builtin_va_arg", "__builtin_va_copy", "__builtin_va_end" ->
+          ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  state,
+                  "Returned unknown value for unsupported variable argument function "
+                      + functionName
+                      + " in ",
+                  cfaEdge));
 
       case "atexit" -> evaluateAtExit(funCallExpr, cfaEdge, state);
 
       case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(state);
+
+      case "__errno_location" -> evaluateErrnoLocation(funCallExpr, state);
 
       default -> handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
     };
@@ -1008,6 +1002,42 @@ public class SMGCPABuiltins {
               pState.copyAndReplaceMemoryModel(
                   pState.getMemoryModel().copyAndReplaceAtExitStack(atExitStack.popAndCopy()))));
     }
+  }
+
+  /**
+   * The function {@code int *__errno_location(void)} is not part of the C standard, but of the
+   * glibc ABI (specified by the Linux Standard Base). It returns the address of the {@code errno}
+   * variable of the calling thread. glibc defines the macro {@code errno} as {@code
+   * (*__errno_location())}, so every use of {@code errno} in a preprocessed program is a
+   * dereference of the result of this function. The returned pointer is never null, points to a
+   * valid and writable {@code int} with thread storage duration that the program never frees, and
+   * is the same for all calls within one thread.
+   *
+   * <p>We model {@code errno} as one global {@code int} object with the internal name {@value
+   * #ERRNO_VARIABLE_NAME}, which is created at the first call, and return a pointer to it on every
+   * call. As we do not distinguish threads, all threads share this object. The object is global, so
+   * it is valid to read and write and is not reported by memtrack. We do not write an initial
+   * value, so reading it before any write returns an unknown value. This is a sound
+   * over-approximation, as library functions that we do not model may change {@code errno}.
+   *
+   * @param pFunctionCall the {@link CFunctionCallExpression} of the call to {@code
+   *     __errno_location}.
+   * @param pState current {@link SMGState}.
+   * @return the pointer to the {@code errno} object and the state with this object.
+   */
+  private List<ValueAndSMGState> evaluateErrnoLocation(
+      CFunctionCallExpression pFunctionCall, SMGState pState) {
+    SMGState currentState = pState;
+    if (!currentState.isGlobalVariablePresent(ERRNO_VARIABLE_NAME)) {
+      currentState =
+          currentState.copyAndAddGlobalVariable(
+              machineModel.getSizeofInBits(CNumericTypes.INT),
+              ERRNO_VARIABLE_NAME,
+              CNumericTypes.INT);
+    }
+    return ImmutableList.of(
+        evaluator.createAddressForLocalOrGlobalVariable(
+            ERRNO_VARIABLE_NAME, pFunctionCall.getExpressionType(), currentState));
   }
 
   /**
@@ -4265,13 +4295,6 @@ public class SMGCPABuiltins {
       resultBuilder.add(ValueAndSMGState.of(new NumericValue(0), pState));
     }
     return resultBuilder.build();
-  }
-
-  // TODO: strlen
-
-  private boolean isUnspecifiedType(CType pType) {
-    return pType instanceof CSimpleType cSimpleType
-        && cSimpleType.getType() == CBasicType.UNSPECIFIED;
   }
 
   private static boolean isNumericZero(Value value) {

@@ -221,13 +221,19 @@ public class TerminationWitnessValidator implements Algorithm {
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
     if (hasSupportingInvariants(loopsToSupportingInvariants)) {
-      if (SupportingInvariantsChecker.checkInvariants(
-              supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier)
-          == InvariantCheckResult.INVALID) {
+      InvariantCheckResult result =
+          SupportingInvariantsChecker.checkInvariants(
+              supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier);
+      if (result == InvariantCheckResult.INVALID) {
         // Supporting invariants are not invariants
         pReachedSet.addNoWaitlist(
             DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
         return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+      // The checks of the transition invariants assume the supporting invariants
+      if (result == InvariantCheckResult.UNKNOWN) {
+        logger.log(Level.INFO, "The supporting invariants could not be proven.");
+        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
     }
 
@@ -254,15 +260,17 @@ public class TerminationWitnessValidator implements Algorithm {
         logger.log(Level.INFO, "A loop is not reachable !");
         continue;
       }
-      if (!loopsToTransitionInvariants.containsKey(loop)
-          && !loopsToSupportingInvariants.containsKey(loop)) {
-        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+      // E.g., the transition invariant of the witness could not be parsed. True is a transition
+      // invariant of every loop.
+      BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
+      if (invariant == null) {
+        logger.log(Level.INFO, "A loop has no transition invariant, so true is used.");
+        invariant = bfmgr.makeTrue();
       }
 
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
           joinPrevDeclarationMapsForLoop(loop, invariants);
       useScopeOfLoop(loop, mapPrevVarsToCurrVars);
-      BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
       ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
 
       if (!checkWithInfiniteSpace) {
@@ -277,7 +285,7 @@ public class TerminationWitnessValidator implements Algorithm {
               invariant, supportingInvariants, loop, mapPrevVarsToCurrVars)
           && isCandidateInvariantTransitionInvariant(
               loop,
-              loopsToTransitionInvariants.get(loop),
+              invariant,
               supportingInvariants,
               mapPrevVarsToCurrVars,
               // k = 1, for R^1 => T check
@@ -312,11 +320,7 @@ public class TerminationWitnessValidator implements Algorithm {
         }
         // Base case of the induction, i.e. R^k(s,s') => T(s,s')
         if (!isCandidateInvariantTransitionInvariant(
-            loop,
-            loopsToTransitionInvariants.get(loop),
-            supportingInvariants,
-            mapPrevVarsToCurrVars,
-            k)) {
+            loop, invariant, supportingInvariants, mapPrevVarsToCurrVars, k)) {
           return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         }
 
@@ -324,11 +328,7 @@ public class TerminationWitnessValidator implements Algorithm {
         // T(s,t_0) && R(t_0,t_1) && ... && R(t_{k-1},t_k) && T(s,t_1) && ... && T(s,t_{k-1})
         //   => T(s,t_k)
         if (isCandidateInvariantInductiveTransitionInvariant(
-            loop,
-            loopsToTransitionInvariants.get(loop),
-            supportingInvariants,
-            mapPrevVarsToCurrVars,
-            k)) {
+            loop, invariant, supportingInvariants, mapPrevVarsToCurrVars, k)) {
           break;
         }
       }
@@ -386,7 +386,8 @@ public class TerminationWitnessValidator implements Algorithm {
         .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().entrySet())
         .forEach(e -> builder.put(e.getKey(), e.getValue()));
 
-    return builder.buildOrThrow();
+    // Several transition invariants at the loop can refer to the same previous variable
+    return builder.buildKeepingLast();
   }
 
   private ImmutableListMultimap<Loop, BooleanFormula> mapSupportingInvariantsToLoops(
@@ -404,6 +405,11 @@ public class TerminationWitnessValidator implements Algorithm {
             try {
               invariantFormula = invariant.getFormula(fmgr, pfmgr, pfmgr.makeEmptyPathFormula());
             } catch (CPATransferException e) {
+              logger.logfUserException(
+                  Level.INFO,
+                  e,
+                  "The supporting invariant %s cannot be converted to a formula, so true is used",
+                  invariant.asExpressionTree());
               invariantFormula = bfmgr.makeTrue();
             }
             builder.put(loop, invariantFormula);
@@ -421,32 +427,38 @@ public class TerminationWitnessValidator implements Algorithm {
     ImmutableMap.Builder<LoopStructure.Loop, BooleanFormula> builder = new ImmutableMap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
+      ImmutableList<ExpressionTreeLocationInvariant> transitionInvariants =
+          FluentIterable.from(pInvariants)
+              .filter(
+                  invariant ->
+                      invariant instanceof ExpressionTreeLocationTransitionInvariant
+                          && isTheInvariantLocationInLoop(loop, invariant.getLocation()))
+              .toList();
+      if (transitionInvariants.isEmpty()) {
+        // The formula of the loop is not needed, and it cannot be created for every loop
+        continue;
+      }
       BooleanFormula invariantForTheLoop = bfmgr.makeTrue();
-      boolean isTrivial = true;
       PathFormula loopFormula = pfmgr.makeFormulaForPath(loop.getInnerLoopEdges().asList());
-      for (ExpressionTreeLocationInvariant invariant : pInvariants) {
-        if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
-          continue;
-        }
-
-        if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
-          BooleanFormula invariantFormula;
-          try {
-            if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
-              invariantFormula = bfmgr.makeTrue();
-            } else {
-              invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
-            }
-          } catch (CPATransferException e) {
+      for (ExpressionTreeLocationInvariant invariant : transitionInvariants) {
+        BooleanFormula invariantFormula;
+        try {
+          if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
             invariantFormula = bfmgr.makeTrue();
+          } else {
+            invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
           }
-          invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormula);
-          isTrivial = false;
+        } catch (CPATransferException e) {
+          logger.logfUserException(
+              Level.INFO,
+              e,
+              "The transition invariant %s cannot be converted to a formula, so true is used",
+              invariant.asExpressionTree());
+          invariantFormula = bfmgr.makeTrue();
         }
+        invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormula);
       }
-      if (!isTrivial) {
-        builder.put(loop, invariantForTheLoop);
-      }
+      builder.put(loop, invariantForTheLoop);
     }
     return builder.buildOrThrow();
   }
