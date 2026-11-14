@@ -8,10 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -26,8 +32,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2Parser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 /**
  * Checks whether the (supporting) invariants of a correctness witness are invariants of the
@@ -44,6 +55,13 @@ public final class SupportingInvariantsChecker {
     /** The check could not decide whether the invariants hold. */
     UNKNOWN
   }
+
+  /**
+   * The results of the checks of witnesses for each CFA, since the analyses that validate a witness
+   * in parallel check the same invariants.
+   */
+  private static final Cache<CFA, Map<List<Path>, InvariantCheckResult>> RESULTS =
+      CacheBuilder.newBuilder().weakKeys().build();
 
   private SupportingInvariantsChecker() {}
 
@@ -66,21 +84,57 @@ public final class SupportingInvariantsChecker {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws CPAException, InterruptedException {
+    Map<List<Path>, InvariantCheckResult> results =
+        RESULTS.asMap().computeIfAbsent(pCfa, cfa -> new ConcurrentHashMap<>());
+    List<Path> key =
+        ImmutableList.of(
+            pConfigFile.toAbsolutePath().normalize(), pWitnessPath.toAbsolutePath().normalize());
+    InvariantCheckResult cachedResult = results.get(key);
+    if (cachedResult != null) {
+      return cachedResult;
+    }
+
+    List<AbstractEntry> witnessEntries;
     try {
-      Configuration invariantsCheckConfig =
-          Configuration.builder().loadFromFile(pConfigFile).build();
-      Specification invariantSpec =
-          Specification.fromFiles(
-              ImmutableList.of(pWitnessPath),
-              pCfa,
-              invariantsCheckConfig,
-              pLogger,
-              pShutdownNotifier);
-      return checkSpecification(
-          invariantsCheckConfig, invariantSpec, pCfa, pLogger, pShutdownNotifier);
-    } catch (InvalidConfigurationException | IOException e) {
+      witnessEntries = AutomatonWitnessV2ParserUtils.parseYAML(pWitnessPath);
+    } catch (IOException e) {
       throw new CPAException("Supporting invariants check failed: " + e.getMessage(), e);
     }
+    InvariantCheckResult result =
+        checkInvariants(
+            pConfigFile,
+            withoutTransitionInvariants(witnessEntries),
+            pCfa,
+            pLogger,
+            pShutdownNotifier);
+    results.put(key, result);
+    return result;
+  }
+
+  /**
+   * Removes the transition invariants from the given entries of a witness. They are not checked
+   * here, but the automaton of the witness has a transition without assumptions for each of them,
+   * besides the transitions for the invariants at the same location. So the automaton branches at
+   * each visit of such a location, which can make the check infeasible.
+   */
+  private static ImmutableList<AbstractEntry> withoutTransitionInvariants(
+      List<AbstractEntry> pWitnessEntries) {
+    return transformedImmutableListCopy(
+        pWitnessEntries,
+        entry ->
+            entry instanceof InvariantSetEntry invariantSet
+                ? new InvariantSetEntry(
+                    invariantSet.getMetadata(),
+                    invariantSet.content.stream()
+                        .filter(invariant -> !isTransitionInvariant(invariant))
+                        .collect(ImmutableList.toImmutableList()))
+                : entry);
+  }
+
+  private static boolean isTransitionInvariant(AbstractInvariantEntry pInvariant) {
+    return WitnessInvariantType.of(InvariantRecordType.fromKeyword(pInvariant.getType()))
+        .map(WitnessInvariantType::isTransitionInvariant)
+        .orElse(false);
   }
 
   /**

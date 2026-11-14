@@ -570,12 +570,14 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
     return uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
   }
 
+  public static String nameWithoutSSA(String pName) {
+    return pName.replaceAll("@$", "").replaceAll("@[0-9]+", "");
+  }
+
   @Override
   public SvLibTerm visitFreeVariable(Formula pFormula, String pS) {
-    String nameWithoutSSA = pS.replaceAll("@$", "").replaceAll("@[0-9]+", "");
-
     SvLibSimpleDeclaration variableDeclaration =
-        scope.getVariableForQualifiedName(nameWithoutSSA).toSimpleDeclaration();
+        scope.getVariableForQualifiedName(nameWithoutSSA(pS)).toSimpleDeclaration();
     return new SvLibIdTerm(variableDeclaration, FileLocation.DUMMY);
   }
 

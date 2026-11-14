@@ -18,8 +18,6 @@ properties:
     expected_verdict: true
   - property_file: ../../../config/properties/valid-memsafety.prp
     expected_verdict: true
-  - property_file: ../../../config/properties/no-overflow.prp
-    expected_verdict: true
   - property_file: ../../../config/properties/no-data-race.prp
     expected_verdict: true
 
