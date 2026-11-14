@@ -560,21 +560,6 @@ public class SMGCPABuiltins {
     // TODO: many more math.h functions are missing!
 
     if (BuiltinFunctions.isBuiltinFunction(functionName)) {
-      // TODO: this block needs to be sensibly refactored into dedicated methods!
-      CType functionType = BuiltinFunctions.getFunctionType(functionName);
-
-      // TODO: do we need this?!
-      if (isUnspecifiedType(functionType) && !functionName.equals("__builtin_alloca")) {
-        // unsupported formula
-        return ImmutableList.of(
-            ValueAndSMGState.ofUnknownValue(
-                state,
-                "Returned unknown value due to unknown function "
-                    + functionName
-                    + " in expression in ",
-                cfaEdge));
-      }
-
       List<CExpression> parameterExpressions = funCallExpr.getParameterExpressions();
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
@@ -754,13 +739,17 @@ public class SMGCPABuiltins {
         yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
 
-      case "__builtin_va_start" -> evaluateVaStart(funCallExpr, cfaEdge, state);
-
-      case "__builtin_va_arg" -> evaluateVaArg(funCallExpr, cfaEdge, state);
-
-      case "__builtin_va_copy" -> evaluateVaCopy(funCallExpr, cfaEdge, state);
-
-      case "__builtin_va_end" -> evaluateVaEnd(funCallExpr, cfaEdge, state);
+      // TODO: the handlers evaluateVaStart(), evaluateVaArg(), evaluateVaCopy() and evaluateVaEnd()
+      //  are unfinished, e.g. va_arg() is not supported and the memory allocated by va_start() is
+      //  never freed. Use them once they are complete.
+      case "__builtin_va_start", "__builtin_va_arg", "__builtin_va_copy", "__builtin_va_end" ->
+          ImmutableList.of(
+              ValueAndSMGState.ofUnknownValue(
+                  state,
+                  "Returned unknown value for unsupported variable argument function "
+                      + functionName
+                      + " in ",
+                  cfaEdge));
 
       case "atexit" -> evaluateAtExit(funCallExpr, cfaEdge, state);
 
@@ -4306,13 +4295,6 @@ public class SMGCPABuiltins {
       resultBuilder.add(ValueAndSMGState.of(new NumericValue(0), pState));
     }
     return resultBuilder.build();
-  }
-
-  // TODO: strlen
-
-  private boolean isUnspecifiedType(CType pType) {
-    return pType instanceof CSimpleType cSimpleType
-        && cSimpleType.getType() == CBasicType.UNSPECIFIED;
   }
 
   private static boolean isNumericZero(Value value) {
