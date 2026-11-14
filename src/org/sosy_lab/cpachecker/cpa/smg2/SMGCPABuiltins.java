@@ -2507,6 +2507,14 @@ public class SMGCPABuiltins {
                       + " in",
                   cfaEdge));
           continue;
+        }
+
+        List<ValueAndSMGState> newTargetPointerAndStates;
+        if (!(targetAddress instanceof AddressExpression)
+            && currentState.isPointer(targetAddress)) {
+          // Already a pointer, e.g. the result of pointer arithmetic like array + 1
+          newTargetPointerAndStates =
+              ImmutableList.of(ValueAndSMGState.of(targetAddress, currentState));
         } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
           // Unknown addresses happen only of we don't have a memory associated, e.g. for
           // uninitialized pointers. Writing to them is invalid.
@@ -2519,7 +2527,7 @@ public class SMGCPABuiltins {
                       + " in",
                   cfaEdge));
           continue;
-        } else if (!(targetAddress instanceof AddressExpression)) {
+        } else if (!(targetAddress instanceof AddressExpression targetAddressExpr)) {
           // The value can be unknown
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
@@ -2530,9 +2538,8 @@ public class SMGCPABuiltins {
                       + " in",
                   cfaEdge));
           continue;
-        }
-        AddressExpression targetAddressExpr = (AddressExpression) targetAddress;
-        if (!(targetAddressExpr.getOffset() instanceof NumericValue numTargetAddressOffset)) {
+        } else if (!(targetAddressExpr.getOffset()
+            instanceof NumericValue numTargetAddressOffset)) {
           // Write the target region to unknown
           // TODO:
           resultBuilder.add(
@@ -2543,14 +2550,15 @@ public class SMGCPABuiltins {
                       + " in",
                   cfaEdge));
           continue;
+        } else {
+          newTargetPointerAndStates =
+              evaluator.findOrCreateNewPointer(
+                  targetAddressExpr.getMemoryAddress(),
+                  numTargetAddressOffset.bigIntegerValue(),
+                  targetType,
+                  currentState);
         }
 
-        List<ValueAndSMGState> newTargetPointerAndStates =
-            evaluator.findOrCreateNewPointer(
-                targetAddressExpr.getMemoryAddress(),
-                numTargetAddressOffset.bigIntegerValue(),
-                targetType,
-                currentState);
         for (ValueAndSMGState newTargetPointerAndState : newTargetPointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newTargetObjAndState :
               newTargetPointerAndState
@@ -2672,6 +2680,14 @@ public class SMGCPABuiltins {
                       + " in",
                   pCFAEdge));
           continue;
+        }
+
+        List<ValueAndSMGState> newSourcePointerAndStates;
+        if (!(sourceAddress instanceof AddressExpression)
+            && currentState.isPointer(sourceAddress)) {
+          // Already a pointer, e.g. the result of pointer arithmetic like array + 1
+          newSourcePointerAndStates =
+              ImmutableList.of(ValueAndSMGState.of(sourceAddress, currentState));
         } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
           // Unknown addresses happen only of we don't have a memory associated, e.g. for
           // uninitialized pointers. Reading from them is invalid.
@@ -2684,7 +2700,7 @@ public class SMGCPABuiltins {
                       + " in",
                   pCFAEdge));
           continue;
-        } else if (!(sourceAddress instanceof AddressExpression)) {
+        } else if (!(sourceAddress instanceof AddressExpression sourceAddressExpr)) {
           // The value can be unknown
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
@@ -2695,9 +2711,8 @@ public class SMGCPABuiltins {
                       + " in",
                   pCFAEdge));
           continue;
-        }
-        AddressExpression sourceAddressExpr = (AddressExpression) sourceAddress;
-        if (!(sourceAddressExpr.getOffset() instanceof NumericValue numSourceAddressExprOffset)) {
+        } else if (!(sourceAddressExpr.getOffset()
+            instanceof NumericValue numSourceAddressExprOffset)) {
           // Write the target region to unknown
           // TODO:
           resultBuilder.add(
@@ -2708,14 +2723,15 @@ public class SMGCPABuiltins {
                       + " in",
                   pCFAEdge));
           continue;
+        } else {
+          newSourcePointerAndStates =
+              evaluator.findOrCreateNewPointer(
+                  sourceAddressExpr.getMemoryAddress(),
+                  numSourceAddressExprOffset.bigIntegerValue(),
+                  sourceType,
+                  currentState);
         }
 
-        List<ValueAndSMGState> newSourcePointerAndStates =
-            evaluator.findOrCreateNewPointer(
-                sourceAddressExpr.getMemoryAddress(),
-                numSourceAddressExprOffset.bigIntegerValue(),
-                sourceType,
-                currentState);
         for (ValueAndSMGState newSourcePointerAndState : newSourcePointerAndStates) {
           for (SMGStateAndOptionalSMGObjectAndOffset newSourceObjAndState :
               newSourcePointerAndState
@@ -3500,13 +3516,17 @@ public class SMGCPABuiltins {
         firstAddress = firstAddressExpr.getMemoryAddress();
         firstAddressOffset = firstAddressExprOffset;
 
-      } else if (!pState.getMemoryModel().isPointer(firstAddress)) {
+      } else if (!firstValueAndSMGState.getState().isPointer(firstAddress)) {
         // The value can be unknown, e.g. for uninitialized pointers. Reading from it is invalid.
+        // Values with location information (local arrays/structs) are not supported.
+        SMGState stateForUnknown = firstValueAndSMGState.getState();
+        if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(firstAddress)) {
+          stateForUnknown =
+              stateForUnknown.withUnknownPointerDereferenceWhenReading(firstAddress, pCfaEdge);
+        }
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
-                firstValueAndSMGState
-                    .getState()
-                    .withUnknownPointerDereferenceWhenReading(firstAddress, pCfaEdge),
+                stateForUnknown,
                 "Returned unknown for unknown address in first address in function strcmp in ",
                 pCfaEdge));
         continue;
@@ -3516,52 +3536,42 @@ public class SMGCPABuiltins {
           getFunctionParameterValue(
               STRCMP_SECOND_PARAMETER, pFunctionCall, firstValueAndSMGState.getState(), pCfaEdge)) {
         Value secondAddress = secondValueAndSMGState.getValue();
-        // If the Value is no AddressExpression we can't work with it
-        // The buffer is type * and has to be an AddressExpression with a not unknown value and a
-        // concrete offset to be used correctly
-        if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
+        NumericValue secondAddressOffset = new NumericValue(0);
+        if (secondAddress instanceof AddressExpression secondAddressExpr) {
+          if (!(secondAddressExpr.getOffset() instanceof NumericValue secondAddressExprOffset)) {
+            if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
+              throw new SMGException(
+                  "Function strcmp() with symbolic handling not supported with option"
+                      + " UnknownFunctionHandling.STRICT enabled");
+            }
+            // Write the target region to unknown
+            resultBuilder.add(
+                ValueAndSMGState.ofUnknownValue(
+                    secondValueAndSMGState.getState(),
+                    "Returned unknown for unknown offset in second address in function strcmp in ",
+                    pCfaEdge));
+            continue;
+          }
+          secondAddress = secondAddressExpr.getMemoryAddress();
+          secondAddressOffset = secondAddressExprOffset;
+
+        } else if (!secondValueAndSMGState.getState().isPointer(secondAddress)) {
           if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
             throw new SMGException(
                 "Function strcmp() with symbolic handling not supported with option"
                     + " UnknownFunctionHandling.STRICT enabled");
           }
-          // Unknown addresses happen only of we don't have a memory associated, e.g. for
-          // uninitialized pointers. Reading from them is invalid.
-          resultBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  secondValueAndSMGState
-                      .getState()
-                      .withUnknownPointerDereferenceWhenReading(secondAddress, pCfaEdge),
-                  "Returned unknown for unknown target or offset in second address in function"
-                      + " strcmp in ",
-                  pCfaEdge));
-          continue;
-        } else if (!(secondAddress instanceof AddressExpression)) {
-          if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
-            throw new SMGException(
-                "Function strcmp() with symbolic handling not supported with option"
-                    + " UnknownFunctionHandling.STRICT enabled");
+          // The value can be unknown, e.g. for uninitialized pointers. Reading from it is invalid.
+          // Values with location information (local arrays/structs) are not supported.
+          SMGState stateForUnknown = secondValueAndSMGState.getState();
+          if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
+            stateForUnknown =
+                stateForUnknown.withUnknownPointerDereferenceWhenReading(secondAddress, pCfaEdge);
           }
-          // The value can be unknown
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
-                  secondValueAndSMGState.getState(),
+                  stateForUnknown,
                   "Returned unknown for unknown address in second address in function strcmp in ",
-                  pCfaEdge));
-          continue;
-        }
-        AddressExpression secondAddressExpr = (AddressExpression) secondAddress;
-        if (!(secondAddressExpr.getOffset() instanceof NumericValue secondAddressExprOffset)) {
-          if (options.getHandleUnknownFunctions() == UnknownFunctionHandling.STRICT) {
-            throw new SMGException(
-                "Function strcmp() with symbolic handling not supported with option"
-                    + " UnknownFunctionHandling.STRICT enabled");
-          }
-          // Write the target region to unknown
-          resultBuilder.add(
-              ValueAndSMGState.ofUnknownValue(
-                  secondValueAndSMGState.getState(),
-                  "Returned unknown for unknown offset in second address in function strcmp in ",
                   pCfaEdge));
           continue;
         }
@@ -3572,8 +3582,8 @@ public class SMGCPABuiltins {
             evaluator.stringCompare(
                 firstAddress,
                 firstAddressOffset.bigIntegerValue(),
-                secondAddressExpr.getMemoryAddress(),
-                secondAddressExprOffset.bigIntegerValue(),
+                secondAddress,
+                secondAddressOffset.bigIntegerValue(),
                 secondValueAndSMGState.getState()));
       }
     }
