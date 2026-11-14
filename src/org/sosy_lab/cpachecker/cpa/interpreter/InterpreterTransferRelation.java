@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.interpreter;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -125,7 +126,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
    * @return the successor states: none if the execution ends, two for an allocation that may fail
    * @throws CPATransferException if the given state has more than one successor otherwise
    */
-  private List<InterpreterState> executeStep(InterpreterState pState, Precision pPrecision)
+  private ImmutableList<InterpreterState> executeStep(InterpreterState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
     final AbstractState wrappedState = pState.getWrappedState();
@@ -163,7 +164,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       new InterpreterState(wrappedState, callStack, status).checkMayProveSafety();
       return ImmutableList.of();
     }
-    List<InterpreterState> successors = new ArrayList<>(steps.size());
+    ImmutableList.Builder<InterpreterState> successors = new Builder<>();
     for (InterpreterStep step : steps) {
       InterpreterState successor =
           new InterpreterState(
@@ -178,7 +179,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       successors.add(successor);
     }
     stats.executedSteps.inc();
-    return successors;
+    return successors.build();
   }
 
   /**
