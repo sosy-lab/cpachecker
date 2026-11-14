@@ -62,6 +62,7 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.IntToLongFunction;
 import java.util.logging.Level;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -135,13 +136,42 @@ public class SMGCPABuiltins {
   private static final String CTYPE_B_POINTER_VARIABLE_NAME = "__CPAchecker_INTERNAL_ctype_b";
 
   /**
-   * Number of entries of the character classification table before the entry for the character 0,
-   * i.e. the table is indexed with values from -128 (signed char) up to 255 (unsigned char).
+   * Name of the internal global variable that models the lowercase conversion table of glibc
+   * returned (indirectly) by {@code __ctype_tolower_loc()}.
    */
-  private static final int CTYPE_B_TABLE_NEGATIVE_ENTRIES = 128;
+  private static final String CTYPE_TOLOWER_TABLE_VARIABLE_NAME =
+      "__CPAchecker_INTERNAL_ctype_tolower_table";
 
-  /** Number of entries of the character classification table, i.e. for indices -128 to 255. */
-  private static final int CTYPE_B_TABLE_LENGTH = 384;
+  /**
+   * Name of the internal global variable that models the (thread-local) pointer to the lowercase
+   * conversion table, whose address is returned by {@code __ctype_tolower_loc()}.
+   */
+  private static final String CTYPE_TOLOWER_POINTER_VARIABLE_NAME =
+      "__CPAchecker_INTERNAL_ctype_tolower";
+
+  /**
+   * Name of the internal global variable that models the uppercase conversion table of glibc
+   * returned (indirectly) by {@code __ctype_toupper_loc()}.
+   */
+  private static final String CTYPE_TOUPPER_TABLE_VARIABLE_NAME =
+      "__CPAchecker_INTERNAL_ctype_toupper_table";
+
+  /**
+   * Name of the internal global variable that models the (thread-local) pointer to the uppercase
+   * conversion table, whose address is returned by {@code __ctype_toupper_loc()}.
+   */
+  private static final String CTYPE_TOUPPER_POINTER_VARIABLE_NAME =
+      "__CPAchecker_INTERNAL_ctype_toupper";
+
+  /**
+   * Number of entries of the character tables of glibc (classification and case conversion) before
+   * the entry for the character 0, i.e. the tables are indexed with values from -128 (signed char)
+   * up to 255 (unsigned char).
+   */
+  private static final int CTYPE_TABLE_NEGATIVE_ENTRIES = 128;
+
+  /** Number of entries of the character tables of glibc, i.e. for indices -128 to 255. */
+  private static final int CTYPE_TABLE_LENGTH = 384;
 
   private final SMGCPAExpressionEvaluator evaluator;
 
@@ -783,6 +813,12 @@ public class SMGCPABuiltins {
 
       case "__ctype_b_loc" -> evaluateCtypeBLoc(funCallExpr, state, cfaEdge);
 
+      case "__ctype_tolower_loc" ->
+          evaluateCtypeCaseConversionLoc(funCallExpr, false, state, cfaEdge);
+
+      case "__ctype_toupper_loc" ->
+          evaluateCtypeCaseConversionLoc(funCallExpr, true, state, cfaEdge);
+
       default -> handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
     };
   }
@@ -1076,9 +1112,9 @@ public class SMGCPABuiltins {
    * result of this function. The returned pointer is never null, points to a valid pointer with
    * thread storage duration that the program never frees, and is the same for all calls within one
    * thread. The table pointer points to the entry of the character 0 of a table of {@value
-   * #CTYPE_B_TABLE_LENGTH} {@code unsigned short int} entries, such that it can be indexed with all
+   * #CTYPE_TABLE_LENGTH} {@code unsigned short int} entries, such that it can be indexed with all
    * values of {@code signed char} and {@code unsigned char}, as well as {@code EOF}, i.e. with
-   * indices from -{@value #CTYPE_B_TABLE_NEGATIVE_ENTRIES} to 255. Each entry is a bit set of the
+   * indices from -{@value #CTYPE_TABLE_NEGATIVE_ENTRIES} to 255. Each entry is a bit set of the
    * character classes (e.g. {@code _ISspace}) of the character.
    *
    * <p>We model the table as one global object with the internal name {@value
@@ -1101,40 +1137,119 @@ public class SMGCPABuiltins {
   private List<ValueAndSMGState> evaluateCtypeBLoc(
       CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
       throws CPATransferException {
-    SMGState currentState = pState;
-    if (!currentState.isGlobalVariablePresent(CTYPE_B_POINTER_VARIABLE_NAME)) {
-      currentState = createCtypeBTableAndPointer(currentState, pCfaEdge);
-    }
-    return ImmutableList.of(
-        evaluator.createAddressForLocalOrGlobalVariable(
-            CTYPE_B_POINTER_VARIABLE_NAME, pFunctionCall.getExpressionType(), currentState));
+    return evaluateCtypeTableLoc(
+        pFunctionCall,
+        CTYPE_B_TABLE_VARIABLE_NAME,
+        CTYPE_B_POINTER_VARIABLE_NAME,
+        CNumericTypes.UNSIGNED_SHORT_INT,
+        character -> character >= 0 && character < 128 ? getCLocaleCharacterClasses(character) : 0,
+        pState,
+        pCfaEdge);
   }
 
   /**
-   * Creates the global objects for the character classification table of the "C" locale and the
-   * pointer to its entry for the character 0, see {@link
-   * #evaluateCtypeBLoc(CFunctionCallExpression, SMGState, CFAEdge)}.
+   * The functions {@code const __int32_t **__ctype_tolower_loc(void)} and {@code const __int32_t
+   * **__ctype_toupper_loc(void)} are not part of the C standard, but of the glibc ABI (specified by
+   * the Linux Standard Base). They return the address of a pointer of the calling thread that
+   * points into the lowercase or uppercase conversion table of the current locale. glibc uses them
+   * to implement {@code tolower()} and {@code toupper()} of {@code <ctype.h>}, e.g. the inline
+   * version of {@code tolower(c)} is {@code (c >= -128 && c < 256 ? (*__ctype_tolower_loc())[c] :
+   * c)}, so preprocessed programs may dereference the result of these functions. The returned
+   * pointer is never null, points to a valid pointer with thread storage duration that the program
+   * never frees, and is the same for all calls within one thread. The table pointer points to the
+   * entry of the character 0 of a table of {@value #CTYPE_TABLE_LENGTH} {@code __int32_t} entries,
+   * such that it can be indexed with all values of {@code signed char} and {@code unsigned char},
+   * as well as {@code EOF}, i.e. with indices from -{@value #CTYPE_TABLE_NEGATIVE_ENTRIES} to 255.
+   * Each entry is the converted character.
+   *
+   * <p>We model each table as one global object ({@value #CTYPE_TOLOWER_TABLE_VARIABLE_NAME} or
+   * {@value #CTYPE_TOUPPER_TABLE_VARIABLE_NAME}) and the pointer to it as one global object
+   * ({@value #CTYPE_TOLOWER_POINTER_VARIABLE_NAME} or {@value
+   * #CTYPE_TOUPPER_POINTER_VARIABLE_NAME}), exactly like the table of {@link
+   * #evaluateCtypeBLoc(CFunctionCallExpression, SMGState, CFAEdge)}. We assume the "C" locale and
+   * fill the tables as defined by glibc (see {@link #getCLocaleCaseConversion(int, boolean)}).
+   *
+   * @param pFunctionCall the {@link CFunctionCallExpression} of the call to {@code
+   *     __ctype_tolower_loc} or {@code __ctype_toupper_loc}.
+   * @param pToUpper true for {@code __ctype_toupper_loc}, false for {@code __ctype_tolower_loc}.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return the pointer to the pointer to the conversion table and the state with both objects.
+   * @throws CPATransferException if the table can not be written.
    */
-  private SMGState createCtypeBTableAndPointer(SMGState pState, CFAEdge pCfaEdge)
+  private List<ValueAndSMGState> evaluateCtypeCaseConversionLoc(
+      CFunctionCallExpression pFunctionCall, boolean pToUpper, SMGState pState, CFAEdge pCfaEdge)
       throws CPATransferException {
-    CType entryType = CNumericTypes.UNSIGNED_SHORT_INT;
-    BigInteger entrySizeInBits = machineModel.getSizeofInBits(entryType);
+    return evaluateCtypeTableLoc(
+        pFunctionCall,
+        pToUpper ? CTYPE_TOUPPER_TABLE_VARIABLE_NAME : CTYPE_TOLOWER_TABLE_VARIABLE_NAME,
+        pToUpper ? CTYPE_TOUPPER_POINTER_VARIABLE_NAME : CTYPE_TOLOWER_POINTER_VARIABLE_NAME,
+        CNumericTypes.INT,
+        character -> getCLocaleCaseConversion(character, pToUpper),
+        pState,
+        pCfaEdge);
+  }
+
+  /**
+   * Returns the address of the pointer to the entry of the character 0 of the given character table
+   * of glibc. The global objects of the table and the pointer are created at the first call, see
+   * {@link #evaluateCtypeBLoc(CFunctionCallExpression, SMGState, CFAEdge)}.
+   *
+   * @param pFunctionCall the call of the function returning the address of the table pointer.
+   * @param pTableName name of the internal global variable of the table.
+   * @param pPointerName name of the internal global variable of the pointer to the table.
+   * @param pEntryType type of the entries of the table.
+   * @param pEntryForCharacter the entry for each index from -{@value #CTYPE_TABLE_NEGATIVE_ENTRIES}
+   *     to 255.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   */
+  private List<ValueAndSMGState> evaluateCtypeTableLoc(
+      CFunctionCallExpression pFunctionCall,
+      String pTableName,
+      String pPointerName,
+      CType pEntryType,
+      IntToLongFunction pEntryForCharacter,
+      SMGState pState,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    SMGState currentState = pState;
+    if (!currentState.isGlobalVariablePresent(pPointerName)) {
+      currentState =
+          createCtypeTableAndPointer(
+              currentState, pTableName, pPointerName, pEntryType, pEntryForCharacter, pCfaEdge);
+    }
+    return ImmutableList.of(
+        evaluator.createAddressForLocalOrGlobalVariable(
+            pPointerName, pFunctionCall.getExpressionType(), currentState));
+  }
+
+  /**
+   * Creates the global objects for a character table of glibc with {@value #CTYPE_TABLE_LENGTH}
+   * entries for the indices -{@value #CTYPE_TABLE_NEGATIVE_ENTRIES} to 255, and for the pointer to
+   * its entry for the character 0. See {@link #evaluateCtypeTableLoc}.
+   */
+  private SMGState createCtypeTableAndPointer(
+      SMGState pState,
+      String pTableName,
+      String pPointerName,
+      CType pEntryType,
+      IntToLongFunction pEntryForCharacter,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    BigInteger entrySizeInBits = machineModel.getSizeofInBits(pEntryType);
     CType tableType =
         new CArrayType(
             CTypeQualifiers.NONE,
-            entryType,
-            CIntegerLiteralExpression.createDummyLiteral(CTYPE_B_TABLE_LENGTH, CNumericTypes.INT));
-    BigInteger tableSizeInBits = entrySizeInBits.multiply(BigInteger.valueOf(CTYPE_B_TABLE_LENGTH));
+            pEntryType,
+            CIntegerLiteralExpression.createDummyLiteral(CTYPE_TABLE_LENGTH, CNumericTypes.INT));
+    BigInteger tableSizeInBits = entrySizeInBits.multiply(BigInteger.valueOf(CTYPE_TABLE_LENGTH));
 
     SMGState currentState =
-        pState.copyAndAddGlobalVariable(
-            new NumericValue(tableSizeInBits), CTYPE_B_TABLE_VARIABLE_NAME, tableType);
+        pState.copyAndAddGlobalVariable(new NumericValue(tableSizeInBits), pTableName, tableType);
     SMGObject tableObj =
-        currentState
-            .getMemoryModel()
-            .getObjectForVisibleVariable(CTYPE_B_TABLE_VARIABLE_NAME)
-            .orElseThrow();
-    // All entries except the ones of the characters 0 to 127 are 0
+        currentState.getMemoryModel().getObjectForVisibleVariable(pTableName).orElseThrow();
+    // Write 0 to the entire table at once, then only the entries that are not 0
     currentState =
         currentState.writeValueWithChecks(
             tableObj,
@@ -1143,35 +1258,34 @@ public class SMGCPABuiltins {
             new NumericValue(BigInteger.ZERO),
             tableType,
             pCfaEdge);
-    for (int character = 0; character < 128; character++) {
-      BigInteger offsetInBits =
-          entrySizeInBits.multiply(BigInteger.valueOf(CTYPE_B_TABLE_NEGATIVE_ENTRIES + character));
+    for (int index = 0; index < CTYPE_TABLE_LENGTH; index++) {
+      long entry = pEntryForCharacter.applyAsLong(index - CTYPE_TABLE_NEGATIVE_ENTRIES);
+      if (entry == 0) {
+        continue;
+      }
       currentState =
           currentState.writeValueWithChecks(
               tableObj,
-              new NumericValue(offsetInBits),
+              new NumericValue(entrySizeInBits.multiply(BigInteger.valueOf(index))),
               new NumericValue(entrySizeInBits),
-              new NumericValue(getCLocaleCharacterClasses(character)),
-              entryType,
+              new NumericValue(entry),
+              pEntryType,
               pCfaEdge);
     }
 
     // The pointer points to the entry of the character 0
-    CType pointerType = new CPointerType(CTypeQualifiers.NONE, entryType);
+    CType pointerType = new CPointerType(CTypeQualifiers.NONE, pEntryType);
     BigInteger pointerSizeInBits = machineModel.getSizeofInBits(pointerType);
     currentState =
         currentState.copyAndAddGlobalVariable(
-            new NumericValue(pointerSizeInBits), CTYPE_B_POINTER_VARIABLE_NAME, pointerType);
+            new NumericValue(pointerSizeInBits), pPointerName, pointerType);
     SMGObject pointerObj =
-        currentState
-            .getMemoryModel()
-            .getObjectForVisibleVariable(CTYPE_B_POINTER_VARIABLE_NAME)
-            .orElseThrow();
+        currentState.getMemoryModel().getObjectForVisibleVariable(pPointerName).orElseThrow();
     ValueAndSMGState addressAndState =
         currentState.searchOrCreateAddress(
             tableObj,
             pointerType,
-            entrySizeInBits.multiply(BigInteger.valueOf(CTYPE_B_TABLE_NEGATIVE_ENTRIES)));
+            entrySizeInBits.multiply(BigInteger.valueOf(CTYPE_TABLE_NEGATIVE_ENTRIES)));
     currentState = addressAndState.getState();
     return currentState.writeValueWithChecks(
         pointerObj,
@@ -1180,6 +1294,32 @@ public class SMGCPABuiltins {
         addressAndState.getValue(),
         pointerType,
         pCfaEdge);
+  }
+
+  /**
+   * Returns the entry of the lowercase or uppercase conversion table of glibc for the given index
+   * in the "C" locale (see {@code _nl_C_LC_CTYPE_tolower} and {@code _nl_C_LC_CTYPE_toupper} in
+   * {@code locale/C-ctype.c} of glibc). Only the letters 'A' to 'Z' (for lowercase) or 'a' to 'z'
+   * (for uppercase) are converted. All other characters 0 to 255 are mapped to themselves, the
+   * indices -128 to -2 (i.e. negative {@code signed char} values) to the corresponding {@code
+   * unsigned char} values 128 to 254, and -1 ({@code EOF}) to -1.
+   *
+   * @param pIndex an index from -128 to 255.
+   * @param pToUpper true for the uppercase table, false for the lowercase table.
+   * @return the converted character.
+   */
+  private static int getCLocaleCaseConversion(int pIndex, boolean pToUpper) {
+    checkArgument(pIndex >= -CTYPE_TABLE_NEGATIVE_ENTRIES && pIndex < 256);
+    if (pIndex == -1) {
+      return -1;
+    } else if (pIndex < 0) {
+      return pIndex + 256;
+    } else if (pToUpper && pIndex >= 'a' && pIndex <= 'z') {
+      return pIndex - 'a' + 'A';
+    } else if (!pToUpper && pIndex >= 'A' && pIndex <= 'Z') {
+      return pIndex - 'A' + 'a';
+    }
+    return pIndex;
   }
 
   /**

@@ -1871,11 +1871,21 @@ public class SMGCPAValueVisitor
     } else if (!leftIsPointer) {
 
       // e.g. 3 + pointer
-      // Just the reverse of above (with the caveat that 3 - pointer does not make sense ;D but some
-      // SoftwareSystems/linux tasks do it for some reason. We disallow this here, as the result is
-      // numeric and not a pointer! These cases should already be filtered out and handled using
-      // symbolic handling)
-      checkArgument(binaryOperator != MINUS);
+      // Just the reverse of above
+      if (binaryOperator == MINUS) {
+        // value - pointer can not be calculated, as the result is no pointer. This happens if the
+        // left value is a pointer in the program that we do not know as pointer, e.g. the
+        // difference p - q of two pointers, with p being the (symbolic) result of an unknown
+        // function. We overapproximate the result.
+        return ImmutableList.of(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown value for subtraction of a pointer from a value that is not a"
+                    + " known pointer in "
+                    + originalExpression
+                    + " in ",
+                cfaEdge));
+      }
       return calculatePointerArithmeticsOperationWithPointerAndNonPointer(
           rightValue,
           rightValueType,
