@@ -1353,13 +1353,13 @@ public class SMGCPABuiltins {
     boolean isPunct = isGraph && !isAlnum;
 
     // The order of the classes is the order of the bits in glibc, i.e. _ISupper is bit 0
-    boolean[] classes = {
-      isUpper, isLower, isAlpha, isDigit, isXdigit, isSpace, isPrint, isGraph, isBlank, isCntrl,
-      isPunct, isAlnum,
-    };
+    ImmutableList<Boolean> classes =
+        ImmutableList.of(
+            isUpper, isLower, isAlpha, isDigit, isXdigit, isSpace, isPrint, isGraph, isBlank,
+            isCntrl, isPunct, isAlnum);
     long result = 0;
-    for (int bit = 0; bit < classes.length; bit++) {
-      if (classes[bit]) {
+    for (int bit = 0; bit < classes.size(); bit++) {
+      if (classes.get(bit)) {
         result |= getGlibcCharacterClassBit(bit);
       }
     }
