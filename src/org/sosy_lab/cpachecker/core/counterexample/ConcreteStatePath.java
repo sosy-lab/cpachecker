@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * This class is used as a path of {@link CFAEdge} CFA edges and {@link ConcreteState} concrete
@@ -31,6 +32,8 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
 
   private final List<ConcreteStatePathNode> list;
 
+  private final ImmutableList<ValueAssignment> functionValues;
+
   /**
    * An object of this class can be constructed, when a list of pairs of concrete states {@link
    * ConcreteState} and CFA edges {@link CFAEdge} are given.
@@ -39,7 +42,21 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
    *     CFAEdge}.
    */
   public ConcreteStatePath(List<ConcreteStatePathNode> pList) {
+    this(pList, ImmutableList.of());
+  }
+
+  /**
+   * @param pFunctionValues the values of the applications of uninterpreted functions on the path
+   */
+  public ConcreteStatePath(
+      List<ConcreteStatePathNode> pList, List<ValueAssignment> pFunctionValues) {
     list = ImmutableList.copyOf(pList);
+    functionValues = ImmutableList.copyOf(pFunctionValues);
+  }
+
+  /** The values of the applications of uninterpreted functions on the path. */
+  public ImmutableList<ValueAssignment> getFunctionValues() {
+    return functionValues;
   }
 
   @Override

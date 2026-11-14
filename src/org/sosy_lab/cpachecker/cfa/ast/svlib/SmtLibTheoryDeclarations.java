@@ -144,6 +144,17 @@ public class SmtLibTheoryDeclarations {
           "=",
           ImmutableList.of());
 
+  /** The SMT-LIB {@code =} for two arguments of the given type. */
+  public static SvLibFunctionDeclaration equality(SvLibType pArgumentType) {
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(pArgumentType, pArgumentType), SvLibSmtLibPredefinedType.BOOL),
+        "=",
+        "=",
+        ImmutableList.of());
+  }
+
   /**
    * The SMT-LIB {@code distinct} predicate, which holds iff all of its arguments are pairwise
    * different. It is generic over the argument type (which must be the same for all arguments) and
