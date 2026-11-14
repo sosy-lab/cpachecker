@@ -131,7 +131,7 @@ public final class SupportingInvariantsChecker {
                 : entry);
   }
 
-  private static boolean isTransitionInvariant(AbstractInvariantEntry pInvariant) {
+  static boolean isTransitionInvariant(AbstractInvariantEntry pInvariant) {
     return WitnessInvariantType.of(InvariantRecordType.fromKeyword(pInvariant.getType()))
         .map(WitnessInvariantType::isTransitionInvariant)
         .orElse(false);

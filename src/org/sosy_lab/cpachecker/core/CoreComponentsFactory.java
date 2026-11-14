@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlg
 import org.sosy_lab.cpachecker.core.algorithm.simplerules.SimpleRulesAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessExecutionValidator;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -358,6 +359,14 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.terminationWitnessCheckByExecution",
+      description =
+          "check a correctness witness for termination by executing the program, which checks the"
+              + " loop and location invariants of the witness")
+  private boolean useTerminationWitnessExecutionValidation = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.undefinedFunctionCollector",
       description = "collect undefined functions")
   private boolean useUndefinedFunctionCollector = false;
@@ -612,6 +621,15 @@ public class CoreComponentsFactory {
       algorithm =
           new NonTerminationWitnessValidator(
               cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
+    } else if (useTerminationWitnessExecutionValidation) {
+      logger.log(Level.INFO, "Using execution for correctness witnesses for termination");
+      algorithm =
+          new TerminationWitnessExecutionValidator(
+              cfa,
+              config,
+              logger,
+              shutdownNotifier,
+              specification.getPathToSpecificationAutomata().keySet());
     } else if (useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
@@ -987,6 +1005,7 @@ public class CoreComponentsFactory {
         || useProofCheckWithARGCMCStrategy
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
+        || useTerminationWitnessExecutionValidation
         || useUndefinedFunctionCollector
         || useSimpleRules
         || constructProgramSlice

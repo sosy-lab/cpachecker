@@ -595,6 +595,10 @@ analysis.algorithm.terminationToSafety = false
 # termination
 analysis.algorithm.terminationWitnessCheck = false
 
+# check a correctness witness for termination by executing the program, which
+# checks the loop and location invariants of the witness
+analysis.algorithm.terminationWitnessCheckByExecution = false
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 
@@ -6115,6 +6119,10 @@ termination.useCexImpreciseHeuristic = false
 # option is not set, then such analysis is ran only if the infinite state
 # space is detected.
 termination.validation.checkWithInfiniteSpace = false
+
+# configuration of the analysis that executes the program, e.g., with the
+# InterpreterCPA. The analysis must finish only if the program terminates.
+termination.validation.executionConfig = no default value
 
 # maximal k for the k-induction that checks whether a disjunctively
 # well-founded candidate is a transition invariant, i.e., R^+ => T. If -1,
