@@ -757,6 +757,12 @@ analysis.reachedSet = PARTITIONED
 # track more statistics about the reachedset
 analysis.reachedSet.withStatistics = false
 
+# Parse the specification again with the options of this analysis instead of
+# using the automata of the enclosing analysis. A nested analysis needs this
+# if it sets options of the specification automata, e.g.,
+# witness.checkInvariantsHoldForEveryPath.
+analysis.reparseSpecification = false
+
 # Use if you are going to change function with function pionter parameter
 analysis.replaceFunctionWithParameterPointer = false
 

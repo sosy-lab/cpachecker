@@ -72,6 +72,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   private final @Nullable ValueTransferOptions valueTransferOptions;
   private final @Nullable SMGOptions smgOptions;
   private final boolean collectInvariants;
+  private final boolean hasTransitionInvariants;
 
   InterpreterTransferRelation(
       TransferRelation pWrapped,
@@ -81,7 +82,8 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       InterpreterWitnessExporter pWitnessExporter,
       @Nullable InterpreterSampler pSampler,
       @Nullable ValueTransferOptions pValueTransferOptions,
-      @Nullable SMGOptions pSmgOptions) {
+      @Nullable SMGOptions pSmgOptions,
+      boolean pHasTransitionInvariants) {
     super(pWrapped);
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
@@ -91,12 +93,19 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
     valueTransferOptions = pValueTransferOptions;
     smgOptions = pSmgOptions;
     collectInvariants = pWitnessExporter.collectsInvariants();
+    hasTransitionInvariants = pHasTransitionInvariants;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
+
+    if (hasTransitionInvariants) {
+      throw new CPATransferException(
+          "The specification has transition invariants, e.g., of a correctness witness, which an"
+              + " execution cannot check");
+    }
 
     InterpreterState current = (InterpreterState) pState;
     // The whole remaining execution is performed here, so the loop ends only with the program.
