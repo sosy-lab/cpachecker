@@ -22,6 +22,7 @@ builtin_overflow_functions/*.yml
 string_literals/*.yml
 string_functions/*.yml
 ctype/*.yml
+address_of/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
 witness_validation/*.yml
