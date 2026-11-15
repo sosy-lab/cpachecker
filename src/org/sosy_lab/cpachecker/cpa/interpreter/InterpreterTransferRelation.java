@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.interpreter;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -173,7 +172,7 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       new InterpreterState(wrappedState, callStack, status).checkMayProveSafety();
       return ImmutableList.of();
     }
-    ImmutableList.Builder<InterpreterState> successors = new Builder<>();
+    ImmutableList.Builder<InterpreterState> successors = ImmutableList.builder();
     for (InterpreterStep step : steps) {
       InterpreterState successor =
           new InterpreterState(
@@ -270,10 +269,10 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
   /** Whether the steps are the outcomes of an allocation that may fail: success and failure. */
   private boolean isFailingAllocation(List<InterpreterStep> pSteps) {
     return pSteps.size() == 2
-        && pSteps.get(0).edge() == pSteps.get(1).edge()
+        && pSteps.getFirst().edge() == pSteps.get(1).edge()
         && smgOptions != null
         && smgOptions.isEnableMallocFailure()
-        && pSteps.get(0).edge() instanceof CStatementEdge statementEdge
+        && pSteps.getFirst().edge() instanceof CStatementEdge statementEdge
         && statementEdge.getStatement() instanceof CFunctionCall functionCall
         && isAllocation(functionCall);
   }
