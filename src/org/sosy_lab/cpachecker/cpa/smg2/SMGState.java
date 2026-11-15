@@ -4788,6 +4788,8 @@ public class SMGState
       SMGObject object,
       Value readOffsetInBits,
       BigInteger sizeInBits,
+      @Nullable CType readType,
+      boolean materialize,
       CExpression exprReadingFromValueVisitor,
       @Nullable CFAEdge edge,
       SMGState currentState)
@@ -4801,6 +4803,28 @@ public class SMGState
               "Returned unknown as a result of option isOverapproximateSymbolicOffsets true for a"
                   + " symbolic offset.",
               edge));
+
+    } else if (options.isFindConcreteValuesForSymbolicOffsets()
+        && options.isUseConcreteValueSummaryAssignments()) {
+      // Read at each possible concrete offset in its own state, restricted by constraints
+      ImmutableList.Builder<ValueAndSMGState> readValuesAndStates = ImmutableList.builder();
+      for (ValueAndSMGState offsetAndState :
+          findConcreteOffsetsForSymbolicOffset(
+              object, readOffsetInBits, new NumericValue(sizeInBits), edge, currentState)) {
+        BigInteger concreteOffsetInBits =
+            offsetAndState.getValue().asNumericValue().bigIntegerValue();
+        SMGState stateWithConcreteOffset = offsetAndState.getState();
+        if (materialize) {
+          readValuesAndStates.addAll(
+              stateWithConcreteOffset.readValue(
+                  object, concreteOffsetInBits, sizeInBits, readType));
+        } else {
+          readValuesAndStates.add(
+              stateWithConcreteOffset.readValueWithoutMaterialization(
+                  object, concreteOffsetInBits, sizeInBits, readType));
+        }
+      }
+      return readValuesAndStates.build();
 
     } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
       // Find the possible assignments of the offset (or the symbolic value therein)
@@ -4892,6 +4916,28 @@ public class SMGState
           copyAndReplaceMemoryModel(
               currentState.memoryModel.copyAndRemoveAllEdgesFrom(
                   object, numericOffset.bigIntegerValue(), numericSize.bigIntegerValue())));
+
+    } else if (options.isFindConcreteValuesForSymbolicOffsets()
+        && options.isUseConcreteValueSummaryAssignments()) {
+      // Write at each possible concrete offset in its own state, restricted by constraints
+      ImmutableList.Builder<SMGState> writtenStates = ImmutableList.builder();
+      for (ValueAndSMGState offsetAndState :
+          findConcreteOffsetsForSymbolicOffset(
+              object, writeOffsetInBits, sizeInBits, edge, currentState)) {
+        writtenStates.addAll(
+            offsetAndState
+                .getState()
+                .writeValueWithChecks(
+                    object,
+                    offsetAndState.getValue(),
+                    sizeInBits,
+                    lValueExpr,
+                    valueToWrite,
+                    valueType,
+                    rValueExpr,
+                    edge));
+      }
+      return writtenStates.build();
 
     } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
       // Find the possible assignments of the offset (or the symbolic value therein)
@@ -5118,6 +5164,93 @@ public class SMGState
     }
     checkArgument(possibleValues.size() == 1);
     return possibleValues.getFirst();
+  }
+
+  /**
+   * Finds all concrete offsets that the symbolic offset of a valid memory access can have, as used
+   * by option useConcreteValueSummaryAssignments. Returns one state for each concrete offset
+   * (returned as value), with the constraint that the symbolic offset is equal to the concrete
+   * offset. The symbolic values in memory are not changed.
+   *
+   * @throws SMGException if there are more concrete offsets than allowed by option
+   *     concreteValueForSymbolicOffsetsAssignmentMaximum.
+   */
+  private List<ValueAndSMGState> findConcreteOffsetsForSymbolicOffset(
+      SMGObject object,
+      Value offsetInBits,
+      Value sizeInBits,
+      @Nullable CFAEdge edge,
+      SMGState currentState)
+      throws SMGException, SMGSolverException {
+    // Restrict the offset to valid memory accesses
+    SatisfiabilityAndSMGState validAccessAndState =
+        currentState.checkForConcreteMemoryAccessAssignmentWithSolver(
+            object, offsetInBits, sizeInBits, edge);
+    if (validAccessAndState.isUNSAT()) {
+      return ImmutableList.of();
+    }
+
+    CType offsetType = evaluator.getCTypeForBitPreciseMemoryAddresses();
+    SMGState remainingState = validAccessAndState.getState();
+    ImmutableList.Builder<ValueAndSMGState> offsetsAndStates = ImmutableList.builder();
+    int maximum = options.getConcreteValueForSymbolicOffsetsAssignmentMaximum();
+    for (int numOfOffsets = 0; ; numOfOffsets++) {
+      Optional<Value> maybeConcreteOffset =
+          remainingState.findConcreteValueWithSolver(offsetInBits, offsetType, edge);
+      if (maybeConcreteOffset.isEmpty()) {
+        return offsetsAndStates.build();
+      }
+      if (numOfOffsets >= maximum) {
+        throw new SMGException(
+            "Exceeded maximum number of concrete offsets for a symbolic offset"
+                + " concreteValueForSymbolicOffsetsAssignmentMaximum = "
+                + maximum
+                + ". "
+                + edge);
+      }
+      Value concreteOffset = maybeConcreteOffset.orElseThrow();
+      logger.logf(
+          Level.FINE,
+          "Symbolic offset %s was assigned the concrete offset %s.",
+          offsetInBits,
+          concreteOffset);
+      offsetsAndStates.add(
+          ValueAndSMGState.of(
+              concreteOffset,
+              remainingState.copyAndAddValuesEqualConstraint(
+                  offsetInBits, concreteOffset, offsetType, edge)));
+      remainingState =
+          remainingState.copyAndAddValueBlockingConstraint(
+              (SymbolicValue) offsetInBits, concreteOffset, offsetType, edge);
+    }
+  }
+
+  /**
+   * Returns a concrete value that the given symbolic value can have with the constraints of this
+   * state, or an empty {@link Optional} if there is none.
+   */
+  private Optional<Value> findConcreteValueWithSolver(
+      Value symbolicValue, CType type, @Nullable CFAEdge edge)
+      throws SMGException, SMGSolverException {
+    // The solver only returns a model for the last added constraint and the constraints sharing
+    // symbolic identifiers with it, so the value is bound to a new identifier in the last
+    // constraint
+    SymbolicIdentifier valueIdentifier = SymbolicValueFactory.getInstance().newIdentifier(null);
+    SatisfiabilityAndSMGState satisfiabilityAndState =
+        evaluator.checkIsUnsatWithCurrentConstraints(
+            copyAndAddValuesEqualConstraint(symbolicValue, valueIdentifier, type, edge));
+    if (!satisfiabilityAndState.isSAT()) {
+      return Optional.empty();
+    }
+    for (ValueAssignment va : satisfiabilityAndState.getState().getModel()) {
+      if (SymbolicValues.isSymbolicTerm(va.getName())
+          && SymbolicValues.convertTermToSymbolicIdentifierWithoutMemLoc(va.getName())
+              .equals(valueIdentifier)) {
+        return Optional.of(SymbolicValues.convertToValue(va));
+      }
+    }
+    throw new SMGException(
+        "The model of the SMT solver does not contain the concrete value for " + symbolicValue);
   }
 
   private List<SMGState> findAssignmentsWithSolverAndReplaceSymbolicValues(
@@ -5459,7 +5592,14 @@ public class SMGState
     checkArgument(!memoryModel.isPointer(symbolicValueToAssignTo));
     ImmutableList.Builder<SMGState> returnStates = ImmutableList.builder();
 
-    returnStates.add(copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue, edge));
+    // Temporary fix: not all values that contain the symbolic value are replaced, e.g. sizes of
+    // memory objects. The constraint keeps those values consistent with the assignment.
+    // TODO: substitute the assigned value in all values (e.g. sizes of memory objects) and remove
+    //  this constraint.
+    returnStates.add(
+        copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue, edge)
+            .copyAndAddValuesEqualConstraint(
+                symbolicValueToAssignTo, newlyAssignedValue, typeOfValueToAssign, edge));
     returnStates.add(
         copyAndAddValueBlockingConstraint(
             symbolicValueToAssignTo, newlyAssignedValue, typeOfValueToAssign, edge));
@@ -5486,7 +5626,14 @@ public class SMGState
     checkArgument(!memoryModel.isPointer(symbolicValueToAssignTo));
     ImmutableList.Builder<SMGState> returnStates = ImmutableList.builder();
 
-    returnStates.add(copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue, edge));
+    // Temporary fix: not all values that contain the symbolic value are replaced, e.g. sizes of
+    // memory objects. The constraint keeps those values consistent with the assignment.
+    // TODO: substitute the assigned value in all values (e.g. sizes of memory objects) and remove
+    //  this constraint.
+    returnStates.add(
+        copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue, edge)
+            .copyAndAddValuesEqualConstraint(
+                symbolicValueToAssignTo, newlyAssignedValue, typeOfValueToAssign, edge));
     returnStates.add(
         copyAndAddValueBlockingConstraint(
             symbolicValueToAssignTo, newlyAssignedValue, typeOfValueToAssign, edge));
