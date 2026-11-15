@@ -3866,18 +3866,73 @@ public class SMGCPABuiltins {
           continue;
         }
 
-        // iterate over all chars and compare them for 'int strcmp(const char * firstStringPointer,
-        // const char *secondStringPointer)' (c99 * 7.21.4.2)
         resultBuilder.add(
-            evaluator.stringCompare(
+            evaluateStrcmp(
+                secondStringAndState.getSMGState(),
                 firstStringAndState.getSMGObject(),
                 ((NumericValue) firstStringAndState.getOffsetForObject()).bigIntegerValue(),
                 secondStringAndState.getSMGObject(),
-                ((NumericValue) secondStringAndState.getOffsetForObject()).bigIntegerValue(),
-                secondStringAndState.getSMGState()));
+                ((NumericValue) secondStringAndState.getOffsetForObject()).bigIntegerValue()));
       }
     }
     return resultBuilder.build();
+  }
+
+  /**
+   * Implementation of int strcmp(const char *s1, const char *s2); (C11 7.24.4.2) for strings in the
+   * given memory. Compares the characters as unsigned char (C11 7.24.4) until they differ or a \0
+   * is found. Each read is checked, i.e. reading beyond the memory before finding \0 results in an
+   * error state.
+   *
+   * @param pState current {@link SMGState}.
+   * @param pFirstStringObj {@link SMGObject} holding the first string.
+   * @param pFirstOffsetInBits offset of the first character of the first string in its object.
+   * @param pSecondStringObj {@link SMGObject} holding the second string.
+   * @param pSecondOffsetInBits offset of the first character of the second string in its object.
+   * @return 0 if the strings are equal, -1 if the first string is smaller and 1 if it is greater,
+   *     as {@link NumericValue}, and the state after reading. An unknown value is returned if a
+   *     compared character is not concrete or a read is invalid, the state is an error state in the
+   *     latter case.
+   */
+  private ValueAndSMGState evaluateStrcmp(
+      SMGState pState,
+      SMGObject pFirstStringObj,
+      BigInteger pFirstOffsetInBits,
+      SMGObject pSecondStringObj,
+      BigInteger pSecondOffsetInBits)
+      throws SMGException {
+    if (pFirstStringObj.equals(pSecondStringObj)
+        && pFirstOffsetInBits.equals(pSecondOffsetInBits)) {
+      // Both arguments point to the same string
+      return ValueAndSMGState.of(new NumericValue(0), pState);
+    }
+    BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+    BigInteger numOfCharValues = BigInteger.ONE.shiftLeft(machineModel.getSizeofCharInBits());
+    SMGState currentState = pState;
+    for (BigInteger charOffsetInBits = BigInteger.ZERO;
+        ;
+        charOffsetInBits = charOffsetInBits.add(sizeOfCharInBits)) {
+      ValueAndSMGState firstCharAndState =
+          readChar(currentState, pFirstStringObj, pFirstOffsetInBits.add(charOffsetInBits));
+      currentState = firstCharAndState.getState();
+      if (!(firstCharAndState.getValue() instanceof NumericValue firstChar)) {
+        return ValueAndSMGState.ofUnknownValue(
+            currentState, "Returned unknown value due to unknown character in strcmp.");
+      }
+      ValueAndSMGState secondCharAndState =
+          readChar(currentState, pSecondStringObj, pSecondOffsetInBits.add(charOffsetInBits));
+      currentState = secondCharAndState.getState();
+      if (!(secondCharAndState.getValue() instanceof NumericValue secondChar)) {
+        return ValueAndSMGState.ofUnknownValue(
+            currentState, "Returned unknown value due to unknown character in strcmp.");
+      }
+
+      BigInteger firstUnsignedChar = firstChar.bigIntegerValue().mod(numOfCharValues);
+      int compare = firstUnsignedChar.compareTo(secondChar.bigIntegerValue().mod(numOfCharValues));
+      if (compare != 0 || firstUnsignedChar.signum() == 0) {
+        return ValueAndSMGState.of(new NumericValue(compare), currentState);
+      }
+    }
   }
 
   /**
@@ -4006,25 +4061,12 @@ public class SMGCPABuiltins {
       BigInteger pOffsetInBits,
       Optional<BigInteger> pMaxLength)
       throws SMGException {
-    if (!(pStringObj.getSize() instanceof NumericValue numStringObjSize)) {
-      throw new SMGException("Symbolic memory size in strlen currently not supported.");
-    }
     BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
     SMGState currentState = pState;
     BigInteger length = BigInteger.ZERO;
     while (pMaxLength.isEmpty() || length.compareTo(pMaxLength.orElseThrow()) < 0) {
       BigInteger charOffsetInBits = pOffsetInBits.add(length.multiply(sizeOfCharInBits));
-      if (charOffsetInBits.signum() < 0
-          || charOffsetInBits.add(sizeOfCharInBits).compareTo(numStringObjSize.bigIntegerValue())
-              > 0) {
-        return ValueAndSMGState.ofUnknownValue(
-            currentState.withOutOfRangeRead(pStringObj, charOffsetInBits, sizeOfCharInBits),
-            "Returned unknown value due to out-of-range read when determining the string length.");
-      }
-      // The read checks for validity and external allocation
-      ValueAndSMGState charAndState =
-          currentState.readValueWithoutMaterialization(
-              pStringObj, charOffsetInBits, sizeOfCharInBits, CNumericTypes.CHAR);
+      ValueAndSMGState charAndState = readChar(currentState, pStringObj, charOffsetInBits);
       currentState = charAndState.getState();
       if (!(charAndState.getValue() instanceof NumericValue numChar)) {
         return ValueAndSMGState.ofUnknownValue(
@@ -4037,6 +4079,35 @@ public class SMGCPABuiltins {
       length = length.add(BigInteger.ONE);
     }
     return ValueAndSMGState.of(new NumericValue(length), currentState);
+  }
+
+  /**
+   * Reads the character at the given offset of a string in the given memory. The read is checked,
+   * i.e. reading outside of the memory or reading invalid memory results in an error state.
+   *
+   * @param pState current {@link SMGState}.
+   * @param pStringObj {@link SMGObject} holding the string.
+   * @param pCharOffsetInBits offset of the character in the object.
+   * @return the character and the state after reading, or an unknown value and an error state if
+   *     the read is invalid.
+   * @throws SMGException if the size of the memory is symbolic.
+   */
+  private ValueAndSMGState readChar(
+      SMGState pState, SMGObject pStringObj, BigInteger pCharOffsetInBits) throws SMGException {
+    if (!(pStringObj.getSize() instanceof NumericValue numStringObjSize)) {
+      throw new SMGException("Symbolic memory size in string functions currently not supported.");
+    }
+    BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+    if (pCharOffsetInBits.signum() < 0
+        || pCharOffsetInBits.add(sizeOfCharInBits).compareTo(numStringObjSize.bigIntegerValue())
+            > 0) {
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withOutOfRangeRead(pStringObj, pCharOffsetInBits, sizeOfCharInBits),
+          "Returned unknown value due to out-of-range read of a string.");
+    }
+    // The read checks for validity and external allocation
+    return pState.readValueWithoutMaterialization(
+        pStringObj, pCharOffsetInBits, sizeOfCharInBits, CNumericTypes.CHAR);
   }
 
   /**
