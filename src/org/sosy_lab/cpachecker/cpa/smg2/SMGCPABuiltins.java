@@ -2502,15 +2502,23 @@ public class SMGCPABuiltins {
     // First arg
     for (ValueAndSMGState bufferAddressAndState :
         getFunctionParameterValue(MEMSET_BUFFER_PARAMETER, functionCall, pState, cfaEdge)) {
-      Value bufferValue = bufferAddressAndState.getValue();
-      SMGState currentState = bufferAddressAndState.getState();
-      // If the Value is no AddressExpression we can't work with it
-      // The buffer is type * and has to be an AddressExpression with a not unknown value and a
-      // concrete offset to be used correctly
-      if (!(bufferValue instanceof AddressExpression addressExpression)
-          || addressExpression.getMemoryAddress().isUnknown()
-          || !(addressExpression.getOffset() instanceof NumericValue)) {
-        currentState = currentState.withInvalidWrite(bufferValue);
+      // Pointer variables evaluate to an AddressExpression, arrays (e.g. memset(array, ...)) to a
+      // plain pointer. Transform both into a plain pointer that includes the offset.
+      ValueAndSMGState bufferPointerAndState =
+          bufferAddressAndState
+              .getState()
+              .transformAddressExpression(
+                  bufferAddressAndState.getValue(),
+                  functionCall
+                      .getParameterExpressions()
+                      .getFirst()
+                      .getExpressionType()
+                      .getCanonicalType());
+      Value bufferPointer = bufferPointerAndState.getValue();
+      SMGState currentState = bufferPointerAndState.getState();
+      // The buffer has to be a known pointer (unknown target or offsets result in unknown values)
+      if (bufferPointer instanceof NumericValue || !currentState.isPointer(bufferPointer)) {
+        currentState = currentState.withInvalidWrite(bufferPointer);
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 currentState,
@@ -2532,12 +2540,7 @@ public class SMGCPABuiltins {
               evaluateMemset(
                   countAndState.getState(),
                   cfaEdge,
-                  addressExpression,
-                  functionCall
-                      .getParameterExpressions()
-                      .getFirst()
-                      .getExpressionType()
-                      .getCanonicalType(),
+                  bufferPointer,
                   charValueAndSMGState.getValue(),
                   countAndState.getValue()));
         }
@@ -2550,13 +2553,12 @@ public class SMGCPABuiltins {
   /**
    * Checks the Values such that they are useable, returns an unknown Value with error state (may be
    * non critical) if it's not useable. Else it writes the char entered (int value) into the region
-   * behind the given address count times. Make sure that the bufferValue is already checked and is
-   * a valid AddressExpression!
+   * behind the given address count times. Make sure that the bufferPointer is already checked and
+   * is a known pointer (not an {@link AddressExpression})!
    *
    * @param currentState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
-   * @param bufferAddressAndOffset {@link AddressExpression} holding the pointer and offset leading
-   *     to the buffer to be written to.
+   * @param bufferPointer pointer (including its offset) to the buffer to be written to.
    * @param charValue {@link Value} representing the character to be inserted.
    * @param countValue {@link Value} for the number of chars inserted.
    * @return {@link ValueAndSMGState} with either the address to the buffer (not a {@link
@@ -2567,8 +2569,7 @@ public class SMGCPABuiltins {
   private ValueAndSMGState evaluateMemset(
       SMGState currentState,
       @SuppressWarnings("unused") CFAEdge cfaEdge,
-      AddressExpression bufferAddressAndOffset,
-      CType addressType,
+      Value bufferPointer,
       Value charValue,
       Value countValue)
       throws CPATransferException {
@@ -2601,55 +2602,43 @@ public class SMGCPABuiltins {
     long count = numCountValue.longValue();
 
     // If the char value is unknown, we use a new symbolic value!
-    Value bufferMemoryAddress = bufferAddressAndOffset.getMemoryAddress();
-    if (!(bufferAddressAndOffset.getOffset() instanceof NumericValue bufferOffset)) {
-      throw new SMGException("Can not handle non-numeric buffer offset in memset() currently");
-    }
-    BigInteger bufferOffsetInBits = bufferOffset.bigIntegerValue();
-
     BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
 
     // This precondition has to hold for the get(0) getters
-    checkArgument(!currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
+    checkArgument(!currentState.getMemoryModel().pointsToZeroPlus(bufferPointer));
     if (isNumericZero(charValue)) {
       // Create one large edge for 0 (the SMG cuts 0 edges on its own)
-      currentState =
-          currentState
-              .writeValueTo(
-                  bufferMemoryAddress,
-                  bufferOffsetInBits,
-                  new NumericValue(sizeOfCharInBits.multiply(BigInteger.valueOf(count))),
-                  charValue,
-                  CNumericTypes.CHAR,
-                  cfaEdge)
-              .getFirst();
+      List<SMGState> writtenStates =
+          currentState.writeValueTo(
+              bufferPointer,
+              BigInteger.ZERO,
+              new NumericValue(sizeOfCharInBits.multiply(BigInteger.valueOf(count))),
+              charValue,
+              CNumericTypes.CHAR,
+              cfaEdge);
+      if (writtenStates.size() != 1) {
+        throw new SMGException("Error: unhandled materialization in memset " + cfaEdge);
+      }
+      currentState = writtenStates.getFirst();
     } else {
       // Write each char on its own
       for (int c = 0; c < count; c++) {
-        currentState =
-            currentState
-                .writeValueTo(
-                    bufferMemoryAddress,
-                    bufferOffsetInBits.add(BigInteger.valueOf(c).multiply(sizeOfCharInBits)),
-                    new NumericValue(sizeOfCharInBits),
-                    charValue,
-                    CNumericTypes.CHAR,
-                    cfaEdge)
-                .getFirst();
+        List<SMGState> writtenStates =
+            currentState.writeValueTo(
+                bufferPointer,
+                BigInteger.valueOf(c).multiply(sizeOfCharInBits),
+                new NumericValue(sizeOfCharInBits),
+                charValue,
+                CNumericTypes.CHAR,
+                cfaEdge);
+        if (writtenStates.size() != 1) {
+          throw new SMGException("Error: unhandled materialization in memset " + cfaEdge);
+        }
+        currentState = writtenStates.getFirst();
       }
     }
-    // Since this returns the pointer of the buffer we check the offset of the AddressExpression, if
-    // its 0 we can return the known pointer, else we create a new one.
-    if (bufferOffsetInBits.equals(BigInteger.ZERO)) {
-      return ValueAndSMGState.of(bufferMemoryAddress, currentState);
-    } else {
-      ValueAndSMGState newPointerAndState =
-          evaluator
-              .findOrCreateNewPointer(
-                  bufferMemoryAddress, bufferOffsetInBits, addressType, currentState)
-              .getFirst();
-      return ValueAndSMGState.of(newPointerAndState.getValue(), newPointerAndState.getState());
-    }
+    // memset returns the buffer pointer
+    return ValueAndSMGState.of(bufferPointer, currentState);
   }
 
   private List<ValueAndSMGState> evaluateExternalAllocationFunction(
