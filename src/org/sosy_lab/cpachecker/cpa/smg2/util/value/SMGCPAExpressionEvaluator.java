@@ -23,21 +23,30 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -415,6 +424,33 @@ public class SMGCPAExpressionEvaluator {
    */
   public List<ValueAndSMGState> createAddress(CExpression operand, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
+    // C11 6.5.3.2 (3) and footnote 102: &*E is E and &(E1[E2]) is (E1) + (E2), i.e. neither the &
+    // nor the (implied) * is evaluated. Thus, the memory designated by the operand is not
+    // accessed, and an unknown or invalid address does not result in a memory error here, but
+    // only when the memory is accessed.
+    if (!(operand instanceof CPointerExpression) && isAddressBasedOnCastToPointer(operand)) {
+      // E.g. &((struct s *) 0)->f or &((int *) 12)[1], see isAddressBasedOnCastToPointer()
+      logger.logf(
+          Level.WARNING,
+          "Address of %s is based on a non-pointer value cast to a pointer, which is undefined"
+              + " behavior; returning unknown value in %s",
+          operand.toASTString(),
+          cfaEdge);
+      return ImmutableList.of(
+          ValueAndSMGState.ofUnknownValue(
+              pState,
+              "Returned unknown value for address based on a non-pointer value cast to a pointer"
+                  + " in ",
+              cfaEdge));
+    }
+    Optional<CExpression> addressWithoutDereference =
+        getAddressExpressionWithoutDereference(operand);
+    if (addressWithoutDereference.isPresent()) {
+      return addressWithoutDereference
+          .orElseThrow()
+          .accept(new SMGCPAValueVisitor(this, pState, cfaEdge, logger));
+    }
+
     // SMGCPAAddressVisitor may have side effects! But they should not effect anything as they are
     // only interesting in a failure case in which the analysis stops!
     SMGState currentState = pState;
@@ -482,6 +518,150 @@ public class SMGCPAExpressionEvaluator {
               addressAndState.getState()));
     }
     return resultBuilder.build();
+  }
+
+  /**
+   * Returns an expression that computes the address of the given operand of the & operator without
+   * dereferencing a pointer, if the operand is a (possibly implicit) pointer dereference: {@code
+   * &*E} is {@code E}, {@code &E1[E2]} is {@code E1 + E2} (C11 6.5.3.2 (3)), and {@code &E.f} is
+   * {@code (T *) ((char *) &E + offsetof(f))} with {@code T} the type of {@code f} ({@code E->f} is
+   * {@code (*E).f}, C11 6.5.2.3 (4)).
+   *
+   * @param pOperand the operand of the & operator.
+   * @return the expression that computes the address, or empty if the operand is no pointer
+   *     dereference (e.g. a variable).
+   */
+  private Optional<CExpression> getAddressExpressionWithoutDereference(CExpression pOperand)
+      throws UnrecognizedCodeException {
+    FileLocation fileLocation = pOperand.getFileLocation();
+    CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+
+    if (pOperand instanceof CPointerExpression pointerExpr) {
+      return Optional.of(pointerExpr.getOperand());
+
+    } else if (pOperand instanceof CArraySubscriptExpression subscriptExpr) {
+      return Optional.of(
+          binExprBuilder.buildBinaryExpression(
+              convertArrayToPointer(subscriptExpr.getArrayExpression()),
+              convertArrayToPointer(subscriptExpr.getSubscriptExpression()),
+              BinaryOperator.PLUS));
+
+    } else if (pOperand instanceof CFieldReference fieldReference) {
+      CFieldReference explicitFieldReference = fieldReference.withExplicitPointerDereference();
+      CExpression ownerExpr = explicitFieldReference.getFieldOwner();
+      BigInteger fieldOffsetInBits =
+          getFieldOffsetInBits(getCanonicalType(ownerExpr), explicitFieldReference.getFieldName());
+      BigInteger[] fieldOffsetInBytesAndRemainder =
+          fieldOffsetInBits.divideAndRemainder(
+              BigInteger.valueOf(machineModel.getSizeofCharInBits()));
+      if (fieldOffsetInBytesAndRemainder[1].signum() != 0) {
+        // Bit-fields have no address (C11 6.5.3.2 (1))
+        return Optional.empty();
+      }
+      // The address of the owner is again computed by createAddress()
+      CExpression ownerAddress =
+          new CUnaryExpression(
+              fileLocation,
+              new CPointerType(CTypeQualifiers.NONE, ownerExpr.getExpressionType()),
+              ownerExpr,
+              UnaryOperator.AMPER);
+      CExpression fieldAddressAsCharPointer =
+          binExprBuilder.buildBinaryExpression(
+              new CCastExpression(fileLocation, CPointerType.POINTER_TO_CHAR, ownerAddress),
+              new CIntegerLiteralExpression(
+                  fileLocation,
+                  machineModel.getPointerSizedIntType(),
+                  fieldOffsetInBytesAndRemainder[0]),
+              BinaryOperator.PLUS);
+      return Optional.of(
+          new CCastExpression(
+              fileLocation,
+              new CPointerType(CTypeQualifiers.NONE, fieldReference.getExpressionType()),
+              fieldAddressAsCharPointer));
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Returns whether the address of the given lvalue is computed from a value of non-pointer type
+   * (e.g. an integer) that is cast to a pointer type, without accessing memory in between. Examples
+   * are {@code &((struct s *) 0)->f} (the offsetof idiom), {@code &((struct s *) 0)->arr[1]}, and
+   * {@code &((int *) 12)[1]}. The behavior of these is undefined: {@code ->} is not exempt from
+   * evaluation by C11 6.5.3.2 (3), so it dereferences the pointer, and pointer arithmetics is only
+   * defined for pointers to elements of an array object (C11 6.5.6 (8)). Such a pointer does not
+   * point to an object, as the result of the cast is implementation-defined (C11 6.3.2.3 (5)). Note
+   * that {@code &*E} is {@code E} even if {@code E} is a null pointer (C11 6.5.3.2, footnote 102),
+   * so it is not affected.
+   */
+  private static boolean isAddressBasedOnCastToPointer(CExpression pLvalue) {
+    if (pLvalue instanceof CPointerExpression pointerExpr) {
+      return isValueBasedOnCastToPointer(pointerExpr.getOperand());
+    } else if (pLvalue instanceof CArraySubscriptExpression subscriptExpr) {
+      CExpression arrayExpr = subscriptExpr.getArrayExpression();
+      if (!(getCanonicalType(arrayExpr) instanceof CArrayType)
+          && !(getCanonicalType(arrayExpr) instanceof CPointerType)) {
+        // i[a]
+        arrayExpr = subscriptExpr.getSubscriptExpression();
+      }
+      return isValueBasedOnCastToPointer(arrayExpr);
+    } else if (pLvalue instanceof CFieldReference fieldReference) {
+      return isAddressBasedOnCastToPointer(
+          fieldReference.withExplicitPointerDereference().getFieldOwner());
+    }
+    return false;
+  }
+
+  /**
+   * Returns whether the given pointer value is computed from a value of non-pointer type that is
+   * cast to a pointer type, without accessing memory in between, see {@link
+   * #isAddressBasedOnCastToPointer(CExpression)}.
+   */
+  private static boolean isValueBasedOnCastToPointer(CExpression pPointerExpr) {
+    if (getCanonicalType(pPointerExpr) instanceof CArrayType) {
+      // An array is converted to the address of its first element (C11 6.3.2.1 (3))
+      return isAddressBasedOnCastToPointer(pPointerExpr);
+    } else if (pPointerExpr instanceof CCastExpression castExpr) {
+      CType operandType = getCanonicalType(castExpr.getOperand());
+      if (getCanonicalType(castExpr) instanceof CPointerType
+          && !(operandType instanceof CPointerType
+              || operandType instanceof CArrayType
+              || operandType instanceof CFunctionType)) {
+        return true;
+      }
+      return isValueBasedOnCastToPointer(castExpr.getOperand());
+    } else if (pPointerExpr instanceof CBinaryExpression binExpr
+        && (binExpr.getOperator() == BinaryOperator.PLUS
+            || binExpr.getOperator() == BinaryOperator.MINUS)) {
+      return isValueBasedOnCastToPointer(binExpr.getOperand1())
+          || isValueBasedOnCastToPointer(binExpr.getOperand2());
+    } else if (pPointerExpr instanceof CUnaryExpression unaryExpr
+        && unaryExpr.getOperator() == UnaryOperator.AMPER) {
+      return isAddressBasedOnCastToPointer(unaryExpr.getOperand());
+    }
+    // E.g. variables or memory reads, which are evaluated as usual
+    return false;
+  }
+
+  /**
+   * Converts an expression with array type to a pointer to its first element (C11 6.3.2.1 (3)),
+   * i.e. {@code (T *) &a} for an array {@code a} with elements of type {@code T}, so that the
+   * address of the array is computed by {@link #createAddress(CExpression, SMGState, CFAEdge)}
+   * without accessing its memory (e.g. for {@code &((struct s *) 0)->arr[1]}). Other expressions
+   * are returned unchanged.
+   */
+  private static CExpression convertArrayToPointer(CExpression pExpr) {
+    if (!(getCanonicalType(pExpr) instanceof CArrayType arrayType)) {
+      return pExpr;
+    }
+    FileLocation fileLocation = pExpr.getFileLocation();
+    return new CCastExpression(
+        fileLocation,
+        new CPointerType(CTypeQualifiers.NONE, arrayType.getType()),
+        new CUnaryExpression(
+            fileLocation,
+            new CPointerType(CTypeQualifiers.NONE, pExpr.getExpressionType()),
+            pExpr,
+            UnaryOperator.AMPER));
   }
 
   public List<ValueAndSMGState> createAddress(
