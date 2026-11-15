@@ -6,9 +6,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-format_version: '2.0'
+format_version: '2.1'
 
-input_files: 'memsafety_function_argument_symbolic_offset_safe.c'
+input_files: 'address_of_unknown_subscript_safe.c'
 
 properties:
   - property_file: ../../../config/properties/valid-memsafety.prp
@@ -16,4 +16,5 @@ properties:
 
 options:
   language: C
-  data_model: ILP32
+  language_version: c99
+  data_model: LP64

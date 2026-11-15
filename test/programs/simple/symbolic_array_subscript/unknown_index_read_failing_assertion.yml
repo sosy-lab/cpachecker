@@ -6,15 +6,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-format_version: '2.0'
+format_version: '2.1'
 
-input_files: 'memsafety_function_argument_symbolic_offset_unsafe.c'
+input_files: 'unknown_index_read_failing_assertion.c'
 
 properties:
   - property_file: ../../../config/properties/valid-memsafety.prp
+    expected_verdict: true
+  - property_file: ../../../config/properties/unreach-call.prp
     expected_verdict: false
-    subproperty: valid-deref
 
 options:
   language: C
-  data_model: ILP32
+  language_version: c99
+  data_model: LP64

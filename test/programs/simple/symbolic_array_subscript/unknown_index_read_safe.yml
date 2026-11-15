@@ -6,14 +6,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-format_version: '2.0'
+format_version: '2.1'
 
-input_files: 'address-of-unknown-index-unsafe-64.c'
+input_files: 'unknown_index_read_safe.c'
 
 properties:
   - property_file: ../../../config/properties/valid-memsafety.prp
-    expected_verdict: false
-    subproperty: valid-deref
+    expected_verdict: true
+  - property_file: ../../../config/properties/unreach-call.prp
+    expected_verdict: true
 
 options:
   language: C

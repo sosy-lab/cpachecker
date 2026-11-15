@@ -6,9 +6,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-format_version: '2.0'
+format_version: '2.1'
 
-input_files: 'address-of-local-array-64.c'
+input_files: 'local-struct-64.c'
 
 properties:
   - property_file: ../../../config/properties/valid-memsafety.prp
