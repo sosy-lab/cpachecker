@@ -4131,6 +4131,14 @@ cpa.smg2.satCheckStrategy = AT_ASSUME
 cpa.smg2.stop = "SEP"
   allowed values: [SEP, NEVER, END_BLOCK]
 
+# If this Option is enabled, a concrete value assigned to a symbolic value
+# (e.g. by option findConcreteValuesForSymbolicOffsets) is also substituted
+# in the offsets of pointers. A pointer whose offset becomes concrete is
+# replaced by the pointer to the same target and offset, which is reused if
+# it already exists. If disabled, the analysis is aborted if a pointer offset
+# contains the assigned symbolic value.
+cpa.smg2.substituteSymbolicOffsetInPointersWithConcreteAssignments = false
+
 # Enable track predicates for possible memory safety error on SMG state
 cpa.smg2.trackErrorPredicates = false
 

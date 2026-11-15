@@ -243,6 +243,18 @@ public class SMGOptions {
               + " specifies.")
   private int concreteValueForSymbolicOffsetsAssignmentMaximum = 300;
 
+  @Option(
+      secure = true,
+      name = "substituteSymbolicOffsetInPointersWithConcreteAssignments",
+      description =
+          "If this Option is enabled, a concrete value assigned to a symbolic value (e.g. by option"
+              + " findConcreteValuesForSymbolicOffsets) is also substituted in the offsets of"
+              + " pointers. A pointer whose offset becomes concrete is replaced by the pointer to"
+              + " the same target and offset, which is reused if it already exists. If disabled,"
+              + " the analysis is aborted if a pointer offset contains the assigned symbolic"
+              + " value.")
+  private boolean substituteSymbolicOffsetInPointersWithConcreteAssignments = false;
+
   // TODO: make a option and implementation that allows SOME concrete values to be evaluated, and
   // then the (restricted) symbolic value is returned once a threshold is reached. The concrete
   // values chosen should be configurable, e.g. build 1 concrete value at the lowest end of the
@@ -309,6 +321,10 @@ public class SMGOptions {
     Preconditions.checkArgument(
         !findConcreteValuesForSymbolicOffsets || !overapproximateSymbolicOffsets);
     return findConcreteValuesForSymbolicOffsets;
+  }
+
+  public boolean isSubstituteSymbolicOffsetInPointersWithConcreteAssignments() {
+    return substituteSymbolicOffsetInPointersWithConcreteAssignments;
   }
 
   public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
