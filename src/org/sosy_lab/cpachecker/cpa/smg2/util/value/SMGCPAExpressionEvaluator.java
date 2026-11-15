@@ -523,9 +523,13 @@ public class SMGCPAExpressionEvaluator {
   /**
    * Returns an expression that computes the address of the given operand of the & operator without
    * dereferencing a pointer, if the operand is a (possibly implicit) pointer dereference: {@code
-   * &*E} is {@code E}, {@code &E1[E2]} is {@code E1 + E2} (C11 6.5.3.2 (3)), and {@code &E.f} is
-   * {@code (T *) ((char *) &E + offsetof(f))} with {@code T} the type of {@code f} ({@code E->f} is
-   * {@code (*E).f}, C11 6.5.2.3 (4)).
+   * &*E} is {@code E} and {@code &E1[E2]} is {@code E1 + E2}, neither & nor * is evaluated (C11
+   * 6.5.3.2 (3)). An array operand is converted to a pointer to its first element (C11 6.3.2.1
+   * (3)), e.g. {@code &array[0]} for {@code int array[4]} becomes {@code (int *) &array + 0}: type
+   * {@code int *}, same address as {@code &array} (C11 6.5.9 (6)). {@code &E.f} is {@code (T *)
+   * ((char *) &E + offsetof(f))} with {@code T} the type of {@code f} ({@code E->f} is {@code
+   * (*E).f}, C11 6.5.2.3 (4)); this is not covered by 6.5.3.2 (3), but matches the member offsets
+   * (C11 6.7.2.1 (15)).
    *
    * @param pOperand the operand of the & operator.
    * @return the expression that computes the address, or empty if the operand is no pointer
@@ -647,7 +651,8 @@ public class SMGCPAExpressionEvaluator {
    * i.e. {@code (T *) &a} for an array {@code a} with elements of type {@code T}, so that the
    * address of the array is computed by {@link #createAddress(CExpression, SMGState, CFAEdge)}
    * without accessing its memory (e.g. for {@code &((struct s *) 0)->arr[1]}). Other expressions
-   * are returned unchanged.
+   * are returned unchanged. The cast keeps the address (C11 6.5.9 (6)) and only changes the type
+   * from {@code T (*)[N]} to {@code T *}, so that pointer arithmetics uses the element size.
    */
   private static CExpression convertArrayToPointer(CExpression pExpr) {
     if (!(getCanonicalType(pExpr) instanceof CArrayType arrayType)) {
