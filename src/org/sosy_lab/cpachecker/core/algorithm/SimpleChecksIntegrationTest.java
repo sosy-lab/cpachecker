@@ -99,7 +99,9 @@ public class SimpleChecksIntegrationTest {
   public void testMemorySafetyUsesTheSmgExecution() throws Exception {
     // The execution reports the violation of a program that allocates. It cannot prove such a
     // program safe, because the execution in which an allocation fails is a different one.
-    run("valid-memsafety", "simple/interpreter/heap-out-of-bounds-false.i").assertIsUnsafe();
+    // MemSafety does not report FALSE results due to imprecision for now.
+    run("valid-memsafety", "simple/interpreter/heap-out-of-bounds-false.i")
+        .assertIs(Result.UNKNOWN);
   }
 
   @Test

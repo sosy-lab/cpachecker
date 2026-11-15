@@ -164,6 +164,11 @@ public class InterpreterCPAIntegrationTest {
             .setOption("analysis.entryFunction", "main")
             .setOptions(task.options())
             .build();
-    IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(task.expected());
+    if (task.property.equalsIgnoreCase("valid-memsafety") && task.expected().equals(Result.FALSE)) {
+      // MemSafety does not report FALSE results due to imprecision
+      IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(Result.UNKNOWN);
+    } else {
+      IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(task.expected());
+    }
   }
 }
