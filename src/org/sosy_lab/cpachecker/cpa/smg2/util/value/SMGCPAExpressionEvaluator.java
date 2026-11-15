@@ -1097,7 +1097,14 @@ public class SMGCPAExpressionEvaluator {
       if (!(offsetValueInBits instanceof NumericValue numOffsetValueInBits)) {
         // We can't discern the read value, but the read itself was safe
         return currentState.handleSymbolicOffsetForReadOperation(
-            object, offsetValueInBits, sizeInBits, exprReading, null, currentState);
+            object,
+            offsetValueInBits,
+            sizeInBits,
+            readType,
+            materialize,
+            exprReading,
+            null,
+            currentState);
       }
       // Symbolic size, but concrete offset, we can actually read
       offsetInBits = numOffsetValueInBits.bigIntegerValue();
