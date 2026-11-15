@@ -455,8 +455,20 @@ public class SMGCPAValueVisitor
       Value finalOffset =
           evaluator.addBitOffsetValues(additionalOffset, BigInteger.valueOf(memloc.getOffset()));
 
-      if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
-          || returnType instanceof CArrayType
+      if (returnType instanceof CArrayType) {
+        // An array (e.g. an array member of a struct on the stack) is converted to the address of
+        // its first element, like an array variable, see visit(CIdExpression)
+        ValueAndSMGState addressAndState =
+            evaluator.createAddressForLocalOrGlobalVariable(qualifiedVarName, returnType, newState);
+        if (addressAndState.getValue().isUnknown()) {
+          return ImmutableList.of(addressAndState);
+        }
+        return ImmutableList.of(
+            ValueAndSMGState.of(
+                AddressExpression.of(addressAndState.getValue(), returnType, finalOffset),
+                addressAndState.getState()));
+
+      } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
           || returnType instanceof CFunctionType) {
 
         if (!(additionalOffset instanceof NumericValue numAdditionalOffset)) {
