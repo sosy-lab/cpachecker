@@ -20,6 +20,11 @@ Changes since CPAchecker 4.2.2
   that 'dest' points to.
   See the C programs in directory `test/programs/simple/verifier-nondet-memory-sanity/`
   for examples on how to use the method.
+* `__atomic_*` builtin functions are now supported with sequential consistency ordering,
+  the `_Atomic(T)` type specifier is now parsed, and
+  `__thread`/`_Thread_local` storage is now recognized.
+* Ordering-consistency analysis and abstraction-aware source-set partial-order-reduction
+  have been added for concurrent C programs.
 
 
 Changes from CPAchecker 4.2.1 to CPAchecker 4.2.2
