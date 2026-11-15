@@ -2126,6 +2126,44 @@ public class SMG {
     Preconditions.checkArgument(smgValuesAndNestingLvl.containsKey(oldSMGValue));
     Preconditions.checkArgument(!isPointer(oldSMGValue) || oldSMGValue.isZero());
     // Replace the SMGValue in HVEdges(values of the edges, offsets and sizes), Objects (sizes)
+    SMG newSMG = replaceValueInHasValueEdges(oldSMGValue, newSMGValue);
+
+    for (SMGObject obj : smgObjects.keySet()) {
+      if (obj.getSize().equals(oldValue)) {
+        throw new SMGException("Replacement of SMGObject size currently not supported.");
+      }
+    }
+
+    // Remove the old value from the known values
+    newSMG = newSMG.copyAndRemoveValue(oldSMGValue);
+
+    return newSMG;
+  }
+
+  /**
+   * Replaces the pointer oldPointer with the pointer newPointer in all {@link SMGHasValueEdge}s and
+   * removes oldPointer together with its {@link SMGPointsToEdge}.
+   *
+   * @param oldPointer the pointer to replace.
+   * @param newPointer the pointer to replace it with, must have the same nesting level.
+   * @return a new SMG with the pointer replaced.
+   */
+  public SMG replacePointerWithAndCopy(SMGValue oldPointer, SMGValue newPointer) {
+    Preconditions.checkArgument(isPointer(oldPointer) && !oldPointer.isZero());
+    Preconditions.checkArgument(isPointer(newPointer));
+    Preconditions.checkArgument(getNestingLevel(oldPointer) == getNestingLevel(newPointer));
+    // The has-value edges are replaced before the points-to-edge is removed, so that the
+    // pointer-to-object map is updated for both pointers
+    return replaceValueInHasValueEdges(oldPointer, newPointer)
+        .copyAndRemovePointsToEdge(oldPointer)
+        .copyAndRemoveValue(oldPointer);
+  }
+
+  /**
+   * Replaces oldSMGValue with newSMGValue as value of all {@link SMGHasValueEdge}s. After this,
+   * oldSMGValue is no longer saved in any object.
+   */
+  private SMG replaceValueInHasValueEdges(SMGValue oldSMGValue, SMGValue newSMGValue) {
     PersistentMap<SMGObject, Integer> oldValueHVELocations =
         valuesToRegionsTheyAreSavedIn.getOrDefault(oldSMGValue, PathCopyingPersistentTreeMap.of());
 
@@ -2142,21 +2180,11 @@ public class SMG {
       }
     }
 
-    for (SMGObject obj : smgObjects.keySet()) {
-      if (obj.getSize().equals(oldValue)) {
-        throw new SMGException("Replacement of SMGObject size currently not supported.");
-      }
-    }
-
     Preconditions.checkArgument(
         newSMG
             .valuesToRegionsTheyAreSavedIn
             .getOrDefault(oldSMGValue, PathCopyingPersistentTreeMap.of())
             .isEmpty());
-
-    // Remove the old value from the known values
-    newSMG = newSMG.copyAndRemoveValue(oldSMGValue);
-
     return newSMG;
   }
 
