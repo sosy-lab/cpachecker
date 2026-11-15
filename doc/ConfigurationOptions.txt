@@ -4151,6 +4151,20 @@ cpa.smg2.treatSymbolicValuesAsUnknown = false
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg2.unknownOnUndefined = true
 
+# If this Option is enabled, a read or write with a symbolic offset is split
+# into one state for each possible concrete offset, which is found by an SMT
+# solver. Each state has the constraint that the symbolic offset equals the
+# concrete offset, and the access is performed at the concrete offset. The
+# symbolic values in memory are not replaced by concrete values. The maximum
+# number of concrete offsets per access is
+# concreteValueForSymbolicOffsetsAssignmentMaximum. Requires option
+# findConcreteValuesForSymbolicOffsets to be enabled (and therefore option
+# overapproximateSymbolicOffsets to be disabled), otherwise the configuration
+# is invalid. Accesses with symbolic offsets in array-subscript expressions
+# that are handled when evaluating addresses still use the concrete
+# assignments of option findConcreteValuesForSymbolicOffsets.
+cpa.smg2.useConcreteValueSummaryAssignments = false
+
 # Allocation functions which set memory to zero
 cpa.smg2.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 

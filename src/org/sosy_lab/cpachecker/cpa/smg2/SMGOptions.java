@@ -255,6 +255,23 @@ public class SMGOptions {
               + " value.")
   private boolean substituteSymbolicOffsetInPointersWithConcreteAssignments = false;
 
+  @Option(
+      secure = true,
+      name = "useConcreteValueSummaryAssignments",
+      description =
+          "If this Option is enabled, a read or write with a symbolic offset is split into one"
+              + " state for each possible concrete offset, which is found by an SMT solver. Each"
+              + " state has the constraint that the symbolic offset equals the concrete offset,"
+              + " and the access is performed at the concrete offset. The symbolic values in"
+              + " memory are not replaced by concrete values. The maximum number of concrete"
+              + " offsets per access is concreteValueForSymbolicOffsetsAssignmentMaximum. Requires"
+              + " option findConcreteValuesForSymbolicOffsets to be enabled (and therefore option"
+              + " overapproximateSymbolicOffsets to be disabled), otherwise the configuration is"
+              + " invalid. Accesses with symbolic offsets in array-subscript expressions that are"
+              + " handled when evaluating addresses still use the concrete assignments of option"
+              + " findConcreteValuesForSymbolicOffsets.")
+  private boolean useConcreteValueSummaryAssignments = false;
+
   // TODO: make a option and implementation that allows SOME concrete values to be evaluated, and
   // then the (restricted) symbolic value is returned once a threshold is reached. The concrete
   // values chosen should be configurable, e.g. build 1 concrete value at the lowest end of the
@@ -325,6 +342,10 @@ public class SMGOptions {
 
   public boolean isSubstituteSymbolicOffsetInPointersWithConcreteAssignments() {
     return substituteSymbolicOffsetInPointersWithConcreteAssignments;
+  }
+
+  public boolean isUseConcreteValueSummaryAssignments() {
+    return useConcreteValueSummaryAssignments;
   }
 
   public int getConcreteValueForSymbolicOffsetsAssignmentMaximum() {
@@ -645,6 +666,11 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config, @Nullable CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
+    if (useConcreteValueSummaryAssignments && !findConcreteValuesForSymbolicOffsets) {
+      throw new InvalidConfigurationException(
+          "Option cpa.smg2.useConcreteValueSummaryAssignments requires option"
+              + " cpa.smg2.findConcreteValuesForSymbolicOffsets.");
+    }
     abstractionOptions = new SMGAbstractionOptions(config, cfa);
     mergeOptions = new SMGMergeOptions(config, cfa);
   }
