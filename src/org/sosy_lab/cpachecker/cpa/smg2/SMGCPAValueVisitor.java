@@ -1495,31 +1495,26 @@ public class SMGCPAValueVisitor
         // just dereference the pointer with the correct type
 
         // Dereference the Value and return it. The read checks for validity etc.
-        // The precondition is a precondition for get(0) because of no state split
+        // The precondition ensures that no list is materialized. The read might still return more
+        // than one state, e.g. for each concrete offset of a symbolic offset.
         checkArgument(
             !currentState.getMemoryModel().pointsToZeroPlus(pointerValue.getMemoryAddress()));
-        ValueAndSMGState readValueAndState =
-            evaluator
-                .readValueWithPointerDereference(
-                    currentState,
-                    pointerValue.getMemoryAddress(),
-                    offset,
-                    sizeInBits,
-                    returnType,
-                    e)
-                .getFirst();
-        currentState = readValueAndState.getState();
+        for (ValueAndSMGState readValueAndState :
+            evaluator.readValueWithPointerDereference(
+                currentState, pointerValue.getMemoryAddress(), offset, sizeInBits, returnType, e)) {
+          SMGState stateAfterRead = readValueAndState.getState();
 
-        if (returnType instanceof CPointerType
-            && currentState.isPointer(readValueAndState.getValue())
-            && !(readValueAndState.getValue() instanceof NumericValue)) {
-          // In the pointer case we would need to encapsulate it again
-          builder.add(
-              ValueAndSMGState.of(
-                  AddressExpression.withZeroOffset(readValueAndState.getValue(), returnType),
-                  currentState));
-        } else {
-          builder.add(readValueAndState);
+          if (returnType instanceof CPointerType
+              && stateAfterRead.isPointer(readValueAndState.getValue())
+              && !(readValueAndState.getValue() instanceof NumericValue)) {
+            // In the pointer case we would need to encapsulate it again
+            builder.add(
+                ValueAndSMGState.of(
+                    AddressExpression.withZeroOffset(readValueAndState.getValue(), returnType),
+                    stateAfterRead));
+          } else {
+            builder.add(readValueAndState);
+          }
         }
       }
     }
