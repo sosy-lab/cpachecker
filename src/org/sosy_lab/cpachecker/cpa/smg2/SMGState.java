@@ -51,9 +51,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -72,6 +74,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
@@ -105,9 +108,12 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -5449,11 +5455,11 @@ public class SMGState
       Value newlyAssignedValue,
       CType typeOfValueToAssign,
       CFAEdge edge)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
     checkArgument(!memoryModel.isPointer(symbolicValueToAssignTo));
     ImmutableList.Builder<SMGState> returnStates = ImmutableList.builder();
 
-    returnStates.add(copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue));
+    returnStates.add(copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue, edge));
     returnStates.add(
         copyAndAddValueBlockingConstraint(
             symbolicValueToAssignTo, newlyAssignedValue, typeOfValueToAssign, edge));
@@ -5476,22 +5482,152 @@ public class SMGState
       Value newlyAssignedValue,
       CType typeOfValueToAssign,
       CFAEdge edge)
-      throws SMGException {
+      throws SMGException, SMGSolverException {
     checkArgument(!memoryModel.isPointer(symbolicValueToAssignTo));
     ImmutableList.Builder<SMGState> returnStates = ImmutableList.builder();
 
-    returnStates.add(copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue));
+    returnStates.add(copyAndReplaceValue(symbolicValueToAssignTo, newlyAssignedValue, edge));
     returnStates.add(
         copyAndAddValueBlockingConstraint(
             symbolicValueToAssignTo, newlyAssignedValue, typeOfValueToAssign, edge));
     return returnStates.build();
   }
 
+  /**
+   * Replaces the given symbolic value with the given concrete value. If the symbolic value is a
+   * {@link SymbolicIdentifier}, all values in the memory model that contain it (including offsets
+   * of pointers) are replaced by their evaluation with the concrete value. Otherwise, only the
+   * given symbolic value itself is replaced.
+   */
   private SMGState copyAndReplaceValue(
-      SymbolicValue pSymbolicValueToAssignTo, Value pNewlyAssignedValue) throws SMGException {
-    // We need to not only replace the value, but every other value that has the values inside of it
-    return copyAndReplaceMemoryModel(
-        memoryModel.replaceValueWithAndCopy(pSymbolicValueToAssignTo, pNewlyAssignedValue));
+      SymbolicValue pSymbolicValueToAssignTo, Value pNewlyAssignedValue, @Nullable CFAEdge pEdge)
+      throws SMGException, SMGSolverException {
+    if (!(pSymbolicValueToAssignTo instanceof SymbolicIdentifier identToAssignTo)) {
+      if (memoryModel.getSMGValueFromValue(pSymbolicValueToAssignTo).isEmpty()) {
+        throw new SMGException(
+            "Error trying to assign a concrete value to a symbolic value that is not known.");
+      }
+      return copyAndReplaceMemoryModel(
+          memoryModel.replaceValuesWithAndCopy(
+              ImmutableMap.of(pSymbolicValueToAssignTo, pNewlyAssignedValue)));
+    }
+
+    ImmutableSet<Value> valuesToReplace = memoryModel.getMappedValuesContaining(identToAssignTo);
+    ImmutableMap<SMGValue, SMGPointsToEdge> pointersToReplace =
+        memoryModel.getPointersWithOffsetContaining(identToAssignTo);
+    if (valuesToReplace.isEmpty() && pointersToReplace.isEmpty()) {
+      throw new SMGException(
+          "Error trying to assign a concrete value to a symbolic value that is not known.");
+    }
+
+    ImmutableMap.Builder<Value, Value> oldToNewValues = ImmutableMap.builder();
+    for (Value valueToReplace : valuesToReplace) {
+      if (memoryModel.isPointer(valueToReplace)) {
+        throw new SMGException(
+            "Error trying to assign a concrete value to a symbolic value used as pointer.");
+      }
+      oldToNewValues.put(
+          valueToReplace,
+          evaluateWithConcreteAssignment(
+              valueToReplace, identToAssignTo, pNewlyAssignedValue, pEdge));
+    }
+    SMGState newState =
+        copyAndReplaceMemoryModel(
+            memoryModel.replaceValuesWithAndCopy(oldToNewValues.buildOrThrow()));
+
+    if (!pointersToReplace.isEmpty()
+        && !options.isSubstituteSymbolicOffsetInPointersWithConcreteAssignments()) {
+      throw new SMGException(
+          "Stop analysis because a concrete value assigned to a symbolic value is used in the"
+              + " offset of a pointer. Enable the option"
+              + " substituteSymbolicOffsetInPointersWithConcreteAssignments if you want to"
+              + " continue. "
+              + pEdge);
+    }
+    for (Entry<SMGValue, SMGPointsToEdge> pointerAndEdge : pointersToReplace.entrySet()) {
+      SMGPointsToEdge oldPointsToEdge = pointerAndEdge.getValue();
+      Value oldPointer = memoryModel.getValueFromSMGValue(pointerAndEdge.getKey()).orElseThrow();
+      Value newOffset =
+          evaluateWithConcreteAssignment(
+              oldPointsToEdge.getOffset(), identToAssignTo, pNewlyAssignedValue, pEdge);
+      ValueAndSMGState newPointerAndState =
+          newState.searchOrCreateAddress(
+              oldPointsToEdge.pointsTo(),
+              memoryModel.getTypeForValue(pointerAndEdge.getKey()),
+              newOffset,
+              memoryModel.getNestingLevel(pointerAndEdge.getKey()),
+              oldPointsToEdge.targetSpecifier());
+      // The pointer with the concrete offset is reused if it already exists, in that case the old
+      // pointer is merged into it
+      newState = newPointerAndState.getState();
+      newState =
+          newState.copyAndReplaceMemoryModel(
+              newState.memoryModel.replacePointerWithAndCopy(
+                  oldPointer, newPointerAndState.getValue()));
+    }
+    return newState;
+  }
+
+  /**
+   * Returns the value that the given value has if the given {@link SymbolicIdentifier} is assigned
+   * the given concrete value. The given value must be the identifier or contain it. The evaluation
+   * uses the C semantics of {@link SMGCPAValueVisitor}.
+   *
+   * @throws SMGException if the value contains other symbolic identifiers.
+   */
+  private Value evaluateWithConcreteAssignment(
+      Value pValue, SymbolicIdentifier pIdentifier, Value pAssignedValue, @Nullable CFAEdge pEdge)
+      throws SMGException, SMGSolverException {
+    if (pValue.equals(pIdentifier)
+        || (pValue instanceof ConstantSymbolicExpression constSym
+            && constSym.getValue().equals(pIdentifier))) {
+      return pAssignedValue;
+    }
+
+    if (!(pValue instanceof SymbolicExpression symExpr)
+        || !memoryModel
+            .getSymbolicIdentifiersWithTypesForValue(pValue)
+            .keySet()
+            .equals(ImmutableSet.of(pIdentifier))) {
+      // TODO: substitute the identifier in values that contain other symbolic identifiers as well
+      //  and keep the resulting (still symbolic) value.
+      throw new SMGException(
+          "Stop analysis because a symbolic value that is assigned a concrete value is part of a"
+              + " value with other symbolic values. "
+              + pEdge);
+    }
+
+    // Transform the value into a C expression, substitute the identifier with the assigned
+    // value, and evaluate the result
+    String identifierName =
+        SymbolicIdentifier.Converter.getInstance().convertToStringEncoding(pIdentifier);
+    CExpression substitutedExpr;
+    try {
+      substitutedExpr =
+          ExpressionSubstitution.applySubstitution(
+              symExpr.accept(new SymbolicExpressionToCExpressionTransformer(machineModel)),
+              expr ->
+                  expr instanceof CIdExpression idExpr && idExpr.getName().equals(identifierName)
+                      ? pAssignedValue.accept(
+                          new ValueToCExpressionTransformer(
+                              machineModel, idExpr.getExpressionType()))
+                      : expr,
+              new CBinaryExpressionBuilder(machineModel, logger));
+    } catch (SubstitutionException e) {
+      throw new SMGException(
+          "Error trying to assign a concrete value to a symbolic value: " + e.getMessage());
+    }
+
+    List<ValueAndSMGState> evaluatedValues =
+        reEvaluateValueAfterConcreteAssignment(substitutedExpr, pEdge, this);
+    if (evaluatedValues.size() != 1
+        || !(evaluatedValues.getFirst().getValue() instanceof NumericValue numValue)) {
+      throw new SMGException(
+          "Error trying to assign a concrete value to a symbolic value: the evaluation of "
+              + pValue
+              + " is not a concrete value.");
+    }
+    return numValue;
   }
 
   /*
