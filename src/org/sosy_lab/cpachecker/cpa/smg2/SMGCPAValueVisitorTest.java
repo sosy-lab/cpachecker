@@ -2179,11 +2179,17 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
+        // &*E is E (C11 6.5.3.2 (3)), i.e. the pointer itself
         Value resultValue = resultList.getFirst().getValue();
-        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
-        assertThat(((NumericValue) ((AddressExpression) resultValue).getOffset()).bigIntegerValue())
-            .isEqualTo(BigInteger.ZERO);
-        resultValue = ((AddressExpression) resultValue).getMemoryAddress();
+        if (currentIndice == 0) {
+          // &*array is the value read from array, which is returned as AddressExpression
+          assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue)
+              .isTrue();
+          assertThat(
+                  ((NumericValue) ((AddressExpression) resultValue).getOffset()).bigIntegerValue())
+              .isEqualTo(BigInteger.ZERO);
+          resultValue = ((AddressExpression) resultValue).getMemoryAddress();
+        }
         // & actually changes the state!
         currentState = resultList.getFirst().getState();
 
@@ -2253,11 +2259,8 @@ public class SMGCPAValueVisitorTest {
 
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
+        // &*E is E and &E1[E2] is E1 + E2 (C11 6.5.3.2 (3)), i.e. the pointer itself
         Value resultValue = resultList.getFirst().getValue();
-        assertThat(((AddressExpression) resultValue).getOffset() instanceof NumericValue).isTrue();
-        assertThat(((NumericValue) ((AddressExpression) resultValue).getOffset()).bigIntegerValue())
-            .isEqualTo(BigInteger.ZERO);
-        resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.getFirst().getState();
 
