@@ -2800,24 +2800,20 @@ public class SMGCPAExpressionEvaluator {
         }
         currentState = sourceObjectAndOffsetOrState.getSMGState();
 
+        // The struct may be only a part of the variable, e.g. a member initialized by an
+        // initializer list, so we copy only the size of the written type to its offset
         Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeLeftHandSideVariableObject =
-            getTargetObjectAndOffset(currentState, variableName);
+            getTargetObjectAndOffset(currentState, variableName, pOffsetInBits);
         if (maybeLeftHandSideVariableObject.isEmpty()) {
           throw new SMGException("Usage of undeclared variable: " + variableName + ".");
         }
-        SMGObject addressToWriteTo = maybeLeftHandSideVariableObject.orElseThrow().getSMGObject();
-        Value offsetToWriteTo = maybeLeftHandSideVariableObject.orElseThrow().getOffsetForObject();
-
-        // The .asNumericValue().orElseThrow().bigIntegerValue() might fail at some point, then we
-        // need to handle
-        // sizes symbolically as well
         resultStatesBuilder.add(
             currentState.copySMGObjectContentToSMGObject(
                 sourceObjectAndOffsetOrState.getSMGObject(),
                 sourceObjectAndOffsetOrState.getOffsetForObject(),
-                addressToWriteTo,
-                offsetToWriteTo,
-                subtractBitOffsetValues(addressToWriteTo.getSize(), offsetToWriteTo)));
+                maybeLeftHandSideVariableObject.orElseThrow().getSMGObject(),
+                maybeLeftHandSideVariableObject.orElseThrow().getOffsetForObject(),
+                sizeOfTypeLeft));
       }
 
     } else if (typeOfWrite instanceof CPointerType && typeOfValueToWrite instanceof CArrayType) {
