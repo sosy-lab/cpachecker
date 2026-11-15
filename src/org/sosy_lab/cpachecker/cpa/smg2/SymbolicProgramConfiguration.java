@@ -3693,95 +3693,109 @@ public class SymbolicProgramConfiguration {
     return valueMapping.inverse().containsKey(value);
   }
 
-  public SymbolicProgramConfiguration replaceValueWithAndCopy(Value oldValue, Value newValue)
+  /**
+   * Returns all {@link Value}s of the value mapping that are the given {@link SymbolicIdentifier}
+   * or contain it, e.g. nested in a {@link ConstantSymbolicExpression} or another symbolic
+   * expression. Offsets of {@link SMGPointsToEdge}s are not included, see {@link
+   * #getPointersWithOffsetContaining(SymbolicIdentifier)}.
+   */
+  public ImmutableSet<Value> getMappedValuesContaining(SymbolicIdentifier pIdentifier) {
+    ImmutableSet.Builder<Value> valuesBuilder = ImmutableSet.builder();
+    for (Wrapper<Value> wrappedValue : valueMapping.keySet()) {
+      Value mappedValue = wrappedValue.get();
+      if (mappedValue.equals(pIdentifier)
+          || getSymbolicIdentifiersWithTypesForValue(mappedValue).containsKey(pIdentifier)) {
+        valuesBuilder.add(mappedValue);
+      }
+    }
+    return valuesBuilder.build();
+  }
+
+  /**
+   * Returns all pointers (as {@link SMGValue}) together with their {@link SMGPointsToEdge}, whose
+   * offset is the given {@link SymbolicIdentifier} or contains it.
+   */
+  public ImmutableMap<SMGValue, SMGPointsToEdge> getPointersWithOffsetContaining(
+      SymbolicIdentifier pIdentifier) {
+    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> pointersBuilder = ImmutableMap.builder();
+    for (Entry<SMGValue, SMGPointsToEdge> pointerAndEdge : smg.getPTEdgeMapping().entrySet()) {
+      Value offset = pointerAndEdge.getValue().getOffset();
+      if (offset.equals(pIdentifier)
+          || getSymbolicIdentifiersWithTypesForValue(offset).containsKey(pIdentifier)) {
+        pointersBuilder.put(pointerAndEdge);
+      }
+    }
+    return pointersBuilder.buildOrThrow();
+  }
+
+  /**
+   * Replaces each mapped (non-pointer) {@link Value} that is a key of the given map with the {@link
+   * Value} it is mapped to, in the value mapping and in the SMG. If the new value is not yet
+   * mapped, the {@link SMGValue} of the old value is reused for it. Otherwise, the {@link SMGValue}
+   * of the old value is replaced with the existing {@link SMGValue} of the new value in the SMG.
+   *
+   * @param pOldToNewValues map from mapped values to their replacements.
+   * @return a copy of this SPC with all values replaced.
+   * @throws SMGException if a replaced value is used as the size of an {@link SMGObject}.
+   */
+  public SymbolicProgramConfiguration replaceValuesWithAndCopy(Map<Value, Value> pOldToNewValues)
       throws SMGException {
-    // This has to find all occurrences of oldValue, even nested in other expressions, and replace
-    // them
-    if (oldValue.equals(newValue)) {
+    SymbolicProgramConfiguration newSPC = this;
+    for (Entry<Value, Value> oldAndNewValue : pOldToNewValues.entrySet()) {
+      newSPC = newSPC.replaceValueWithAndCopy(oldAndNewValue.getKey(), oldAndNewValue.getValue());
+    }
+    assert newSPC.checkValueMappingConsistency();
+    return newSPC;
+  }
+
+  private SymbolicProgramConfiguration replaceValueWithAndCopy(Value pOldValue, Value pNewValue)
+      throws SMGException {
+    if (pOldValue.equals(pNewValue)) {
       return this;
     }
+    SMGValue oldSMGValue = getSMGValueFromValue(pOldValue).orElseThrow();
+    checkArgument(!smg.isPointer(oldSMGValue));
+    SymbolicProgramConfiguration newSPC = copyAndRemoveValueMapping(pOldValue);
 
-    boolean found = false;
-    Map<Value, SMGValue> valuesToUpdate = new HashMap<>();
-    for (Entry<Equivalence.Wrapper<Value>, SMGValue> mapping : valueMapping.entrySet()) {
-      Value mappedValue = mapping.getKey().get();
-      if (mappedValue.equals(oldValue)) {
-        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
-        found = true;
-        continue;
-      } else if (mappedValue instanceof ConstantSymbolicExpression constSym
-          && constSym.getValue() instanceof SymbolicIdentifier symIdent
-          && symIdent.equals(oldValue)) {
-        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
-        found = true;
-        continue;
-      }
-
-      Set<SymbolicIdentifier> idValues =
-          getSymbolicIdentifiersWithTypesForValue(mappedValue).keySet();
-      if (oldValue instanceof SymbolicIdentifier oldSymIden && idValues.contains(oldSymIden)) {
-        valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
-      }
+    Optional<SMGValue> maybeNewSMGValue = newSPC.getSMGValueFromValue(pNewValue);
+    if (maybeNewSMGValue.isEmpty()) {
+      // The new value is not yet in the SMG, we can reuse the SMGValue of the old value for it
+      return newSPC.copyAndPutValue(
+          pNewValue, oldSMGValue, smg.getNestingLevel(oldSMGValue), getTypeForValue(oldSMGValue));
     }
+    SMGValue newSMGValue = maybeNewSMGValue.orElseThrow();
+    checkArgument(smg.getNestingLevel(newSMGValue) == smg.getNestingLevel(oldSMGValue));
+    // Actually go into the SMG and replace the SMGValues for oldValue
+    return newSPC.copyWithNewSMG(
+        newSPC.smg.replaceValueWithAndCopy(pOldValue, oldSMGValue, newSMGValue));
+  }
 
-    // TODO:
-    // Values in valuesToUpdate have to be updated in the following way:
-    // 1. Get the value containing a sym value that is to be assigned
-    // 2. Replace the sym value with the concrete value
-    // 3. Evaluate the expression, as it might now change
-    // 4. replace the old value of 1. with the new value of 3.
+  /**
+   * Replaces the pointer pOldPointer with the pointer pNewPointer in all has-value edges and
+   * removes pOldPointer, its {@link SMGPointsToEdge}, and its value mapping. Both pointers must
+   * already exist.
+   *
+   * @param pOldPointer the pointer to replace.
+   * @param pNewPointer the pointer to replace it with.
+   * @return a copy of this SPC with the pointer replaced.
+   */
+  public SymbolicProgramConfiguration replacePointerWithAndCopy(
+      Value pOldPointer, Value pNewPointer) {
+    SMGValue oldSMGPointer = getSMGValueFromValue(pOldPointer).orElseThrow();
+    SMGValue newSMGPointer = getSMGValueFromValue(pNewPointer).orElseThrow();
+    return copyAndRemoveValueMapping(pOldPointer)
+        .copyWithNewSMG(smg.replacePointerWithAndCopy(oldSMGPointer, newSMGPointer));
+  }
 
-    if (valuesToUpdate.size() != 1 || !found) {
-      // TODO: implement
-      throw new SMGException(
-          "Error trying to assign more than one symbolic value with a concrete value.");
-    }
-
-    SymbolicProgramConfiguration newSPC = this;
-    for (Entry<Value, SMGValue> valueMappingToUpdate : valuesToUpdate.entrySet()) {
-      Value correctOldValue = valueMappingToUpdate.getKey();
-      if (!newSPC.valueMapping.containsKey(valueWrapper.wrap(newValue))) {
-        // No mapping for the new value means we can just replace the mapping as it is not yet in
-        // the SMG. We just have to remove the old mapping first.
-        if (!newSPC.valueMapping.containsKey(valueWrapper.wrap(correctOldValue))) {
-          // Not mapping is known at all
-          SMGValue newSMGValue = SMGValue.of();
-
-          return newSPC.copyAndPutValue(newValue, newSMGValue, 0, getTypeForValue(correctOldValue));
-        } else {
-          SMGValue oldSMGValue = valueMappingToUpdate.getValue();
-          ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> newValueMapping =
-              ImmutableBiMap.builder();
-
-          for (Entry<Wrapper<Value>, SMGValue> mappedValue : newSPC.valueMapping.entrySet()) {
-            if (mappedValue.getValue() != oldSMGValue) {
-              newValueMapping.put(mappedValue);
-            }
-          }
-          newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
-
-          return newSPC.copyAndPutValue(newValue, oldSMGValue, 0, getTypeForValue(correctOldValue));
-        }
-      }
-      SMGValue newSMGValue = newSPC.getSMGValueFromValue(newValue).orElseThrow();
-      SMGValue oldSMGValue = newSPC.getSMGValueFromValue(correctOldValue).orElseThrow();
-      checkArgument(
-          newSPC.smg.getNestingLevel(newSMGValue) == newSPC.smg.getNestingLevel(oldSMGValue));
-      // Actually go into the SMG and replace the SMGValues for oldValue
-      newSPC =
-          newSPC.copyWithNewSMG(
-              newSPC.smg.replaceValueWithAndCopy(correctOldValue, oldSMGValue, newSMGValue));
-    }
+  private SymbolicProgramConfiguration copyAndRemoveValueMapping(Value pValue) {
+    Wrapper<Value> wrappedValue = valueWrapper.wrap(pValue);
     ImmutableBiMap.Builder<Wrapper<Value>, SMGValue> newValueMapping = ImmutableBiMap.builder();
-    Collection<SMGValue> valueMappingsToRemove = valuesToUpdate.values();
     for (Entry<Wrapper<Value>, SMGValue> mappedValue : valueMapping.entrySet()) {
-      if (!valueMappingsToRemove.contains(mappedValue.getValue())) {
+      if (!mappedValue.getKey().equals(wrappedValue)) {
         newValueMapping.put(mappedValue);
       }
     }
-    newSPC = newSPC.withNewValueMappings(newValueMapping.buildOrThrow());
-    assert newSPC.checkValueMappingConsistency();
-    return newSPC;
+    return withNewValueMappings(newValueMapping.buildOrThrow());
   }
 
   /**
