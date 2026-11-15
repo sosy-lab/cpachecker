@@ -68,7 +68,13 @@ public class SimpleChecksIntegrationTest {
   public void testExecutionProvesCountedLoopTerminates() throws Exception {
     IntegrationTestResult result = run("termination", "simplerules/counted-loop-unknown.c");
     result.assertIsSafe();
-    assertThat(result.log()).contains("interpreter--termination.properties finished successfully");
+    assertThat(result.log())
+        .contains("interpreter-value-then-smg--termination.properties finished successfully");
+  }
+
+  @Test
+  public void testExecutionWithSmgProvesTerminationOfPointerProgram() throws Exception {
+    run("termination", "simple/interpreter/allocation-list-true.c").assertIsSafe();
   }
 
   @Test(timeout = 30000)
