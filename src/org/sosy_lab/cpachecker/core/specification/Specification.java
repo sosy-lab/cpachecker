@@ -362,6 +362,10 @@ public final class Specification {
   public Specification parsedAgain(
       CFA cfa, Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
     if (specificationFiles.isEmpty()) {
       return this;
     }
