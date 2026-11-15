@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.SetjmpLongjmpTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.TrivialLoopRemover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
@@ -321,6 +322,14 @@ public class CFACreator {
               + "This is not valid for properties like termination and valid-memcleanup, "
               + "but more efficient for standard reachability properties. Cf. #1713.")
   private boolean removeTrivialLoops = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.transformSetjmpLongjmp",
+      description =
+          "Model setjmp and longjmp with a CFA transformation if the program calls setjmp only once"
+              + " and in a non-recursive function. Calls of longjmp in other programs are kept.")
+  private boolean transformSetjmpLongjmp = true;
 
   @Option(
       secure = true,
@@ -880,6 +889,10 @@ public class CFACreator {
       ExpandFunctionPointerArrayAssignments transformer =
           new ExpandFunctionPointerArrayAssignments(logger);
       transformer.replaceFunctionPointerArrayAssignments(cfa);
+    }
+
+    if (language == Language.C && transformSetjmpLongjmp) {
+      new SetjmpLongjmpTransformer(cfa, logger).transformIfNeeded(globalDeclarations);
     }
 
     // add atexit handlers
