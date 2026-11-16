@@ -142,15 +142,20 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
   /** Returns the C source code of a string literal with the given content. */
   private static String encodeContent(String pContent) {
     StringBuilder result = new StringBuilder("\"");
+    // a hex escape sequence would also take a following hex digit, so we escape it, too
+    boolean afterHexEscape = false;
     for (int i = 0; i < pContent.length(); i++) {
       char c = pContent.charAt(i);
       checkArgument(c <= 0xFF, "Character %s in string content is not a byte", (int) c);
       if (c == '"' || c == '\\') {
         result.append('\\').append(c);
-      } else if (c >= ' ' && c < 127) {
+        afterHexEscape = false;
+      } else if (c >= ' ' && c < 127 && !(afterHexEscape && Character.digit(c, 16) >= 0)) {
         result.append(c);
+        afterHexEscape = false;
       } else {
-        result.append('\\').append(Strings.padStart(Integer.toOctalString(c), 3, '0'));
+        result.append("\\x").append(Strings.padStart(Integer.toHexString(c), 2, '0'));
+        afterHexEscape = true;
       }
     }
     return result.append('"').toString();
