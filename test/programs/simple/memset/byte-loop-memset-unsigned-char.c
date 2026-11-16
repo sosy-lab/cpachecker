@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // A byte-wise memset implementation that writes through a pointer to unsigned char with pointer
-// arithmetic and returns nothing: clear_memory is a MEMSET implementation.
+// arithmetic and returns nothing: clear_memory is a memset implementation.
 
 typedef unsigned long size_t;
 

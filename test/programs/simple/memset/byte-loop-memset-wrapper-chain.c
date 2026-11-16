@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Wrappers of a byte-wise memset implementation in two levels: set_bytes is a MEMSET
+// Wrappers of a byte-wise memset implementation in two levels: set_bytes is a memset
 // implementation, set_bytes_checked and set_memory are wrappers of it.
 
 typedef unsigned long size_t;

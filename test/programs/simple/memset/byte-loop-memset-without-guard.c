@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// A byte-wise memset implementation without a check of the count: fill_bytes is a MEMSET
+// A byte-wise memset implementation without a check of the count: fill_bytes is a memset
 // implementation.
 
 typedef unsigned long size_t;

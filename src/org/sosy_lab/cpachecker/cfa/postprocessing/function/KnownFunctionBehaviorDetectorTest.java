@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
  */
 public class KnownFunctionBehaviorDetectorTest {
 
-  private static final String PROGRAMS = "test/programs/simple/known-function-behavior/";
+  private static final String PROGRAMS = "test/programs/simple/memset/";
 
   private static ImmutableMap<String, KnownFunctionBehavior> detect(String pProgram)
       throws Exception {
@@ -53,24 +53,25 @@ public class KnownFunctionBehaviorDetectorTest {
 
   @Test
   public void awsImplementationAndWrapper() throws Exception {
-    assertThat(detect("memset-aws.c"))
+    assertThat(detect("byte-loop-memset-aws.c"))
         .containsExactly("memset_impl", MEMSET_WITH_GUARDS, "my_memset", MEMSET_WITH_GUARDS);
   }
 
   @Test
   public void implementationWithoutGuard() throws Exception {
-    assertThat(detect("memset-without-guard.c")).containsExactly("fill_bytes", MEMSET_WITH_GUARDS);
+    assertThat(detect("byte-loop-memset-without-guard.c"))
+        .containsExactly("fill_bytes", MEMSET_WITH_GUARDS);
   }
 
   @Test
   public void implementationWithUnsignedCharAndWithoutResult() throws Exception {
-    assertThat(detect("memset-unsigned-char.c"))
+    assertThat(detect("byte-loop-memset-unsigned-char.c"))
         .containsExactly("clear_memory", MEMSET_WITH_GUARDS);
   }
 
   @Test
   public void wrappersInTwoLevels() throws Exception {
-    assertThat(detect("memset-wrapper-chain.c"))
+    assertThat(detect("byte-loop-memset-wrapper-chain.c"))
         .containsExactly(
             "set_bytes",
             MEMSET_WITH_GUARDS,
@@ -82,11 +83,12 @@ public class KnownFunctionBehaviorDetectorTest {
 
   @Test
   public void functionsThatAreNoMemset() throws Exception {
-    assertThat(detect("not-memset.c")).isEmpty();
+    assertThat(detect("byte-loop-not-memset.c")).isEmpty();
   }
 
   @Test
   public void noDetectionWithoutOption() throws Exception {
-    assertThat(knownBehaviors(TestCfaUtils.makeCfaFromFile(PROGRAMS + "memset-aws.c"))).isEmpty();
+    assertThat(knownBehaviors(TestCfaUtils.makeCfaFromFile(PROGRAMS + "byte-loop-memset-aws.c")))
+        .isEmpty();
   }
 }

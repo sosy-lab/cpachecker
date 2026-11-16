@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Functions that look like a byte-wise memset implementation, but do not set exactly the n bytes
-// starting at s to c. None of them may be recognized as MEMSET implementation.
+// starting at s to c. None of them may be recognized as memset implementation.
 
 typedef unsigned long size_t;
 

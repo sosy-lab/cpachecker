@@ -8,7 +8,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // The byte-wise memset implementation of the aws-c-common proof harnesses in sv-benchmarks:
-// memset_impl is a MEMSET implementation, my_memset a wrapper of it.
+// memset_impl is a memset implementation, my_memset a wrapper of it.
 
 typedef unsigned long size_t;
 
