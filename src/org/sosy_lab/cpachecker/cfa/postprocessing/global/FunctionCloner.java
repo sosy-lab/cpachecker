@@ -246,6 +246,7 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
                 cloneAst(n.getFunctionDefinition()),
                 newExitNode,
                 returnVariable);
+        entryNode.setKnownBehavior(n.getKnownBehavior().orElse(null));
         if (newExitNode != null) {
           newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
         }

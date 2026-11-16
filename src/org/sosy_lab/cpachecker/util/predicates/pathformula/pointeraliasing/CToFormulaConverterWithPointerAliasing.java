@@ -17,7 +17,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -134,9 +133,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final Formula nullPointer;
   private MemoryRegionManager regionMgr;
 
-  /** The functions of the program that behave like a well-known function. */
-  private final ImmutableMap<String, KnownFunctionBehavior> knownFunctionBehaviors;
-
   public CToFormulaConverterWithPointerAliasing(
       final CFormulaEncodingWithPointerAliasingOptions pOptions,
       final FormulaManagerView formulaManagerView,
@@ -146,33 +142,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final ShutdownNotifier pShutdownNotifier,
       final TypeHandlerWithPointerAliasing pTypeHandler,
       final AnalysisDirection pDirection)
-      throws InvalidConfigurationException {
-    this(
-        pOptions,
-        formulaManagerView,
-        pMachineModel,
-        pVariableClassification,
-        logger,
-        pShutdownNotifier,
-        pTypeHandler,
-        pDirection,
-        ImmutableMap.of());
-  }
-
-  /**
-   * Creates a converter that also uses the given known behavior of functions of the program, see
-   * {@link org.sosy_lab.cpachecker.cfa.CfaMetadata#getKnownFunctionBehaviors()}.
-   */
-  public CToFormulaConverterWithPointerAliasing(
-      final CFormulaEncodingWithPointerAliasingOptions pOptions,
-      final FormulaManagerView formulaManagerView,
-      final MachineModel pMachineModel,
-      final Optional<VariableClassification> pVariableClassification,
-      final LogManager logger,
-      final ShutdownNotifier pShutdownNotifier,
-      final TypeHandlerWithPointerAliasing pTypeHandler,
-      final AnalysisDirection pDirection,
-      final ImmutableMap<String, KnownFunctionBehavior> pKnownFunctionBehaviors)
       throws InvalidConfigurationException {
     super(
         pOptions,
@@ -192,7 +161,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
-    knownFunctionBehaviors = checkNotNull(pKnownFunctionBehaviors);
 
     if (options.useMemoryRegions()) {
       // create BnB regions here
@@ -1320,8 +1288,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     if (options.handleKnownFunctionBehavior()
-        && knownFunctionBehaviors.get(entryNode.getFunctionName())
-            == KnownFunctionBehavior.MEMSET) {
+        && entryNode.getKnownBehavior().equals(Optional.of(KnownFunctionBehavior.MEMSET))) {
       handleCallOfKnownMemset(edge, callerFunction, ssa, pts, constraints, errorConditions);
     }
 

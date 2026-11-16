@@ -1213,8 +1213,8 @@ cfa.checkNullPointers.singleTargetPerFunction = true
 
 # Detect functions of the program that behave like a well-known function (so
 # far, byte-wise implementations of memset and wrappers of them) and store
-# them in the CFA metadata. The CFA itself is not changed. Needs the loop
-# structure (analysis.useLoopStructure).
+# this in their function entry nodes. The structure of the CFA is not
+# changed. Needs the loop structure (analysis.useLoopStructure).
 cfa.detectKnownFunctionBehavior = false
 
 # When a function pointer array element is written with a variable as index,

@@ -16,6 +16,8 @@ import java.util.Map;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.KnownFunctionBehavior;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 /**
@@ -33,10 +35,20 @@ public class KnownFunctionBehaviorDetectorTest {
 
   private static ImmutableMap<String, KnownFunctionBehavior> detect(String pProgram)
       throws Exception {
-    CFA cfa =
+    return knownBehaviors(
         TestCfaUtils.makeCfaFromFile(
-            PROGRAMS + pProgram, Map.entry("cfa.detectKnownFunctionBehavior", "true"));
-    return cfa.getMetadata().getKnownFunctionBehaviors().orElseThrow();
+            PROGRAMS + pProgram, Map.entry("cfa.detectKnownFunctionBehavior", "true")));
+  }
+
+  /** The functions of the given CFA with a known behavior, by their name. */
+  private static ImmutableMap<String, KnownFunctionBehavior> knownBehaviors(CFA pCfa) {
+    ImmutableMap.Builder<String, KnownFunctionBehavior> result = ImmutableMap.builder();
+    for (FunctionEntryNode entry : pCfa.entryNodes()) {
+      if (entry instanceof CFunctionEntryNode cEntry && cEntry.getKnownBehavior().isPresent()) {
+        result.put(cEntry.getFunctionName(), cEntry.getKnownBehavior().orElseThrow());
+      }
+    }
+    return result.buildOrThrow();
   }
 
   @Test
@@ -67,7 +79,6 @@ public class KnownFunctionBehaviorDetectorTest {
 
   @Test
   public void noDetectionWithoutOption() throws Exception {
-    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "memset-aws.c");
-    assertThat(cfa.getMetadata().getKnownFunctionBehaviors()).isEmpty();
+    assertThat(knownBehaviors(TestCfaUtils.makeCfaFromFile(PROGRAMS + "memset-aws.c"))).isEmpty();
   }
 }

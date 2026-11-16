@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -329,9 +328,9 @@ public class CFACreator {
       name = "cfa.detectKnownFunctionBehavior",
       description =
           "Detect functions of the program that behave like a well-known function (so far,"
-              + " byte-wise implementations of memset and wrappers of them) and store them in the"
-              + " CFA metadata. The CFA itself is not changed. Needs the loop structure"
-              + " (analysis.useLoopStructure).")
+              + " byte-wise implementations of memset and wrappers of them) and store this in"
+              + " their function entry nodes. The structure of the CFA is not changed. Needs the"
+              + " loop structure (analysis.useLoopStructure).")
   private boolean detectKnownFunctionBehavior = false;
 
   @Option(
@@ -743,10 +742,8 @@ public class CFACreator {
       stats.knownFunctionBehaviorTime.start();
       Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
       if (loopStructure.isPresent()) {
-        ImmutableMap<String, KnownFunctionBehavior> knownFunctionBehaviors =
+        stats.knownFunctionBehaviors =
             KnownFunctionBehaviorDetector.detect(cfa, loopStructure.orElseThrow(), logger);
-        cfa.setKnownFunctionBehaviors(knownFunctionBehaviors);
-        stats.knownFunctionBehaviors = knownFunctionBehaviors.size();
       } else {
         logger.log(
             Level.WARNING,

@@ -13,7 +13,6 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import com.google.common.base.Ascii;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -78,8 +77,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /**
  * Finds the functions of a program that behave like a well-known function, see {@link
- * KnownFunctionBehavior}. This is a read-only analysis of the CFA of each single function, it has
- * to run before the supergraph is built.
+ * KnownFunctionBehavior}, and stores this in their {@link CFunctionEntryNode}. This analyzes the
+ * CFA of each single function without changing it, it has to run before the supergraph is built.
  *
  * <p>So far, it recognizes implementations of {@code memset} that set the bytes one by one in a
  * counting loop, and functions that only forward their parameters to such an implementation.
@@ -105,21 +104,21 @@ public final class KnownFunctionBehaviorDetector {
   }
 
   /**
-   * Finds the functions of the given CFA that behave like a well-known function.
+   * Finds the functions of the given CFA that behave like a well-known function, and stores their
+   * behavior in their entry node ({@link CFunctionEntryNode#setKnownBehavior}).
    *
    * @param pCfa the CFA, in which each function is still a separate graph
    * @param pLoopStructure the loop structure of the CFA
    * @param pLogger logs each recognized function at {@link Level#INFO}, and at {@link Level#FINE}
    *     why some functions that look similar to one are not recognized
-   * @return the recognized functions with their behavior
+   * @return the number of recognized functions
    */
-  public static ImmutableMap<String, KnownFunctionBehavior> detect(
-      MutableCFA pCfa, LoopStructure pLoopStructure, LogManager pLogger) {
+  public static int detect(MutableCFA pCfa, LoopStructure pLoopStructure, LogManager pLogger) {
     return new KnownFunctionBehaviorDetector(pCfa, pLoopStructure, pLogger).detect();
   }
 
-  private ImmutableMap<String, KnownFunctionBehavior> detect() {
-    Map<String, KnownFunctionBehavior> detected = new LinkedHashMap<>();
+  private int detect() {
+    int detected = 0;
     Map<String, String> rejected = new LinkedHashMap<>();
     List<CFunctionEntryNode> candidates = new ArrayList<>();
 
@@ -136,7 +135,8 @@ public final class KnownFunctionBehaviorDetector {
       }
       Optional<String> loopProblem = whyNotByteLoopMemset(entry);
       if (loopProblem.isEmpty()) {
-        detected.put(function, KnownFunctionBehavior.MEMSET);
+        entry.setKnownBehavior(KnownFunctionBehavior.MEMSET);
+        detected++;
         logDetected(entry, "byte loop");
       } else {
         // Only report functions that look like a memset, everything else would be noise.
@@ -154,12 +154,13 @@ public final class KnownFunctionBehaviorDetector {
       changed = false;
       for (CFunctionEntryNode entry : candidates) {
         String function = entry.getFunctionName();
-        if (detected.containsKey(function)) {
+        if (entry.getKnownBehavior().isPresent()) {
           continue;
         }
-        WrapperCheck check = checkWrapper(entry, detected);
+        WrapperCheck check = checkWrapper(entry);
         if (check.problem() == null) {
-          detected.put(function, KnownFunctionBehavior.MEMSET);
+          entry.setKnownBehavior(KnownFunctionBehavior.MEMSET);
+          detected++;
           logDetected(entry, "wrapper of " + check.callee());
           changed = true;
         } else if (looksLikeMemset(function)
@@ -171,7 +172,7 @@ public final class KnownFunctionBehaviorDetector {
     }
 
     for (Map.Entry<String, String> rejection : rejected.entrySet()) {
-      if (!detected.containsKey(rejection.getKey())) {
+      if (knownBehaviorOf(rejection.getKey()).isEmpty()) {
         logger.logf(
             Level.FINE,
             "Known function behavior: function %s is not recognized as MEMSET implementation"
@@ -180,7 +181,14 @@ public final class KnownFunctionBehaviorDetector {
             rejection.getValue());
       }
     }
-    return ImmutableMap.copyOf(detected);
+    return detected;
+  }
+
+  /** The known behavior of the function with the given name, which may have no body. */
+  private Optional<KnownFunctionBehavior> knownBehaviorOf(String pFunction) {
+    return cfa.getFunctionHead(pFunction) instanceof CFunctionEntryNode entry
+        ? entry.getKnownBehavior()
+        : Optional.empty();
   }
 
   private void logDetected(CFunctionEntryNode pEntry, String pReason) {
@@ -432,8 +440,7 @@ public final class KnownFunctionBehaviorDetector {
    * Besides that, it may only check conditions, write its own local variables, and call functions
    * that only check conditions or stop the program.
    */
-  private WrapperCheck checkWrapper(
-      CFunctionEntryNode pEntry, Map<String, KnownFunctionBehavior> pKnown) {
+  private WrapperCheck checkWrapper(CFunctionEntryNode pEntry) {
     String function = pEntry.getFunctionName();
     Collection<CFANode> nodes = cfa.getFunctionNodes(function);
     ImmutableList<CParameterDeclaration> parameters = pEntry.getFunctionParameters();
@@ -472,7 +479,9 @@ public final class KnownFunctionBehaviorDetector {
     }
 
     Optional<String> callee = CFAUtils.getFunctionCallName(call);
-    if (callee.isEmpty() || !pKnown.containsKey(callee.orElseThrow())) {
+    if (callee.isEmpty()
+        || !knownBehaviorOf(callee.orElseThrow())
+            .equals(Optional.of(KnownFunctionBehavior.MEMSET))) {
       return new WrapperCheck(
           null,
           "it calls "
