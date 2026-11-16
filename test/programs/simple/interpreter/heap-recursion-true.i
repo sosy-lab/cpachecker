@@ -1339,6 +1339,9 @@ int sum(int *a, int n) {
 
 int main(void) {
   int *a = malloc(4 * sizeof(int));
+  if (a == 0) {
+    return 0;
+  }
   for (int i = 0; i < 4; i++) {
     a[i] = i;
   }

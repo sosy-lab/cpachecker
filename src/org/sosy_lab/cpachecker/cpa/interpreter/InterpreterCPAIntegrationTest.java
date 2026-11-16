@@ -126,18 +126,17 @@ public class InterpreterCPAIntegrationTest {
             ImmutableMap.of("cpa.smg2.enableMallocFail", "true")),
         task("interpreter--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
         task("interpreter--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
-        // An execution in which every allocation succeeds is not the only execution of a program
-        // that allocates, so such a program cannot be proven safe, only unsafe.
-        task(
-            "interpreter--memorysafety",
-            "valid-memsafety",
-            "heap-recursion-true.i",
-            Result.UNKNOWN),
+        // Both outcomes of each allocation are executed, so a program that allocates can be proven
+        // safe.
+        task("interpreter--memorysafety", "valid-memsafety", "heap-recursion-true.i", Result.TRUE),
         task(
             "interpreter--memorysafety",
             "valid-memsafety",
             "heap-out-of-bounds-false.i",
             Result.FALSE),
+        // The memcleanup execution lets every allocation succeed, so it is not the only execution
+        // of
+        // a program that allocates and such a program cannot be proven safe, only unsafe.
         task(
             "interpreter--memorycleanup",
             "valid-memcleanup",
@@ -164,11 +163,6 @@ public class InterpreterCPAIntegrationTest {
             .setOption("analysis.entryFunction", "main")
             .setOptions(task.options())
             .build();
-    if (task.property.equalsIgnoreCase("valid-memsafety") && task.expected().equals(Result.FALSE)) {
-      // MemSafety does not report FALSE results due to imprecision
-      IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(Result.UNKNOWN);
-    } else {
-      IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(task.expected());
-    }
+    IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(task.expected());
   }
 }

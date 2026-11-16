@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -32,9 +33,14 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -50,8 +56,13 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.ToCodeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -77,6 +88,11 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
   private final Scope scope;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  // The variables for the values of expressions of the transition invariant, e.g., of *p for
+  // \at(*p, AnyPrev), which are declared in the scope
+  private final ImmutableMap<CSimpleDeclaration, CExpression> expressionVariables;
+  // The substitution of these expressions by their variables
+  private final ImmutableMap<CExpression, CExpression> substitutionByVariables;
 
   public ImplicitRankingChecker(
       final FormulaManagerView pFmgr,
@@ -85,9 +101,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
       final Scope pScope,
-      final CFA pCFA)
+      final CFA pCFA,
+      final ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    expressionVariables = pExpressionVariables;
+    substitutionByVariables = ExpressionSubstitution.substitutionByVariables(pExpressionVariables);
     fmgr = pFmgr;
     bfmgr = pBfmgr;
     config = pConfig;
@@ -275,10 +294,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
     String loopCondition =
         TransitionInvariantUtils.transformFormulaToStringWithReplacement(
             pFormula, bfmgr, fmgr, scope);
-    // If the condition of the loop cannot be computed, the condition true overapproximates it
-    String exitCondition =
-        CFAUtils.computeLoopCondition(loopHead, cfa.getAstCfaRelation()).orElse("1");
-    loopCondition = loopCondition + " && " + exitCondition;
+    loopCondition = loopCondition + " && " + computeLoopCondition(loopHead);
     for (BooleanFormula invariant : pSupportingInvariants) {
       loopCondition =
           loopCondition
@@ -296,6 +312,52 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       }
     }
     builder.add("while(" + loopCondition + ") {");
+  }
+
+  /**
+   * Returns the condition of the loop, where the expressions with previous values are replaced by
+   * the variables for their values. If the condition refers to variables that the generated program
+   * does not declare, e.g., pointers, or cannot be computed, the condition true overapproximates
+   * it.
+   */
+  private String computeLoopCondition(CFANode pLoopHead) {
+    Optional<ExpressionTree<CExpression>> loopCondition =
+        CFAUtils.computeLoopConditionTree(pLoopHead, cfa.getAstCfaRelation());
+    if (loopCondition.isEmpty()) {
+      return "1";
+    }
+    ExpressionTree<CExpression> condition =
+        ExpressionTrees.convert(loopCondition.orElseThrow(), this::withExpressionVariables);
+    for (ExpressionTree<CExpression> node : ExpressionTrees.traverseRecursively(condition)) {
+      if (node instanceof LeafExpression<CExpression> leaf
+          && !isDeclaredInGeneratedProgram(leaf.getExpression())) {
+        return "1";
+      }
+    }
+    return condition.accept(new ToCodeVisitor<>(CExpression::toASTString));
+  }
+
+  /**
+   * Returns the expression, where the expressions with previous values are replaced by the
+   * variables for their values.
+   */
+  private CExpression withExpressionVariables(CExpression pExpression) {
+    return SubstitutingCAstNodeVisitor.substituteExpressions(pExpression, substitutionByVariables);
+  }
+
+  /**
+   * Whether the generated program declares the variables of the expression, which are only
+   * variables of simple types, and the expression has no accesses to memory.
+   */
+  private static boolean isDeclaredInGeneratedProgram(CExpression pExpression) {
+    return CFAUtils.traverseRecursively(pExpression)
+        .allMatch(
+            node ->
+                node instanceof CIdExpression variable
+                    ? variable.getExpressionType().getCanonicalType() instanceof CSimpleType
+                    : !(node instanceof CPointerExpression
+                        || node instanceof CFieldReference
+                        || node instanceof CArraySubscriptExpression));
   }
 
   private void initializeVariables(
@@ -320,6 +382,16 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         // uninitialized variables imprecisely
         builder.add(
             type.toASTString(variable.getName())
+                + " = "
+                + nondetCall(simpleType, pNondetDeclarations)
+                + ";");
+      }
+    }
+    for (CSimpleDeclaration variable : expressionVariables.keySet()) {
+      if (variable.getType().getCanonicalType() instanceof CSimpleType simpleType
+          && alreadyDeclaredVars.add(variable.getName())) {
+        builder.add(
+            variable.getType().toASTString(variable.getName())
                 + " = "
                 + nondetCall(simpleType, pNondetDeclarations)
                 + ";");

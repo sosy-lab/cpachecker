@@ -198,7 +198,8 @@ public final class SupportingInvariantsChecker {
     ReachedSet reachedSet =
         coreComponents.createInitializedReachedSet(supportingInvariantsCPA, pCfa.getMainFunction());
 
-    AlgorithmStatus status = invariantCheckingAlgorithm.run(reachedSet);
+    AlgorithmStatus status;
+    status = invariantCheckingAlgorithm.run(reachedSet);
     // An interrupted analysis may look as if it finished, so it must not be reported as valid
     pShutdownNotifier.shutdownIfNecessary();
     if (reachedSet.wasTargetReached()) {
