@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
  * only check conditions and stop the program if they do not hold. Everything else is rejected, so
  * every recognized function really has the described behavior.
  */
+@SuppressWarnings("SequencedCollectionGetFirst")
 public final class KnownFunctionBehaviorDetector {
 
   private final MutableCFA cfa;
