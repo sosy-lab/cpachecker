@@ -109,6 +109,11 @@ public interface PointerTargetSetBuilder {
 
   void setStringFacts(PersistentList<StringEqualityFact> facts);
 
+  /** The facts about memory that is still zero since its allocation, the newest first. */
+  PersistentList<ZeroedMemoryFact> getZeroedMemoryFacts();
+
+  void setZeroedMemoryFacts(PersistentList<ZeroedMemoryFact> facts);
+
   /** Returns an immutable PointerTargetSet with all the changes made to the builder. */
   PointerTargetSet build();
 
@@ -136,6 +141,7 @@ public interface PointerTargetSetBuilder {
     private PersistentList<Formula> highestAllocatedAddresses;
     private int allocationCount;
     private PersistentList<StringEqualityFact> stringFacts;
+    private PersistentList<ZeroedMemoryFact> zeroedMemoryFacts;
 
     /**
      * Creates a new RealPointerTargetSetBuilder.
@@ -167,6 +173,7 @@ public interface PointerTargetSetBuilder {
       highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
       allocationCount = pointerTargetSet.getAllocationCount();
       stringFacts = pointerTargetSet.getStringFacts();
+      zeroedMemoryFacts = pointerTargetSet.getZeroedMemoryFacts();
       typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
       options = pOptions;
@@ -762,7 +769,8 @@ public interface PointerTargetSetBuilder {
               targets,
               highestAllocatedAddresses,
               allocationCount,
-              stringFacts);
+              stringFacts,
+              zeroedMemoryFacts);
       if (result.isEmpty()) {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
@@ -779,6 +787,16 @@ public interface PointerTargetSetBuilder {
     @Override
     public void setStringFacts(PersistentList<StringEqualityFact> pFacts) {
       stringFacts = pFacts;
+    }
+
+    @Override
+    public PersistentList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+      return zeroedMemoryFacts;
+    }
+
+    @Override
+    public void setZeroedMemoryFacts(PersistentList<ZeroedMemoryFact> pFacts) {
+      zeroedMemoryFacts = pFacts;
     }
 
     @Override
@@ -916,6 +934,16 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void setStringFacts(PersistentList<StringEqualityFact> pFacts) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PersistentList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+      return PersistentLinkedList.of();
+    }
+
+    @Override
+    public void setZeroedMemoryFacts(PersistentList<ZeroedMemoryFact> pFacts) {
       throw new UnsupportedOperationException();
     }
 

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
+
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -226,10 +228,20 @@ final class AddressHandler {
         if (region == null) {
           region = regionMgr.makeMemoryRegion(type);
         }
-        if (isSafe) {
-          yield Optional.of(conv.makeSafeDereference(type, address, ssa, region));
+        final Formula value =
+            isSafe
+                ? conv.makeSafeDereference(type, address, ssa, region)
+                : conv.makeDereference(type, address, ssa, errorConditions, region);
+        if (!pts.getZeroedMemoryFacts().isEmpty() && isSimpleType(type) && !type.isIncomplete()) {
+          constraints.addConstraint(
+              ZeroedMemoryFact.makeReadConstraint(
+                  pts.getZeroedMemoryFacts(),
+                  address,
+                  typeHandler.getExactSizeof(type),
+                  value,
+                  conv.fmgr));
         }
-        yield Optional.of(conv.makeDereference(type, address, ssa, errorConditions, region));
+        yield Optional.of(value);
       }
       case UNALIASED_LOCATION ->
           Optional.of(

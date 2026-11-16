@@ -827,9 +827,11 @@ class CExpressionVisitorWithPointerAliasing
     }
 
     // An unknown function may write through its pointer arguments, which we do not encode, but it
-    // would make facts about equal strings wrong.
-    if (!pts.getStringFacts().isEmpty() && mayWriteThroughPointerArguments(e)) {
+    // would make facts about equal strings and zeroed memory wrong.
+    if ((!pts.getStringFacts().isEmpty() || !pts.getZeroedMemoryFacts().isEmpty())
+        && mayWriteThroughPointerArguments(e)) {
       pts.setStringFacts(PersistentLinkedList.of());
+      pts.setZeroedMemoryFacts(PersistentLinkedList.of());
     }
 
     // Pure functions returning composites are unsupported, return a nondet value

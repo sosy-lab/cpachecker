@@ -933,6 +933,11 @@ class AssignmentFormulaHandler {
       final BooleanFormula condition,
       final boolean useQuantifiers)
       throws UnrecognizedCodeException {
+    if (useQuantifiers) {
+      // The addresses contain the quantified variable, which must not leave the quantifier.
+      pts.setZeroedMemoryFacts(PersistentLinkedList.of());
+    }
+
     // Arrays and functions are implicitly converted to pointers
     CType rvalueType = implicitCastToPointer(pRvalueType);
 
@@ -1034,6 +1039,13 @@ class AssignmentFormulaHandler {
               StringEqualityFact.afterWrite(
                   pts.getStringFacts(), address, writeSize, bfmgr.makeTrue(), fmgr));
         }
+      }
+
+      // writes with old SSA indices initialize fresh memory and do not change zeroed memory
+      if (!useOldSSAIndices) {
+        pts.setZeroedMemoryFacts(
+            ZeroedMemoryFact.afterWrite(
+                pts.getZeroedMemoryFacts(), address, typeHandler.getExactSizeof(lvalueType)));
       }
 
       if (rhs != null) {

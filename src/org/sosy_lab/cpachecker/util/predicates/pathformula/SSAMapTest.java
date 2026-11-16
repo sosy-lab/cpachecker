@@ -45,6 +45,7 @@ public class SSAMapTest {
                 PathCopyingPersistentTreeMap.of(),
                 PersistentLinkedList.of(),
                 0,
+                PersistentLinkedList.of(),
                 PersistentLinkedList.of());
 
     return new ClassSanityTester()

@@ -382,8 +382,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormulaWithContext(SSAMap pSsaMap, PointerTargetSet pPts) {
-    // Facts about equal strings refer to the constraints of the previous path formula.
-    return new PathFormula(bfmgr.makeTrue(), pSsaMap, pPts.withoutStringFacts(), 0);
+    // Facts about strings and zeroed memory refer to the constraints of the previous path formula.
+    return new PathFormula(bfmgr.makeTrue(), pSsaMap, pPts.withoutFacts(), 0);
   }
 
   @Override
