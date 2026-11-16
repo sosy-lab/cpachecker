@@ -1152,22 +1152,6 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Handles the function {@code char *getenv(const char *name)} (C11 7.22.4.6). It returns a
-   * pointer to the string of the environment variable with the given name, or a null pointer if
-   * there is no such variable. The program shall not modify the returned string.
-   *
-   * <p>We do not model the environment, so we return both a null pointer and a pointer to a string
-   * with unknown characters (see {@link #getPointerToEnvironmentString(String, SMGState,
-   * CFAEdge)}). All calls return the same string.
-   *
-   * @param pFunctionCall the {@link CFunctionCallExpression} of the call to {@code getenv}.
-   * @param pState current {@link SMGState}.
-   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
-   * @return a null pointer and a pointer to the string, or an unknown value and an error state if
-   *     the name is not a valid string.
-   * @throws CPATransferException if the name or the string can not be evaluated.
-   */
-  /**
    * Handles {@code int fesetround(int round)} (C11 7.6.3.2), which sets the rounding direction of
    * floating-point operations. The analysis computes all floating-point operations with rounding to
    * nearest, so only this rounding direction, i.e., {@code FE_TONEAREST}, which is 0 on all
@@ -1205,6 +1189,22 @@ public class SMGCPABuiltins {
     return resultBuilder.build();
   }
 
+  /**
+   * Handles the function {@code char *getenv(const char *name)} (C11 7.22.4.6). It returns a
+   * pointer to the string of the environment variable with the given name, or a null pointer if
+   * there is no such variable. The program shall not modify the returned string.
+   *
+   * <p>We do not model the environment, so we return both a null pointer and a pointer to a string
+   * with unknown characters (see {@link #getPointerToEnvironmentString(String, SMGState,
+   * CFAEdge)}). All calls return the same string.
+   *
+   * @param pFunctionCall the {@link CFunctionCallExpression} of the call to {@code getenv}.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return a null pointer and a pointer to the string, or an unknown value and an error state if
+   *     the name is not a valid string.
+   * @throws CPATransferException if the name or the string can not be evaluated.
+   */
   private List<ValueAndSMGState> evaluateGetenv(
       CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
       throws CPATransferException {
