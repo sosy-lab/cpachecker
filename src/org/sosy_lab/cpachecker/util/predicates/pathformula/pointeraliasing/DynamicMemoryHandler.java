@@ -286,6 +286,7 @@ public final class DynamicMemoryHandler {
 
     // The byte-level heap is shared by all types, so it needs no facts.
     if (isZeroing
+        && conv.options.maxTrackedZeroedBlocks() > 0
         && !conv.options.useQuantifiersOnArrays()
         && !conv.options.useByteArrayForHeap()) {
       addZeroedMemoryFact(newBase, address, sizeExp);
@@ -305,7 +306,11 @@ public final class DynamicMemoryHandler {
         conv.makeFreshVariable(SIZE_PREFIX + base.name(), conv.machineModel.getSizeType(), ssa);
     constraints.addConstraint(conv.fmgr.assignment(sizeVariable, size));
     pts.setZeroedMemoryFacts(
-        ZeroedMemoryFact.add(pts.getZeroedMemoryFacts(), address, sizeVariable));
+        ZeroedMemoryFact.add(
+            pts.getZeroedMemoryFacts(),
+            address,
+            sizeVariable,
+            conv.options.maxTrackedZeroedBlocks()));
   }
 
   /**

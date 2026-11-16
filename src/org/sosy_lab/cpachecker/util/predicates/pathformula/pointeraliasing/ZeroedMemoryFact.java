@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
@@ -41,30 +42,31 @@ record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes
   /** A write of {@code size} bytes at {@code address}. */
   record Write(Formula address, long size) {}
 
-  /** A fact with more writes is dropped, which limits the size of the read constraints. */
-  private static final int MAX_WRITES = 100;
-
-  /** Only the newest facts are kept, which limits the size of the read constraints. */
-  private static final int MAX_FACTS = 20;
-
   ZeroedMemoryFact {
     checkNotNull(start);
     checkNotNull(size);
     checkNotNull(writes);
   }
 
-  /** Returns the given facts with the new fact of a freshly zeroed block. */
+  /**
+   * Returns the given facts with the new fact of a freshly zeroed block, keeping the {@code
+   * maxFacts} newest ones.
+   */
   static ImmutableList<ZeroedMemoryFact> add(
-      ImmutableList<ZeroedMemoryFact> facts, Formula start, Formula size) {
+      ImmutableList<ZeroedMemoryFact> facts, Formula start, Formula size, int maxFacts) {
+    checkArgument(maxFacts > 0);
     return ImmutableList.<ZeroedMemoryFact>builder()
         .add(new ZeroedMemoryFact(start, size, ImmutableList.of()))
-        .addAll(facts.subList(0, Math.min(facts.size(), MAX_FACTS - 1)))
+        .addAll(facts.subList(0, Math.min(facts.size(), maxFacts - 1)))
         .build();
   }
 
-  /** Returns the facts that hold after a write of {@code size} bytes at {@code address}. */
+  /**
+   * Returns the facts that hold after a write of {@code size} bytes at {@code address}. A fact that
+   * would get more than {@code maxWrites} writes is dropped.
+   */
   static ImmutableList<ZeroedMemoryFact> afterWrite(
-      ImmutableList<ZeroedMemoryFact> facts, Formula address, long size) {
+      ImmutableList<ZeroedMemoryFact> facts, Formula address, long size, int maxWrites) {
     if (facts.isEmpty()) {
       return facts;
     }
@@ -72,7 +74,7 @@ record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes
     ImmutableList.Builder<ZeroedMemoryFact> result =
         ImmutableList.builderWithExpectedSize(facts.size());
     for (ZeroedMemoryFact fact : facts) {
-      if (fact.writes().size() < MAX_WRITES) {
+      if (fact.writes().size() < maxWrites) {
         ImmutableList<Write> writes =
             ImmutableList.<Write>builderWithExpectedSize(fact.writes().size() + 1)
                 .addAll(fact.writes())
@@ -89,7 +91,10 @@ record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes
    * unconstrained on the other path. A fact of both paths gets the writes of both paths.
    */
   static ImmutableList<ZeroedMemoryFact> merge(
-      ImmutableList<ZeroedMemoryFact> facts1, ImmutableList<ZeroedMemoryFact> facts2) {
+      ImmutableList<ZeroedMemoryFact> facts1,
+      ImmutableList<ZeroedMemoryFact> facts2,
+      int maxFacts,
+      int maxWrites) {
     if (facts1.equals(facts2)) {
       return facts1;
     }
@@ -109,20 +114,17 @@ record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes
                 .addAll(fact2.writes())
                 .build()
                 .asList();
-        if (writes.size() <= MAX_WRITES) {
+        if (writes.size() <= maxWrites) {
           result.add(new ZeroedMemoryFact(fact1.start(), fact1.size(), writes));
         }
       }
     }
     result.addAll(onlyIn2.values());
-    return limit(result.build());
-  }
-
-  private static ImmutableList<ZeroedMemoryFact> limit(ImmutableList<ZeroedMemoryFact> facts) {
-    if (facts.size() <= MAX_FACTS) {
-      return facts;
+    ImmutableList<ZeroedMemoryFact> merged = result.build();
+    if (merged.size() <= maxFacts) {
+      return merged;
     }
-    return ImmutableList.copyOf(facts.subList(0, MAX_FACTS));
+    return ImmutableList.copyOf(merged.subList(0, maxFacts));
   }
 
   /**

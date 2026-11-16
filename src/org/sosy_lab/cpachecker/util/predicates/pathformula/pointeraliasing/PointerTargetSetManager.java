@@ -427,7 +427,11 @@ class PointerTargetSetManager {
             pts1.getStringFacts().equals(pts2.getStringFacts())
                 ? pts1.getStringFacts()
                 : PersistentLinkedList.of(),
-            ZeroedMemoryFact.merge(pts1.getZeroedMemoryFacts(), pts2.getZeroedMemoryFacts()));
+            ZeroedMemoryFact.merge(
+                pts1.getZeroedMemoryFacts(),
+                pts2.getZeroedMemoryFacts(),
+                options.maxTrackedZeroedBlocks(),
+                options.maxWritesToZeroedBlock()));
 
     // Handle value-import constraints
 

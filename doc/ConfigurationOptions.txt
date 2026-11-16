@@ -3077,6 +3077,16 @@ cpa.predicate.maxArrayLength = -1
 # overapproximated.
 cpa.predicate.maxPreciseStrFunctionSize = 100
 
+# Number of the most recently allocated zeroed blocks (e.g., by calloc) whose
+# zero bytes are tracked for reads with any type. Each block adds conditions
+# to every heap read. Use 0 to disable the tracking.
+cpa.predicate.maxTrackedZeroedBlocks = 5
+
+# Number of writes after its allocation up to which a zeroed block is tracked
+# (see maxTrackedZeroedBlocks). Each write adds a condition to every heap
+# read.
+cpa.predicate.maxWritesToZeroedBlock = 20
+
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}

@@ -1046,7 +1046,10 @@ class AssignmentFormulaHandler {
       if (!useOldSSAIndices) {
         pts.setZeroedMemoryFacts(
             ZeroedMemoryFact.afterWrite(
-                pts.getZeroedMemoryFacts(), address, typeHandler.getExactSizeof(lvalueType)));
+                pts.getZeroedMemoryFacts(),
+                address,
+                typeHandler.getExactSizeof(lvalueType),
+                options.maxWritesToZeroedBlock()));
       }
 
       if (rhs != null) {
