@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR2_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
@@ -186,7 +187,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 terminationState.getStoredValues().get(programCounter),
                 terminationState.getPathFormulaFull().orElseThrow().getFormula(),
                 largestIndices,
-                terminationState.getNumberOfIterationsAtLoopHead(programCounter) - 1);
+                terminationState.getNumberOfIterationsAtLoopHead(programCounter) - 1,
+                from(terminationState.getLoopHeadVisits())
+                    .filter(visit -> visit.loopHead().equals(programCounter))
+                    .toList());
 
         // Compute all the transition predicates that hold for the current state
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
@@ -837,13 +841,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
    * current visit, also the memory that a variable moves to when its address is taken. A variable
    * without SSA index at an earlier visit has there the index 1 of uninitialized variables.
    *
+   * <p>A lasso has to go around the cycles of the automata, e.g., of a non-termination witness, so
+   * the formula is false for earlier visits from which the path does not.
+   *
    * @param pPath the path formula until the current visit
+   * @param pVisits the visits of the loop head on the path, the last one is the current visit
    */
   private ImmutableList<BooleanFormula> buildComparingFormulas(
       Map<Integer, SSAMap> storedValues,
       BooleanFormula pPath,
       SSAMap pLatestValues,
-      int pMaxIndex) {
+      int pMaxIndex,
+      ImmutableList<LoopHeadVisit> pVisits) {
     ImmutableSet.Builder<Formula> stateVariablesBuilder = ImmutableSet.builder();
     for (Entry<String, Formula> variable : fmgr.extractVariables(pPath).entrySet()) {
       if (pLatestValues.containsVariable(
@@ -856,6 +865,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
     for (Entry<Integer, SSAMap> savedIndices : storedValues.entrySet()) {
       if (savedIndices.getKey().intValue() >= pMaxIndex) {
+        continue;
+      }
+      if (!pVisits.getLast().completesAutomatonCyclesSince(pVisits.get(savedIndices.getKey()))) {
+        comparingFormulas.add(bfmgr.makeFalse());
         continue;
       }
       SSAMap indicesAtVisit = savedIndices.getValue().withDefault(1);

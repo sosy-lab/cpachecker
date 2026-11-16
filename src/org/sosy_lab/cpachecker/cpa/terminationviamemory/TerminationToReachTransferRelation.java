@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -21,6 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_founde
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -162,7 +165,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
                       loopHead,
                       terminationState.getPathSequence().size() - 1,
                       block,
-                      ImmutableSet.of())),
+                      ImmutableSet.of(),
+                      getCycleAutomatonStates(pOtherStates))),
               ImmutableSet.of(),
               terminationState.getTransitionPredicates());
       return ImmutableList.of(newState);
@@ -180,6 +184,17 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       return pBlock;
     }
     return pfmgr.makeConjunction(ImmutableList.of(sinceLastVisit, pBlock));
+  }
+
+  private static ImmutableList<AutomatonState> getCycleAutomatonStates(
+      Iterable<AbstractState> otherStates) {
+    return FluentIterable.from(otherStates)
+        .filter(AutomatonState.class)
+        .filter(
+            state ->
+                state.getOwningAutomaton().getStates().stream()
+                    .anyMatch(AutomatonInternalState::isNontrivialCycleStart))
+        .toList();
   }
 
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {
