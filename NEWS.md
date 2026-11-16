@@ -23,7 +23,8 @@ Changes since CPAchecker 4.2.2
 * `__atomic_*` builtin functions are now supported with sequential consistency ordering,
   the `_Atomic(T)` type specifier is now parsed, and
   `__thread`/`_Thread_local` storage is now recognized.
-* Ordering-consistency analysis and abstraction-aware source-set partial-order-reduction
+* Ordering-consistency analysis (`--orderingConsistency`) and 
+  abstraction-aware source-set partial-order-reduction (`--predicateAnalysis-POR`)
   have been added for concurrent C programs.
 
 
