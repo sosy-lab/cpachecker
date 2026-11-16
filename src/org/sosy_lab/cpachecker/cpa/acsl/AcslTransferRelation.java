@@ -57,7 +57,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
           "Could not retrieve loop structure to determine if ACSL invariants can be generated.");
       this.hasNestedLoop = false;
     } else {
-      this.hasNestedLoop = hasNestedLoops(cfa.getLoopStructure().get());
+      this.hasNestedLoop = hasNestedLoops(cfa.getLoopStructure().orElseThrow());
     }
   }
 
@@ -69,7 +69,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
     logger.log(
         logLevel, "[ACSL] Transfer: " + cfaEdge.getPredecessor() + " -> " + cfaEdge.getSuccessor());
 
-    if (cfa.getAllLoopHeads().get().contains(cfaEdge.getSuccessor())) {
+    if (cfa.getAllLoopHeads().orElseThrow().contains(cfaEdge.getSuccessor())) {
       // TODO
     }
     return ImmutableList.of(state);
@@ -107,16 +107,16 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
               loopPatternFinder.detect(cfaEdge, cfa.getLoopStructure(), predicateState);
 
           if (detected.isPresent()) {
-            ArrayInitialization init = detected.get();
+            ArrayInitialization init = detected.orElseThrow();
             logger.log(Level.INFO, "SUCCESS: Detected array initialization: " + init);
 
             CProgramScope scope = new CProgramScope(cfa, logger);
-            AcslPredicate inv = detected.get().toInvariant(scope, FileLocation.DUMMY, logger);
+            AcslPredicate inv = detected.orElseThrow().toInvariant(scope, FileLocation.DUMMY, logger);
             logger.log(Level.INFO, "Generated ACSL invariant: " + inv);
 
             if (updatedState instanceof AcslState acslState) {
               ImmutableList<CFANode> exitNodes =
-                  getExitNodes(cfa.getLoopStructure().get(), init.loopHead());
+                  getExitNodes(cfa.getLoopStructure().orElseThrow(), init.loopHead());
               if (exitNodes.isEmpty()) {
                 updatedState = acslState.withAddedInvariant(init.loopHead(), init);
                 logger.log(

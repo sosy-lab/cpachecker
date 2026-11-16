@@ -52,11 +52,8 @@ class LoopPatternFinder {
 
   public Optional<ArrayInitialization> detect(
       CFAEdge edge, Optional<LoopStructure> loopStruct, PredicateAbstractState predState) {
-    // System.out.println("Abstraction State:"+ predState.isAbstractionState() + ", Loop Start?" +
-    // edge.getSuccessor().isLoopStart());
-    // TODO why do I only get NonAbstraction states?
 
-    LoopStructure.Loop loop = loopStruct.get().getAllLoops().asList().getFirst();
+    LoopStructure.Loop loop = loopStruct.orElseThrow().getAllLoops().asList().getFirst();
 
     if (loop != null && loop.getIncomingEdges().contains(edge)) {
       predStateAtLoopEntry = predState;
@@ -73,7 +70,7 @@ class LoopPatternFinder {
     for (CFAEdge e : loopHead.getAllLeavingEdges()) {
       if (e instanceof CAssumeEdge assumeEdge && assumeEdge.getTruthAssumption()) {
         loopCondition = Optional.of(assumeEdge.getExpression());
-        logger.log(logLevel, "Loop head condition: " + loopCondition.get());
+        logger.log(logLevel, "Loop head condition: " + loopCondition.orElseThrow());
       }
     }
 
@@ -135,7 +132,7 @@ class LoopPatternFinder {
           }
         }
       } else if (hasRelationalOp(p)) {
-        if (!predicateMatchesLoopCondition(p, loopCondition.get())) {
+        if (!predicateMatchesLoopCondition(p, loopCondition.orElseThrow())) {
           return Optional.empty(); // we found a branching we do not want, abort
         } else {
           loopCondPredicate = Optional.of(p);
@@ -146,23 +143,23 @@ class LoopPatternFinder {
     if (store.isEmpty() || update.isEmpty() || loopCondPredicate.isEmpty()) {
       return Optional.empty();
     } else {
-      if (!indexMatchesEveryWhere(store.get(), update.get(), loopCondPredicate.get())) {
+      if (!indexMatchesEveryWhere(store.orElseThrow(), update.orElseThrow(), loopCondPredicate.orElseThrow())) {
         return Optional.empty();
       }
 
       // try to extract the bounds of the initialization we found
-      AcslPredicate condition = loopCondPredicate.get();
-      AcslIdTerm index = store.get().index();
+      AcslPredicate condition = loopCondPredicate.orElseThrow();
+      AcslIdTerm index = store.orElseThrow().index();
       AcslTerm upperBound;
       boolean upperBoundInclusive;
       Optional<AcslTerm> exclusiveUpper = extractUpperBoundIfMatchingLTPattern(condition, index);
       if (exclusiveUpper.isPresent()) {
-        upperBound = exclusiveUpper.get();
+        upperBound = exclusiveUpper.orElseThrow();
         upperBoundInclusive = false;
       } else {
         Optional<AcslTerm> inclusiveUpper = extractUpperBoundIfMatchingLEPattern(condition, index);
         if (inclusiveUpper.isPresent()) {
-          upperBound = inclusiveUpper.get();
+          upperBound = inclusiveUpper.orElseThrow();
           upperBoundInclusive = true;
         } else {
           return Optional.empty();
@@ -181,12 +178,12 @@ class LoopPatternFinder {
         return Optional.of(
             new ArrayInitialization(
                 loopHead,
-                store.get().array(),
+                store.orElseThrow().array(),
                 index,
-                extractedLower.get(),
+                extractedLower.orElseThrow(),
                 upperBound,
                 upperBoundInclusive,
-                store.get().value()));
+                store.orElseThrow().value()));
       }
     }
   }

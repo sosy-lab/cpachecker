@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -17,8 +16,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -26,9 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
@@ -41,7 +35,6 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   private final CFA cfa;
   private final LogManager logger;
   private final Solver solver;
-  private CToFormulaConverterWithPointerAliasing converter;
   private FormulaToAcslConverter formulaConverter;
   private FormulaManagerView fmgr;
 
@@ -53,24 +46,6 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     this.logger = pLogManager;
     solver = Solver.create(pConfig, this.logger, pShutdownNotifier);
     this.fmgr = solver.getFormulaManager();
-    MachineModel machineModel = pCFA.getMachineModel();
-
-    CFormulaEncodingWithPointerAliasingOptions options =
-        new CFormulaEncodingWithPointerAliasingOptions(pConfig);
-    TypeHandlerWithPointerAliasing typeHandler =
-        new TypeHandlerWithPointerAliasing(logger, machineModel, options);
-
-    converter =
-        new CToFormulaConverterWithPointerAliasing(
-            options,
-            fmgr,
-            machineModel,
-            Optional.empty(),
-            this.logger,
-            pShutdownNotifier,
-            typeHandler,
-            AnalysisDirection.FORWARD);
-
     formulaConverter = new FormulaToAcslConverter(fmgr, cfa.getMachineModel());
   }
 
@@ -86,8 +61,6 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    // TODO return to this when I have thought more about how my abstract states should look
-    return new AcslState(
-        logger, solver, converter, ImmutableSetMultimap.of(), new CProgramScope(cfa, logger));
+    return new AcslState(logger, ImmutableSetMultimap.of(), new CProgramScope(cfa, logger));
   }
 }

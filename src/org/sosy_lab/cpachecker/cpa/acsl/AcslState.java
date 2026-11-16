@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.util.Objects;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,28 +20,20 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredic
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @SuppressWarnings("unused")
 public class AcslState implements AcslReportingState {
 
   private final LogManager logger;
   private final ImmutableSetMultimap<CFANode, AcslInvariantProvider> invariants;
-  private final Solver solver;
-  private final CToFormulaConverterWithPointerAliasing converter;
   private final CProgramScope scope;
 
   public AcslState(
       LogManager pLogger,
-      Solver pSolver,
-      CToFormulaConverterWithPointerAliasing pConverter,
       ImmutableSetMultimap<CFANode, AcslInvariantProvider> pInvariants,
       CProgramScope pScope) {
     this.logger = pLogger;
-    this.solver = pSolver;
     this.invariants = pInvariants;
-    this.converter = pConverter;
     this.scope = pScope;
   }
 
@@ -77,8 +70,7 @@ public class AcslState implements AcslReportingState {
 
   @Override
   public int hashCode() {
-    // TODO
-    return 42;
+    return Objects.hashCode(invariants);
   }
 
   @Override
@@ -86,18 +78,32 @@ public class AcslState implements AcslReportingState {
     if (this == pO) {
       return true;
     }
-    // TODO replace true below with actual comparison of the relevant fields
     return pO instanceof AcslState that && this.invariants.equals(that.invariants);
   }
 
   @Override
   public String toString() {
-    return "AcslState " + invariants;
+    StringBuilder sb = new StringBuilder("AcslState: ");
+    invariants
+        .asMap()
+        .forEach(
+            (node, nodeInvariants) -> {
+              sb.append(node)
+                  .append(" -> ")
+                  .append(nodeInvariants.size())
+                  .append(" Invariant Class(es): ");
+              nodeInvariants.forEach(
+                  invariant -> sb.append(invariant.getClass().getSimpleName()).append(", "));
+              sb.append("; ");
+            });
+
+    return sb.toString();
   }
 
   @Override
   public AcslPredicate getAcslPredicate() {
-    // TODO
+    // TODO either implement or remove with all of the places it is called depending on the chosen
+    // communication approach between the CPAs
     return null;
   }
 
@@ -116,7 +122,7 @@ public class AcslState implements AcslReportingState {
             .put(pNode, pInit)
             .build();
 
-    return new AcslState(logger, solver, converter, newInvariants, scope);
+    return new AcslState(logger, newInvariants, scope);
   }
 
   public AbstractState withAddedInvariant(
@@ -128,6 +134,6 @@ public class AcslState implements AcslReportingState {
     }
 
     ImmutableSetMultimap<CFANode, AcslInvariantProvider> newInvariants = builder.build();
-    return new AcslState(logger, solver, converter, newInvariants, scope);
+    return new AcslState(logger, newInvariants, scope);
   }
 }
