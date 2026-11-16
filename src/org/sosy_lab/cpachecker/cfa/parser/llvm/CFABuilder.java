@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1658,10 +1657,7 @@ class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      // the content has one character per byte
-      String content =
-          new String(constant.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
-      return CStringLiteralExpression.fromContent(fileLocation, content);
+      return CStringLiteralExpression.fromContent(fileLocation, constant);
     }
 
     CType currentType = typeConverter.getCType(startPointer);
