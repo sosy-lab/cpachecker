@@ -192,6 +192,12 @@ public final class KnownFunctionBehaviorDetector {
         pReason);
   }
 
+  /**
+   * Checks whether the name makes this a likely candidate for being a memset.
+   *
+   * <p>Importantly, the return value of this function should not affect the decision of which
+   * functions to recognize, only which we log a debugging output for.
+   */
   private static boolean looksLikeMemset(String pFunction) {
     return Ascii.toLowerCase(pFunction).contains("memset");
   }
