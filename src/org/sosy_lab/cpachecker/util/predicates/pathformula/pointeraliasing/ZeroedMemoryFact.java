@@ -180,8 +180,29 @@ record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes
   }
 
   /**
-   * Whether [b, b+bSize) lies within [a, a+aSize). For bitvectors, this is computed with
-   * wrap-around arithmetic, which is exact also for blocks at the end of the address space.
+   * Whether [b, b+bSize) lies within [a, a+aSize), for {@code bSize > 0}.
+   *
+   * <p>For bitvectors of width n, {@code a + aSize} wraps around to 0 for a block at the end of the
+   * address space. The encoding thus uses the unsigned offset {@code o = (b - a) mod 2^n} instead.
+   * The following transformations over the integers show that this is equivalent:
+   *
+   * <pre>{@code
+   * a <= b && b + bSize <= a + aSize
+   * <=> 0 <= b - a && bSize <= aSize - (b - a)
+   * <=> 0 <= b - a < aSize && bSize <= aSize - (b - a)   (as bSize > 0)
+   * <=> o < aSize && bSize <= aSize - o
+   * }</pre>
+   *
+   * <p>The last step requires that the block does not wrap around, i.e., {@code a + aSize <= 2^n}.
+   * Then {@code o < aSize} holds iff {@code 0 <= b - a < aSize}:
+   *
+   * <ul>
+   *   <li>If {@code b - a >= 0}, then {@code o = b - a}.
+   *   <li>If {@code b - a < 0}, then {@code o = b - a + 2^n >= 2^n - a >= aSize}.
+   * </ul>
+   *
+   * <p>In this case, {@code aSize - o} lies in {@code (0, aSize]}, so the bitvector subtraction
+   * does not wrap around either.
    */
   private static BooleanFormula contains(
       Formula a,
@@ -203,7 +224,21 @@ record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes
             fmgr.makeLessOrEqual(fmgr.makePlus(b, bSize), fmgr.makePlus(a, aSize), false));
   }
 
-  /** Whether [a, a+aSize) and [b, b+bSize) overlap, for sizes greater than zero. */
+  /**
+   * Whether [a, a+aSize) and [b, b+bSize) overlap, for sizes greater than zero.
+   *
+   * <p>For bitvectors, the encoding avoids sums that wrap around, as in {@link #contains}:
+   *
+   * <pre>{@code
+   * a < b + bSize && b < a + aSize
+   * <=> -bSize < b - a < aSize
+   * <=> 0 <= b - a < aSize || 0 <= a - b < bSize   (as aSize > 0 and bSize > 0)
+   * <=> (b - a) mod 2^n < aSize || (a - b) mod 2^n < bSize
+   * }</pre>
+   *
+   * <p>The last step applies the argument of {@link #contains} to each disjunct, which requires
+   * {@code a + aSize <= 2^n} and {@code b + bSize <= 2^n}.
+   */
   private static BooleanFormula overlap(
       Formula a,
       Formula aSize,
