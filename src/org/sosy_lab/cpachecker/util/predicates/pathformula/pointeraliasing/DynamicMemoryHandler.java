@@ -284,7 +284,10 @@ public final class DynamicMemoryHandler {
       constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
     }
 
-    if (isZeroing && !conv.options.useQuantifiersOnArrays()) {
+    // The byte-level heap is shared by all types, so it needs no facts.
+    if (isZeroing
+        && !conv.options.useQuantifiersOnArrays()
+        && !conv.options.useByteArrayForHeap()) {
       addZeroedMemoryFact(newBase, address, sizeExp);
     }
     return address;
