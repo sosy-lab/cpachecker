@@ -19,6 +19,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -109,6 +110,11 @@ public interface PointerTargetSetBuilder {
 
   void setStringFacts(PersistentList<StringEqualityFact> facts);
 
+  /** The facts about memory that is still zero since its allocation, the newest first. */
+  ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts();
+
+  void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> facts);
+
   /** Returns an immutable PointerTargetSet with all the changes made to the builder. */
   PointerTargetSet build();
 
@@ -136,6 +142,7 @@ public interface PointerTargetSetBuilder {
     private PersistentList<Formula> highestAllocatedAddresses;
     private int allocationCount;
     private PersistentList<StringEqualityFact> stringFacts;
+    private ImmutableList<ZeroedMemoryFact> zeroedMemoryFacts;
 
     /**
      * Creates a new RealPointerTargetSetBuilder.
@@ -167,6 +174,7 @@ public interface PointerTargetSetBuilder {
       highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
       allocationCount = pointerTargetSet.getAllocationCount();
       stringFacts = pointerTargetSet.getStringFacts();
+      zeroedMemoryFacts = pointerTargetSet.getZeroedMemoryFacts();
       typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
       options = pOptions;
@@ -762,7 +770,8 @@ public interface PointerTargetSetBuilder {
               targets,
               highestAllocatedAddresses,
               allocationCount,
-              stringFacts);
+              stringFacts,
+              zeroedMemoryFacts);
       if (result.isEmpty()) {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
@@ -779,6 +788,16 @@ public interface PointerTargetSetBuilder {
     @Override
     public void setStringFacts(PersistentList<StringEqualityFact> pFacts) {
       stringFacts = pFacts;
+    }
+
+    @Override
+    public ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+      return zeroedMemoryFacts;
+    }
+
+    @Override
+    public void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> pFacts) {
+      zeroedMemoryFacts = pFacts;
     }
 
     @Override
@@ -916,6 +935,16 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void setStringFacts(PersistentList<StringEqualityFact> pFacts) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> pFacts) {
       throw new UnsupportedOperationException();
     }
 

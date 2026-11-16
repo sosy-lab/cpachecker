@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -933,6 +934,11 @@ class AssignmentFormulaHandler {
       final BooleanFormula condition,
       final boolean useQuantifiers)
       throws UnrecognizedCodeException {
+    if (useQuantifiers) {
+      // The addresses contain the quantified variable, which must not leave the quantifier.
+      pts.setZeroedMemoryFacts(ImmutableList.of());
+    }
+
     // Arrays and functions are implicitly converted to pointers
     CType rvalueType = implicitCastToPointer(pRvalueType);
 
@@ -1034,6 +1040,16 @@ class AssignmentFormulaHandler {
               StringEqualityFact.afterWrite(
                   pts.getStringFacts(), address, writeSize, bfmgr.makeTrue(), fmgr));
         }
+      }
+
+      // writes with old SSA indices initialize fresh memory and do not change zeroed memory
+      if (!useOldSSAIndices) {
+        pts.setZeroedMemoryFacts(
+            ZeroedMemoryFact.afterWrite(
+                pts.getZeroedMemoryFacts(),
+                address,
+                typeHandler.getExactSizeof(lvalueType),
+                options.maxWritesToZeroedBlock()));
       }
 
       if (rhs != null) {

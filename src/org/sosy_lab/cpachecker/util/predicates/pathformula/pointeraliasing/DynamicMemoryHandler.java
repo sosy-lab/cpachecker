@@ -67,6 +67,8 @@ public final class DynamicMemoryHandler {
 
   private static final char MALLOC_INDEX_SEPARATOR = '#';
 
+  private static final String SIZE_PREFIX = "__SIZE_OF_";
+
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
@@ -252,21 +254,17 @@ public final class DynamicMemoryHandler {
                 errorConditions),
             constraints,
             edge);
+    final boolean isZeroing = conv.options.getSuccessfulZallocFunctionName().equals(functionName);
+    final PointerBase newBase;
     Formula address;
     if (newType != null) {
-      final PointerBase newBase = makeAllocBase(functionName, newType, pts.getFreshAllocationId());
-      address =
-          makeAllocation(
-              conv.options.getSuccessfulZallocFunctionName().equals(functionName),
-              newType,
-              newBase,
-              Optional.of(sizeExp));
+      newBase = makeAllocBase(functionName, newType, pts.getFreshAllocationId());
+      address = makeAllocation(isZeroing, newType, newBase, Optional.of(sizeExp));
     } else {
-      final PointerBase newBase =
-          makeAllocBase(functionName, CVoidType.VOID, pts.getFreshAllocationId());
+      newBase = makeAllocBase(functionName, CVoidType.VOID, pts.getFreshAllocationId());
       pts.addNextBaseAddressConstraints(newBase, null, sizeExp, true, constraints);
       pts.addTemporaryDeferredAllocation(
-          conv.options.getSuccessfulZallocFunctionName().equals(functionName),
+          isZeroing,
           Optional.ofNullable(size)
               .map(
                   s ->
@@ -285,7 +283,34 @@ public final class DynamicMemoryHandler {
       // Constraint is only necessary for correct error conditions
       constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
     }
+
+    // The byte-level heap is shared by all types, so it needs no facts.
+    if (isZeroing
+        && conv.options.maxTrackedZeroedBlocks() > 0
+        && !conv.options.useQuantifiersOnArrays()
+        && !conv.options.useByteArrayForHeap()) {
+      addZeroedMemoryFact(newBase, address, sizeExp);
+    }
     return address;
+  }
+
+  /**
+   * Records that the newly allocated block is zero, which the zeroing in {@link #makeAllocation}
+   * does only for reads with the type of the allocation.
+   */
+  private void addZeroedMemoryFact(
+      final PointerBase base, final Formula address, final Formula size) {
+    // The variable is fresh and unique for the base, so it is unconstrained on paths without this
+    // allocation even after they are merged with this one.
+    final Formula sizeVariable =
+        conv.makeFreshVariable(SIZE_PREFIX + base.name(), conv.machineModel.getSizeType(), ssa);
+    constraints.addConstraint(conv.fmgr.assignment(sizeVariable, size));
+    pts.setZeroedMemoryFacts(
+        ZeroedMemoryFact.add(
+            pts.getZeroedMemoryFacts(),
+            address,
+            sizeVariable,
+            conv.options.maxTrackedZeroedBlocks()));
   }
 
   /**

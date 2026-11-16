@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
@@ -47,7 +48,8 @@ public final class PointerTargetSet implements Serializable {
         && deferredAllocations.isEmpty()
         && highestAllocatedAddresses.isEmpty()
         && allocationCount == 0
-        && stringFacts.isEmpty();
+        && stringFacts.isEmpty()
+        && zeroedMemoryFacts.isEmpty();
   }
 
   @Override
@@ -65,6 +67,7 @@ public final class PointerTargetSet implements Serializable {
     result = prime * result + highestAllocatedAddresses.hashCode();
     result = prime * result + Integer.hashCode(allocationCount);
     result = prime * result + stringFacts.hashCode();
+    result = prime * result + zeroedMemoryFacts.hashCode();
     return result;
   }
 
@@ -81,7 +84,8 @@ public final class PointerTargetSet implements Serializable {
         && deferredAllocations.equals(other.deferredAllocations)
         && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
         && allocationCount == other.allocationCount
-        && stringFacts.equals(other.stringFacts);
+        && stringFacts.equals(other.stringFacts)
+        && zeroedMemoryFacts.equals(other.zeroedMemoryFacts);
   }
 
   PointerTargetSet(
@@ -91,7 +95,8 @@ public final class PointerTargetSet implements Serializable {
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentList<Formula> pHighestAllocatedAddresess,
       final int pAllocationCount,
-      final PersistentList<StringEqualityFact> pStringFacts) {
+      final PersistentList<StringEqualityFact> pStringFacts,
+      final ImmutableList<ZeroedMemoryFact> pZeroedMemoryFacts) {
     this.bases = bases;
     this.fields = fields;
 
@@ -101,6 +106,7 @@ public final class PointerTargetSet implements Serializable {
     highestAllocatedAddresses = pHighestAllocatedAddresess;
     allocationCount = pAllocationCount;
     stringFacts = pStringFacts;
+    zeroedMemoryFacts = pZeroedMemoryFacts;
 
     if (isEmpty()) {
       // Inside isEmpty(), we do not check the following the targets field.
@@ -160,12 +166,20 @@ public final class PointerTargetSet implements Serializable {
   }
 
   /**
-   * Returns this set without the facts about equal strings. They must be dropped whenever the path
-   * formula they were created for is replaced, e.g., by an abstraction, because they are only
-   * meaningful together with it.
+   * Get the facts about memory that is still zero since its allocation, the newest first. Like the
+   * facts about equal strings, they may be dropped at any time, but must not miss a write.
    */
-  public PointerTargetSet withoutStringFacts() {
-    if (stringFacts.isEmpty()) {
+  ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+    return zeroedMemoryFacts;
+  }
+
+  /**
+   * Returns this set without the facts about equal strings and zeroed memory. They must be dropped
+   * whenever the path formula they were created for is replaced, e.g., by an abstraction, because
+   * they are only meaningful together with it.
+   */
+  public PointerTargetSet withoutFacts() {
+    if (stringFacts.isEmpty() && zeroedMemoryFacts.isEmpty()) {
       return this;
     }
     PointerTargetSet result =
@@ -176,7 +190,8 @@ public final class PointerTargetSet implements Serializable {
             targets,
             highestAllocatedAddresses,
             allocationCount,
-            PersistentLinkedList.of());
+            PersistentLinkedList.of(),
+            ImmutableList.of());
     return result.isEmpty() ? EMPTY_INSTANCE : result;
   }
 
@@ -188,7 +203,8 @@ public final class PointerTargetSet implements Serializable {
           PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
           0,
-          PersistentLinkedList.of());
+          PersistentLinkedList.of(),
+          ImmutableList.of());
 
   private static final Joiner joiner = Joiner.on(" ");
 
@@ -229,6 +245,9 @@ public final class PointerTargetSet implements Serializable {
   // Facts about equal strings, see StringEqualityFact. They are not serialized (dropping them is
   // sound).
   private final PersistentList<StringEqualityFact> stringFacts;
+
+  // Facts about zeroed memory, see ZeroedMemoryFact. They are not serialized either.
+  private final ImmutableList<ZeroedMemoryFact> zeroedMemoryFacts;
 
   @Serial private static final long serialVersionUID = 2102505458322248624L;
 
@@ -290,7 +309,8 @@ public final class PointerTargetSet implements Serializable {
               Maps.transformValues(targets, PersistentLinkedList::copyOf)),
           highestAllocatedAddressesFormulas,
           allocationCount,
-          PersistentLinkedList.of());
+          PersistentLinkedList.of(),
+          ImmutableList.of());
     }
   }
 

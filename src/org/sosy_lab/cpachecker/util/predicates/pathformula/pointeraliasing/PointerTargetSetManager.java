@@ -426,7 +426,12 @@ class PointerTargetSetManager {
             // facts about equal strings are only kept if they are the same on both paths
             pts1.getStringFacts().equals(pts2.getStringFacts())
                 ? pts1.getStringFacts()
-                : PersistentLinkedList.of());
+                : PersistentLinkedList.of(),
+            ZeroedMemoryFact.merge(
+                pts1.getZeroedMemoryFacts(),
+                pts2.getZeroedMemoryFacts(),
+                options.maxTrackedZeroedBlocks(),
+                options.maxWritesToZeroedBlock()));
 
     // Handle value-import constraints
 
