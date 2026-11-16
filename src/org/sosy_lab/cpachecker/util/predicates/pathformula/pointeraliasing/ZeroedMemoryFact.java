@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,7 +88,7 @@ record ZeroedMemoryFact(Formula start, Formula size, PersistentList<Write> write
     if (facts1.equals(facts2)) {
       return facts1;
     }
-    Map<Formula, ZeroedMemoryFact> onlyIn2 = new HashMap<>();
+    Map<Formula, ZeroedMemoryFact> onlyIn2 = new LinkedHashMap<>();
     for (ZeroedMemoryFact fact : facts2) {
       onlyIn2.put(fact.size(), fact);
     }
