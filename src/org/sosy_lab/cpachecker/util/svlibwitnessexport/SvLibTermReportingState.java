@@ -19,5 +19,5 @@ public interface SvLibTermReportingState extends AbstractState {
    *
    * @return the SvLibFinalRelationalTerm representation of the abstract state
    */
-  SvLibTerm asSvLibTerm(SvLibScope pScope);
+  SvLibTerm asSvLibTerm(SvLibScope pScope) throws InterruptedException;
 }

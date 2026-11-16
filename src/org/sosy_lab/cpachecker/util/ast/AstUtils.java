@@ -17,6 +17,7 @@ import java.io.Serial;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -43,9 +44,8 @@ public class AstUtils {
    * the boundary condition nodes is taken to get the nodes between the condition and the first
    * branch/second branch. If the first branch is empty, the intersection/difference of the boundary
    * condition nodes with the nodes which are a predecessor of an edge in the second branch is taken
-   * to get the nodes between the condition and the first branch/second branch.
-   *
-   * <p>
+   * to get the nodes between the condition and the first branch/second branch. If both branches are
+   * empty, the assume edges into the boundary condition nodes tell to which branch they lead.
    *
    * <p>For example, consider the following graph for an if condition, where node 6 and 5 are the
    * first nodes in the 'then' and 'else' branches respectively. Then the nodes at the boundary are
@@ -68,34 +68,45 @@ public class AstUtils {
       Optional<Set<CFAEdge>> pEdgesSecondBranch)
       throws BoundaryNodesComputationFailed {
 
+    // An artificial intermediate edge leads to the next operand of `&&` or `||`, so its successor
+    // is inside the condition, also if the edges of the operand are not, e.g., for `f() && g()`
+    final ImmutableSet<CFANode> nodesBeforeOperand =
+        FluentIterable.from(pEdgesCondition)
+            .filter(AssumeEdge.class)
+            .filter(AssumeEdge::isArtificialIntermediate)
+            .transform(CFAEdge::getSuccessor)
+            .toSet();
+    // A constant operand, e.g., in `x && 1`, is a blank edge from there to a branch
+    final FluentIterable<CFANode> nodesAfterConstantOperand =
+        FluentIterable.from(nodesBeforeOperand)
+            .transformAndConcat(CFANode::getLeavingEdges)
+            .filter(edge -> edge instanceof BlankEdge && !pEdgesCondition.contains(edge))
+            .transform(CFAEdge::getSuccessor);
+
     final Set<CFANode> nodesBoundaryCondition =
         Sets.difference(
-            transformedImmutableSetCopy(pEdgesCondition, CFAEdge::getSuccessor),
-            transformedImmutableSetCopy(pEdgesCondition, CFAEdge::getPredecessor));
+            FluentIterable.from(pEdgesCondition)
+                .transform(CFAEdge::getSuccessor)
+                .append(nodesAfterConstantOperand)
+                .toSet(),
+            Sets.union(
+                transformedImmutableSetCopy(pEdgesCondition, CFAEdge::getPredecessor),
+                nodesBeforeOperand));
 
-    // Sometimes the FileLocations are correctly set but not as expected to identify the boundary
-    // nodes. For example in ../sv-benchmarks/c/float-newlib/double_req_bl_1210.c there are multiple
-    // function calls in the condition, the second of which introduces statement edges as part of
-    // the condition. The problem is that these statements do not have a FileLocation inside the
-    // condition, which is correct since some edges are part of a function call. This introduces a
-    // node which says it is exiting the condition, but in truth is merely calling a function. This
-    // is why we need to check if the edges are artificial intermediate edges.
-    if (FluentIterable.from(nodesBoundaryCondition)
-        .transformAndConcat(CFANode::getEnteringEdges)
-        .filter(AssumeEdge.class)
-        .anyMatch(AssumeEdge::isArtificialIntermediate)) {
-
-      throw new BoundaryNodesComputationFailed("Condition edges are not connected");
+    if (!pEdgesCondition.isEmpty() && nodesBoundaryCondition.isEmpty()) {
+      throw new BoundaryNodesComputationFailed("Condition has no successor outside of it");
     }
 
     final Set<CFANode> collectorNodesBetweenConditionAndSecondBranch;
     final Set<CFANode> collectorNodesBetweenConditionAndFirstBranch;
 
     if (pEdgesFirstBranch.isEmpty() && pEdgesSecondBranch.isEmpty()) {
-      // TODO: Currently, we over-approximate by taking both branches when there are no edges
-      //  in both branches
-      collectorNodesBetweenConditionAndFirstBranch = nodesBoundaryCondition;
-      collectorNodesBetweenConditionAndSecondBranch = nodesBoundaryCondition;
+      collectorNodesBetweenConditionAndFirstBranch =
+          Sets.filter(
+              nodesBoundaryCondition, node -> isEnteredTowards(node, pEdgesCondition, true));
+      collectorNodesBetweenConditionAndSecondBranch =
+          Sets.filter(
+              nodesBoundaryCondition, node -> isEnteredTowards(node, pEdgesCondition, false));
     } else if (pEdgesFirstBranch.isEmpty() && pEdgesSecondBranch.isPresent()) {
       final Set<CFANode> nodesSecondBranch =
           transformedImmutableSetCopy(pEdgesSecondBranch.orElseThrow(), CFAEdge::getPredecessor);
@@ -126,5 +137,18 @@ public class AstUtils {
     return Pair.of(
         ImmutableSet.copyOf(collectorNodesBetweenConditionAndFirstBranch),
         ImmutableSet.copyOf(collectorNodesBetweenConditionAndSecondBranch));
+  }
+
+  /**
+   * Whether an assume edge of the condition enters the node towards the first (then) branch or the
+   * second one. A node entered only by the blank edge of a constant operand counts for both.
+   */
+  private static boolean isEnteredTowards(
+      CFANode pNode, Set<CFAEdge> pEdgesCondition, boolean pFirstBranch) {
+    FluentIterable<AssumeEdge> enteringEdges =
+        pNode.getEnteringEdges().filter(pEdgesCondition::contains).filter(AssumeEdge.class);
+    return enteringEdges.isEmpty()
+        || enteringEdges.anyMatch(
+            edge -> (edge.getTruthAssumption() != edge.isSwapped()) == pFirstBranch);
   }
 }

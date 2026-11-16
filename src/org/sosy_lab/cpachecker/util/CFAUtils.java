@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -536,8 +537,10 @@ public class CFAUtils {
     ImmutableSet<CFAEdge> conditionEdges =
         iteration.orElseThrow().getControllingExpression().orElseThrow().edges();
     ImmutableSet<CFANode> bodyEntries;
+    ImmutableSet<CFANode> exitEntries;
     try {
       bodyEntries = iteration.orElseThrow().getNodesBetweenConditionAndBody();
+      exitEntries = iteration.orElseThrow().getNodesBetweenConditionAndExit();
     } catch (BoundaryNodesComputationFailed e) {
       return Optional.empty();
     }
@@ -552,7 +555,12 @@ public class CFAUtils {
     List<ExpressionTree<CExpression>> pathConditions = new ArrayList<>();
     for (CFANode entry : conditionEntries) {
       if (!collectPathConditions(
-          entry, conditionEdges, bodyEntries, PersistentLinkedList.of(), pathConditions)) {
+          entry,
+          conditionEdges,
+          bodyEntries,
+          exitEntries,
+          PersistentLinkedList.of(),
+          pathConditions)) {
         return Optional.empty();
       }
     }
@@ -575,11 +583,19 @@ public class CFAUtils {
       CFANode pNode,
       ImmutableSet<CFAEdge> pConditionEdges,
       ImmutableSet<CFANode> pBodyEntries,
+      ImmutableSet<CFANode> pExitEntries,
       PersistentLinkedList<ExpressionTree<CExpression>> pReversedPath,
       List<ExpressionTree<CExpression>> pPathConditions) {
     if (pBodyEntries.contains(pNode)) {
       pPathConditions.add(And.of(pReversedPath.reversed()));
       return true;
+    }
+    if (pExitEntries.contains(pNode)) {
+      return true;
+    }
+    if (!pNode.getLeavingEdges().anyMatch(pConditionEdges::contains)) {
+      // The path continues with side effects of an operand, e.g., `y = 1` in `x && (y = 1)`
+      return false;
     }
     if (pReversedPath.size() > pConditionEdges.size()) {
       // The condition edges contain a cycle
@@ -602,7 +618,12 @@ public class CFAUtils {
         return false;
       }
       if (!collectPathConditions(
-          edge.getSuccessor(), pConditionEdges, pBodyEntries, reversedPath, pPathConditions)) {
+          edge.getSuccessor(),
+          pConditionEdges,
+          pBodyEntries,
+          pExitEntries,
+          reversedPath,
+          pPathConditions)) {
         return false;
       }
     }
@@ -1019,6 +1040,26 @@ public class CFAUtils {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns whether the given call of <code>__VERIFIER_nondet_memory</code> havocs a block that is
+   * not accessed between its allocation in memory and the call to <code>__VERIFIER_nondet_memory
+   * </code>.
+   *
+   * <p>The most trivial case for this:
+   *
+   * <pre>
+   * int * p = malloc(4 * sizeof(int));
+   * __VERIFIER_nondet_memory(p, 4);
+   * </pre>
+   *
+   * @see UntouchedAllocationCheck for details on the method's behavior
+   */
+  public static boolean isHavocOfUntouchedAllocation(
+      CStatementEdge pNondetMemoryCall, Predicate<String> pIsAllocationFunction) {
+    return new UntouchedAllocationCheck(pIsAllocationFunction)
+        .isHavocOfUntouchedAllocation(pNondetMemoryCall);
   }
 
   private static final Traverser<AAstNode> AST_LHS_TRAVERSER =

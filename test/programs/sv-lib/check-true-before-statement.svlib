@@ -20,6 +20,6 @@
   ((a Int))
   (! (sequence
     (assign (a 0))
-    (! (assign (a 1)) :check-true (= a 0))) :tag proc-f1))
+    (! (assign (a 1)) :tag f1-check-1 :check-true (= a 0))) :tag proc-f1))
 
 (verify-call f1 ())

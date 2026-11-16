@@ -3268,24 +3268,16 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  /**
-   * I.e. int bla = *pointer; With pointer failing to dereference because it's pointing to 0.
-   *
-   * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
-   * @return A new SMGState with the error info.
-   */
-  public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject) {
+  /** I.e. int bla = *pointer; With pointer failing to dereference because it's pointing to 0. */
+  public SMGState withNullPointerDereferenceWhenReading(String additionalInfo) {
     // getValueForSMGValue(pValue)
     // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
         "Null pointer dereference on read of object with the intent to read it: "
-            + nullObject
+            + additionalInfo
             + ".";
     SMGErrorInfo newErrorInfo =
-        SMGErrorInfo.of()
-            .withProperty(Property.INVALID_READ)
-            .withErrorMessage(errorMSG)
-            .withInvalidObjects(Collections.singleton(nullObject));
+        SMGErrorInfo.of().withProperty(Property.INVALID_READ).withErrorMessage(errorMSG);
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithNewErrorInfo(newErrorInfo);
@@ -5222,8 +5214,24 @@ public class SMGState
     SatisfiabilityAndSMGState maybeAssignmentResultAndState;
     if (identsToReplace.size() == 1) {
       // Some nested variable is to be replaced
+
+      // The solver only checks the last added constraint and the constraints sharing symbolic
+      // identifiers with it, and its model only assigns identifiers of the checked constraints.
+      // To get the identifier into the model, we re-add an existing constraint over it. This does
+      // not change the set of constraints, but makes it the last added constraint so that the SAT
+      // check is based on it.
+      SymbolicIdentifier identToReplace = identsToReplace.iterator().next();
+      SMGState stateToCheck = this;
+      for (Constraint constraint : getConstraints()) {
+        if (memoryModel
+            .getSymbolicIdentifiersWithTypesForValue(constraint)
+            .containsKey(identToReplace)) {
+          stateToCheck = addConstraint(constraint);
+          break;
+        }
+      }
       // Add the parameters for the memory access and check sat to get a model
-      maybeAssignmentResultAndState = evaluator.checkIsUnsatWithCurrentConstraints(this);
+      maybeAssignmentResultAndState = evaluator.checkIsUnsatWithCurrentConstraints(stateToCheck);
       SMGState currentState = maybeAssignmentResultAndState.getState();
 
       if (maybeAssignmentResultAndState.isSAT()) {
@@ -5246,7 +5254,7 @@ public class SMGState
           }
         }
         // We allow only simple assignments to pure variables for the moment
-        if (assignments.size() > 1) {
+        if (assignments.size() != 1) {
           throw new SMGException(
               "Stop analysis because of symbolic offset in subscript expression that could not be"
                   + " assigned. "

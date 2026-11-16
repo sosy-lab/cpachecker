@@ -46,7 +46,8 @@ public final class PointerTargetSet implements Serializable {
         && fields.isEmpty()
         && deferredAllocations.isEmpty()
         && highestAllocatedAddresses.isEmpty()
-        && allocationCount == 0;
+        && allocationCount == 0
+        && stringFacts.isEmpty();
   }
 
   @Override
@@ -63,6 +64,7 @@ public final class PointerTargetSet implements Serializable {
     result = prime * result + deferredAllocations.hashCode();
     result = prime * result + highestAllocatedAddresses.hashCode();
     result = prime * result + Integer.hashCode(allocationCount);
+    result = prime * result + stringFacts.hashCode();
     return result;
   }
 
@@ -78,7 +80,8 @@ public final class PointerTargetSet implements Serializable {
         && fields.equals(other.fields)
         && deferredAllocations.equals(other.deferredAllocations)
         && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
-        && allocationCount == other.allocationCount;
+        && allocationCount == other.allocationCount
+        && stringFacts.equals(other.stringFacts);
   }
 
   PointerTargetSet(
@@ -87,7 +90,8 @@ public final class PointerTargetSet implements Serializable {
       final PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentList<Formula> pHighestAllocatedAddresess,
-      final int pAllocationCount) {
+      final int pAllocationCount,
+      final PersistentList<StringEqualityFact> pStringFacts) {
     this.bases = bases;
     this.fields = fields;
 
@@ -96,6 +100,7 @@ public final class PointerTargetSet implements Serializable {
     this.targets = targets;
     highestAllocatedAddresses = pHighestAllocatedAddresess;
     allocationCount = pAllocationCount;
+    stringFacts = pStringFacts;
 
     if (isEmpty()) {
       // Inside isEmpty(), we do not check the following the targets field.
@@ -143,6 +148,38 @@ public final class PointerTargetSet implements Serializable {
     return allocationCount;
   }
 
+  /**
+   * Get the facts about equal strings that currently hold, the newest first.
+   *
+   * <p>The facts are only relevant for precision, not for soundness: they may be dropped or ignored
+   * at any time, e.g., in case of doubt. However, a fact must not be kept if a write may change one
+   * of its strings.
+   */
+  PersistentList<StringEqualityFact> getStringFacts() {
+    return stringFacts;
+  }
+
+  /**
+   * Returns this set without the facts about equal strings. They must be dropped whenever the path
+   * formula they were created for is replaced, e.g., by an abstraction, because they are only
+   * meaningful together with it.
+   */
+  public PointerTargetSet withoutStringFacts() {
+    if (stringFacts.isEmpty()) {
+      return this;
+    }
+    PointerTargetSet result =
+        new PointerTargetSet(
+            bases,
+            fields,
+            deferredAllocations,
+            targets,
+            highestAllocatedAddresses,
+            allocationCount,
+            PersistentLinkedList.of());
+    return result.isEmpty() ? EMPTY_INSTANCE : result;
+  }
+
   private static final PointerTargetSet EMPTY_INSTANCE =
       new PointerTargetSet(
           PathCopyingPersistentTreeMap.of(),
@@ -150,7 +187,8 @@ public final class PointerTargetSet implements Serializable {
           PersistentLinkedList.of(),
           PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
-          0);
+          0,
+          PersistentLinkedList.of());
 
   private static final Joiner joiner = Joiner.on(" ");
 
@@ -187,6 +225,10 @@ public final class PointerTargetSet implements Serializable {
   private final PersistentList<Formula> highestAllocatedAddresses;
 
   private final int allocationCount;
+
+  // Facts about equal strings, see StringEqualityFact. They are not serialized (dropping them is
+  // sound).
+  private final PersistentList<StringEqualityFact> stringFacts;
 
   @Serial private static final long serialVersionUID = 2102505458322248624L;
 
@@ -247,7 +289,8 @@ public final class PointerTargetSet implements Serializable {
           PathCopyingPersistentTreeMap.copyOf(
               Maps.transformValues(targets, PersistentLinkedList::copyOf)),
           highestAllocatedAddressesFormulas,
-          allocationCount);
+          allocationCount,
+          PersistentLinkedList.of());
     }
   }
 

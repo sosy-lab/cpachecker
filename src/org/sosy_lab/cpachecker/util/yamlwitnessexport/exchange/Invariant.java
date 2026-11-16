@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 
 import java.util.Objects;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -21,19 +22,20 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 public class Invariant {
   private final ExpressionTree<AExpression> formula;
   private final int line;
-  private final int column;
+  // The column is optional in witnesses
+  private final OptionalInt column;
   private final String function;
   private final boolean isLoopInvariant;
 
   public Invariant(
       ExpressionTree<AExpression> pFormula,
       int pLine,
-      int pColumn,
+      OptionalInt pColumn,
       String pFunction,
       boolean pIsLoopInvariant) {
     formula = Objects.requireNonNull(pFormula);
     line = pLine;
-    column = pColumn;
+    column = Objects.requireNonNull(pColumn);
     function = Objects.requireNonNull(pFunction);
     isLoopInvariant = pIsLoopInvariant;
   }
@@ -42,7 +44,7 @@ public class Invariant {
     return line;
   }
 
-  public int getColumn() {
+  public OptionalInt getColumn() {
     return column;
   }
 
@@ -60,7 +62,7 @@ public class Invariant {
 
   @Override
   public int hashCode() {
-    int hashCode = column + 124765 * line;
+    int hashCode = column.hashCode() + 124765 * line;
     hashCode = 31 * hashCode + function.hashCode();
     hashCode = 31 * hashCode + formula.hashCode();
     return hashCode;
@@ -75,7 +77,7 @@ public class Invariant {
     return pObj instanceof Invariant other
         && other.formula.equals(formula)
         && other.line == line
-        && other.column == column
+        && other.column.equals(column)
         && other.function.equals(function)
         && other.isLoopInvariant == isLoopInvariant;
   }

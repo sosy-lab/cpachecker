@@ -323,8 +323,7 @@ public class PthreadObjectSubstitution {
         // leave the current composite member
         currentPath.removeLast();
 
-        memberDeclarations.add(
-            new CCompositeTypeMemberDeclaration(memberResult.type(), memberDeclaration.getName()));
+        memberDeclarations.add(memberDeclaration.withType(memberResult.type()));
 
         isSubstituted |= memberResult.isSubstituted();
       }

@@ -1,0 +1,78 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.0"
+    uuid: "9e4c1a7b-3d2f-4b8a-a6e5-2c7d0f1b8e93"
+    creation_time: "2026-11-13T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+      version: "1"
+    task:
+      input_files:
+        - "../../simple/witness_validation/empty-loop-body-and-constant-operand.c"
+      input_file_hashes:
+        "../../simple/witness_validation/empty-loop-body-and-constant-operand.c": "f850e48e5484a1d807a00c96d4f11d7d89fce9655c55597cd6b58bf1d9849999"
+      specification: "G ! call(reach_error())"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/empty-loop-body-and-constant-operand.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/empty-loop-body-and-constant-operand.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "false"
+            location:
+              file_name: "../../simple/witness_validation/empty-loop-body-and-constant-operand.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/empty-loop-body-and-constant-operand.c"
+              line: 16
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "target"
+            action: "follow"
+            location:
+              file_name: "../../simple/witness_validation/empty-loop-body-and-constant-operand.c"
+              line: 17
+              column: 5
+              function: "main"

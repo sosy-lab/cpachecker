@@ -1,0 +1,53 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.0"
+    uuid: "e0c02609-6c1b-4a66-81fa-a2248aeb63ff"
+    creation_time: "2026-11-12T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+      version: "1"
+    task:
+      input_files:
+        - "../../simple/witness_validation/function-waypoints.c"
+      input_file_hashes:
+        "../../simple/witness_validation/function-waypoints.c": "9d7a80da8c26d74beeaae7ef909f839627d1ebddf29687f0b8563129ec475cbf"
+      specification: "G ! call(reach_error())"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "function_enter"
+            action: "follow"
+            location:
+              file_name: "../../simple/witness_validation/function-waypoints.c"
+              line: 16
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "function_return"
+            action: "follow"
+            constraint:
+              value: "\\result == 10"
+              format: "acsl_expression"
+            location:
+              file_name: "../../simple/witness_validation/function-waypoints.c"
+              line: 16
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "target"
+            action: "follow"
+            location:
+              file_name: "../../simple/witness_validation/function-waypoints.c"
+              line: 18
+              column: 5
+              function: "main"
