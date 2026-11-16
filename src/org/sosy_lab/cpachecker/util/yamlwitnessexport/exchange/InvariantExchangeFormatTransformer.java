@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -301,7 +302,7 @@ public class InvariantExchangeFormatTransformer {
   /** Declares a variable that is not in the program as local variable of the given scope. */
   private CVariableDeclaration declareFreshVariable(String pName, CType pType, Scope pScope) {
     return new CVariableDeclaration(
-        cfa.getMainFunction().getFileLocation(),
+        FileLocation.DUMMY,
         false,
         CStorageClass.AUTO,
         pType,
