@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -935,7 +936,7 @@ class AssignmentFormulaHandler {
       throws UnrecognizedCodeException {
     if (useQuantifiers) {
       // The addresses contain the quantified variable, which must not leave the quantifier.
-      pts.setZeroedMemoryFacts(PersistentLinkedList.of());
+      pts.setZeroedMemoryFacts(ImmutableList.of());
     }
 
     // Arrays and functions are implicitly converted to pointers

@@ -19,6 +19,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -110,9 +111,9 @@ public interface PointerTargetSetBuilder {
   void setStringFacts(PersistentList<StringEqualityFact> facts);
 
   /** The facts about memory that is still zero since its allocation, the newest first. */
-  PersistentList<ZeroedMemoryFact> getZeroedMemoryFacts();
+  ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts();
 
-  void setZeroedMemoryFacts(PersistentList<ZeroedMemoryFact> facts);
+  void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> facts);
 
   /** Returns an immutable PointerTargetSet with all the changes made to the builder. */
   PointerTargetSet build();
@@ -141,7 +142,7 @@ public interface PointerTargetSetBuilder {
     private PersistentList<Formula> highestAllocatedAddresses;
     private int allocationCount;
     private PersistentList<StringEqualityFact> stringFacts;
-    private PersistentList<ZeroedMemoryFact> zeroedMemoryFacts;
+    private ImmutableList<ZeroedMemoryFact> zeroedMemoryFacts;
 
     /**
      * Creates a new RealPointerTargetSetBuilder.
@@ -790,12 +791,12 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public PersistentList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+    public ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
       return zeroedMemoryFacts;
     }
 
     @Override
-    public void setZeroedMemoryFacts(PersistentList<ZeroedMemoryFact> pFacts) {
+    public void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> pFacts) {
       zeroedMemoryFacts = pFacts;
     }
 
@@ -938,12 +939,12 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public PersistentList<ZeroedMemoryFact> getZeroedMemoryFacts() {
-      return PersistentLinkedList.of();
+    public ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+      return ImmutableList.of();
     }
 
     @Override
-    public void setZeroedMemoryFacts(PersistentList<ZeroedMemoryFact> pFacts) {
+    public void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> pFacts) {
       throw new UnsupportedOperationException();
     }
 

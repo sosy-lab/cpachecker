@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
@@ -95,7 +96,7 @@ public final class PointerTargetSet implements Serializable {
       final PersistentList<Formula> pHighestAllocatedAddresess,
       final int pAllocationCount,
       final PersistentList<StringEqualityFact> pStringFacts,
-      final PersistentList<ZeroedMemoryFact> pZeroedMemoryFacts) {
+      final ImmutableList<ZeroedMemoryFact> pZeroedMemoryFacts) {
     this.bases = bases;
     this.fields = fields;
 
@@ -168,7 +169,7 @@ public final class PointerTargetSet implements Serializable {
    * Get the facts about memory that is still zero since its allocation, the newest first. Like the
    * facts about equal strings, they may be dropped at any time, but must not miss a write.
    */
-  PersistentList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+  ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
     return zeroedMemoryFacts;
   }
 
@@ -190,7 +191,7 @@ public final class PointerTargetSet implements Serializable {
             highestAllocatedAddresses,
             allocationCount,
             PersistentLinkedList.of(),
-            PersistentLinkedList.of());
+            ImmutableList.of());
     return result.isEmpty() ? EMPTY_INSTANCE : result;
   }
 
@@ -203,7 +204,7 @@ public final class PointerTargetSet implements Serializable {
           PersistentLinkedList.of(),
           0,
           PersistentLinkedList.of(),
-          PersistentLinkedList.of());
+          ImmutableList.of());
 
   private static final Joiner joiner = Joiner.on(" ");
 
@@ -246,7 +247,7 @@ public final class PointerTargetSet implements Serializable {
   private final PersistentList<StringEqualityFact> stringFacts;
 
   // Facts about zeroed memory, see ZeroedMemoryFact. They are not serialized either.
-  private final PersistentList<ZeroedMemoryFact> zeroedMemoryFacts;
+  private final ImmutableList<ZeroedMemoryFact> zeroedMemoryFacts;
 
   @Serial private static final long serialVersionUID = 2102505458322248624L;
 
@@ -309,7 +310,7 @@ public final class PointerTargetSet implements Serializable {
           highestAllocatedAddressesFormulas,
           allocationCount,
           PersistentLinkedList.of(),
-          PersistentLinkedList.of());
+          ImmutableList.of());
     }
   }
 

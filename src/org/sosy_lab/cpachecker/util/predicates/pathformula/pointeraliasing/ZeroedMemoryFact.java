@@ -11,15 +11,12 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import org.sosy_lab.common.collect.PersistentLinkedList;
-import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -39,7 +36,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
  *     with the allocation, such that the fact has no effect on other paths after a merge.
  * @param writes the writes to memory since the allocation
  */
-record ZeroedMemoryFact(Formula start, Formula size, PersistentList<Write> writes) {
+record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes) {
 
   /** A write of {@code size} bytes at {@code address}. */
   record Write(Formula address, long size) {}
@@ -57,34 +54,42 @@ record ZeroedMemoryFact(Formula start, Formula size, PersistentList<Write> write
   }
 
   /** Returns the given facts with the new fact of a freshly zeroed block. */
-  static PersistentList<ZeroedMemoryFact> add(
-      PersistentList<ZeroedMemoryFact> facts, Formula start, Formula size) {
-    return limit(facts.with(new ZeroedMemoryFact(start, size, PersistentLinkedList.of())));
+  static ImmutableList<ZeroedMemoryFact> add(
+      ImmutableList<ZeroedMemoryFact> facts, Formula start, Formula size) {
+    return ImmutableList.<ZeroedMemoryFact>builder()
+        .add(new ZeroedMemoryFact(start, size, ImmutableList.of()))
+        .addAll(facts.subList(0, Math.min(facts.size(), MAX_FACTS - 1)))
+        .build();
   }
 
   /** Returns the facts that hold after a write of {@code size} bytes at {@code address}. */
-  static PersistentList<ZeroedMemoryFact> afterWrite(
-      PersistentList<ZeroedMemoryFact> facts, Formula address, long size) {
+  static ImmutableList<ZeroedMemoryFact> afterWrite(
+      ImmutableList<ZeroedMemoryFact> facts, Formula address, long size) {
     if (facts.isEmpty()) {
       return facts;
     }
     Write write = new Write(address, size);
-    PersistentList<ZeroedMemoryFact> result = PersistentLinkedList.of();
-    for (ZeroedMemoryFact fact : facts.reversed()) {
+    ImmutableList.Builder<ZeroedMemoryFact> result =
+        ImmutableList.builderWithExpectedSize(facts.size());
+    for (ZeroedMemoryFact fact : facts) {
       if (fact.writes().size() < MAX_WRITES) {
-        result =
-            result.with(new ZeroedMemoryFact(fact.start(), fact.size(), fact.writes().with(write)));
+        ImmutableList<Write> writes =
+            ImmutableList.<Write>builderWithExpectedSize(fact.writes().size() + 1)
+                .addAll(fact.writes())
+                .add(write)
+                .build();
+        result.add(new ZeroedMemoryFact(fact.start(), fact.size(), writes));
       }
     }
-    return result;
+    return result.build();
   }
 
   /**
    * Merges the facts of two paths. A fact of only one path is kept because its size is
    * unconstrained on the other path. A fact of both paths gets the writes of both paths.
    */
-  static PersistentList<ZeroedMemoryFact> merge(
-      PersistentList<ZeroedMemoryFact> facts1, PersistentList<ZeroedMemoryFact> facts2) {
+  static ImmutableList<ZeroedMemoryFact> merge(
+      ImmutableList<ZeroedMemoryFact> facts1, ImmutableList<ZeroedMemoryFact> facts2) {
     if (facts1.equals(facts2)) {
       return facts1;
     }
@@ -92,33 +97,32 @@ record ZeroedMemoryFact(Formula start, Formula size, PersistentList<Write> write
     for (ZeroedMemoryFact fact : facts2) {
       onlyIn2.put(fact.size(), fact);
     }
-    List<ZeroedMemoryFact> result = new ArrayList<>();
+    ImmutableList.Builder<ZeroedMemoryFact> result = ImmutableList.builder();
     for (ZeroedMemoryFact fact1 : facts1) {
       ZeroedMemoryFact fact2 = onlyIn2.remove(fact1.size());
       if (fact2 == null) {
         result.add(fact1);
       } else if (fact1.start().equals(fact2.start())) {
-        Set<Write> writes1 = new HashSet<>(fact1.writes());
-        PersistentList<Write> writes = fact1.writes();
-        for (Write write : fact2.writes()) {
-          if (!writes1.contains(write)) {
-            writes = writes.with(write);
-          }
-        }
+        ImmutableList<Write> writes =
+            ImmutableSet.<Write>builder()
+                .addAll(fact1.writes())
+                .addAll(fact2.writes())
+                .build()
+                .asList();
         if (writes.size() <= MAX_WRITES) {
           result.add(new ZeroedMemoryFact(fact1.start(), fact1.size(), writes));
         }
       }
     }
     result.addAll(onlyIn2.values());
-    return limit(PersistentLinkedList.copyOf(result));
+    return limit(result.build());
   }
 
-  private static PersistentList<ZeroedMemoryFact> limit(PersistentList<ZeroedMemoryFact> facts) {
+  private static ImmutableList<ZeroedMemoryFact> limit(ImmutableList<ZeroedMemoryFact> facts) {
     if (facts.size() <= MAX_FACTS) {
       return facts;
     }
-    return PersistentLinkedList.copyOf(ImmutableList.copyOf(facts.subList(0, MAX_FACTS)));
+    return ImmutableList.copyOf(facts.subList(0, MAX_FACTS));
   }
 
   /**
@@ -126,7 +130,7 @@ record ZeroedMemoryFact(Formula start, Formula size, PersistentList<Write> write
    * address}, is zero if these bytes are still zero according to one of the facts.
    */
   static BooleanFormula makeReadConstraint(
-      PersistentList<ZeroedMemoryFact> facts,
+      ImmutableList<ZeroedMemoryFact> facts,
       Formula address,
       long readSize,
       Formula value,

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.ClassSanityTester;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Constructor;
@@ -46,7 +47,7 @@ public class SSAMapTest {
                 PersistentLinkedList.of(),
                 0,
                 PersistentLinkedList.of(),
-                PersistentLinkedList.of());
+                ImmutableList.of());
 
     return new ClassSanityTester()
         .setDistinctValues(

@@ -831,7 +831,7 @@ class CExpressionVisitorWithPointerAliasing
     if ((!pts.getStringFacts().isEmpty() || !pts.getZeroedMemoryFacts().isEmpty())
         && mayWriteThroughPointerArguments(e)) {
       pts.setStringFacts(PersistentLinkedList.of());
-      pts.setZeroedMemoryFacts(PersistentLinkedList.of());
+      pts.setZeroedMemoryFacts(ImmutableList.of());
     }
 
     // Pure functions returning composites are unsupported, return a nondet value
