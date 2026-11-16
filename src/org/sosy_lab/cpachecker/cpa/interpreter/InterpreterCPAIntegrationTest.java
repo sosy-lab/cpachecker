@@ -134,8 +134,14 @@ public class InterpreterCPAIntegrationTest {
             "valid-memsafety",
             "heap-out-of-bounds-false.i",
             Result.FALSE),
+        // The memcleanup execution lets every allocation succeed, so it is not the only execution
+        // of
+        // a program that allocates and such a program cannot be proven safe, only unsafe.
         task(
-            "interpreter--memorycleanup", "valid-memcleanup", "heap-recursion-true.i", Result.TRUE),
+            "interpreter--memorycleanup",
+            "valid-memcleanup",
+            "heap-recursion-true.i",
+            Result.UNKNOWN),
         task("interpreter--memorycleanup", "valid-memcleanup", "heap-leak-false.i", Result.FALSE));
   }
 
