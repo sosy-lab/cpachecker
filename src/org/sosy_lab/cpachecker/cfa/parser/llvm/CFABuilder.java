@@ -1657,7 +1657,7 @@ class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      return new CStringLiteralExpression(fileLocation, '"' + constant + '"');
+      return CStringLiteralExpression.fromContent(fileLocation, constant);
     }
 
     CType currentType = typeConverter.getCType(startPointer);
