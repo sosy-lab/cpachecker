@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -92,10 +93,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
  * every recognized function really has the described behavior.
  */
 public final class KnownFunctionBehaviorDetector {
-
-  /** Functions without a body that stop the program, which may be called in guards. */
-  private static final ImmutableSet<String> TERMINATING_FUNCTIONS =
-      ImmutableSet.of("abort", "exit", "_Exit", "__assert_fail", "__VERIFIER_assume");
 
   private final MutableCFA cfa;
   private final LoopStructure loopStructure;
@@ -798,17 +795,20 @@ public final class KnownFunctionBehaviorDetector {
     return true;
   }
 
-  /** A call without result directly to a terminating function such as {@code abort()}. */
+  /**
+   * A call without result directly to a terminating function such as {@code abort()}, i.e., a
+   * function that never returns ({@link CFunctionDeclaration#doesNotReturn()}, set for functions
+   * declared with {@code __attribute__((noreturn))} and for the functions in the option {@code
+   * parser.nonReturningFunctions}).
+   */
   private static boolean isTerminatingCall(CFAEdge pEdge) {
-    return pEdge instanceof CStatementEdge statementEdge
-        && statementEdge.getStatement() instanceof CFunctionCallStatement
-        && CFAUtils.getFunctionCallName(pEdge)
-            .filter(KnownFunctionBehaviorDetector::isTerminatingFunction)
-            .isPresent();
-  }
-
-  private static boolean isTerminatingFunction(String pFunction) {
-    return TERMINATING_FUNCTIONS.contains(pFunction);
+    if (!(pEdge instanceof CStatementEdge statementEdge)
+        || !(statementEdge.getStatement() instanceof CFunctionCallStatement call)) {
+      return false;
+    }
+    // null for a call through a function pointer
+    @Nullable CFunctionDeclaration callee = call.getFunctionCallExpression().getDeclaration();
+    return callee != null && callee.doesNotReturn();
   }
 
   private static boolean isLocalVariable(CLeftHandSide pLeftHandSide) {
