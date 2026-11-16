@@ -32,6 +32,7 @@ verifier-nondet-memory-sanity/*.yml
 termination-nested/*.yml
 mathFunctions/*.yml
 memset/*.yml
+calloc/*.yml
 union_arrays/*.yml
 bitfields/*.yml
 scanf/*.yml
