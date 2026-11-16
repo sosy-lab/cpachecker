@@ -289,7 +289,7 @@ final class ConcurrentCfaCloner {
         CFunctionEntryNode clonedEntry =
             new CFunctionEntryNode(
                 entryNode.getFileLocation(), clonedFuncDecl, clonedExitNode, clonedReturnVar);
-        clonedEntry.setKnownBehavior(entryNode.getKnownBehavior().orElse(null));
+        entryNode.getKnownBehavior().ifPresent(clonedEntry::setKnownBehavior);
 
         if (entryNode.isLoopStart()) {
           clonedEntry.setLoopStart();

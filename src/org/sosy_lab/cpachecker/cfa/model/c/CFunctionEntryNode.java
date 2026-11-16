@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
@@ -52,9 +55,15 @@ public final class CFunctionEntryNode extends FunctionEntryNode {
 
   /**
    * Stores that this function behaves like a well-known function. Only to be used during CFA
-   * creation, and when copying this node.
+   * creation, and when copying this node. The known behavior can only be set once.
    */
-  public void setKnownBehavior(@Nullable KnownFunctionBehavior pKnownBehavior) {
+  public void setKnownBehavior(KnownFunctionBehavior pKnownBehavior) {
+    checkNotNull(pKnownBehavior);
+    checkState(
+        knownBehavior == null,
+        "Known behavior of function %s is already set to %s",
+        getFunctionName(),
+        knownBehavior);
     knownBehavior = pKnownBehavior;
   }
 

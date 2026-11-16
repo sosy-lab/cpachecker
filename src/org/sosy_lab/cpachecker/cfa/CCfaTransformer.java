@@ -196,7 +196,7 @@ public final class CCfaTransformer {
               newFunctionDeclaration(pOldNode),
               newExitNode,
               newReturnVariable);
-      newEntryNode.setKnownBehavior(pOldNode.getKnownBehavior().orElse(null));
+      pOldNode.getKnownBehavior().ifPresent(newEntryNode::setKnownBehavior);
       if (newExitNode != null) {
         newExitNode.setEntryNode(newEntryNode);
       }

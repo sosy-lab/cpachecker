@@ -256,7 +256,7 @@ public final class ConcurrentEdgeCloner {
     CFunctionEntryNode clonedEntry =
         new CFunctionEntryNode(
             pEntry.getFileLocation(), clonedDeclaration, null, clonedReturnVariable);
-    clonedEntry.setKnownBehavior(pEntry.getKnownBehavior().orElse(null));
+    pEntry.getKnownBehavior().ifPresent(clonedEntry::setKnownBehavior);
     return clonedEntry;
   }
 
