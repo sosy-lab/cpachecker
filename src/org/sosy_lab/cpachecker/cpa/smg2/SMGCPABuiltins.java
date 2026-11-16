@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
@@ -865,6 +866,8 @@ public class SMGCPABuiltins {
       case "__ctype_toupper_loc" ->
           evaluateCtypeCaseConversionLoc(funCallExpr, true, state, cfaEdge);
 
+      case "fesetround" -> evaluateFesetround(funCallExpr, state, cfaEdge);
+
       default -> handleUnknownFunction(cfaEdge, funCallExpr, functionName, state);
     };
   }
@@ -1164,6 +1167,44 @@ public class SMGCPABuiltins {
    *     the name is not a valid string.
    * @throws CPATransferException if the name or the string can not be evaluated.
    */
+  /**
+   * Handles {@code int fesetround(int round)} (C11 7.6.3.2), which sets the rounding direction of
+   * floating-point operations. The analysis computes all floating-point operations with rounding to
+   * nearest, so only this rounding direction, i.e., {@code FE_TONEAREST}, which is 0 on all
+   * platforms that we support, can be set. Ignoring any other rounding direction would make the
+   * results of later floating-point operations wrong, so it is not supported.
+   *
+   * @param pFunctionCall the {@link CFunctionCallExpression} of the call.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return 0 for the successful call with the states after evaluating the argument.
+   * @throws CPATransferException if the argument can not be evaluated, or is not {@code
+   *     FE_TONEAREST}.
+   */
+  private List<ValueAndSMGState> evaluateFesetround(
+      CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    if (pFunctionCall.getParameterExpressions().size() != 1) {
+      throw new UnrecognizedCodeException(
+          "The function fesetround needs exactly 1 argument.", pCfaEdge, pFunctionCall);
+    }
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    for (ValueAndSMGState roundingDirectionAndState :
+        getFunctionParameterValue(0, pFunctionCall, pState, pCfaEdge)) {
+      if (!(roundingDirectionAndState.getValue() instanceof NumericValue roundingDirection)
+          || roundingDirection.bigIntegerValue().signum() != 0) {
+        throw new UnsupportedCodeException(
+            "fesetround with a rounding direction other than FE_TONEAREST",
+            pCfaEdge,
+            pFunctionCall);
+      }
+      resultBuilder.add(
+          ValueAndSMGState.of(
+              new NumericValue(BigInteger.ZERO), roundingDirectionAndState.getState()));
+    }
+    return resultBuilder.build();
+  }
+
   private List<ValueAndSMGState> evaluateGetenv(
       CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
       throws CPATransferException {
