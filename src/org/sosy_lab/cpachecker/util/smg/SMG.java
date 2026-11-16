@@ -11,11 +11,9 @@ package org.sosy_lab.cpachecker.util.smg;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -42,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.StackFrame;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
+import org.sosy_lab.cpachecker.cpa.smg2.util.ValueToSMGValueMapping;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -2724,7 +2723,7 @@ public class SMG {
 
   @SuppressWarnings("unused")
   public boolean checkValueMappingConsistency(
-      ImmutableBiMap<Wrapper<Value>, SMGValue> pExistingValueMapping, ValueWrapper pValueWrapper) {
+      ValueToSMGValueMapping pExistingValueMapping, ValueWrapper pValueWrapper) {
     // Check that every value in the mapping is existing in some form.
     // The 0 values are exceptions and should not be counted, they always exist but are wrapped.
     // for (SMGValue valueInValuesSet : smgValuesAndNestingLvl.keySet()) {

@@ -16,7 +16,6 @@ import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.HashMap;
@@ -44,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
+import org.sosy_lab.cpachecker.cpa.smg2.util.ValueToSMGValueMapping;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -443,8 +443,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     // TODO: try to remove 0 only for a non pointer type
     SMGState currentState = state;
     // Gather all concrete values first and filter out all above the threshold
-    ImmutableBiMap<SMGValue, Wrapper<Value>> mapping =
-        currentState.getMemoryModel().getValueToSMGValueMapping().inverse();
+    ValueToSMGValueMapping mapping = currentState.getMemoryModel().getValueToSMGValueMapping();
     // remove all concrete values above the threshold (will be replaced by symbolics by reading)
     for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objAndHVEs :
         currentState.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges().entrySet()) {
@@ -452,7 +451,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       Set<SMGHasValueEdge> edgesToRemove = new HashSet<>();
       for (SMGHasValueEdge hve : objAndHVEs.getValue()) {
         SMGValue smgValue = hve.hasValue();
-        Wrapper<Value> wValue = mapping.get(smgValue);
+        Wrapper<Value> wValue = mapping.getKeyForValue(smgValue);
         if (wValue == null || wValue.get() instanceof NumericValue) {
           edgesToRemove.add(hve);
         }

@@ -1783,7 +1783,7 @@ public class SMGState
 
     // First, get all SMGValues for possible identifier
     for (Entry<Wrapper<Value>, SMGValue> mapping :
-        memoryModel.getValueToSMGValueMapping().entrySet()) {
+        memoryModel.getValueToSMGValueMapping().entries()) {
       Value value = mapping.getKey().get();
       SMGValue smgValue = mapping.getValue();
       if (memoryModel.getSmg().getNumberOfSMGValueUsages(smgValue) > 0) {
