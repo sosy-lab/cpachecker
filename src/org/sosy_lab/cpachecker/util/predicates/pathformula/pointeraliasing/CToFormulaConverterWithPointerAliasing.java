@@ -1302,7 +1302,24 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * {@link KnownFunctionBehavior#MEMSET}) additionally like a call to {@code memset} with the
    * arguments of the caller. This sets the typed memory of the destination, which a byte-wise
    * implementation in the body of the function only writes as {@code char}s. The body of the
-   * function is still analyzed as usual.
+   * function is still analyzed as usual, so the additional {@code memset} only adds the typed view
+   * of the bytes that the body writes anyway:
+   *
+   * <ul>
+   *   <li>It is applied at the call, before the body. This cannot be observed, because the function
+   *       does not read memory (guaranteed by the detection), and if the function does not return
+   *       (e.g., an {@code abort()} in the body), the path ends anyway.
+   *   <li>It writes exactly the bytes that the body writes: the value and the count are converted
+   *       to the types of the parameters, like C does at the call, and the count has to be a
+   *       constant that is a multiple of the size of the type of the destination. Otherwise nothing
+   *       is done, because the {@code memset} handling would round up to whole elements. The {@code
+   *       memset} handling converts the value to {@code unsigned char} like the body.
+   *   <li>If the destination is too small or invalid, the body writes out of bounds, and so does
+   *       the {@code memset} here, at the same addresses. An analysis of memory safety still finds
+   *       this in the body.
+   *   <li>No arithmetic overflow can happen in the function itself: the detection only accepts a
+   *       counter whose type can hold every value of the count.
+   * </ul>
    *
    * <p>Nothing is done if the destination has no type besides bytes at this call (e.g., a wrapper
    * that passes on its {@code void *} parameter), because then the body already writes it, and the
@@ -1318,16 +1335,51 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
     CFunctionCallExpression call = edge.getFunctionCallExpression();
     List<CExpression> arguments = call.getParameterExpressions();
-    if (options.useByteArrayForHeap()
-        || arguments.size() != 3
-        || !hasTypedDestination(arguments.getFirst())) {
+    List<CParameterDeclaration> parameters = edge.getSuccessor().getFunctionParameters();
+    if (options.useByteArrayForHeap() || arguments.size() != 3 || parameters.size() != 3) {
       return;
     }
+    CExpression destination = arguments.getFirst();
+    Optional<CType> destinationTarget = typedDestinationTarget(destination);
+    if (destinationTarget.isEmpty()
+        || !destinationTarget.orElseThrow().hasKnownConstantSize()
+        || !(parameters.get(2).getType().getCanonicalType() instanceof CSimpleType countType)) {
+      return;
+    }
+
+    // The count as the function sees it, i.e., converted to the type of its parameter.
+    Optional<BigInteger> count =
+        constantIntegerValue(arguments.get(2)).map(value -> convertTo(value, countType));
+    long elementSize = typeHandler.getExactSizeof(destinationTarget.orElseThrow());
+    if (count.isEmpty()
+        || count.orElseThrow().signum() <= 0
+        || !count.orElseThrow().mod(BigInteger.valueOf(elementSize)).equals(BigInteger.ZERO)) {
+      logger.logfOnce(
+          Level.FINE,
+          "%s: Call to %s is not handled like memset, because its count is not a constant multiple"
+              + " of the size of %s",
+          edge.getFileLocation(),
+          edge.getSuccessor().getFunctionName(),
+          destinationTarget.orElseThrow());
+      return;
+    }
+
+    CFunctionCallExpression memsetCall =
+        new CFunctionCallExpression(
+            call.getFileLocation(),
+            call.getExpressionType(),
+            call.getFunctionNameExpression(),
+            ImmutableList.of(
+                destination,
+                new CCastExpression(
+                    FileLocation.DUMMY, parameters.get(1).getType(), arguments.get(1)),
+                new CIntegerLiteralExpression(FileLocation.DUMMY, countType, count.orElseThrow())),
+            call.getDeclaration());
     MemoryManipulationFunctionHandler memoryFunctionHandler =
         new MemoryManipulationFunctionHandler(
             this, edge, callerFunction, ssa, pts, constraints, errorConditions, regionMgr);
     try {
-      memoryFunctionHandler.handleMemoryAssignmentFunction("memset", call);
+      memoryFunctionHandler.handleMemoryAssignmentFunction("memset", memsetCall);
     } catch (UnrecognizedCodeException e) {
       // The body of the function still models the call, only less precisely.
       logger.logfOnce(
@@ -1340,10 +1392,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Whether the given destination of a memset has a type besides bytes, i.e., it is not (after
-   * removing a cast to {@code void *}) a pointer to {@code void} or to a character type.
+   * The type that the given destination of a memset points to, if it has a type besides bytes,
+   * i.e., it is not (after removing a cast to {@code void *}) a pointer to {@code void} or to a
+   * character type.
    */
-  private static boolean hasTypedDestination(CExpression pDestination) {
+  private static Optional<CType> typedDestinationTarget(CExpression pDestination) {
     CExpression destination = pDestination;
     if (destination instanceof CCastExpression cast
         && cast.getCastType().getCanonicalType() instanceof CPointerType castType
@@ -1352,11 +1405,42 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
     if (!(CTypes.adjustFunctionOrArrayType(destination.getExpressionType().getCanonicalType())
         instanceof CPointerType pointerType)) {
-      return false;
+      return Optional.empty();
     }
     CType target = pointerType.getType().getCanonicalType();
-    return !(target instanceof CVoidType)
-        && !(target instanceof CSimpleType simpleType && simpleType.getType() == CBasicType.CHAR);
+    if (target instanceof CVoidType
+        || (target instanceof CSimpleType simpleType && simpleType.getType() == CBasicType.CHAR)) {
+      return Optional.empty();
+    }
+    return Optional.of(target);
+  }
+
+  /**
+   * The value of the given expression, if it is an integer literal, possibly with casts to integer
+   * types, which are applied like in C.
+   */
+  private Optional<BigInteger> constantIntegerValue(CExpression pExpression) {
+    if (pExpression instanceof CIntegerLiteralExpression literal) {
+      return Optional.of(literal.getValue());
+    }
+    if (pExpression instanceof CCastExpression cast
+        && cast.getCastType().getCanonicalType() instanceof CSimpleType castType
+        && castType.getType().isIntegerType()
+        && castType.getType() != CBasicType.BOOL) {
+      return constantIntegerValue(cast.getOperand()).map(value -> convertTo(value, castType));
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Converts the given value to the given integer type like C does: modulo 2^bits, and for signed
+   * types (implementation-defined) in two's complement.
+   */
+  private BigInteger convertTo(BigInteger pValue, CSimpleType pType) {
+    BigInteger minimum = machineModel.getMinimalIntegerValue(pType);
+    BigInteger maximum = machineModel.getMaximalIntegerValue(pType);
+    BigInteger range = maximum.subtract(minimum).add(BigInteger.ONE);
+    return pValue.subtract(minimum).mod(range).add(minimum);
   }
 
   /**

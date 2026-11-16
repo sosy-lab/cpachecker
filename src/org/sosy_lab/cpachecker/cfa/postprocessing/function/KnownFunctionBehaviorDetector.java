@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -283,6 +284,9 @@ public final class KnownFunctionBehaviorDetector {
         if (writesParameter(edge, parameters)) {
           return Optional.of("it changes one of its parameters: " + edge);
         }
+        if (readsMemory(edge)) {
+          return Optional.of("it reads memory: " + edge);
+        }
         if (isMemoryWrite(edge)) {
           if (write != null) {
             return Optional.of("it writes memory more than once: " + edge);
@@ -455,6 +459,9 @@ public final class KnownFunctionBehaviorDetector {
         if (writesParameter(edge, parameters)) {
           return new WrapperCheck(null, "it changes one of its parameters: " + edge);
         }
+        if (readsMemory(edge)) {
+          return new WrapperCheck(null, "it reads memory: " + edge);
+        }
         if (isHarmless(edge) || isLocalAssignment(edge) || isCheckingCall(edge)) {
           continue;
         }
@@ -570,6 +577,36 @@ public final class KnownFunctionBehaviorDetector {
         && (operator == BinaryOperator.EQUALS || operator == BinaryOperator.LESS_EQUAL);
   }
 
+  /**
+   * Whether the given edge reads memory: it dereferences a pointer, accesses an array element or a
+   * field, or reads a global or static variable. The target of an assignment is written, not read,
+   * so only its value is checked. This is an over-approximation, e.g., {@code sizeof(*p)} also
+   * counts as read.
+   *
+   * <p>A function that is recognized must not read memory, because analyses may apply the effect of
+   * the well-known function before the body of the function (see {@link KnownFunctionBehavior}).
+   */
+  private static boolean readsMemory(CFAEdge pEdge) {
+    Iterable<? extends AAstNode> readNodes =
+        pEdge instanceof CStatementEdge statementEdge
+                && statementEdge.getStatement() instanceof CAssignment assignment
+            ? ImmutableList.of(assignment.getRightHandSide())
+            : CFAUtils.getAstNodesFromCfaEdge(pEdge);
+    for (AAstNode node : readNodes) {
+      for (AAstNode subNode : CFAUtils.traverseRecursively(node)) {
+        if (subNode instanceof CPointerExpression
+            || subNode instanceof CArraySubscriptExpression
+            || subNode instanceof CFieldReference
+            || (subNode instanceof CIdExpression identifier
+                && identifier.getDeclaration() instanceof CVariableDeclaration variable
+                && !isPlainLocal(variable))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /** Edges that neither write memory nor variables nor call a function. */
   private static boolean isHarmless(CFAEdge pEdge) {
     return pEdge instanceof BlankEdge
@@ -620,13 +657,14 @@ public final class KnownFunctionBehaviorDetector {
     for (CFANode node : cfa.getFunctionNodes(callee.orElseThrow())) {
       for (CFAEdge edge : node.getLeavingEdges()) {
         boolean allowed =
-            isHarmless(edge)
-                || isLocalAssignment(edge)
-                || (edge instanceof CStatementEdge callEdge
-                    && callEdge.getStatement() instanceof CFunctionCallStatement
-                    && CFAUtils.getFunctionCallName(callEdge)
-                        .filter(KnownFunctionBehaviorDetector::isTerminatingFunction)
-                        .isPresent());
+            !readsMemory(edge)
+                && (isHarmless(edge)
+                    || isLocalAssignment(edge)
+                    || (edge instanceof CStatementEdge callEdge
+                        && callEdge.getStatement() instanceof CFunctionCallStatement
+                        && CFAUtils.getFunctionCallName(callEdge)
+                            .filter(KnownFunctionBehaviorDetector::isTerminatingFunction)
+                            .isPresent()));
         if (!allowed) {
           return false;
         }
