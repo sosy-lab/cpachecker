@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -1424,9 +1425,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       return;
     }
 
-    // The count as the function sees it, i.e., converted to the type of its parameter.
+    // The count as the function sees it, i.e., converted to the type of its parameter, if the
+    // argument is a constant (evaluated like in C).
+    CExpression countAsParameter =
+        new CCastExpression(FileLocation.DUMMY, countType, arguments.get(2))
+            .accept(new ExpressionSimplificationVisitor(machineModel, logger));
     Optional<BigInteger> count =
-        constantIntegerValue(arguments.get(2)).map(value -> convertTo(value, countType));
+        countAsParameter instanceof CIntegerLiteralExpression literal
+            ? Optional.of(literal.getValue())
+            : Optional.empty();
     long elementSize = typeHandler.getExactSizeof(destinationTarget.orElseThrow());
     if (count.isEmpty()
         || count.orElseThrow().signum() <= 0
@@ -1505,34 +1512,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       return Optional.empty();
     }
     return Optional.of(target);
-  }
-
-  /**
-   * The value of the given expression, if it is an integer literal, possibly with casts to integer
-   * types, which are applied like in C.
-   */
-  private Optional<BigInteger> constantIntegerValue(CExpression pExpression) {
-    if (pExpression instanceof CIntegerLiteralExpression literal) {
-      return Optional.of(literal.getValue());
-    }
-    if (pExpression instanceof CCastExpression cast
-        && cast.getCastType().getCanonicalType() instanceof CSimpleType castType
-        && castType.getType().isIntegerType()
-        && castType.getType() != CBasicType.BOOL) {
-      return constantIntegerValue(cast.getOperand()).map(value -> convertTo(value, castType));
-    }
-    return Optional.empty();
-  }
-
-  /**
-   * Converts the given value to the given integer type like C does: modulo 2^bits, and for signed
-   * types (implementation-defined) in two's complement.
-   */
-  private BigInteger convertTo(BigInteger pValue, CSimpleType pType) {
-    BigInteger minimum = machineModel.getMinimalIntegerValue(pType);
-    BigInteger maximum = machineModel.getMaximalIntegerValue(pType);
-    BigInteger range = maximum.subtract(minimum).add(BigInteger.ONE);
-    return pValue.subtract(minimum).mod(range).add(minimum);
   }
 
   /**
