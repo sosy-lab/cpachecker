@@ -19,7 +19,9 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /** Util class for {@link SymbolicValue}. */
@@ -182,6 +184,9 @@ public class SymbolicValues {
     Object value = assignment.getValue();
     if (value instanceof Number number) {
       return new NumericValue(number);
+    } else if (value instanceof FloatingPointNumber floatingPointNumber) {
+      // Unlike other numbers, the value of a floating-point formula does not implement Number.
+      return new NumericValue(FloatValue.fromFloatingPointNumber(floatingPointNumber));
     } else if (value instanceof Boolean b) {
       return BooleanValue.valueOf(b);
     } else {
