@@ -132,9 +132,7 @@ public final class ValueToSMGValueMapping {
     } else {
       newByValue =
           byValue.putAndCopy(
-              hash,
-              ImmutableMap.copyOf(
-                  Maps.filterKeys(bucket, k -> !k.equals(mapping.value()))));
+              hash, ImmutableMap.copyOf(Maps.filterKeys(bucket, k -> !k.equals(mapping.value()))));
     }
     return new ValueToSMGValueMapping(
         newByValue,
