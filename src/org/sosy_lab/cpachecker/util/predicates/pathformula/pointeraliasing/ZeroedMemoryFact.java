@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -55,10 +57,9 @@ record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes
   static ImmutableList<ZeroedMemoryFact> add(
       ImmutableList<ZeroedMemoryFact> facts, Formula start, Formula size, int maxFacts) {
     checkArgument(maxFacts > 0);
-    return ImmutableList.<ZeroedMemoryFact>builder()
-        .add(new ZeroedMemoryFact(start, size, ImmutableList.of()))
-        .addAll(facts.subList(0, Math.min(facts.size(), maxFacts - 1)))
-        .build();
+    return elementAndList(
+        new ZeroedMemoryFact(start, size, ImmutableList.of()),
+        facts.subList(0, Math.min(facts.size(), maxFacts - 1)));
   }
 
   /**
@@ -75,12 +76,8 @@ record ZeroedMemoryFact(Formula start, Formula size, ImmutableList<Write> writes
         ImmutableList.builderWithExpectedSize(facts.size());
     for (ZeroedMemoryFact fact : facts) {
       if (fact.writes().size() < maxWrites) {
-        ImmutableList<Write> writes =
-            ImmutableList.<Write>builderWithExpectedSize(fact.writes().size() + 1)
-                .addAll(fact.writes())
-                .add(write)
-                .build();
-        result.add(new ZeroedMemoryFact(fact.start(), fact.size(), writes));
+        result.add(
+            new ZeroedMemoryFact(fact.start(), fact.size(), listAndElement(fact.writes(), write)));
       }
     }
     return result.build();
