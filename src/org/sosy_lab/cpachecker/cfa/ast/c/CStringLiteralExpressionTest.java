@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public class CStringLiteralExpressionTest {
 
   private static CStringLiteralExpression literal(String source) {
-    return new CStringLiteralExpression(FileLocation.DUMMY, source);
+    return CStringLiteralExpression.fromSourceCode(FileLocation.DUMMY, source);
   }
 
   @Test
@@ -63,5 +63,22 @@ public class CStringLiteralExpressionTest {
   public void testLiteralWithoutQuotes() {
     assertThrows(IllegalArgumentException.class, () -> literal("abc"));
     assertThrows(IllegalArgumentException.class, () -> literal("\""));
+  }
+
+  @Test
+  public void testFromContent() {
+    String content = "a\"\\\n\0ÿ";
+    CStringLiteralExpression e = CStringLiteralExpression.fromContent(FileLocation.DUMMY, content);
+    assertThat(e.toASTString()).isEqualTo("\"a\\\"\\\\\\012\\000\\377\"");
+    assertThat(e.getContentWithoutNullTerminator()).isEqualTo(content);
+    assertThat(e.getSize()).isEqualTo(7);
+    assertThat(literal(e.toASTString())).isEqualTo(e);
+  }
+
+  @Test
+  public void testFromContentWithoutBytes() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> CStringLiteralExpression.fromContent(FileLocation.DUMMY, "Ā"));
   }
 }

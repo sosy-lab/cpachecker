@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isIntegerType;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
@@ -1645,22 +1644,6 @@ class CFABuilder {
     return new CPointerExpression(fileLocation, derefType, expr);
   }
 
-  /** Returns the C string literal, with quotes and escape sequences, for the given content. */
-  private static String toStringLiteral(String pContent) {
-    StringBuilder literal = new StringBuilder("\"");
-    for (byte b : pContent.getBytes(StandardCharsets.UTF_8)) {
-      int c = b & 0xFF;
-      if (c == '"' || c == '\\') {
-        literal.append('\\').append((char) c);
-      } else if (c >= ' ' && c < 127) {
-        literal.append((char) c);
-      } else {
-        literal.append('\\').append(Strings.padStart(Integer.toOctalString(c), 3, '0'));
-      }
-    }
-    return literal.append('"').toString();
-  }
-
   private boolean valueIsZero(final Value pItem) {
     return pItem.isConstantInt() && pItem.constIntGetZExtValue() == 0;
   }
@@ -1675,7 +1658,10 @@ class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      return new CStringLiteralExpression(fileLocation, toStringLiteral(constant));
+      // the content has one character per byte
+      String content =
+          new String(constant.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
+      return CStringLiteralExpression.fromContent(fileLocation, content);
     }
 
     CType currentType = typeConverter.getCType(startPointer);

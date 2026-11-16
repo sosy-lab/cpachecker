@@ -82,7 +82,7 @@ class ASTLiteralConverter {
   private CStringLiteralExpression parseStringLiteral(
       FileLocation fileLoc, String valueStr, IASTLiteralExpression e) {
     try {
-      return new CStringLiteralExpression(fileLoc, valueStr);
+      return CStringLiteralExpression.fromSourceCode(fileLoc, valueStr);
     } catch (IllegalArgumentException ex) {
       throw parseContext.parseError(ex.getMessage(), e);
     }

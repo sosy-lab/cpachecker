@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import java.io.Serial;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -32,18 +33,33 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
   /** The decoded content without null terminator, null for literals with an encoding prefix. */
   private final @Nullable String content;
 
-  /**
-   * @param pValue the literal as written in the source code, i.e., with quotes and escape sequences
-   * @throws IllegalArgumentException if the literal is invalid
-   */
-  public CStringLiteralExpression(FileLocation pFileLocation, String pValue) {
-    this(pFileLocation, pValue, decodeContent(pValue));
+  private CStringLiteralExpression(
+      FileLocation pFileLocation, String pSourceCode, @Nullable String pContent) {
+    super(pFileLocation, computeType(pSourceCode, pContent, pFileLocation), pSourceCode);
+    content = pContent;
   }
 
-  private CStringLiteralExpression(
-      FileLocation pFileLocation, String pValue, @Nullable String pContent) {
-    super(pFileLocation, computeType(pValue, pContent, pFileLocation), pValue);
-    content = pContent;
+  /**
+   * Creates a string literal from its C source code.
+   *
+   * @param pSourceCode the literal as written in C source code, i.e., with quotes and escape
+   *     sequences
+   * @throws IllegalArgumentException if the literal is invalid
+   */
+  public static CStringLiteralExpression fromSourceCode(
+      FileLocation pFileLocation, String pSourceCode) {
+    return new CStringLiteralExpression(pFileLocation, pSourceCode, decodeContent(pSourceCode));
+  }
+
+  /**
+   * Creates a string literal with the given content.
+   *
+   * @param pContent the content without null terminator, one character per byte as in {@link
+   *     #getContentWithoutNullTerminator()}
+   * @throws IllegalArgumentException if the content has a character that is not a byte
+   */
+  public static CStringLiteralExpression fromContent(FileLocation pFileLocation, String pContent) {
+    return new CStringLiteralExpression(pFileLocation, encodeContent(pContent), pContent);
   }
 
   /** Returns the type as <code>char[]</code> including the correct length. */
@@ -113,6 +129,23 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
       return null;
     }
     return decodeEscapeSequences(literal.substring(1, literal.length() - 1));
+  }
+
+  /** Returns the C source code of a string literal with the given content. */
+  private static String encodeContent(String pContent) {
+    StringBuilder result = new StringBuilder("\"");
+    for (int i = 0; i < pContent.length(); i++) {
+      char c = pContent.charAt(i);
+      checkArgument(c <= 0xFF, "Character %s in string content is not a byte", (int) c);
+      if (c == '"' || c == '\\') {
+        result.append('\\').append(c);
+      } else if (c >= ' ' && c < 127) {
+        result.append(c);
+      } else {
+        result.append('\\').append(Strings.padStart(Integer.toOctalString(c), 3, '0'));
+      }
+    }
+    return result.append('"').toString();
   }
 
   /**
