@@ -4160,9 +4160,7 @@ cpa.smg2.unknownOnUndefined = true
 # concreteValueForSymbolicOffsetsAssignmentMaximum. Requires option
 # findConcreteValuesForSymbolicOffsets to be enabled (and therefore option
 # overapproximateSymbolicOffsets to be disabled), otherwise the configuration
-# is invalid. Accesses with symbolic offsets in array-subscript expressions
-# that are handled when evaluating addresses still use the concrete
-# assignments of option findConcreteValuesForSymbolicOffsets.
+# is invalid.
 cpa.smg2.useConcreteValueSummaryAssignments = false
 
 # Allocation functions which set memory to zero

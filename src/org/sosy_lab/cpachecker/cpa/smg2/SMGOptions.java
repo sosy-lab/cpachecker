@@ -267,9 +267,7 @@ public class SMGOptions {
               + " offsets per access is concreteValueForSymbolicOffsetsAssignmentMaximum. Requires"
               + " option findConcreteValuesForSymbolicOffsets to be enabled (and therefore option"
               + " overapproximateSymbolicOffsets to be disabled), otherwise the configuration is"
-              + " invalid. Accesses with symbolic offsets in array-subscript expressions that are"
-              + " handled when evaluating addresses still use the concrete assignments of option"
-              + " findConcreteValuesForSymbolicOffsets.")
+              + " invalid.")
   private boolean useConcreteValueSummaryAssignments = false;
 
   // TODO: make a option and implementation that allows SOME concrete values to be evaluated, and

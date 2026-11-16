@@ -195,6 +195,17 @@ public class SMGCPAAddressVisitor
     return resultBuilder.build();
   }
 
+  /**
+   * Returns true if concrete values are assigned to symbolic offsets when the address of an array
+   * subscript expression is evaluated (option findConcreteValuesForSymbolicOffsets). With option
+   * useConcreteValueSummaryAssignments, the address with the symbolic offset is returned instead,
+   * and the read or write at the address is split into all concrete offsets.
+   */
+  private boolean assignConcreteValuesForSymbolicSubscriptOffsets() {
+    return options.isFindConcreteValuesForSymbolicOffsets()
+        && !options.isUseConcreteValueSummaryAssignments();
+  }
+
   /*
    * Get the object and offset from an (array) subscript expression with address arrayValue and the
    *  subscript offset in bits, possibly symbolic. Might return multiple states when assigning
@@ -219,7 +230,7 @@ public class SMGCPAAddressVisitor
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   pCurrentState.withUnknownOffsetMemoryAccess()));
         } else if (addrOffset instanceof SymbolicValue symOffset
-            && options.isFindConcreteValuesForSymbolicOffsets()) {
+            && assignConcreteValuesForSymbolicSubscriptOffsets()) {
           // Assign concrete values for the offset
           if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
             return handleSubscriptExpressionWithConcreteAssignment(
@@ -232,7 +243,7 @@ public class SMGCPAAddressVisitor
 
       if (finalOffset instanceof SymbolicValue symOffset
           && options.trackErrorPredicates()
-          && options.isFindConcreteValuesForSymbolicOffsets()) {
+          && assignConcreteValuesForSymbolicSubscriptOffsets()) {
         // Assign concrete values for the offset
         if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
           return handleSubscriptExpressionWithConcreteAssignment(
@@ -261,7 +272,7 @@ public class SMGCPAAddressVisitor
       Value baseOffset = maybeTargetMemoryAndOffset.getOffsetForObject();
       if (baseOffset instanceof SymbolicValue symOffset
           && options.trackErrorPredicates()
-          && options.isFindConcreteValuesForSymbolicOffsets()) {
+          && assignConcreteValuesForSymbolicSubscriptOffsets()) {
         // Assign concrete values for the offset
         if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
           return handleSubscriptExpressionWithConcreteAssignment(
@@ -273,7 +284,7 @@ public class SMGCPAAddressVisitor
 
       if (finalOffset instanceof SymbolicValue symOffset
           && options.trackErrorPredicates()
-          && options.isFindConcreteValuesForSymbolicOffsets()) {
+          && assignConcreteValuesForSymbolicSubscriptOffsets()) {
         // Assign concrete values for the offset
         if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
           return handleSubscriptExpressionWithConcreteAssignment(
@@ -300,7 +311,8 @@ public class SMGCPAAddressVisitor
               "Symbolic array subscript access not supported by this analysis.");
         } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
           // Assign concrete values for the offset
-          if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
+          if (assignConcreteValuesForSymbolicSubscriptOffsets()
+              && pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
             return handleSubscriptExpressionWithConcreteAssignment(
                 arrayValue, pCurrentState, expr, symOffset);
           }
