@@ -19,7 +19,9 @@ import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,9 +32,12 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -108,6 +113,12 @@ final class SMGMathBuiltins {
               BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName),
               numParameter);
       return ImmutableList.of(ValueAndSMGState.of(new NumericValue(arg.abs()), currentState));
+    } else if (symbolicArgument(
+            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
+        instanceof SymbolicExpression symbolicArgument) {
+      return ImmutableList.of(
+          ValueAndSMGState.of(
+              symbolicAbsolute(symbolicArgument, pFunctionName, pMachineModel), currentState));
     } else {
       return ImmutableList.of(
           ValueAndSMGState.ofUnknownValue(
@@ -173,6 +184,160 @@ final class SMGMathBuiltins {
   }
 
   /**
+   * The argument of a floating-point function with one argument, e.g., {@code fabs()} or the
+   * classification functions {@code isnan()}, {@code isinf()}, {@code isfinite()}, and {@code
+   * fpclassify()}, cast to the type of the function, if it is symbolic and symbolic values are
+   * tracked, else null. These functions then return a symbolic expression that is precise for this
+   * argument.
+   */
+  private static @Nullable SymbolicExpression symbolicArgument(
+      Value pArgument,
+      String pFunctionName,
+      SMGState pState,
+      CFAEdge pCfaEdge,
+      SMGCPAExpressionEvaluator pEvaluator,
+      LogManagerWithoutDuplicates pLogger) {
+    if (!pState.getOptions().trackPredicates()
+        || !(pArgument instanceof SymbolicValue)
+        || pArgument.isUnknown()) {
+      return null;
+    }
+    Value castArgument =
+        new SMGCPAValueVisitor(pEvaluator, pState, pCfaEdge, pLogger)
+            .castCValue(
+                pArgument, BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName));
+    return castArgument instanceof SymbolicExpression symbolicArgument ? symbolicArgument : null;
+  }
+
+  /** {@code pValue pOperator pConstant}, which is 1 if true, 0 else. */
+  private static SymbolicExpression compareWithConstant(
+      SymbolicExpression pValue,
+      BinaryOperator pOperator,
+      FloatValue pConstant,
+      CSimpleType pFloatType) {
+    return BinarySymbolicExpression.of(
+        pValue,
+        ConstantSymbolicExpression.of(new NumericValue(pConstant), pFloatType),
+        CNumericTypes.INT,
+        pFloatType,
+        pOperator);
+  }
+
+  /** Integer arithmetic on the results of the comparisons above. */
+  private static SymbolicExpression intOperation(
+      SymbolicExpression pOperand1, BinaryOperator pOperator, SymbolicExpression pOperand2) {
+    return BinarySymbolicExpression.of(
+        pOperand1, pOperand2, CNumericTypes.INT, CNumericTypes.INT, pOperator);
+  }
+
+  /**
+   * {@code x * ((x > 0) - (x < 0)) + 0.0}, i.e., the absolute value of {@code x}: {@code x} is
+   * multiplied by -1 if it is negative, and by 0 if it is zero, in which case adding {@code +0.0}
+   * makes the result {@code +0.0} also for {@code -0.0}. NaN stays NaN, but keeps its sign bit.
+   */
+  private static SymbolicExpression symbolicAbsolute(
+      SymbolicExpression pArgument, String pFunctionName, MachineModel pMachineModel) {
+    CSimpleType floatType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
+    FloatValue zero = FloatValue.zero(Format.fromCType(pMachineModel, floatType));
+    SymbolicExpression sign =
+        intOperation(
+            compareWithConstant(pArgument, BinaryOperator.GREATER_THAN, zero, floatType),
+            BinaryOperator.MINUS,
+            compareWithConstant(pArgument, BinaryOperator.LESS_THAN, zero, floatType));
+    return BinarySymbolicExpression.of(
+        BinarySymbolicExpression.of(
+            pArgument,
+            CastExpression.of(sign, floatType),
+            floatType,
+            floatType,
+            BinaryOperator.MULTIPLY),
+        ConstantSymbolicExpression.of(new NumericValue(zero), floatType),
+        floatType,
+        floatType,
+        BinaryOperator.PLUS);
+  }
+
+  /** {@code x != x}, which is 1 if and only if {@code x} is NaN. */
+  private static SymbolicExpression symbolicIsNan(
+      SymbolicExpression pArgument, String pFunctionName) {
+    CSimpleType floatType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
+    return BinarySymbolicExpression.of(
+        pArgument, pArgument, CNumericTypes.INT, floatType, BinaryOperator.NOT_EQUALS);
+  }
+
+  /**
+   * {@code (x == +inf) + (x == -inf)}, which is 1 if and only if {@code x} is infinite, as both
+   * comparisons can not be true at the same time.
+   */
+  private static SymbolicExpression symbolicIsInfinite(
+      SymbolicExpression pArgument, String pFunctionName, MachineModel pMachineModel) {
+    CSimpleType floatType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
+    Format format = Format.fromCType(pMachineModel, floatType);
+    return intOperation(
+        compareWithConstant(
+            pArgument, BinaryOperator.EQUALS, FloatValue.infinity(format), floatType),
+        BinaryOperator.PLUS,
+        compareWithConstant(
+            pArgument, BinaryOperator.EQUALS, FloatValue.negativeInfinity(format), floatType));
+  }
+
+  /**
+   * {@code (x > -inf) * (x < +inf)}, which is 1 if and only if {@code x} is finite, as both
+   * comparisons are false for NaN.
+   */
+  private static SymbolicExpression symbolicIsFinite(
+      SymbolicExpression pArgument, String pFunctionName, MachineModel pMachineModel) {
+    CSimpleType floatType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
+    Format format = Format.fromCType(pMachineModel, floatType);
+    return intOperation(
+        compareWithConstant(
+            pArgument, BinaryOperator.GREATER_THAN, FloatValue.negativeInfinity(format), floatType),
+        BinaryOperator.MULTIPLY,
+        compareWithConstant(
+            pArgument, BinaryOperator.LESS_THAN, FloatValue.infinity(format), floatType));
+  }
+
+  /**
+   * The class of {@code x} as returned by {@code fpclassify()}, i.e., FP_NAN (0), FP_INFINITE (1),
+   * FP_ZERO (2), FP_SUBNORMAL (3), or FP_NORMAL (4), like the concrete evaluation above. With the
+   * results 0 or 1 of the comparisons {@code isInfinite}, {@code isZero}, {@code isFinite}, and
+   * {@code isTiny} ({@code -minNormal < x < minNormal}, i.e., zero or subnormal), this is {@code
+   * isInfinite + 2 * isZero + 3 * (isTiny - isZero) + 4 * (isFinite - isTiny)}, which simplifies to
+   * {@code isInfinite - isZero - isTiny + 4 * isFinite}.
+   */
+  private static SymbolicExpression symbolicFpclassify(
+      SymbolicExpression pArgument, String pFunctionName, MachineModel pMachineModel) {
+    CSimpleType floatType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName);
+    Format format = Format.fromCType(pMachineModel, floatType);
+    SymbolicExpression isZero =
+        compareWithConstant(pArgument, BinaryOperator.EQUALS, FloatValue.zero(format), floatType);
+    SymbolicExpression isTiny =
+        intOperation(
+            compareWithConstant(
+                pArgument,
+                BinaryOperator.GREATER_THAN,
+                FloatValue.minNormal(format).negate(),
+                floatType),
+            BinaryOperator.MULTIPLY,
+            compareWithConstant(
+                pArgument, BinaryOperator.LESS_THAN, FloatValue.minNormal(format), floatType));
+    SymbolicExpression four = ConstantSymbolicExpression.of(new NumericValue(4), CNumericTypes.INT);
+    return intOperation(
+        intOperation(
+            intOperation(
+                symbolicIsInfinite(pArgument, pFunctionName, pMachineModel),
+                BinaryOperator.MINUS,
+                isZero),
+            BinaryOperator.MINUS,
+            isTiny),
+        BinaryOperator.PLUS,
+        intOperation(
+            four,
+            BinaryOperator.MULTIPLY,
+            symbolicIsFinite(pArgument, pFunctionName, pMachineModel)));
+  }
+
+  /**
    * {@code int isnan(x)} x may be float, double, or long double. Returns nonzero if x is NaN.
    * Undefined behavior: x is not a real floating-point expression.
    */
@@ -200,6 +365,11 @@ final class SMGMathBuiltins {
               numParameter);
       return ImmutableList.of(
           ValueAndSMGState.of(new NumericValue(arg.isNan() ? 1 : 0), currentState));
+    } else if (symbolicArgument(
+            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
+        instanceof SymbolicExpression symbolicArgument) {
+      return ImmutableList.of(
+          ValueAndSMGState.of(symbolicIsNan(symbolicArgument, pFunctionName), currentState));
     } else {
       return ImmutableList.of(
           ValueAndSMGState.ofUnknownValue(
@@ -237,6 +407,12 @@ final class SMGMathBuiltins {
               numParameter);
       return ImmutableList.of(
           ValueAndSMGState.of(new NumericValue(arg.isInfinite() ? 1 : 0), currentState));
+    } else if (symbolicArgument(
+            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
+        instanceof SymbolicExpression symbolicArgument) {
+      return ImmutableList.of(
+          ValueAndSMGState.of(
+              symbolicIsInfinite(symbolicArgument, pFunctionName, pMachineModel), currentState));
     } else {
       return ImmutableList.of(
           ValueAndSMGState.ofUnknownValue(
@@ -314,6 +490,12 @@ final class SMGMathBuiltins {
       return ImmutableList.of(
           ValueAndSMGState.of(
               new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1), currentState));
+    } else if (symbolicArgument(
+            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
+        instanceof SymbolicExpression symbolicArgument) {
+      return ImmutableList.of(
+          ValueAndSMGState.of(
+              symbolicIsFinite(symbolicArgument, pFunctionName, pMachineModel), currentState));
     } else {
       return ImmutableList.of(
           ValueAndSMGState.ofUnknownValue(
@@ -882,6 +1064,12 @@ final class SMGMathBuiltins {
         fpClass = 4;
       }
       return ImmutableList.of(ValueAndSMGState.of(new NumericValue(fpClass), currentState));
+    } else if (symbolicArgument(
+            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
+        instanceof SymbolicExpression symbolicArgument) {
+      return ImmutableList.of(
+          ValueAndSMGState.of(
+              symbolicFpclassify(symbolicArgument, pFunctionName, pMachineModel), currentState));
     } else {
       return ImmutableList.of(
           ValueAndSMGState.ofUnknownValue(
