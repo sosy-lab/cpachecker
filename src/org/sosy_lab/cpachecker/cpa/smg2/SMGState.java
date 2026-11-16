@@ -4095,6 +4095,10 @@ public class SMGState
         // Float conversion is limited to the Java float types at the moment.
         // Larger float types are almost always unknown
         valueRead = castValueForUnionFloatConversion(valueRead, readType);
+      } else if (readType != null && isSymbolicFloatReinterpretation(valueRead, readType)) {
+        // Symbolic values can not express the reinterpretation of the bits of an integer as a
+        // floating-point number or vice versa, so the read value is unknown.
+        return ValueAndSMGState.of(getNewSymbolicValueForType(readType), this);
       }
       return ValueAndSMGState.of(valueRead, this);
 
@@ -4239,6 +4243,20 @@ public class SMGState
     } else {
       return false;
     }
+  }
+
+  /**
+   * Whether a symbolic value is read with a floating-point type although it was written with an
+   * integer type, or vice versa, e.g., through a union. Like {@link
+   * #doesRequireUnionFloatConversion(Value, CType)} for symbolic values.
+   */
+  private boolean isSymbolicFloatReinterpretation(Value valueRead, CType readType) {
+    return valueRead instanceof SymbolicExpression symbolicValue
+        && symbolicValue.getType() instanceof CType valueType
+        && valueType.getCanonicalType() instanceof CSimpleType
+        && readType.getCanonicalType() instanceof CSimpleType
+        && isFloatingPointType(valueType.getCanonicalType())
+            != isFloatingPointType(readType.getCanonicalType());
   }
 
   private boolean isFloatingPointType(CType pType) {
