@@ -87,8 +87,12 @@ public class KnownFunctionBehaviorDetectorTest {
   }
 
   @Test
-  public void noDetectionWithoutOption() throws Exception {
-    assertThat(knownBehaviors(TestCfaUtils.makeCfaFromFile(PROGRAMS + "byte-loop-memset-aws.c")))
+  public void noDetectionIfDisabled() throws Exception {
+    assertThat(
+            knownBehaviors(
+                TestCfaUtils.makeCfaFromFile(
+                    PROGRAMS + "byte-loop-memset-aws.c",
+                    Map.entry("cfa.detectKnownFunctionBehavior", "false"))))
         .isEmpty();
   }
 }

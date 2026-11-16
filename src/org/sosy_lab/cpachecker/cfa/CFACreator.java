@@ -332,7 +332,7 @@ public class CFACreator {
               + " byte-wise implementations of memset and wrappers of them) and store this in"
               + " their function entry nodes. The structure of the CFA is not changed. Needs the"
               + " loop structure (analysis.useLoopStructure).")
-  private boolean detectKnownFunctionBehavior = false;
+  private boolean detectKnownFunctionBehavior = true;
 
   @Option(
       secure = true,
@@ -754,8 +754,10 @@ public class CFACreator {
         stats.knownFunctionBehaviors =
             KnownFunctionBehaviorDetector.detect(cfa, loopStructure.orElseThrow(), logger);
       } else {
+        // only INFO, because the option is enabled by default and a missing loop structure is
+        // either intended (analysis.useLoopStructure=false) or already reported as warning
         logger.log(
-            Level.WARNING,
+            Level.INFO,
             "Cannot detect functions with known behavior without loop structure"
                 + " (analysis.useLoopStructure).");
       }

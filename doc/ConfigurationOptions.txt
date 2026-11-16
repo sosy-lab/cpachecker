@@ -1221,7 +1221,7 @@ cfa.checkNullPointers.singleTargetPerFunction = true
 # far, byte-wise implementations of memset and wrappers of them) and store
 # this in their function entry nodes. The structure of the CFA is not
 # changed. Needs the loop structure (analysis.useLoopStructure).
-cfa.detectKnownFunctionBehavior = false
+cfa.detectKnownFunctionBehavior = true
 
 # When a function pointer array element is written with a variable as index,
 # create a series of if-else edges with explicit indizes instead.
