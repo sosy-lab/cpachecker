@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Table;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,8 +33,6 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
-import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
@@ -68,9 +66,6 @@ public class InvariantExchangeFormatTransformer {
   private final ParserTools parserTools;
   private final CFA cfa;
   private final LogManager logger;
-
-  /** The label of \at(e, AnyPrev), i.e., the value of e in any previous state. */
-  private static final String ANY_PREV_LABEL = "AnyPrev";
 
   private static final String EXPRESSION_VARIABLE_PREFIX = "__expression_";
 
@@ -219,14 +214,14 @@ public class InvariantExchangeFormatTransformer {
 
   /**
    * The encoding of the previous values \at(e, AnyPrev) in a transition invariant by fresh
-   * variables, since the C parser does not support them. For a variable x, the fresh variable is
-   * x__TransInv_PREV, where x is the name of x in the CFA, e.g., x__1. For another expression e,
-   * e.g., *p, there is also a variable __expression_N for the value of e, and the fresh variable is
-   * __expression_N__TransInv_PREV.
+   * variables, since the C parser does not support them, see {@link PreviousValuesParserUtils}. For
+   * each expression e, e.g., x or *p, there is a variable __expression_N for the value of e, and
+   * the fresh variable is __expression_N__TransInv_PREV.
    *
    * @param invariant the invariant with the fresh variables
-   * @param variables the fresh variables mapped to the variables whose previous values they are
-   * @param expressions the variables for the values of expressions mapped to these expressions
+   * @param variables the fresh variables mapped to the variables for the values of the expressions
+   *     whose previous values they are
+   * @param expressions the variables for the values of the expressions mapped to these expressions
    */
   private record PreviousValues(
       String invariant,
@@ -247,92 +242,60 @@ public class InvariantExchangeFormatTransformer {
                         programScope, node, cfa.getAstCfaRelation()))
             .orElseGet(() -> programScope.withFunctionScope(function));
 
-    // The fresh variables by the variables whose previous values they are
+    // The fresh variables by the variables for the values of the expressions
     Map<CSimpleDeclaration, CSimpleDeclaration> previousVariables = new LinkedHashMap<>();
     Map<CSimpleDeclaration, CExpression> expressions = new LinkedHashMap<>();
-    StringBuilder result = new StringBuilder();
-    int encodedUntil = 0;
-    int start = invariant.indexOf(TransitionInvariantUtils.AT_PREFIX);
-    while (start >= 0) {
-      // The expression may contain parentheses, e.g., \at((*p), AnyPrev)
-      int opening = start + TransitionInvariantUtils.AT_PREFIX.length() - 1;
-      int closing = indexOfClosingParenthesis(invariant, opening);
-      if (closing < 0) {
-        break;
-      }
-      int labelStart = invariant.lastIndexOf(',', closing) + 1;
-      if (labelStart > opening + 1
-          && invariant.substring(labelStart, closing).strip().equals(ANY_PREV_LABEL)) {
-        // Otherwise, \at stays in the invariant, which then cannot be parsed
-        Optional<CSimpleDeclaration> previous =
+    // The names of the fresh variables by the expressions as written in the invariant
+    Map<String, String> names = new HashMap<>();
+    for (String expression :
+        PreviousValuesParserUtils.getExpressionsWithPreviousValues(invariant)) {
+      Optional<CExpression> parsed =
+          PreviousValuesParserUtils.parseExpression(expression, cparser, scope);
+      if (parsed.isPresent()) {
+        names.put(
+            expression,
             declarePreviousValue(
-                invariant.substring(opening + 1, labelStart - 1),
-                function,
-                scope,
-                previousVariables,
-                expressions);
-        if (previous.isPresent()) {
-          result.append(invariant, encodedUntil, start).append(previous.orElseThrow().getName());
-          encodedUntil = closing + 1;
-        }
+                    parsed.orElseThrow(), function, scope, previousVariables, expressions)
+                .getName());
       }
-      start = invariant.indexOf(TransitionInvariantUtils.AT_PREFIX, closing + 1);
     }
-    result.append(invariant.substring(encodedUntil));
 
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> variables =
         ImmutableMap.builderWithExpectedSize(previousVariables.size());
     previousVariables.forEach((current, previous) -> variables.put(previous, current));
     return new PreviousValues(
-        result.toString(), variables.buildOrThrow(), ImmutableMap.copyOf(expressions));
+        PreviousValuesParserUtils.replacePreviousValues(invariant, names),
+        variables.buildOrThrow(),
+        ImmutableMap.copyOf(expressions));
   }
 
   /**
-   * Returns the fresh variable for the previous value of the given variable or expression, see
-   * {@link PreviousValues}, and adds it to the given maps. It is empty if the expression cannot be
-   * parsed in the scope, e.g., because a variable is not in scope.
+   * Returns the fresh variable for the previous value of the given expression, see {@link
+   * PreviousValues}, and adds it to the given maps.
    */
-  private Optional<CSimpleDeclaration> declarePreviousValue(
-      String pExpression,
+  private CSimpleDeclaration declarePreviousValue(
+      CExpression pExpression,
       String pFunction,
       Scope pScope,
       Map<CSimpleDeclaration, CSimpleDeclaration> pPreviousVariables,
-      Map<CSimpleDeclaration, CExpression> pExpressions)
-      throws InterruptedException {
-    CExpression expression;
-    try {
-      if (!(CParserUtils.parseSingleStatement(pExpression, cparser, pScope)
-          instanceof CExpressionStatement statement)) {
-        return Optional.empty();
-      }
-      expression = statement.getExpression();
-    } catch (InvalidAutomatonException e) {
-      return Optional.empty();
+      Map<CSimpleDeclaration, CExpression> pExpressions) {
+    CSimpleDeclaration current = expressionVariables.get(pFunction, pExpression);
+    if (current == null) {
+      String name;
+      do {
+        name = EXPRESSION_VARIABLE_PREFIX + expressionVariableCount++;
+      } while (pScope.variableNameInUse(name));
+      current = declareFreshVariable(name, pExpression.getExpressionType(), pScope);
+      expressionVariables.put(pFunction, pExpression, current);
     }
-
-    CSimpleDeclaration current;
-    if (expression instanceof CIdExpression variable) {
-      current = variable.getDeclaration();
-    } else {
-      current = expressionVariables.get(pFunction, expression);
-      if (current == null) {
-        String name;
-        do {
-          name = EXPRESSION_VARIABLE_PREFIX + expressionVariableCount++;
-        } while (pScope.variableNameInUse(name));
-        current = declareFreshVariable(name, expression.getExpressionType(), pScope);
-        expressionVariables.put(pFunction, expression, current);
-      }
-      pExpressions.put(current, expression);
-    }
-    return Optional.of(
-        pPreviousVariables.computeIfAbsent(
-            current,
-            variable ->
-                declareFreshVariable(
-                    variable.getName() + TransitionInvariantUtils.PREV_KEYWORD,
-                    variable.getType(),
-                    pScope)));
+    pExpressions.put(current, pExpression);
+    return pPreviousVariables.computeIfAbsent(
+        current,
+        variable ->
+            declareFreshVariable(
+                variable.getName() + TransitionInvariantUtils.PREV_KEYWORD,
+                variable.getType(),
+                pScope));
   }
 
   /** Declares a variable that is not in the program as local variable of the given scope. */
@@ -347,22 +310,6 @@ public class InvariantExchangeFormatTransformer {
         pScope.createScopedNameOf(pName),
         null,
         /* pHasThreadLocalStorage= */ false);
-  }
-
-  /** Returns the index of the parenthesis closing the one at the given index, or -1. */
-  private static int indexOfClosingParenthesis(String pString, int pOpening) {
-    int depth = 0;
-    for (int i = pOpening; i < pString.length(); i++) {
-      if (pString.charAt(i) == '(') {
-        depth++;
-      } else if (pString.charAt(i) == ')') {
-        depth--;
-        if (depth == 0) {
-          return i;
-        }
-      }
-    }
-    return -1;
   }
 
   /**

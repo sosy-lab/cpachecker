@@ -27,10 +27,11 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
  * @param entry the entry this invariant was parsed from
  * @param formula the parsed value of the entry
  * @param previousValueVariables for transition invariants, a mapping from the fresh variables
- *     holding the previous value of a variable to that variable, empty otherwise
+ *     holding the previous value of an expression to the variables in {@code expressionVariables}
+ *     for the value of that expression, empty otherwise
  * @param expressionVariables for transition invariants, a mapping from the fresh variables for the
- *     values of expressions that are not variables, e.g., *p for \at(*p, AnyPrev), to these
- *     expressions, empty otherwise. Their previous values are in {@code previousValueVariables}.
+ *     values of the expressions with previous values, e.g., x for \at(x, AnyPrev) or *p for \at(*p,
+ *     AnyPrev), to these expressions, empty otherwise
  */
 public record ParsedInvariant(
     InvariantEntry entry,

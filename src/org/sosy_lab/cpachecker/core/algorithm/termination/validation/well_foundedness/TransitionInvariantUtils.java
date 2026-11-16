@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_found
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -271,28 +270,19 @@ public class TransitionInvariantUtils {
   }
 
   /**
-   * Replaces the expressions in the given expression by the variables for their values, see {@link
-   * org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ParsedInvariant#expressionVariables()}.
+   * Returns the substitution of the expressions with previous values by the variables for their
+   * values, see {@link
+   * org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ParsedInvariant#expressionVariables()}
+   * and {@link SubstitutingCAstNodeVisitor#substituteExpressions}.
    */
-  public static CExpression replaceExpressionsByVariables(
-      CExpression pExpression, ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
-    if (pExpressionVariables.isEmpty()) {
-      return pExpression;
-    }
-    Map<String, CSimpleDeclaration> variablesByExpression = new HashMap<>();
+  public static ImmutableMap<CExpression, CExpression> substitutionByVariables(
+      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
+    ImmutableMap.Builder<CExpression, CExpression> substitution = ImmutableMap.builder();
     pExpressionVariables.forEach(
         (variable, expression) ->
-            variablesByExpression.putIfAbsent(expression.toQualifiedASTString(), variable));
-    return (CExpression)
-        pExpression.accept(
-            new SubstitutingCAstNodeVisitor(
-                node ->
-                    node instanceof CExpression expression
-                            && variablesByExpression.containsKey(expression.toQualifiedASTString())
-                        ? new CIdExpression(
-                            expression.getFileLocation(),
-                            variablesByExpression.get(expression.toQualifiedASTString()))
-                        : null));
+            substitution.put(expression, new CIdExpression(variable.getFileLocation(), variable)));
+    // An expression has a variable for each function of the invariants with it
+    return substitution.buildKeepingLast();
   }
 
   public static String removeFunctionFromVarsName(String pFormula) {

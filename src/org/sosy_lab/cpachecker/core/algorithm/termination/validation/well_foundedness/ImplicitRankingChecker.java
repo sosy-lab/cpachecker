@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -89,6 +90,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
   // The variables for the values of expressions of the transition invariant, e.g., of *p for
   // \at(*p, AnyPrev), which are declared in the scope
   private final ImmutableMap<CSimpleDeclaration, CExpression> expressionVariables;
+  // The substitution of these expressions by their variables
+  private final ImmutableMap<CExpression, CExpression> substitutionByVariables;
 
   public ImplicitRankingChecker(
       final FormulaManagerView pFmgr,
@@ -102,6 +105,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       throws InvalidConfigurationException {
     pConfig.inject(this);
     expressionVariables = pExpressionVariables;
+    substitutionByVariables =
+        TransitionInvariantUtils.substitutionByVariables(pExpressionVariables);
     fmgr = pFmgr;
     bfmgr = pBfmgr;
     config = pConfig;
@@ -316,24 +321,28 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    * it.
    */
   private String computeLoopCondition(CFANode pLoopHead) {
-    Optional<ExpressionTree<CExpression>> condition =
-        CFAUtils.computeLoopConditionTree(pLoopHead, cfa.getAstCfaRelation())
-            .map(
-                tree ->
-                    ExpressionTrees.convert(
-                        tree,
-                        expression ->
-                            TransitionInvariantUtils.replaceExpressionsByVariables(
-                                expression, expressionVariables)));
-    if (condition.isEmpty()
-        || !FluentIterable.from(ExpressionTrees.traverseRecursively(condition.orElseThrow()))
-            .allMatch(
-                node ->
-                    !(node instanceof LeafExpression<CExpression> leaf)
-                        || isDeclaredInGeneratedProgram(leaf.getExpression()))) {
+    Optional<ExpressionTree<CExpression>> loopCondition =
+        CFAUtils.computeLoopConditionTree(pLoopHead, cfa.getAstCfaRelation());
+    if (loopCondition.isEmpty()) {
       return "1";
     }
-    return condition.orElseThrow().accept(new ToCodeVisitor<>(CExpression::toASTString));
+    ExpressionTree<CExpression> condition =
+        ExpressionTrees.convert(loopCondition.orElseThrow(), this::withExpressionVariables);
+    for (ExpressionTree<CExpression> node : ExpressionTrees.traverseRecursively(condition)) {
+      if (node instanceof LeafExpression<CExpression> leaf
+          && !isDeclaredInGeneratedProgram(leaf.getExpression())) {
+        return "1";
+      }
+    }
+    return condition.accept(new ToCodeVisitor<>(CExpression::toASTString));
+  }
+
+  /**
+   * Returns the expression, where the expressions with previous values are replaced by the
+   * variables for their values.
+   */
+  private CExpression withExpressionVariables(CExpression pExpression) {
+    return SubstitutingCAstNodeVisitor.substituteExpressions(pExpression, substitutionByVariables);
   }
 
   /**

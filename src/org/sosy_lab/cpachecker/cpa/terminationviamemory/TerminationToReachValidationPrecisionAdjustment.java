@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.PREV_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.TRANS_INV_KEYWORD;
 
 import com.google.common.base.Function;
@@ -21,12 +22,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -374,14 +387,14 @@ public class TerminationToReachValidationPrecisionAdjustment
   }
 
   /**
-   * Conjoins all transition invariants from the witness at the given location into one formula, as
-   * they are parsed.
+   * Conjoins all transition invariants from the witness at the given location into one formula, see
+   * {@link #withPreviousStateVariables}.
    */
   private BooleanFormula conjoinWitnessTransitionInvariants(CFANode pLocation)
       throws InterruptedException {
     BooleanFormula conjunction = bfmgr.makeTrue();
     for (ExpressionTreeLocationInvariant invariant : candidateInvariants) {
-      if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
+      if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant transitionInvariant)) {
         continue;
       }
 
@@ -391,7 +404,9 @@ public class TerminationToReachValidationPrecisionAdjustment
           if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
             invariantFormula = bfmgr.makeTrue();
           } else {
-            invariantFormula = invariant.getFormula(fmgr, pthfmgr, pthfmgr.makeEmptyPathFormula());
+            invariantFormula =
+                withPreviousStateVariables(transitionInvariant)
+                    .getFormula(fmgr, pthfmgr, pthfmgr.makeEmptyPathFormula());
           }
         } catch (CPATransferException e) {
           logger.logUserException(Level.WARNING, e, "It was not possible to parse the invariant.");
@@ -401,5 +416,82 @@ public class TerminationToReachValidationPrecisionAdjustment
       }
     }
     return conjunction;
+  }
+
+  /**
+   * Returns the transition invariant, where the variables for the previous values of expressions,
+   * e.g., of x for \at(x, AnyPrev), are replaced by these expressions over the variables of the
+   * previous state, e.g., x__TransInv_PREV, as in the transition invariants of this analysis. The
+   * previous values of expressions that access the memory, e.g., *p, are kept, since the memory of
+   * the previous state is not stored.
+   */
+  private static ExpressionTreeLocationInvariant withPreviousStateVariables(
+      ExpressionTreeLocationTransitionInvariant pInvariant) {
+    ImmutableMap.Builder<CExpression, CExpression> previousValuesBuilder = ImmutableMap.builder();
+    pInvariant
+        .getMapPrevVarsToCurrent()
+        .forEach(
+            (previous, current) -> {
+              CExpression expression = pInvariant.getExpressionVariables().get(current);
+              if (!accessesMemory(expression)) {
+                previousValuesBuilder.put(
+                    new CIdExpression(previous.getFileLocation(), previous),
+                    inPreviousState(expression));
+              }
+            });
+    ImmutableMap<CExpression, CExpression> previousValues = previousValuesBuilder.buildOrThrow();
+    if (previousValues.isEmpty()) {
+      return pInvariant;
+    }
+    return new ExpressionTreeLocationInvariant(
+        "Transition invariant over the variables of the previous state",
+        pInvariant.getLocation(),
+        ExpressionTrees.convert(
+            pInvariant.asExpressionTree(),
+            expression ->
+                SubstitutingCAstNodeVisitor.substituteExpressions(
+                    (CExpression) expression, previousValues)),
+        new ConcurrentHashMap<>());
+  }
+
+  private static boolean accessesMemory(CExpression pExpression) {
+    return CFAUtils.traverseRecursively(pExpression)
+        .anyMatch(
+            node ->
+                node instanceof CPointerExpression
+                    || node instanceof CFieldReference
+                    || node instanceof CArraySubscriptExpression);
+  }
+
+  /** Returns the expression, where the variables are replaced by those of the previous state. */
+  private static CExpression inPreviousState(CExpression pExpression) {
+    Map<CExpression, CExpression> previousStateVariables = new HashMap<>();
+    for (CIdExpression variable : CFAUtils.getCIdExpressionsOfExpression(pExpression)) {
+      if (variable.getDeclaration() instanceof CVariableDeclaration
+          || variable.getDeclaration() instanceof CParameterDeclaration) {
+        previousStateVariables.put(
+            variable,
+            new CIdExpression(
+                variable.getFileLocation(), previousStateVariable(variable.getDeclaration())));
+      }
+    }
+    return SubstitutingCAstNodeVisitor.substituteExpressions(pExpression, previousStateVariables);
+  }
+
+  /**
+   * Returns the variable of the previous state of the given variable, whose name in the formulas is
+   * the name of the given variable with {@link TransitionInvariantUtils#PREV_KEYWORD}.
+   */
+  private static CVariableDeclaration previousStateVariable(CSimpleDeclaration pVariable) {
+    return new CVariableDeclaration(
+        pVariable.getFileLocation(),
+        false,
+        CStorageClass.AUTO,
+        pVariable.getType(),
+        pVariable.getName() + PREV_KEYWORD,
+        pVariable.getOrigName() + PREV_KEYWORD,
+        pVariable.getQualifiedName() + PREV_KEYWORD,
+        null,
+        /* pHasThreadLocalStorage= */ false);
   }
 }
