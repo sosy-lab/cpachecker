@@ -207,12 +207,9 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
             i++;
           }
           checkArgument(i > start, "Hex escape sequence without digits in \"%s\"", s);
-          BigInteger value = new BigInteger(s.substring(start, i), 16);
-          checkArgument(
-              value.compareTo(BigInteger.valueOf(0xFF)) <= 0,
-              "Hex escape sequence out of range in \"%s\"",
-              s);
-          result.append((char) value.intValue());
+          int value = Integer.parseInt(s.substring(start, i), 16);
+          checkArgument(value <= 0xFF, "Hex escape sequence out of range in \"%s\"", s);
+          result.append((char) value);
         }
         case 'u', 'U' -> {
           int digits = c == 'u' ? 4 : 8;

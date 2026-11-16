@@ -44,6 +44,7 @@ public class CStringLiteralExpressionTest {
     // octal escapes have at most three digits, hex escapes take all digits
     assertThat(literal("\"\\1012\"").getContentWithoutNullTerminator()).isEqualTo("A2");
     assertThat(literal("\"\\x0041\"").getContentWithoutNullTerminator()).isEqualTo("A");
+    assertThat(literal("\"\\x000000000041\"").getContentWithoutNullTerminator()).isEqualTo("A");
     assertThat(literal("\"\\377\\xff\"").getContentWithoutNullTerminator())
         .isEqualTo("\u00FF\u00FF");
   }
@@ -57,6 +58,7 @@ public class CStringLiteralExpressionTest {
   public void testInvalidEscapeSequences() {
     assertThrows(IllegalArgumentException.class, () -> literal("\"\\x\""));
     assertThrows(IllegalArgumentException.class, () -> literal("\"\\x100\""));
+    assertThrows(IllegalArgumentException.class, () -> literal("\"\\x123456789\""));
     assertThrows(IllegalArgumentException.class, () -> literal("\"\\u12\""));
   }
 
