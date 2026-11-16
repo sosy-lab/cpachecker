@@ -13,15 +13,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public abstract sealed class AcslLiteralPredicate extends ALiteralExpression
     implements AcslPredicate permits AcslBooleanLiteralPredicate {
 
-  @Serial private static final long serialVersionUID = -8145502432341276L;
+  @Serial private static final long serialVersionUID = -2196538803039577281L;
 
   protected AcslLiteralPredicate(FileLocation pFileLocation) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
-    checkNotNull(pFileLocation);
+    super(checkNotNull(pFileLocation), AcslBuiltinLogicType.BOOLEAN);
   }
 
   @Override

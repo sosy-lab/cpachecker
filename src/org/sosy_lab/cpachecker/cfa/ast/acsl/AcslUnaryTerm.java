@@ -8,26 +8,47 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
 
-  @Serial private static final long serialVersionUID = 8458828043123590886L;
+  @Serial private static final long serialVersionUID = 3902867336658169714L;
 
   public AcslUnaryTerm(
       FileLocation pFileLocation,
       AcslType pType,
       AcslTerm pOperand,
       AcslUnaryTermOperator pOperator) {
-    super(pFileLocation, pType, pOperand, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pOperand);
-    checkNotNull(pOperator);
+    super(
+        checkNotNull(pFileLocation),
+        checkNotNull(pType),
+        checkNotNull(pOperand),
+        checkNotNull(pOperator));
+    checkArgument(
+        operandFits(pOperator, pOperand.getExpressionType()),
+        "The operator %s cannot be applied to %s",
+        pOperator,
+        pOperand);
+  }
+
+  private static boolean operandFits(AcslUnaryTermOperator pOperator, AcslType pType) {
+    if (pType instanceof AcslPolymorphicType) {
+      return true;
+    }
+    return switch (pOperator) {
+      case PLUS, MINUS -> AcslType.isNumeric(pType);
+      case POINTER_DEREFERENCE -> AcslType.isPointer(pType);
+      case NEGATION ->
+          AcslType.isNumeric(pType) || AcslType.isBoolean(pType) || AcslType.isPointer(pType);
+      case SIZEOF, ADDRESS_OF -> true;
+    };
   }
 
   @Override
@@ -55,7 +76,7 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
     return v.visit(this);
   }
 
-  public enum AcslUnaryTermOperator implements AUnaryOperator, AcslAstNode {
+  public enum AcslUnaryTermOperator implements AUnaryOperator {
     SIZEOF("sizeof"),
     PLUS("+"),
     MINUS("-"),
@@ -65,11 +86,9 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
     ;
 
     private final String operator;
-    private final FileLocation fileLocation;
 
     AcslUnaryTermOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
     public static AcslUnaryTermOperator of(String pOperator) {
@@ -90,26 +109,6 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
     @Override
     public String getOperator() {
       return operator;
-    }
-
-    @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }

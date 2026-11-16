@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class BDDExistsTest {
@@ -40,7 +41,7 @@ public class BDDExistsTest {
 
   @Test
   public void existsTest() throws InvalidConfigurationException {
-    config = Configuration.builder().setOption("bdd.package", bddPackage).build();
+    config = TestUtils.configurationForTest().setOption("bdd.package", bddPackage).build();
     nrm = new NamedRegionManager(new BDDManagerFactory(config, logger).createRegionManager());
 
     Region r0 = nrm.createPredicate("r0");

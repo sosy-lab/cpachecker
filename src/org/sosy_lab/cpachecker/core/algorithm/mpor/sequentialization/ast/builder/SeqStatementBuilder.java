@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStatementBuilder {
@@ -28,7 +28,7 @@ public class SeqStatementBuilder {
     return buildExpressionAssignmentStatement(
         pLeftHandSide,
         pBinaryExpressionBuilder.buildBinaryExpression(
-            pLeftHandSide, SeqIntegerLiteralExpressions.INT_1, BinaryOperator.PLUS));
+            pLeftHandSide, CIntegerLiteralExpression.ONE, BinaryOperator.PLUS));
   }
 
   public static CExpressionAssignmentStatement buildDecrementStatement(
@@ -38,7 +38,7 @@ public class SeqStatementBuilder {
     return buildExpressionAssignmentStatement(
         pLeftHandSide,
         pBinaryExpressionBuilder.buildBinaryExpression(
-            pLeftHandSide, SeqIntegerLiteralExpressions.INT_1, BinaryOperator.MINUS));
+            pLeftHandSide, CIntegerLiteralExpression.ONE, BinaryOperator.MINUS));
   }
 
   // Assignments ===================================================================================

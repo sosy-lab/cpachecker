@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-interface BitVectorType extends Typed {
+sealed interface BitVectorType extends Typed permits BitVectorInterval, CompoundBitVectorInterval {
 
   @Override
   BitVectorInfo getTypeInfo();

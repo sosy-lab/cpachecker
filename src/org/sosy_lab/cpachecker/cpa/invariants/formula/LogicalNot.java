@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import com.google.common.base.Preconditions;
 
 /** Instances of this class represent logical negations of invariants formulae. */
-public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
+public final class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
 
   /** The formula logically negated by this formula. */
   private final BooleanFormula<ConstantType> negatedFormula;

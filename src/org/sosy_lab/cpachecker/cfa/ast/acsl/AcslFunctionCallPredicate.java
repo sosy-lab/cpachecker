@@ -16,6 +16,8 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslFunctionCallPredicate extends AFunctionCallExpression
     implements AcslPredicate {
@@ -55,7 +57,7 @@ public final class AcslFunctionCallPredicate extends AFunctionCallExpression
 
   @Override
   public AcslType getExpressionType() {
-    return (AcslType) getDeclaration().getType().getReturnType();
+    return getDeclaration().getType().getReturnType();
   }
 
   @Override

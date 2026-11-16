@@ -20,6 +20,7 @@ import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibBlankChoiceEdge;
@@ -79,6 +81,8 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
   private boolean waitingForLabel = false;
 
   private final ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> nodeToTagReferences;
+  private final ImmutableSetMultimap.Builder<SvLibTagReference, SvLibTagProperty>
+      tagReferenceToAnnotations;
   private final ImmutableMap<String, CFANode> labelsToNodes;
   private final ImmutableSet.Builder<CFANode> allNodesCollector;
   private final ImmutableSetMultimap<String, SvLibTagProperty> tagReferencesToAnnotations;
@@ -92,6 +96,7 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
       FunctionExitNode pFunctionExitNode,
       ImmutableSetMultimap.Builder<CFANode, SvLibTagProperty> pNodeToTagAnnotations,
       ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> pNodeToTagReferences,
+      ImmutableSetMultimap.Builder<SvLibTagReference, SvLibTagProperty> pTagReferenceToAnnotations,
       ImmutableMap<String, CFANode> pLabelsToNodes,
       ImmutableSet.Builder<CFANode> pAllNodesCollector,
       ImmutableSetMultimap<String, SvLibTagProperty> pTagReferencesToAnnotations,
@@ -102,6 +107,7 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
     functionExitNode = pFunctionExitNode;
     nodeToTagAnnotations = pNodeToTagAnnotations;
     nodeToTagReferences = pNodeToTagReferences;
+    tagReferenceToAnnotations = pTagReferenceToAnnotations;
     labelsToNodes = pLabelsToNodes;
     allNodesCollector = pAllNodesCollector;
     tagReferencesToAnnotations = pTagReferencesToAnnotations;
@@ -114,6 +120,13 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
     return newNode;
   }
 
+  /** A new node that control flow cannot leave. */
+  private CFANode getNewTerminationNode() {
+    CFANode newNode = new CFATerminationNode(procedure.toSimpleDeclaration());
+    allNodesCollector.add(newNode);
+    return newNode;
+  }
+
   private void trackTagPropertiesForStatementStartingWithNode(
       SvLibStatement pStatement, CFANode pStartNode) {
     nodeToTagAnnotations.putAll(pStartNode, pStatement.getTagAttributes());
@@ -121,6 +134,8 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
       ImmutableSet<SvLibTagProperty> properties = tagReferencesToAnnotations.get(ref.getTagName());
       nodeToTagAnnotations.putAll(pStartNode, properties);
       nodeToTagReferences.put(pStartNode, ref);
+      tagReferenceToAnnotations.putAll(ref, pStatement.getTagAttributes());
+      tagReferenceToAnnotations.putAll(ref, properties);
     }
   }
 
@@ -196,10 +211,10 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
   public VisitResult visit(SvLibHavocStatement pSvLibHavocStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibHavocStatement, currentStartingNode);
 
-    CFANode newNode = getNewNode();
     CFANode currentNode = currentStartingNode;
     // Rewrite this into a function call assignment with a special "havoc" function.
     for (SvLibSimpleParsingDeclaration variable : pSvLibHavocStatement.getVariables()) {
+      CFANode newNode = getNewNode();
       SvLibFunctionDeclaration havocFunctionDeclaration =
           SvLibFunctionDeclaration.nondetFunctionWithReturnType(variable.getType());
 
@@ -267,9 +282,15 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
   public VisitResult visit(SvLibAssumeStatement pSvLibAssumeStatement) throws NoException {
     trackTagPropertiesForStatementStartingWithNode(pSvLibAssumeStatement, currentStartingNode);
 
+    // An assumption that never holds cannot be left, so the statements after it are only reachable
+    // through a label. Continuing after it would give the program paths that it does not have.
+    boolean neverHolds =
+        pSvLibAssumeStatement.getTerm() instanceof SvLibBooleanConstantTerm constant
+            && !constant.getValue();
+
     // We do not need to split the assumption into multiple edges, since there is no
     // short-circuiting
-    CFANode newNode = getNewNode();
+    CFANode newNode = neverHolds ? getNewTerminationNode() : getNewNode();
     CFAEdge edge =
         new SvLibAssumeEdge(
             pSvLibAssumeStatement.toASTString(),
@@ -281,7 +302,9 @@ public class SvLibStatementToCfaVisitor implements SvLibStatementVisitor<VisitRe
             false,
             false);
     CFACreationUtils.addEdgeToCFA(edge, logger);
-    return new VisitResult(Optional.of(newNode), false);
+    return neverHolds
+        ? new VisitResult(Optional.empty(), true)
+        : new VisitResult(Optional.of(newNode), false);
   }
 
   @Override

@@ -16,17 +16,20 @@ import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ViolationConditionReportingState;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
@@ -174,9 +177,9 @@ public abstract sealed class PredicateAbstractState
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-        FunctionEntryNode pFunctionScope, CFANode pLocation)
+        FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
         throws InterruptedException, TranslationToExpressionTreeFailedException {
-      return super.abstractionFormula.asExpressionTree(pLocation);
+      return super.abstractionFormula.asExpressionTree(pLocation, pMachineModel);
     }
 
     @Override
@@ -184,31 +187,39 @@ public abstract sealed class PredicateAbstractState
         FunctionEntryNode pFunctionScope,
         CFANode pLocation,
         AstCfaRelation pAstCfaRelation,
-        boolean useOldKeywordForVariables)
+        boolean useOldKeywordForVariables,
+        MachineModel pMachineModel)
         throws InterruptedException,
             ReportingMethodNotImplementedException,
             TranslationToExpressionTreeFailedException {
+      FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+          ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
       return super.abstractionFormula.asExpressionTree(
           name ->
               (!name.contains(FUNCTION_DELIMITER)
                       || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
-                  && pAstCfaRelation
-                      .getVariablesAndParametersInScope(pLocation)
-                      .orElseThrow()
-                      .anyMatch(
-                          var ->
-                              // For local variables
-                              (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
-                                      .equals(name)
-                                  // For global variables
-                                  || var.getName().equals(name))
+                  && variablesInScope.anyMatch(
+                      var ->
+                          // For local variables
+                          (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
+                                  .equals(name)
+                              // For global variables
+                              || var.getName().equals(name))
                   && !name.contains("__CPAchecker_"),
-          name -> useOldKeywordForVariables ? "\\old(" + name + ")" : name);
+          name -> {
+            String nameInProgram = pAstCfaRelation.getNameInInputProgram(pLocation, name);
+            return useOldKeywordForVariables
+                ? ExpressionTreeReportingState.oldValueOf(nameInProgram)
+                : nameInProgram;
+          },
+          pMachineModel);
     }
 
     @Override
     public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-        FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+        FunctionEntryNode pFunctionScope,
+        AIdExpression pFunctionReturnVariable,
+        MachineModel pMachineModel)
         throws InterruptedException, TranslationToExpressionTreeFailedException {
       Verify.verify(pFunctionScope.getExitNode().isPresent());
       FunctionExitNode functionExitNode = pFunctionScope.getExitNode().orElseThrow();
@@ -220,7 +231,8 @@ public abstract sealed class PredicateAbstractState
                       .splitToList(name)
                       .get(1)
                       .equals(smtNameReturnVariable),
-          name -> name.equals(smtNameReturnVariable) ? pFunctionReturnVariable.getName() : name);
+          name -> name.equals(smtNameReturnVariable) ? pFunctionReturnVariable.getName() : name,
+          pMachineModel);
     }
 
     @Override

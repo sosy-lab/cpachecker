@@ -8,45 +8,51 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.io.Serial;
-import java.util.Objects;
+import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
-    permits AcslMemoryLocationSetEmpty, AcslMemoryLocationSetTerm {
+/** A set of memory locations, given by its elements. It is empty for {@code \empty}. */
+public final class AcslMemoryLocationSet extends AbstractAstNode implements AcslAstNode {
 
-  @Serial private static final long serialVersionUID = 1456718713245456789L;
+  @Serial private static final long serialVersionUID = -2231305848685238940L;
 
-  private final FileLocation fileLocation;
-  private final AcslSetType type;
+  private final ImmutableList<AcslTerm> terms;
 
-  protected AcslMemoryLocationSet(FileLocation pFileLocation, AcslSetType pType) {
-    fileLocation = pFileLocation;
-    type = pType;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
+  public AcslMemoryLocationSet(FileLocation pFileLocation, List<AcslTerm> pTerms) {
+    super(pFileLocation);
+    terms = ImmutableList.copyOf(pTerms);
+  }
+
+  public ImmutableList<AcslTerm> getTerms() {
+    return terms;
   }
 
   @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
+  public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
-  public AcslSetType getType() {
-    return type;
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return switch (terms.size()) {
+      case 0 -> "\\empty";
+      case 1 -> terms.getFirst().toASTString(pAAstNodeRepresentation);
+      default ->
+          "{"
+              + Joiner.on(", ")
+                  .join(Lists.transform(terms, t -> t.toASTString(pAAstNodeRepresentation)))
+              + "}";
+    };
   }
-
-  public abstract <R, X extends Exception> R accept(AcslMemoryLocationSetVisitor<R, X> v) throws X;
 
   @Override
   public int hashCode() {
-    final int prime = 37;
-    int result = 8;
-    result = prime * result + Objects.hashCode(type);
-    result = prime * result + Objects.hashCode(fileLocation);
-    return result;
+    return 37 * super.hashCode() + terms.hashCode();
   }
 
   @Override
@@ -56,7 +62,7 @@ public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
     }
 
     return obj instanceof AcslMemoryLocationSet other
-        && Objects.equals(other.type, type)
-        && Objects.equals(other.fileLocation, fileLocation);
+        && super.equals(other)
+        && other.terms.equals(terms);
   }
 }

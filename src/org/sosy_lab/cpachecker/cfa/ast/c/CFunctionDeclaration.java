@@ -33,6 +33,22 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
           ImmutableList.of(),
           ImmutableSet.of());
 
+  // Declarations for __VERIFIER_atomic_begin/end
+  public static final CFunctionDeclaration ATOMIC_BEGIN_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          CFunctionType.NO_ARGS_VOID_FUNCTION,
+          "__VERIFIER_atomic_begin",
+          ImmutableList.of(),
+          ImmutableSet.of());
+  public static final CFunctionDeclaration ATOMIC_END_DECLARATION =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          CFunctionType.NO_ARGS_VOID_FUNCTION,
+          "__VERIFIER_atomic_end",
+          ImmutableList.of(),
+          ImmutableSet.of());
+
   @Serial private static final long serialVersionUID = 5485363555708455537L;
 
   /** GNU C function attributes used by CPAchecker. */

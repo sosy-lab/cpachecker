@@ -1,0 +1,324 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.util.predicates.pathformula.acsltoformula;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCanAccessPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSeparateMemoryConjunctionPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
+
+public class AcslRenamingVisitor
+    implements AcslPredicateVisitor<AcslPredicate, NoException>,
+        AcslTermVisitor<AcslTerm, NoException> {
+
+  private final ImmutableMap<AcslSimpleDeclaration, AcslSimpleDeclaration> renamingMap;
+  private final ImmutableMap<String, String> nameRenamingMap;
+
+  public AcslRenamingVisitor(
+      ImmutableMap<AcslSimpleDeclaration, AcslSimpleDeclaration> pRenamingMap) {
+    this.renamingMap = pRenamingMap;
+    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    for (Map.Entry<AcslSimpleDeclaration, AcslSimpleDeclaration> entry : pRenamingMap.entrySet()) {
+      builder.put(entry.getKey().getName(), entry.getValue().getName());
+    }
+    this.nameRenamingMap = builder.buildOrThrow();
+  }
+
+  @Override
+  public AcslPredicate visit(AcslBinaryPredicate pBinaryExpression) {
+    return new AcslBinaryPredicate(
+        pBinaryExpression.getFileLocation(),
+        pBinaryExpression.getOperand1().accept(this),
+        pBinaryExpression.getOperand2().accept(this),
+        pBinaryExpression.getOperator());
+  }
+
+  @Override
+  public AcslPredicate visit(AcslUnaryPredicate pAcslUnaryPredicate) {
+    return new AcslUnaryPredicate(
+        pAcslUnaryPredicate.getFileLocation(),
+        pAcslUnaryPredicate.getOperand().accept(this),
+        pAcslUnaryPredicate.getOperator());
+  }
+
+  @Override
+  public AcslPredicate visit(AcslIdPredicate pAcslIdPredicate) {
+    return pAcslIdPredicate;
+  }
+
+  @Override
+  public AcslPredicate visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) {
+    return new AcslBinaryTermPredicate(
+        pAcslBinaryTermPredicate.getFileLocation(),
+        pAcslBinaryTermPredicate.getOperand1().accept(this),
+        pAcslBinaryTermPredicate.getOperand2().accept(this),
+        pAcslBinaryTermPredicate.getOperator());
+  }
+
+  @Override
+  public AcslPredicate visit(AcslOldPredicate pAcslOldPredicate) {
+    return new AcslOldPredicate(
+        pAcslOldPredicate.getFileLocation(), pAcslOldPredicate.getExpression().accept(this));
+  }
+
+  @Override
+  public AcslPredicate visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) {
+    return pAcslBooleanLiteralPredicate;
+  }
+
+  @Override
+  public AcslPredicate visit(AcslTernaryPredicate pAcslTernaryPredicate) {
+    return new AcslTernaryPredicate(
+        pAcslTernaryPredicate.getFileLocation(),
+        pAcslTernaryPredicate.getCondition().accept(this),
+        pAcslTernaryPredicate.getResultIfTrue().accept(this),
+        pAcslTernaryPredicate.getResultIfFalse().accept(this));
+  }
+
+  @Override
+  public AcslPredicate visit(AcslValidPredicate pAcslValidPredicate) {
+    return pAcslValidPredicate;
+  }
+
+  @Override
+  public AcslPredicate visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate) {
+    return pAcslFunctionCallPredicate;
+  }
+
+  @Override
+  public AcslPredicate visit(AcslCanAccessPredicate pAcslCanAccessPredicate) {
+    return pAcslCanAccessPredicate;
+  }
+
+  @Override
+  public AcslPredicate visit(
+      AcslSeparateMemoryConjunctionPredicate pAcslSeparateMemoryConjunctionPredicate) {
+    return pAcslSeparateMemoryConjunctionPredicate;
+  }
+
+  @Override
+  public AcslPredicate visit(AcslQuantifiedPredicate pQuantifiedPredicate) {
+    return new AcslQuantifiedPredicate(
+        pQuantifiedPredicate.getFileLocation(),
+        pQuantifiedPredicate.getQuantifier(),
+        pQuantifiedPredicate.getBinders(),
+        pQuantifiedPredicate.getPredicate().accept(this));
+  }
+
+  @Override
+  public AcslPredicate visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
+    return new AcslPredicateApplicationPredicate(
+        pAcslPredicateApplicationPredicate.getFileLocation(),
+        pAcslPredicateApplicationPredicate.getPredicateDeclaration(),
+        pAcslPredicateApplicationPredicate.getParameters().stream()
+            .map(arg -> arg.accept(this))
+            .toList());
+  }
+
+  @Override
+  public AcslTerm visit(AcslUnaryTerm pAcslUnaryTerm) {
+    return new AcslUnaryTerm(
+        pAcslUnaryTerm.getFileLocation(),
+        pAcslUnaryTerm.getExpressionType(),
+        pAcslUnaryTerm.getOperand().accept(this),
+        pAcslUnaryTerm.getOperator());
+  }
+
+  @Override
+  public AcslTerm visit(AcslStringLiteralTerm pAcslStringLiteralTerm) {
+    return pAcslStringLiteralTerm;
+  }
+
+  @Override
+  public AcslTerm visit(AcslRealLiteralTerm pAcslRealLiteralTerm) {
+    return pAcslRealLiteralTerm;
+  }
+
+  @Override
+  public AcslTerm visit(AcslCharLiteralTerm pAcslCharLiteralTerm) {
+    return pAcslCharLiteralTerm;
+  }
+
+  @Override
+  public AcslTerm visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm) {
+    return pAcslIntegerLiteralTerm;
+  }
+
+  @Override
+  public AcslTerm visit(AcslBooleanLiteralTerm pAcslBooleanLiteralTerm) {
+    return pAcslBooleanLiteralTerm;
+  }
+
+  @Override
+  public AcslTerm visit(AcslBinaryTerm pAcslBinaryTerm) {
+    return new AcslBinaryTerm(
+        pAcslBinaryTerm.getFileLocation(),
+        pAcslBinaryTerm.getExpressionType(),
+        pAcslBinaryTerm.getOperand1().accept(this),
+        pAcslBinaryTerm.getOperand2().accept(this),
+        pAcslBinaryTerm.getOperator());
+  }
+
+  @Override
+  public AcslTerm visit(AcslIdTerm pAcslIdTerm) {
+    AcslSimpleDeclaration declaration = pAcslIdTerm.getDeclaration();
+    AcslSimpleDeclaration renamed = renamingMap.getOrDefault(declaration, declaration);
+    return new AcslIdTerm(pAcslIdTerm.getFileLocation(), renamed);
+  }
+
+  @Override
+  public AcslTerm visit(AcslOldTerm pAcslOldTerm) {
+    return new AcslOldTerm(pAcslOldTerm.getFileLocation(), pAcslOldTerm.getTerm().accept(this));
+  }
+
+  @Override
+  public AcslTerm visit(AcslResultTerm pAcslResultTerm) {
+    return pAcslResultTerm;
+  }
+
+  @Override
+  public AcslTerm visit(AcslAtTerm pAcslAtTerm) {
+    return new AcslAtTerm(
+        pAcslAtTerm.getFileLocation(), pAcslAtTerm.getTerm().accept(this), pAcslAtTerm.getLabel());
+  }
+
+  @Override
+  public AcslTerm visit(AcslTernaryTerm pAcslTernaryTerm) {
+    return new AcslTernaryTerm(
+        pAcslTernaryTerm.getFileLocation(),
+        pAcslTernaryTerm.getCondition().accept(this),
+        pAcslTernaryTerm.getResultIfTrue().accept(this),
+        pAcslTernaryTerm.getResultIfFalse().accept(this));
+  }
+
+  @Override
+  public AcslTerm visit(AcslFunctionCallTerm pAcslFunctionCallTerm) {
+    return new AcslFunctionCallTerm(
+        pAcslFunctionCallTerm.getFileLocation(),
+        pAcslFunctionCallTerm.getExpressionType(),
+        pAcslFunctionCallTerm.getFunctionNameExpression(),
+        pAcslFunctionCallTerm.getParameterExpressions().stream()
+            .map(arg -> arg.accept(this))
+            .toList(),
+        pAcslFunctionCallTerm.getDeclaration());
+  }
+
+  @Override
+  public AcslTerm visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) {
+    return new AcslArraySubscriptTerm(
+        pAcslArraySubscriptTerm.getFileLocation(),
+        pAcslArraySubscriptTerm.getExpressionType(),
+        pAcslArraySubscriptTerm.getArrayExpression().accept(this),
+        pAcslArraySubscriptTerm.getSubscriptExpression().accept(this));
+  }
+
+  @Override
+  public AcslTerm visit(AcslCExpression pAcslCExpression) {
+    SubstitutingCAstNodeVisitor cRenamingVisitor =
+        new SubstitutingCAstNodeVisitor(this::renameCExpression);
+
+    return new AcslCExpression(
+        pAcslCExpression.getFileLocation(),
+        (CExpression) pAcslCExpression.getCExpression().accept(cRenamingVisitor));
+  }
+
+  private CAstNode renameCExpression(CAstNode node) {
+    return switch (node) {
+      case CIdExpression idExpr -> {
+        String newName = nameRenamingMap.get(idExpr.getName());
+        if (newName == null) {
+          yield null;
+        }
+        yield new CIdExpression(
+            idExpr.getFileLocation(),
+            idExpr.getExpressionType(),
+            newName,
+            (CSimpleDeclaration) renameCExpression(idExpr.getDeclaration()));
+      }
+      case CParameterDeclaration decl -> {
+        String newName = nameRenamingMap.get(decl.getName());
+        if (newName == null) {
+          yield null;
+        }
+        yield new CParameterDeclaration(decl.getFileLocation(), decl.getType(), newName);
+      }
+      case CVariableDeclaration decl -> {
+        String newName = nameRenamingMap.get(decl.getName());
+        if (newName == null) {
+          yield null;
+        }
+        yield new CVariableDeclaration(
+            decl.getFileLocation(),
+            decl.isGlobal(),
+            decl.getCStorageClass(),
+            decl.getType(),
+            newName,
+            newName,
+            newName,
+            decl.getInitializer(),
+            decl.hasThreadLocalStorage());
+      }
+      case CFunctionDeclaration decl -> {
+        String newName = nameRenamingMap.get(decl.getName());
+        if (newName == null) {
+          yield null;
+        }
+        yield new CFunctionDeclaration(
+            decl.getFileLocation(),
+            decl.getType(),
+            newName,
+            decl.getParameters(),
+            decl.getAttributes());
+      }
+      // This function is passed to SubstitutingCAstNodeVisitor, which requires it to return null
+      // for nodes that should not be substituted
+      case null, default -> null;
+    };
+  }
+}

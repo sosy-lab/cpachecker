@@ -18,32 +18,30 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.GhostElements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationValidator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.SeqGhostElements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.StatementLinker;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.StatementPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
 public record SeqThreadStatementClauseBuilder(
@@ -51,9 +49,11 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableList<MPORThread> allThreads,
     ImmutableList<MPORSubstitution> substitutions,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
+    ImmutableMap<MPORThread, SeqFunctionStatements> functionStatements,
     MachineModel machineModel,
-    Optional<MemoryModel> memoryModel,
-    GhostElements ghostElements,
+    SeqPointerAliasingMap pointerAliasingMap,
+    SeqGhostElements ghostElements,
+    AstCfaRelation astCfaRelation,
     SequentializationUtils utils) {
 
   public ImmutableListMultimap<MPORThread, SeqThreadStatementClause> buildClauses()
@@ -66,7 +66,7 @@ public record SeqThreadStatementClauseBuilder(
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> prunedClauses =
         options.pruneEmptyStatements()
-            ? SeqPruner.pruneClauses(options, initialClauses)
+            ? StatementPruner.pruneClauses(options, initialClauses)
             : initialClauses;
 
     // ensure that atomic blocks are not interleaved by adding direct gotos
@@ -74,7 +74,7 @@ public record SeqThreadStatementClauseBuilder(
         options.mergeAtomicBlocks() ? AtomicBlockMerger.merge(prunedClauses) : prunedClauses;
 
     // if enabled, link statements that are guaranteed to commute via gotos
-    StatementLinker statementLinker = new StatementLinker(options, memoryModel);
+    StatementLinker statementLinker = new StatementLinker(options, pointerAliasingMap);
     ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linked =
         options.mergeCommutingStatements()
             ? statementLinker.linkClauses(atomicBlocks)
@@ -96,16 +96,20 @@ public record SeqThreadStatementClauseBuilder(
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(noBackwardGoto)
             : noBackwardGoto;
 
-    // if enabled, apply partial order reduction and reduce number of clauses
-    PartialOrderReducer partialOrderReducer =
-        new PartialOrderReducer(
-            options, consecutiveLabels, ghostElements, machineModel, memoryModel, utils);
-    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> reducedClauses =
-        partialOrderReducer.reduceClauses();
+    ImmutableListMultimap<MPORThread, SeqThreadStatementClause> finalClauses;
+    // if the input program is concurrent, apply the partial order reduction options
+    if (allThreads.size() > 1) {
+      PartialOrderReducer partialOrderReducer =
+          new PartialOrderReducer(
+              options, consecutiveLabels, ghostElements, machineModel, pointerAliasingMap, utils);
+      finalClauses = partialOrderReducer.reduceClauses();
+    } else {
+      finalClauses = consecutiveLabels;
+    }
 
     // validate clauses based on pOptions
-    SeqValidator.tryValidateClauses(options, reducedClauses);
-    return reducedClauses;
+    SequentializationValidator.tryValidateClauses(options, finalClauses);
+    return finalClauses;
   }
 
   /** Maps threads to the case clauses they potentially execute. */
@@ -115,11 +119,11 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rClauses =
         ImmutableListMultimap.builder();
     for (MPORSubstitution substitution : substitutions) {
-      MPORThread thread = substitution.thread;
+      MPORThread thread = substitution.getThread();
       rClauses.putAll(thread, initClausesForSingleThread(thread, new HashSet<>()));
     }
     // only check pc validation, since clauses are not reordered at this point
-    SeqValidator.tryValidateProgramCounters(options, rClauses.build());
+    SequentializationValidator.tryValidateProgramCounters(options, rClauses.build());
     return reorderClauses(rClauses.build());
   }
 
@@ -139,7 +143,7 @@ public record SeqThreadStatementClauseBuilder(
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       SeqThreadStatementClause first = clauses.getFirst();
       SeqThreadStatementClause nonBlank =
-          SeqPruner.recursivelyFindNonBlankClause(Optional.empty(), first, labelClauseMap);
+          StatementPruner.recursivelyFindNonBlankClause(Optional.empty(), first, labelClauseMap);
       if (SeqThreadStatementClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelClauseMap)) {
         rReordered.putAll(thread, clauses); // put case clauses as they were
       } else {
@@ -161,22 +165,24 @@ public record SeqThreadStatementClauseBuilder(
    * once via {@code pVisitedNodes}.
    */
   private ImmutableList<SeqThreadStatementClause> initClausesForSingleThread(
-      MPORThread pThread, Set<CFANodeForThread> pVisitedNodes) throws UnsupportedCodeException {
+      MPORThread pThread, Set<CFANodeForThread> pVisitedNodes) throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
     SeqThreadStatementBuilder statementBuilder =
         new SeqThreadStatementBuilder(
+            options,
             pThread,
             allThreads,
             substituteEdges,
-            ghostElements.getFunctionStatementsByThread(pThread),
+            pointerAliasingMap,
+            Objects.requireNonNull(functionStatements.get(pThread)),
             ghostElements.threadSyncFlags(),
-            ghostElements.getPcVariables().getPcLeftHandSide(pThread.id()),
-            ghostElements.getPcVariables());
+            ghostElements.programCounterVariables().getPcLeftHandSide(pThread.id()),
+            ghostElements.programCounterVariables(),
+            utils);
     for (CFANodeForThread threadNode : pThread.cfa().threadNodes) {
       if (pVisitedNodes.add(threadNode)) {
-        rClauses.addAll(
-            buildClausesFromThreadNode(pThread, pVisitedNodes, threadNode, statementBuilder));
+        rClauses.addAll(buildClausesFromThreadNode(pThread, threadNode, statementBuilder));
       }
     }
     return rClauses.build();
@@ -185,66 +191,59 @@ public record SeqThreadStatementClauseBuilder(
   /**
    * Returns a {@link SeqThreadStatementClause} which represents case statements in the
    * sequentializations while loop. Returns {@link Optional#empty()} if pThreadNode has no leaving
-   * edges i.e. its {@code pc} is {@link ProgramCounterVariables#EXIT_PC}.
+   * edges i.e. its {@code pc} is {@link SeqProgramCounterVariables#EXIT_PC}.
    */
   private ImmutableList<SeqThreadStatementClause> buildClausesFromThreadNode(
-      MPORThread pThread,
-      Set<CFANodeForThread> pCoveredNodes,
-      CFANodeForThread pThreadNode,
-      SeqThreadStatementBuilder pStatementBuilder)
-      throws UnsupportedCodeException {
-
-    pCoveredNodes.add(pThreadNode);
+      MPORThread pThread, CFANodeForThread pThreadNode, SeqThreadStatementBuilder pStatementBuilder)
+      throws UnrecognizedCodeException {
 
     if (isExcludedNode(pThreadNode)) {
       return ImmutableList.of();
     }
 
     Optional<CLabelStatement> nextThreadLabel = ghostElements.tryGetNextThreadLabel(pThread);
-    CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
     int labelPc = pThreadNode.pc;
-    int targetPc = firstThreadEdge.getSuccessor().pc;
-    ImmutableList<SeqThreadStatementClause> multiClauseEdge =
-        handleMultipleClauseEdge(
+
+    // some functions require multiple clauses built from a single edge
+    if (!pThreadNode.leavingEdges().isEmpty()) {
+      CFAEdgeForThread firstThreadEdge = pThreadNode.firstLeavingEdge();
+      int targetPc = firstThreadEdge.getSuccessor().pc;
+
+      if (PthreadUtil.isCallToPthreadFunction(
+          firstThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_COND_WAIT)) {
+        return buildCondWaitClauses(
             pThread,
             nextThreadLabel,
-            firstThreadEdge,
+            pThreadNode,
             Objects.requireNonNull(substituteEdges.get(firstThreadEdge)),
             labelPc,
             targetPc,
             pStatementBuilder);
-
-    // some edges require splitting into multiple clauses
-    if (!multiClauseEdge.isEmpty()) {
-      assert multiClauseEdge.size() > 1 : "multi clause list must have at least 2 elements";
-      return multiClauseEdge;
-
-    } else {
-      CLeftHandSide pcLeftHandSide = ghostElements.getPcVariables().getPcLeftHandSide(pThread.id());
-      ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
-      if (pThreadNode.getCfaNode() instanceof FunctionExitNode) {
-        ImmutableSet<SubstituteEdge> edges =
-            pThreadNode.leavingEdges().stream()
-                .map(substituteEdges::get)
-                .filter(Objects::nonNull)
-                .collect(ImmutableSet.toImmutableSet());
-        statements.add(
-            SeqThreadStatementBuilder.buildGhostOnlyStatement(
-                pThread, edges, pcLeftHandSide, targetPc));
-      } else {
-        statements.addAll(
-            pStatementBuilder.buildStatementsFromThreadNode(pThreadNode, pCoveredNodes));
       }
-      SeqThreadStatementClause clause =
-          buildClause(pThread, nextThreadLabel, labelPc, statements.build());
-      return ImmutableList.of(clause);
+
+      if (PthreadUtil.isCallToPthreadFunction(
+          firstThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_BARRIER_WAIT)) {
+        return buildBarrierWaitClauses(
+            pThread,
+            nextThreadLabel,
+            pThreadNode,
+            Objects.requireNonNull(substituteEdges.get(firstThreadEdge)),
+            labelPc,
+            targetPc,
+            pStatementBuilder);
+      }
     }
+
+    ImmutableList<SeqThreadStatement> statements =
+        pStatementBuilder.buildStatementsFromThreadNode(pThreadNode);
+    return ImmutableList.of(
+        buildClause(pThread, nextThreadLabel, pThreadNode, labelPc, statements));
   }
 
   private boolean isExcludedNode(CFANodeForThread pThreadNode) {
     // no leaving edges -> exit node of thread reached -> no clause because no edges with code
     if (pThreadNode.leavingEdges().isEmpty()) {
-      assert pThreadNode.pc == ProgramCounterVariables.EXIT_PC
+      assert pThreadNode.pc == SeqProgramCounterVariables.EXIT_PC
           : "A CFANodeForThread without any leaving edges must have EXIT_PC.";
       return true;
     }
@@ -259,33 +258,46 @@ public record SeqThreadStatementClauseBuilder(
 
   // Helpers =====================================================================================
 
-  private ImmutableList<SeqThreadStatementClause> handleMultipleClauseEdge(
+  /**
+   * Returns the clauses associated with {@link PthreadFunctionType#PTHREAD_BARRIER_WAIT}. This
+   * function requires an interleaving between the increment of the variable storing the number of
+   * waiters and the assumption that the count was reached, forcing us two create two {@link
+   * SeqThreadStatement} from a single {@link CFAEdgeForThread}.
+   */
+  private ImmutableList<SeqThreadStatementClause> buildBarrierWaitClauses(
       MPORThread pThread,
       Optional<CLabelStatement> pNextThreadLabel,
-      CFAEdgeForThread pThreadEdge,
+      CFANodeForThread pThreadNode,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
       SeqThreadStatementBuilder pStatementBuilder)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
-    Optional<CFunctionCall> optionalFunctionCall =
-        PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge);
-    if (optionalFunctionCall.isPresent()) {
-      CFunctionCall functionCall = optionalFunctionCall.orElseThrow();
-      if (PthreadUtil.isCallToPthreadFunction(
-          functionCall, PthreadFunctionType.PTHREAD_COND_WAIT)) {
-        return buildCondWaitClauses(
+    ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
+
+    // step 1: increment the num_waiters variable
+    int nextFreePc = pThread.cfa().getNextFreePc();
+    SeqThreadStatement numWaitersIncrement =
+        pStatementBuilder.buildBarrierStatement(
+            SeqThreadStatementType.BARRIER_WAIT_INCREMENT, pSubstituteEdge, nextFreePc);
+    rClauses.add(
+        buildClause(
             pThread,
             pNextThreadLabel,
-            functionCall,
-            pSubstituteEdge,
+            pThreadNode,
             pLabelPc,
-            pTargetPc,
-            pStatementBuilder);
-      }
-    }
-    return ImmutableList.of();
+            ImmutableList.of(numWaitersIncrement)));
+
+    // step 2: assume that num_waiters equals the count specified on barrier initialization
+    SeqThreadStatement countAssumption =
+        pStatementBuilder.buildBarrierStatement(
+            SeqThreadStatementType.BARRIER_WAIT_ASSUMPTION, pSubstituteEdge, pTargetPc);
+    rClauses.add(
+        buildClause(
+            pThread, pNextThreadLabel, pThreadNode, nextFreePc, ImmutableList.of(countAssumption)));
+
+    return rClauses.build();
   }
 
   /**
@@ -297,27 +309,39 @@ public record SeqThreadStatementClauseBuilder(
   private ImmutableList<SeqThreadStatementClause> buildCondWaitClauses(
       MPORThread pThread,
       Optional<CLabelStatement> pNextThreadLabel,
-      CFunctionCall pFunctionCall,
+      CFANodeForThread pThreadNode,
       SubstituteEdge pSubstituteEdge,
       int pLabelPc,
       int pTargetPc,
       SeqThreadStatementBuilder pStatementBuilder)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 
     // step 1: reuse pthread_mutex_unlock statements for pthread_cond_wait
     int nextFreePc = pThread.cfa().getNextFreePc();
     SeqThreadStatement mutexUnlockStatement =
-        pStatementBuilder.buildMutexUnlockStatement(pFunctionCall, pSubstituteEdge, nextFreePc);
+        pStatementBuilder.buildCondStatement(
+            SeqThreadStatementType.COND_WAIT_UNLOCK, pSubstituteEdge, nextFreePc);
     rClauses.add(
-        buildClause(pThread, pNextThreadLabel, pLabelPc, ImmutableList.of(mutexUnlockStatement)));
+        buildClause(
+            pThread,
+            pNextThreadLabel,
+            pThreadNode,
+            pLabelPc,
+            ImmutableList.of(mutexUnlockStatement)));
 
     // step 2: build pthread_cond_t handling statement
     SeqThreadStatement condWaitStatement =
-        pStatementBuilder.buildCondWaitStatement(pFunctionCall, pSubstituteEdge, pTargetPc);
+        pStatementBuilder.buildCondStatement(
+            SeqThreadStatementType.COND_WAIT_LOCK, pSubstituteEdge, pTargetPc);
     rClauses.add(
-        buildClause(pThread, pNextThreadLabel, nextFreePc, ImmutableList.of(condWaitStatement)));
+        buildClause(
+            pThread,
+            pNextThreadLabel,
+            pThreadNode,
+            nextFreePc,
+            ImmutableList.of(condWaitStatement)));
 
     return rClauses.build();
   }
@@ -325,8 +349,10 @@ public record SeqThreadStatementClauseBuilder(
   private SeqThreadStatementClause buildClause(
       MPORThread pThread,
       Optional<CLabelStatement> pNextThreadLabel,
+      CFANodeForThread pThreadNode,
       int pLabelPc,
-      ImmutableList<SeqThreadStatement> pStatements) {
+      ImmutableList<SeqThreadStatement> pStatements)
+      throws UnrecognizedCodeException {
 
     ImmutableSet<CFANodeForThread> loopHeads = pThread.cfa().getLoopHeads();
     boolean isLoopHead =
@@ -338,6 +364,15 @@ public record SeqThreadStatementClauseBuilder(
     SeqThreadStatementBlock block =
         new SeqThreadStatementBlock(
             pThread.id(), pLabelPc, isLoopHead, pStatements, pNextThreadLabel);
-    return new SeqThreadStatementClause(options, block);
+    return new SeqThreadStatementClause(
+        options,
+        ImmutableList.of(
+            block.withRequiredInstrumentation(
+                substitutions.get(pThread.id()),
+                substituteEdges,
+                pThreadNode,
+                pointerAliasingMap,
+                astCfaRelation,
+                utils.binaryExpressionBuilder())));
   }
 }

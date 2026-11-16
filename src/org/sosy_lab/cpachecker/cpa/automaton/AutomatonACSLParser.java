@@ -9,27 +9,28 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicateToExpressionTreeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLTermToCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.acsl.AcslInvariants;
+import org.sosy_lab.cpachecker.cpa.acsl.AcslToExpressionTreeConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -45,40 +46,51 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
  */
 public class AutomatonACSLParser {
 
-  private CFA cfa;
-  private LogManager logger;
-  private final ACSLPredicateToExpressionTreeVisitor visitor;
+  private final CFA cfa;
+  private final LogManager logger;
+  private final AcslToExpressionTreeConverter converter;
 
   public AutomatonACSLParser(CFA pCFA, LogManager pLogger) {
     cfa = pCFA;
     logger = pLogger;
-    ACSLTermToCExpressionVisitor termVisitor = new ACSLTermToCExpressionVisitor(cfa, logger);
-    visitor = new ACSLPredicateToExpressionTreeVisitor(termVisitor);
+    converter = new AcslToExpressionTreeConverter(cfa.getMachineModel(), logger);
   }
 
   /**
    * Builds an ISA from the stored CFA that checks whether the contained ACSL annotations are
    * fulfilled.
+   *
+   * @param pTaskCfa the CFA of the task, which needs to be isomorphic to the stored CFA
    */
-  public Automaton parseAsAutomaton() {
+  public Automaton parseAsAutomaton(CFA pTaskCfa) {
     try {
       String automatonName = "ACSLInvariantsAutomaton";
       String initialStateName = "VALID";
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
-      for (CFAEdge edge : cfa.edges()) {
-        Collection<ACSLAnnotation> annotations =
-            cfa.getEdgesToAnnotations().orElse(ImmutableListMultimap.of()).get(edge);
-        if (!annotations.isEmpty()) {
-          ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-          List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
-          for (ACSLAnnotation annotation : annotations) {
-            ACSLPredicate predicate = annotation.getPredicateRepresentation();
-            representations.add(predicate.accept(visitor));
+      ImmutableSetMultimap<CFANode, AcslPredicate> invariants = AcslInvariants.of(cfa);
+      // The CFAs are isomorphic, so their nodes correspond to each other in iteration order
+      Map<CFANode, CFANode> taskNodes = new HashMap<>();
+      Iterator<CFANode> taskNodeIterator = pTaskCfa.nodes().iterator();
+      for (CFANode node : cfa.nodes()) {
+        taskNodes.put(node, taskNodeIterator.next());
+      }
+      for (CFANode node : invariants.keySet()) {
+        ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
+        List<ExpressionTree<Object>> representations = new ArrayList<>();
+        for (AcslPredicate predicate : invariants.get(node)) {
+          if (converter.canConvert(predicate)) {
+            representations.add(converter.convert(predicate));
+          } else {
+            logger.log(Level.WARNING, "Cannot check ACSL predicate", predicate, "at", node);
           }
-          @SuppressWarnings("unchecked")
-          ExpressionTree<AExpression> inv =
-              (ExpressionTree<AExpression>) (ExpressionTree<?>) factory.and(representations);
-          createLocationInvariantsTransitions(transitions, edge, inv);
+        }
+        @SuppressWarnings("unchecked")
+        ExpressionTree<AExpression> inv =
+            (ExpressionTree<AExpression>) (ExpressionTree<?>) factory.and(representations);
+        // The invariant holds after each edge that enters its node
+        CFANode taskNode = taskNodes.get(node);
+        for (int i = 0; i < taskNode.getNumEnteringEdges(); i++) {
+          createLocationInvariantsTransitions(transitions, taskNode.getEnteringEdge(i), inv);
         }
       }
       AutomatonInternalState state =
@@ -110,8 +122,7 @@ public class AutomatonACSLParser {
   private AutomatonTransition createAutomatonInvariantErrorTransition(
       final CFAEdge pEdge, final List<AExpression> pAssumptions) {
     return new AutomatonTransition.Builder(
-            new AutomatonBoolExpr.MatchCFAEdgeExact(pEdge.getRawStatement()),
-            AutomatonInternalState.ERROR)
+            new AutomatonBoolExpr.MatchCFAEdgeNodes(pEdge), AutomatonInternalState.ERROR)
         .withAssumptions(pAssumptions)
         .withTargetInformation(new StringExpression("Invariant not valid"))
         .build();

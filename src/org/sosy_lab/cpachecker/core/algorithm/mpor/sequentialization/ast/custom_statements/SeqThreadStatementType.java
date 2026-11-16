@@ -15,28 +15,15 @@ public enum SeqThreadStatementType {
   // ATOMIC_BEGIN does not synchronize threads because executing it is not conditional
   ATOMIC_BEGIN(true, false),
   ATOMIC_END(true, false),
+  BARRIER_INIT(true, false),
+  BARRIER_WAIT_INCREMENT(true, false),
+  BARRIER_WAIT_ASSUMPTION(true, true),
   COND_SIGNAL(true, false),
-  COND_WAIT(true, true),
-  /**
-   * Represents a special CPAchecker case where a {@code const CPAchecker_TMP} variable is declared
-   * and assigned inside a case clause.
-   *
-   * <p>A {@code const CPAchecker_TMP} is e.g. used for field references:
-   *
-   * <p>{@code const int __CPAchecker_TMP = q->head; q->head = (q->head) + 1; CPAchecker_TMP;}
-   *
-   * <p>The original code contained only one statement, but CPAchecker may transform it into 2 or 3,
-   * which are treated as one atomic section in the sequentialization, i.e., inside a single {@link
-   * SeqThreadStatement}.
-   *
-   * <p>Reasoning: given that we declare all variables outside the main function in the
-   * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code
-   * q->head}.
-   */
-  CONST_CPACHECKER_TMP(true, false),
-  CPACHECKER_TMP_WITHOUT_INITIALIZER(true, false),
+  COND_WAIT_UNLOCK(true, false),
+  COND_WAIT_LOCK(true, true),
   /** A default statement requires no specific handling of the underlying {@link CFAEdge}. */
   DEFAULT(true, false),
+  FUNCTION_EXIT(true, false),
   /** A statement that contains only ghost code without any statement from the input program. */
   GHOST_ONLY(true, false),
   /**
@@ -45,11 +32,11 @@ public enum SeqThreadStatementType {
    * The thread simulation inside the respective function then only initializes the local variable
    * ({@code l = 9;}).
    */
-  LOCAL_VARIABLE_INITIALIZATION(true, false),
+  LOCAL_VARIABLE_DECLARATION(true, false),
   MUTEX_LOCK(true, true),
   MUTEX_UNLOCK(true, false),
+  ONCE_LOCK(true, true),
   PARAMETER_ASSIGNMENT(true, false),
-  RETURN_VALUE_ASSIGNMENT(true, false),
   RW_LOCK_RD_LOCK(true, true),
   RW_LOCK_UNLOCK(true, false),
   RW_LOCK_WR_LOCK(true, true),

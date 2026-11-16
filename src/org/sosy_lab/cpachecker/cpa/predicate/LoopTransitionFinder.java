@@ -20,7 +20,6 @@ import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -59,7 +58,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 /** Return a path-formula describing all possible transitions inside the loop. */
 @Options(prefix = "cpa.predicate.loopTransition", deprecatedPrefix = "cpa.slicing")
@@ -128,8 +126,9 @@ class LoopTransitionFinder implements StatisticsProvider {
     ShutdownManager loopGenerationShutdown = ShutdownManager.createWithParent(shutdownNotifier);
     ResourceLimitChecker limits = null;
     if (!timeForLoopGeneration.isEmpty()) {
-      WalltimeLimit l = WalltimeLimit.create(timeForLoopGeneration);
-      limits = new ResourceLimitChecker(loopGenerationShutdown, Collections.singletonList(l));
+      limits =
+          ResourceLimitChecker.createWallTimeLimitChecker(
+              loopGenerationShutdown, timeForLoopGeneration);
       limits.start();
     }
 

@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStateme
  * @param tagAnnotations mapping from CFA nodes to the tag properties (annotations) associated with
  *     them
  * @param tagReferences mapping from CFA nodes to the tag references associated with them
+ * @param tagReferenceAnnotations mapping from tag references to the tag properties of the
+ *     statements they name, required to report the tag of a violated property
  */
 public record SvLibCfaMetadata(
     ImmutableList<SmtLibCommand> smtLibCommands,
@@ -61,7 +63,8 @@ public record SvLibCfaMetadata(
     ImmutableMap<CFANode, SvLibProcedureDeclaration> nodesToActualProcedureDefinitionEnd,
     ImmutableMap<CFANode, SvLibHavocStatement> nodesToActualHavocStatementEnd,
     ImmutableSetMultimap<CFANode, SvLibTagProperty> tagAnnotations,
-    ImmutableSetMultimap<CFANode, SvLibTagReference> tagReferences) {
+    ImmutableSetMultimap<CFANode, SvLibTagReference> tagReferences,
+    ImmutableSetMultimap<SvLibTagReference, SvLibTagProperty> tagReferenceAnnotations) {
 
   public SvLibCfaMetadata {
     checkNotNull(smtLibCommands);
@@ -71,5 +74,6 @@ public record SvLibCfaMetadata(
     checkNotNull(nodesToActualHavocStatementEnd);
     checkNotNull(tagAnnotations);
     checkNotNull(tagReferences);
+    checkNotNull(tagReferenceAnnotations);
   }
 }

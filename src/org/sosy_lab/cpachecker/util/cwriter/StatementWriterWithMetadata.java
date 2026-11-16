@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 public class StatementWriterWithMetadata extends StatementWriter
     implements StatementVisitor<IOException>, Closeable {
 
-  final AppendableWithLineCounter countingAppendable;
+  private final AppendableWithLineCounter countingAppendable;
   private final Writer metadataOutput;
 
   /** Whether the current metadata has already written an entry. True if yes, false otherwise. */

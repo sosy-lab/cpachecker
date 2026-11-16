@@ -17,6 +17,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,11 +42,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentOptions.ConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceConstantIndexModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
@@ -106,7 +109,6 @@ class AssignmentHandler {
     }
 
     private SliceAssignment constructCanonical() {
-      // make the slice expressions canonical
       return new SliceAssignment(
           lhs.constructCanonical(), relevancyLhs, rhs().map(SliceExpression::constructCanonical));
     }
@@ -201,7 +203,8 @@ class AssignmentHandler {
     Stream<SliceAssignment> assignmentsStream =
         pAssignments.stream().filter(assignment -> assignment.isRelevant(conv));
 
-    // make the slice expressions canonical, moving the trailing field accesses of bases to first
+    // make the slice expressions canonical, moving the trailing field accesses of bases and
+    // constant array subscripts to first
     // modifiers; this results in the same effective assignments, but the base encompasses more
     // fields which may be unionized, paving the way for assigning to relevant simple unionized
     // fields after converting to simple slice assignments
@@ -241,10 +244,10 @@ class AssignmentHandler {
 
     for (SliceAssignment assignment : assignments) {
       // to initialize the span size, we need to know the type after potential casting
-      // this is usually the type of LHS, but if pointer assignment or array attachment is being
-      // forced, it must be adjusted to pointer
+      // this is usually the type of LHS, but if pointer assignment is being forced, it must be
+      // adjusted to pointer
       CType targetType = typeHandler.simplifyType(assignment.lhs.getFullExpressionType());
-      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+      if (assignmentOptions.forcePointerAssignment()) {
         targetType = CTypes.adjustFunctionOrArrayType(targetType);
       }
 
@@ -297,11 +300,19 @@ class AssignmentHandler {
         MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
     for (SingleRhsPartialAssignment partialAssignment : partialAssignments) {
-      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+      if (assignmentOptions.forcePointerAssignment()) {
         // actual assignment type is pointer, which is already simple
         simpleAssignmentMultimap.put(partialAssignment.lhs(), partialAssignment.rhs());
       } else {
         generateSimplePartialAssignments(partialAssignment, simpleAssignmentMultimap);
+      }
+    }
+
+    // perform completely nondeterministic assignments first, so that deterministic assignments
+    // to the same location take precedence
+    for (PartialAssignmentLhs lhs : ImmutableList.copyOf(simpleAssignmentMultimap.keySet())) {
+      if (!isValueAssignedNondet(simpleAssignmentMultimap.get(lhs))) {
+        simpleAssignmentMultimap.putAll(lhs, simpleAssignmentMultimap.removeAll(lhs));
       }
     }
 
@@ -328,6 +339,10 @@ class AssignmentHandler {
     }
 
     return result;
+  }
+
+  private static boolean isValueAssignedNondet(Collection<PartialAssignmentRhs> rhsList) {
+    return rhsList.stream().allMatch(rhs -> rhs.actual().isEmpty());
   }
 
   /**
@@ -389,7 +404,7 @@ class AssignmentHandler {
     pts.addEssentialFields(lhsBaseVisitor.getInitializedFields());
     pts.addEssentialFields(lhsBaseVisitor.getUsedFields());
 
-    if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+    if (assignmentOptions.forcePointerAssignment()) {
       // resolved LHS now may have array type, but it must be interpreted as pointer instead
       final CType lhsPointerType = CTypes.adjustFunctionOrArrayType(resolvedLhsBase.type());
       resolvedLhsBase = new ResolvedSlice(resolvedLhsBase.expression(), lhsPointerType);
@@ -436,7 +451,7 @@ class AssignmentHandler {
       final CRightHandSide rhsDummy = rhs.getDummyResolvedExpression();
       CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
 
-      if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
+      if (assignmentOptions.forcePointerAssignment()) {
         // lhsType may be an array, but we have to interpret it as a pointer instead
         lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
       }
@@ -478,10 +493,9 @@ class AssignmentHandler {
    * Converts partial assignment to progenitor partial assignment.
    *
    * <p>The progenitor partial assignment has the same effect as the original assignment and retains
-   * the same base, but LHS trailing field access modifiers are discarded and instead represented by
-   * the partial assignment span. This means full LHS type is the coarsest possible, representing
-   * assignment not only to the original field, but to unionized fields within the progenitor LHS
-   * type as well.
+   * the same base, but LHS trailing modifiers are discarded and instead represented by the partial
+   * assignment span. This means full LHS type is the coarsest possible, representing assignment not
+   * only to the original field, but to unionized fields within the progenitor LHS type as well.
    *
    * @param assignment The partial assignment to convert to progenitor.
    * @return Progenitor partial assignment, retaining the same base and effective assignment.
@@ -490,21 +504,22 @@ class AssignmentHandler {
       SingleRhsPartialAssignment assignment) {
 
     // we assume assignment is already canonical and split the canonical LHS modifiers
-    // into progenitor modifiers and trailing field accesses
-    // e.g. with (*x).a.b[0].c.d, split into (*x).a.b[0] and .c.d
+    // into progenitor modifiers
+    // e.g. with (*x).a.b[i].c.d[0], split into (*x).a.b[i] and .c.d[0]
     // the head is the progenitor from which we will be assigning to span
 
     ImmutableList<SliceModifier> lhsModifiers = assignment.lhs().actual().modifiers();
 
     // split to head and trailing
-    // Invariant: lhsModifiers.get(splitPoint) either does not exist or it and all further elements
-    // are SliceFieldAccessModifier
+    // Invariant: lhsModifiers.get(splitPoint) either does not exist or is a supported modifier
     int splitPoint = lhsModifiers.size();
-    while (splitPoint > 0 && lhsModifiers.get(splitPoint - 1) instanceof SliceFieldAccessModifier) {
+    while (splitPoint > 0
+        && (lhsModifiers.get(splitPoint - 1) instanceof SliceFieldAccessModifier
+            || lhsModifiers.get(splitPoint - 1) instanceof SliceConstantIndexModifier)) {
       splitPoint--;
     }
     ImmutableList<SliceModifier> progenitorModifiers = lhsModifiers.subList(0, splitPoint);
-    ImmutableList<SliceModifier> trailingFieldAccesses =
+    ImmutableList<SliceModifier> trailingAccesses =
         lhsModifiers.subList(splitPoint, lhsModifiers.size());
 
     // construct the progenitor lhs
@@ -512,20 +527,33 @@ class AssignmentHandler {
         new SliceExpression(assignment.lhs().actual().base(), progenitorModifiers);
 
     // compute the full bit offset from progenitor
-    // the parent type of first field access is the progenitor type
+    // the parent type of first access is the progenitor type
     CType parentType = progenitorLhs.getFullExpressionType();
     long bitOffsetFromProgenitor = 0;
-    for (SliceModifier modifier : trailingFieldAccesses) {
-      SliceFieldAccessModifier access = (SliceFieldAccessModifier) modifier; // ensured above
+    for (SliceModifier modifier : trailingAccesses) {
+      switch (modifier) {
+        case SliceFieldAccessModifier access -> {
+          // field access, parent must be composite
+          CCompositeType parentCompositeType = (CCompositeType) parentType;
 
-      // field access, parent must be composite
-      CCompositeType parentCompositeType = (CCompositeType) parentType;
+          // add current field access to bit offset from progenitor
+          bitOffsetFromProgenitor += typeHandler.getBitOffset(parentCompositeType, access.field());
 
-      // add current field access to bit offset from progenitor
-      bitOffsetFromProgenitor += typeHandler.getBitOffset(parentCompositeType, access.field());
+          // compute the parent type of next access, which is the simplified type of this field
+          parentType = typeHandler.getSimplifiedType(access.field());
+        }
+        case SliceConstantIndexModifier access -> {
+          // constant indexing, parent must be an array
+          CType elementType = typeHandler.simplifyType(((CArrayType) parentType).getType());
 
-      // compute the parent type of next access, which is the simplified type of this accessed field
-      parentType = typeHandler.getSimplifiedType(access.field());
+          // add current element offset to bit offset from progenitor
+          bitOffsetFromProgenitor += access.index() * typeHandler.getExactBitSizeof(elementType);
+
+          // the parent type of next access is the element type
+          parentType = elementType;
+        }
+        default -> throw new AssertionError("Unexpected trailing modifier " + modifier);
+      }
     }
 
     PartialSpan originalSpan = assignment.rhs().span();
@@ -587,8 +615,11 @@ class AssignmentHandler {
    * assignment, i.e., for {@code lhs = rhs}, creates {@code lhs[i] = rhs[i]}, where {@code 0 <= i <
    * size} and {@code size} is the size of the array.
    *
-   * <p>If LHS is a flexible array member, the types of LHS and RHS are not the same, or the
-   * assignment span is not complete, currently ignores the assignment.
+   * <p>If the types of LHS and RHS are not the same or the assignment span is not complete,
+   * delegates to {@link #generatePartialAssignmentsForArrayElements}.
+   *
+   * <p>If LHS is a flexible array member or a variable-length array, currently ignores the
+   * assignment.
    *
    * @param assignment Assignment to generate simple assignments from.
    * @param simpleAssignmentMultimap The multimap to add the generated simple assignments to.
@@ -615,28 +646,10 @@ class AssignmentHandler {
           lhsArrayType);
       return;
     }
-    if (!lhsArrayType.equals(rhsType)) {
-      // we currently do not assign to array types from different types as that would ideally
-      // require spans to support quantification, which would be problematic
-      // it should be only required for cases of unions containing arrays
-      conv.logger.logfOnce(
-          Level.WARNING,
-          "%s: Ignoring assignment to array type %s from other type %s",
-          edge.getFileLocation(),
-          lhsArrayType,
-          rhsType);
-      return;
-    }
-    final PartialSpan originalSpan = assignment.rhs().span();
-    if (originalSpan.lhsBitOffset() != 0
-        || originalSpan.rhsTargetBitOffset() != 0
-        || originalSpan.bitSize() != typeHandler.getExactBitSizeof(lhsArrayType)) {
-      // we currently do not assign for incomplete spans as it would not be trivial
-      conv.logger.logfOnce(
-          Level.WARNING,
-          "%s: Ignoring assignment to array type %s with incomplete span",
-          edge.getFileLocation(),
-          lhsArrayType);
+    if (!lhsArrayType.equals(rhsType)
+        || !assignment.rhs().span().isFullSpan(typeHandler.getExactBitSizeof(lhsArrayType))) {
+      generatePartialAssignmentsForArrayElements(
+          assignment, simpleAssignmentMultimap, lhsArrayType);
       return;
     }
 
@@ -657,6 +670,73 @@ class AssignmentHandler {
         new SingleRhsPartialAssignment(
             new PartialAssignmentLhs(elementLhs, elementType), elementSpanRhs);
     generateSimplePartialAssignments(elementAssignment, simpleAssignmentMultimap);
+  }
+
+  /** Assigns each element of the LHS array that the span covers from the covered bits of the RHS */
+  private void generatePartialAssignmentsForArrayElements(
+      SingleRhsPartialAssignment assignment,
+      Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap,
+      CArrayType lhsArrayType) {
+    final long arrayLength = lhsArrayType.getLengthAsInt().orElseThrow();
+    final long elementBitSize =
+        typeHandler.getExactBitSizeof(typeHandler.simplifyType(lhsArrayType.getType()));
+    if (arrayLength == 0 || elementBitSize == 0) {
+      return;
+    }
+
+    final PartialSpan span = assignment.rhs().span();
+    final long startIndex = span.lhsBitOffset() / elementBitSize;
+    final long endIndex =
+        Math.min(arrayLength, Math.ceilDiv(span.lhsBitOffset() + span.bitSize(), elementBitSize));
+
+    for (long index = startIndex; index < endIndex; index++) {
+      final PartialSpan elementSpan =
+          createSpanForElement(span, index * elementBitSize, elementBitSize);
+      final PartialAssignmentLhs elementLhs =
+          new PartialAssignmentLhs(
+              assignment.lhs().actual().withConstantIndex(index), assignment.lhs().targetType());
+      final PartialAssignmentRhs elementRhs =
+          new PartialAssignmentRhs(
+              elementSpan, getValueOrNondetForArrayElement(assignment, lhsArrayType, elementSpan));
+      generateSimplePartialAssignments(
+          new SingleRhsPartialAssignment(elementLhs, elementRhs), simpleAssignmentMultimap);
+    }
+  }
+
+  private static PartialSpan createSpanForElement(
+      PartialSpan span, long bitOffsetFromArrayStart, long elementBitSize) {
+    // assignment can start somewhere inside first element
+    final long start = Math.max(span.lhsBitOffset(), bitOffsetFromArrayStart);
+    // assignment can end before last element
+    final long end =
+        Math.min(span.lhsBitOffset() + span.bitSize(), bitOffsetFromArrayStart + elementBitSize);
+    return new PartialSpan(
+        start - bitOffsetFromArrayStart,
+        span.rhsTargetBitOffset() + start - span.lhsBitOffset(),
+        end - start);
+  }
+
+  private Optional<SliceExpression> getValueOrNondetForArrayElement(
+      SingleRhsPartialAssignment assignment, CArrayType lhsArrayType, PartialSpan elementSpan) {
+    final Optional<SliceExpression> value = assignment.rhs().actual();
+    final CType targetType = typeHandler.simplifyType(assignment.lhs().targetType());
+    final CType elementType = typeHandler.simplifyType(lhsArrayType.getType());
+    final boolean getsWholeValue =
+        elementType.equals(targetType)
+            && elementSpan.isFullSpan(typeHandler.getExactBitSizeof(elementType));
+    if (value.isEmpty()
+        || CTypes.isScalarType(targetType)
+        || getsWholeValue
+        || assignmentOptions.conversionType() == ConversionType.BYTE_REPEAT) {
+      return value;
+    }
+    conv.logger.logfOnce(
+        Level.WARNING,
+        "%s: Assigning nondeterministic values to array type %s instead of parts of type %s",
+        edge.getFileLocation(),
+        lhsArrayType,
+        targetType);
+    return Optional.empty();
   }
 
   /**

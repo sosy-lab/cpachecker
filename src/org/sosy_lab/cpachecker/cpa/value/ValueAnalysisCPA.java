@@ -284,6 +284,10 @@ public class ValueAnalysisCPA extends AbstractCPA
         statistics);
   }
 
+  public ValueTransferOptions getTransferOptions() {
+    return transferOptions;
+  }
+
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new ValueAnalysisState(cfa.getMachineModel());

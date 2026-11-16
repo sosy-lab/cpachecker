@@ -388,7 +388,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
             TMP_VARIABLE_NAME,
             TMP_VARIABLE_NAME,
             function + "::" + TMP_VARIABLE_NAME,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
     CDeclarationEdge edge =
         new CDeclarationEdge(declaration.toASTString(), DUMMY, predecessor, successor, declaration);
     addToCfa(edge);

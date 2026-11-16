@@ -155,10 +155,8 @@ public class CPAcheckerResult implements AutoCloseable {
   }
 
   public String getResultString() {
-    switch (result) {
-      case UNKNOWN -> {
-        return "UNKNOWN, incomplete analysis.";
-      }
+    return switch (result) {
+      case UNKNOWN -> "UNKNOWN, incomplete analysis.";
       case FALSE -> {
         StringBuilder sb = new StringBuilder();
         sb.append("FALSE. Property violation");
@@ -166,13 +164,11 @@ public class CPAcheckerResult implements AutoCloseable {
           sb.append(" (").append(targetDescription).append(")");
         }
         sb.append(" found by chosen configuration.");
-        return sb.toString();
+        yield sb.toString();
       }
-      case TRUE -> {
-        return "TRUE. No property violation found by chosen configuration.";
-      }
+      case TRUE -> "TRUE. No property violation found by chosen configuration.";
       default -> throw new AssertionError(result);
-    }
+    };
   }
 
   public static Optional<CPAcheckerResult> parseResultString(String pResult) {

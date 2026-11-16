@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -88,6 +89,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinAtomicFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -156,7 +158,12 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
           "memset", "memset");
 
   private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
-      ImmutableSet.of("memcpy", "memmove", "memset");
+      ImmutableSet.<String>builder()
+          .add("memcpy", "memmove", "memset", "strcpy")
+          // the atomic builtins that write to the object their pointer argument designates,
+          // i.e. all of them except __atomic_load_n and the fences
+          .addAll(BuiltinAtomicFunctions.getSideEffectFunctionNames())
+          .build();
 
   // names for special variables needed to deal with functions
   @Deprecated
@@ -230,7 +237,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = pCompositeType.withoutQualifiers();
+    CCompositeType compositeType = pCompositeType.asUnqualified();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -378,7 +385,16 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    */
   @Override
   public int getExistingOrNewIndex(String name, CType type, SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, (CType) ssa.getType(name));
+    // If the variable was registered in the SSA Map by the ACSL package, it might be stored as an
+    // AcslCType, so we need to unwrap it to compare the types
+    CType ssaType;
+    if (ssa.getType(name) instanceof AcslCType) {
+      ssaType = ((AcslCType) ssa.getType(name)).getType();
+    } else {
+      ssaType = (CType) ssa.getType(name);
+    }
+
+    checkSsaSavedType(name, type, ssaType);
     return super.getExistingOrNewIndex(name, type, ssa);
   }
 
@@ -555,14 +571,15 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
               typeHandler.getPointerType(),
               fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
-
-      // In principle, we could add constraints that the addresses of all these string literals
-      // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
-      // package. But this is likely rarely useful in practice.
-      // But we have seen code that relies on the address being non-null, so encode that.
-      constraints.addConstraint(
-          fmgr.makeNot(fmgr.makeEqual(result, fmgr.makeNumber(typeHandler.getPointerType(), 0))));
     }
+
+    // In principle, we could add constraints that the addresses of all these string literals
+    // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
+    // package. But this is likely rarely useful in practice.
+    // But we have seen code that relies on the address being non-null, so encode that.
+    // The formula is cached, but every path formula that uses it needs the constraint.
+    constraints.addConstraint(
+        fmgr.makeNot(fmgr.makeEqual(result, fmgr.makeNumber(typeHandler.getPointerType(), 0))));
 
     return result;
   }
@@ -765,15 +782,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
-      final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
-      final Formula lowerBound =
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
-      final Formula upperBound =
-          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
 
       constraints.addConstraint(fmgr.makeDomainRangeConstraint(variable, signed));
-      constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
+      constraints.addConstraint(
+          CtoFormulaTypeUtils.makeRangeConstraint(fmgr, variable, sType, machineModel));
     }
   }
 
@@ -1802,7 +1815,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    *
    * @param pts the pointer target set to use initially
    */
-  protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
+  public PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
     return DummyPointerTargetSetBuilder.INSTANCE;
   }
 
@@ -1831,7 +1844,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
    * @param constraints the constraints needed during visiting
    * @param errorConditions the error conditions
    */
-  protected CRightHandSideVisitor<Formula, UnrecognizedCodeException> createCRightHandSideVisitor(
+  public CRightHandSideVisitor<Formula, UnrecognizedCodeException> createCRightHandSideVisitor(
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder ssa,
@@ -1960,7 +1973,10 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
     String result = null;
     if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
       result = UNSUPPORTED_FUNCTIONS.get(functionName);
-    } else if (functionName.startsWith("__atomic_")) {
+    } else if (functionName.startsWith("__atomic_")
+        && !BuiltinAtomicFunctions.isBuiltinAtomicFunction(functionName)) {
+      // Atomic builtins we do not encode must be rejected rather than treated as pure external
+      // functions: silently ignoring an atomic store would yield a wrong verdict.
       result = "atomic operations";
     } else if (StandardFunctions.C11_MATH_H_FUNCTIONS.contains(functionName)) {
       // Some of these functions are actually supported, but handled before this check here.

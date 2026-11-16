@@ -8,15 +8,18 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm {
 
-  @Serial private static final long serialVersionUID = 7019912361956900L;
+  @Serial private static final long serialVersionUID = 8110585630483048533L;
 
   public AcslBinaryTerm(
       FileLocation pFileLocation,
@@ -24,12 +27,41 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
       AcslTerm pOperand1,
       AcslTerm pOperand2,
       AcslBinaryTermOperator pOperator) {
-    super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pOperand1);
-    checkNotNull(pOperand2);
-    checkNotNull(pOperator);
+    super(
+        checkNotNull(pFileLocation),
+        checkNotNull(pType),
+        checkNotNull(pOperand1),
+        checkNotNull(pOperand2),
+        checkNotNull(pOperator));
+    checkArgument(
+        operandsFit(pOperator, pOperand1.getExpressionType(), pOperand2.getExpressionType()),
+        "The operator %s cannot be applied to %s and %s",
+        pOperator,
+        pOperand1,
+        pOperand2);
+  }
+
+  private static boolean operandsFit(
+      AcslBinaryTermOperator pOperator, AcslType pType1, AcslType pType2) {
+    if (pType1 instanceof AcslPolymorphicType || pType2 instanceof AcslPolymorphicType) {
+      return true;
+    }
+    return switch (pOperator) {
+      case PLUS ->
+          (AcslType.isNumeric(pType1) && AcslType.isNumeric(pType2))
+              || (AcslType.isPointer(pType1) && AcslType.isIntegral(pType2))
+              || (AcslType.isIntegral(pType1) && AcslType.isPointer(pType2));
+      case MINUS ->
+          (AcslType.isNumeric(pType1) && AcslType.isNumeric(pType2))
+              || (AcslType.isPointer(pType1) && AcslType.isIntegral(pType2))
+              || (AcslType.isPointer(pType1) && AcslType.isPointer(pType2));
+      case MULTIPLY, DIVIDE -> AcslType.isNumeric(pType1) && AcslType.isNumeric(pType2);
+      case MODULO, SHIFT_LEFT, SHIFT_RIGHT ->
+          AcslType.isIntegral(pType1) && AcslType.isIntegral(pType2);
+      case BINARY_AND, BINARY_OR, BINARY_XOR, BINARY_IMPLICATION, BINARY_EQUIVALENT ->
+          (AcslType.isIntegral(pType1) && AcslType.isIntegral(pType2))
+              || (AcslType.isBoolean(pType1) && AcslType.isBoolean(pType2));
+    };
   }
 
   @Override
@@ -62,11 +94,7 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     return v.visit(this);
   }
 
-  public enum AcslBinaryTermOperator implements ABinaryExpression.ABinaryOperator, AcslAstNode {
-    LESS_EQUAL("<="),
-    GREATER_EQUAL(">="),
-    LESS_THAN("<"),
-    GREATER_THAN(">"),
+  public enum AcslBinaryTermOperator implements ABinaryExpression.ABinaryOperator {
     BINARY_AND("&"),
     BINARY_OR("|"),
     BINARY_IMPLICATION("-->"),
@@ -81,11 +109,9 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     SHIFT_RIGHT(">>");
 
     private final String operator;
-    private final FileLocation fileLocation;
 
     AcslBinaryTermOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
     public static AcslBinaryTermOperator of(String pOperator) {
@@ -95,13 +121,6 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
         }
       }
       throw new IllegalArgumentException("Unknown operator: " + pOperator);
-    }
-
-    public static boolean isComparisonOperator(AcslBinaryTermOperator op) {
-      return switch (op) {
-        case LESS_EQUAL, GREATER_EQUAL, LESS_THAN, GREATER_THAN -> true;
-        default -> false;
-      };
     }
 
     public static boolean isBitwiseOperator(AcslBinaryTermOperator op) {
@@ -126,11 +145,6 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     }
 
     @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
     public String toString() {
       return operator;
     }
@@ -144,21 +158,6 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     @Override
     public boolean isLogicalOperator() {
       return false;
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }

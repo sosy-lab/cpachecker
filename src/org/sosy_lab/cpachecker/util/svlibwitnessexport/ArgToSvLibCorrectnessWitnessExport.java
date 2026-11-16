@@ -10,10 +10,15 @@ package org.sosy_lab.cpachecker.util.svlibwitnessexport;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -31,7 +36,9 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
@@ -40,12 +47,16 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCom
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.FunctionEntryExitPair;
+import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
 
 public class ArgToSvLibCorrectnessWitnessExport {
   private final SvLibCfaMetadata svLibMetadata;
+
+  private final ImmutableSet<CFANode> loopHeads;
+  private final ImmutableSet<String> recursiveFunctions;
 
   @SuppressWarnings("unused")
   private final LogManager logger;
@@ -55,7 +66,32 @@ public class ArgToSvLibCorrectnessWitnessExport {
         pCFA.getMetadata().getSvLibCfaMetadata().isPresent(),
         "SV-LIB metadata must be present in CFA in order to export a SV-LIB witness.");
     svLibMetadata = pCFA.getMetadata().getSvLibCfaMetadata().orElseThrow();
+    loopHeads = pCFA.getAllLoopHeads().orElse(ImmutableSet.of());
+    recursiveFunctions = recursiveFunctions(pCFA);
     logger = pLogger;
+  }
+
+  /** The functions that can call themselves, directly or through other functions. */
+  private static ImmutableSet<String> recursiveFunctions(CFA pCFA) {
+    SetMultimap<String, String> callees = HashMultimap.create();
+    for (CFAEdge edge : CFAUtils.allEdges(pCFA).filter(FunctionCallEdge.class)) {
+      callees.put(edge.getPredecessor().getFunctionName(), edge.getSuccessor().getFunctionName());
+    }
+    ImmutableSet.Builder<String> recursive = ImmutableSet.builder();
+    for (String function : callees.keySet()) {
+      Set<String> reached = new HashSet<>();
+      Deque<String> waitlist = new ArrayDeque<>(callees.get(function));
+      while (!waitlist.isEmpty()) {
+        String callee = waitlist.pop();
+        if (reached.add(callee)) {
+          waitlist.addAll(callees.get(callee));
+        }
+      }
+      if (reached.contains(function)) {
+        recursive.add(function);
+      }
+    }
+    return recursive.build();
   }
 
   protected SvLibTerm getOverapproximationOfStates(
@@ -147,7 +183,8 @@ public class ArgToSvLibCorrectnessWitnessExport {
   }
 
   public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState) {
-    CollectedARGStates relevantStates = RelevantArgStatesCollector.getRelevantStates(pRootState);
+    CollectedARGStates relevantStates =
+        new RootExplorationArgStateCollector(loopHeads).getRelevantStates(pRootState);
 
     ImmutableList.Builder<SvLibAnnotateTagCommand> witnessCommands = ImmutableList.builder();
 
@@ -170,6 +207,11 @@ public class ArgToSvLibCorrectnessWitnessExport {
     Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
         relevantStates.functionContractEnsures();
     for (FunctionEntryNode functionEntryNode : functionContractRequires.keySet()) {
+      // A validator inlines the call of a function without a contract, which is at least as
+      // precise as a contract from the abstract states, so only recursive functions get one
+      if (!recursiveFunctions.contains(functionEntryNode.getFunctionName())) {
+        continue;
+      }
       Collection<ARGState> requiresArgStates = functionContractRequires.get(functionEntryNode);
       Set<SvLibTagReference> correspondingTag =
           svLibMetadata.tagReferences().get(functionEntryNode);

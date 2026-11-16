@@ -31,11 +31,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 /** Unit tests for {@link LlvmParserWithClang}. */
 @RunWith(Parameterized.class)
-@Ignore // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
+@Ignore("cf. issue #1356")
 public class LlvmParserWithClangTest {
 
   @Parameters(name = "{0} with file name {1}")
@@ -61,7 +61,7 @@ public class LlvmParserWithClangTest {
 
   @Before
   public void createParsers() throws InvalidConfigurationException {
-    Configuration config = TestDataTools.configurationForTest().build();
+    Configuration config = TestUtils.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     stringParser = new LlvmParserWithClang(config, logger, MachineModel.LINUX32);
     fileParser = new LlvmParserWithClang(config, logger, MachineModel.LINUX32);

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
@@ -50,7 +52,7 @@ public class SvLibScript implements SvLibParsingAstNode {
 
   @Override
   public String toASTString() {
-    return Joiner.on("\n").join(commands.stream().map(SvLibCommand::toASTString).toList());
+    return from(commands).transform(SvLibCommand::toASTString).join(Joiner.on("\n"));
   }
 
   @Override

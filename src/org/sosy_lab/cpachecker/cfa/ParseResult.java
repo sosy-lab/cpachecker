@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
@@ -20,12 +19,10 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslComment;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.AcslComment;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -46,25 +43,15 @@ public record ParseResult(
     List<Path> fileNames,
     Optional<AstCfaRelation> astStructure,
     Optional<List<AcslComment>> acslComments,
-    Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
     Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
+    // Like the two above, but as in the input program: without the variables and parameters that go
+    // out of scope at the node and without the ones hidden (shadowed) by a declaration with the
+    // same name in an inner block, see FunctionScope.visibleLocalVarsStack
+    Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToVisibleLocalVariables,
+    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToVisibleParameters,
     // Only relevant for SV-LIB scripts
     Optional<SvLibCfaMetadata> svLibCfaMetadata) {
-
-  public Optional<Set<AbstractSimpleDeclaration>> localVariablesAndParametersInScope(
-      CFANode pNode) {
-    if (cfaNodeToAstLocalVariablesInScope.isEmpty() || cfaNodeToAstParametersInScope.isEmpty()) {
-      return Optional.empty();
-    }
-
-    ImmutableSet.Builder<AbstractSimpleDeclaration> result = ImmutableSet.builder();
-    cfaNodeToAstLocalVariablesInScope.ifPresent(
-        m -> result.addAll(m.getOrDefault(pNode, ImmutableSet.of())));
-    cfaNodeToAstParametersInScope.ifPresent(
-        m -> result.addAll(m.getOrDefault(pNode, ImmutableSet.of())));
-    return Optional.of(result.build());
-  }
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -80,25 +67,6 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.empty(),
-        Optional.empty());
-  }
-
-  public ParseResult(
-      NavigableMap<String, FunctionEntryNode> pFunctions,
-      TreeMultimap<String, CFANode> pCfaNodes,
-      List<Pair<ADeclaration, String>> pGlobalDeclarations,
-      List<Path> pFileNames,
-      List<AcslComment> pAcslComments,
-      List<SyntacticBlock> pBlocks) {
-    this(
-        pFunctions,
-        pCfaNodes,
-        pGlobalDeclarations,
-        pFileNames,
-        Optional.empty(),
-        Optional.of(pAcslComments),
-        Optional.of(pBlocks),
         Optional.empty(),
         Optional.empty(),
         Optional.empty());
@@ -120,6 +88,7 @@ public record ParseResult(
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         Optional.of(pSvLibCfaMetadata));
   }
 
@@ -136,17 +105,22 @@ public record ParseResult(
         fileNames,
         Optional.of(pAstCfaRelation),
         acslComments,
-        blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
+        cfaNodeToVisibleLocalVariables,
+        cfaNodeToVisibleParameters,
         svLibCfaMetadata);
   }
 
   public ParseResult withInScopeInformation(
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToVisibleLocalVariables,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToVisibleParameters) {
     Verify.verify(cfaNodeToAstLocalVariablesInScope.isEmpty());
     Verify.verify(cfaNodeToAstParametersInScope.isEmpty());
+    Verify.verify(cfaNodeToVisibleLocalVariables.isEmpty());
+    Verify.verify(cfaNodeToVisibleParameters.isEmpty());
     return new ParseResult(
         functions,
         cfaNodes,
@@ -154,9 +128,10 @@ public record ParseResult(
         fileNames,
         astStructure,
         acslComments,
-        blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
         Optional.of(pCfaNodeToAstParametersInScope),
+        Optional.of(pCfaNodeToVisibleLocalVariables),
+        Optional.of(pCfaNodeToVisibleParameters),
         svLibCfaMetadata);
   }
 
@@ -168,14 +143,14 @@ public record ParseResult(
         pFileNames,
         astStructure,
         acslComments,
-        blocks,
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
+        cfaNodeToVisibleLocalVariables,
+        cfaNodeToVisibleParameters,
         svLibCfaMetadata);
   }
 
-  public ParseResult withAcslComments(
-      List<AcslComment> pAcslComments, List<SyntacticBlock> pBlocks) {
+  public ParseResult withAcslComments(List<AcslComment> pAcslComments) {
     return new ParseResult(
         functions,
         cfaNodes,
@@ -183,9 +158,10 @@ public record ParseResult(
         fileNames,
         astStructure,
         Optional.of(pAcslComments),
-        Optional.of(pBlocks),
         cfaNodeToAstLocalVariablesInScope,
         cfaNodeToAstParametersInScope,
-        Optional.empty());
+        cfaNodeToVisibleLocalVariables,
+        cfaNodeToVisibleParameters,
+        svLibCfaMetadata);
   }
 }

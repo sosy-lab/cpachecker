@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.function.Predicate;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -21,6 +24,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.ImportedBlock;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining.InliningDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -31,7 +36,7 @@ public class DssDecompositionOptions {
   public enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
-    BRIDGE_DECOMPOSITION,
+    INLINING_DECOMPOSITION,
     NO_DECOMPOSITION
   }
 
@@ -54,6 +59,13 @@ public class DssDecompositionOptions {
 
   @Option(
       description =
+          "Limits the horizontal merge so that blocks with more Nodes than this are not merged,"
+              + "allowing for more parallelism in the analysis. Negative value allows all merges",
+      secure = true)
+  private int largestHorizontalMerge = HorizontalMergeDecomposition.NO_MERGE_LIMIT;
+
+  @Option(
+      description =
           "Abstraction nodes are added to each block after they are created. "
               + "They are needed to strengthen the preconditions of blocks. "
               + "Missing blocks make the analysis slower but not impossible.",
@@ -71,13 +83,21 @@ public class DssDecompositionOptions {
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path importDecomposition = null;
 
+  @Option(
+      secure = true,
+      description = "Merge acyclic branch boundaries, duplicating shared prefixes or suffixes.")
+  private boolean mergeBranchBoundaries = false;
+
   private final BlockOperator blockOperator;
 
   public DssDecompositionOptions(Configuration pConfiguration, CFA pCFA)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     blockOperator = new BlockOperator();
-    pConfiguration.inject(blockOperator);
+    // Decomposition boundaries need not also be abstraction points in witness replay.
+    // The prefixed configuration falls back to the existing unprefixed options.
+    Configuration.copyWithNewPrefix(pConfiguration, "distributedSummaries.decomposition")
+        .inject(blockOperator);
     try {
       blockOperator.setCFA(pCFA);
     } catch (CPAException e) {
@@ -88,22 +108,34 @@ public class DssDecompositionOptions {
 
   public DssBlockDecomposition getConfiguredDecomposition() throws IOException {
     if (importDecomposition != null) {
-      return new ImportDecomposition(importDecomposition);
+      ObjectMapper objectMapper = new ObjectMapper();
+      Map<String, ImportedBlock> importData =
+          objectMapper.readValue(importDecomposition.toFile(), new TypeReference<>() {});
+      return new ImportDecomposition(importData);
     }
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
-    return switch (decompositionType) {
-      case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
-      case MERGE_DECOMPOSITION ->
-          new MergeBlockNodesDecomposition(
-              new LinearBlockNodeDecomposition(isBlockEnd),
-              2,
-              Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
-              allowSingleBlockDecompositionWhenMerging);
-      case BRIDGE_DECOMPOSITION ->
-          new VerticalMergeDecomposition(
-              new BridgeDecomposition(), 1, Comparator.comparingInt(b -> b.getEdges().size()));
-      case NO_DECOMPOSITION -> new SingleBlockDecomposition();
-    };
+    DssBlockDecomposition result =
+        switch (decompositionType) {
+          case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
+          case MERGE_DECOMPOSITION ->
+              new MergeBlockNodesDecomposition(
+                  new LinearBlockNodeDecomposition(isBlockEnd),
+                  2,
+                  largestHorizontalMerge,
+                  Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+                  allowSingleBlockDecompositionWhenMerging,
+                  true);
+          case INLINING_DECOMPOSITION ->
+              new MergeBlockNodesDecomposition(
+                  new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd)),
+                  2,
+                  largestHorizontalMerge,
+                  Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+                  allowSingleBlockDecompositionWhenMerging,
+                  true);
+          case NO_DECOMPOSITION -> new SingleBlockDecomposition();
+        };
+    return mergeBranchBoundaries ? new BranchBoundaryMergeDecomposition(result) : result;
   }
 
   public Path getBlockCFAFile() {

@@ -11,31 +11,22 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public abstract sealed class AcslLogicDefinition implements AcslAstNode
+public abstract sealed class AcslLogicDefinition extends AbstractAstNode implements AcslAstNode
     permits AcslLogicFunctionDefinition, AcslLogicPredicateDefinition {
 
-  @Serial private static final long serialVersionUID = 19841239875456789L;
+  @Serial private static final long serialVersionUID = -8805149469924106107L;
 
-  private final FileLocation fileLocation;
   private final AcslLogicDeclaration declaration;
   private final AcslAstNode body;
 
   protected AcslLogicDefinition(
       FileLocation pFileLocation, AcslLogicDeclaration pDeclaration, AcslAstNode pBody) {
-    fileLocation = pFileLocation;
-    declaration = pDeclaration;
-    body = pBody;
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
-    checkNotNull(pBody);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
+    super(pFileLocation);
+    declaration = checkNotNull(pDeclaration);
+    body = checkNotNull(pBody);
   }
 
   public AcslLogicDeclaration getDeclaration() {
@@ -52,9 +43,9 @@ public abstract sealed class AcslLogicDefinition implements AcslAstNode
   public int hashCode() {
     final int prime = 37;
     int result = 8;
-    result = prime * result + Objects.hashCode(body);
-    result = prime * result + Objects.hashCode(declaration);
-    result = prime * result + Objects.hashCode(fileLocation);
+    result = prime * result + body.hashCode();
+    result = prime * result + declaration.hashCode();
+    result = prime * result + super.hashCode();
     return result;
   }
 
@@ -65,8 +56,8 @@ public abstract sealed class AcslLogicDefinition implements AcslAstNode
     }
 
     return obj instanceof AcslLogicDefinition other
-        && Objects.equals(other.declaration, declaration)
-        && Objects.equals(other.body, body)
-        && Objects.equals(other.fileLocation, fileLocation);
+        && super.equals(other)
+        && other.declaration.equals(declaration)
+        && other.body.equals(body);
   }
 }

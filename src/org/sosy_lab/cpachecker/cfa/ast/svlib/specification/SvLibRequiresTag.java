@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 
-public final class SvLibRequiresTag implements SvLibTagProperty {
+public final class SvLibRequiresTag implements SvLibSafetyTag {
 
   @Serial private static final long serialVersionUID = 1135747516635566858L;
   private final SvLibTerm term;

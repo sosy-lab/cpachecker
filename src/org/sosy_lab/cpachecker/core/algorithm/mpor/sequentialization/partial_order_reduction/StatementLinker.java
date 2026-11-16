@@ -15,23 +15,24 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocationFinder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocationFinder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryModel) {
+public record StatementLinker(MPOROptions options, SeqPointerAliasingMap pointerAliasingMap) {
 
   /** Links commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
   public ImmutableListMultimap<MPORThread, SeqThreadStatementClause> linkClauses(
-      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses) {
+      ImmutableListMultimap<MPORThread, SeqThreadStatementClause> pClauses)
+      throws UnsupportedCodeException {
 
     ImmutableListMultimap.Builder<MPORThread, SeqThreadStatementClause> rLinked =
         ImmutableListMultimap.builder();
@@ -52,7 +53,8 @@ public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryM
 
   private ImmutableList<SeqThreadStatementClause> linkCommutingClausesWithGotos(
       ImmutableList<SeqThreadStatementClause> pClauses,
-      ImmutableSet.Builder<Integer> pLinkedTargetIds) {
+      ImmutableSet.Builder<Integer> pLinkedTargetIds)
+      throws UnsupportedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rNewClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
@@ -83,7 +85,8 @@ public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryM
       SeqThreadStatement pStatement,
       ImmutableSet.Builder<Integer> pLinkedTargetIds,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap)
+      throws UnsupportedCodeException {
 
     if (pStatement.isTargetPcValid()) {
       int targetPc = pStatement.targetPc().orElseThrow();
@@ -102,7 +105,8 @@ public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryM
   private boolean isValidLink(
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
-      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap)
+      throws UnsupportedCodeException {
 
     SeqThreadStatementBlock targetBlock = pTarget.getFirstBlock();
     return pStatement.data().getType().isLinkable
@@ -115,7 +119,7 @@ public record StatementLinker(MPOROptions options, Optional<MemoryModel> memoryM
         // only consider global accesses if not ignored
         && !(!isRelevantMemoryLocationIgnored(pTarget)
             && SeqMemoryLocationFinder.containsRelevantMemoryLocation(
-                pLabelBlockMap, targetBlock, memoryModel.orElseThrow()));
+                pLabelBlockMap, targetBlock, pointerAliasingMap));
   }
 
   /**

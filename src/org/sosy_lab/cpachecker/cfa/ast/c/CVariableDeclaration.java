@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -29,6 +30,8 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   @Serial private static final long serialVersionUID = 8303959164064236061L;
   private final CStorageClass cStorageClass;
 
+  private final boolean hasThreadLocalStorage;
+
   public CVariableDeclaration(
       FileLocation pFileLocation,
       boolean pIsGlobal,
@@ -37,7 +40,8 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
       String pName,
       String pOrigName,
       String pQualifiedName,
-      CInitializer pInitializer) {
+      @Nullable CInitializer pInitializer,
+      boolean pHasThreadLocalStorage) {
 
     super(
         pFileLocation,
@@ -48,6 +52,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
         pQualifiedName,
         pInitializer);
     cStorageClass = pCStorageClass;
+    hasThreadLocalStorage = pHasThreadLocalStorage;
 
     checkArgument(
         !(cStorageClass == CStorageClass.EXTERN && getInitializer() != null),
@@ -73,6 +78,10 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     return cStorageClass;
   }
 
+  public boolean hasThreadLocalStorage() {
+    return hasThreadLocalStorage;
+  }
+
   @Override
   public CInitializer getInitializer() {
     return (CInitializer) super.getInitializer();
@@ -93,6 +102,9 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append(cStorageClass.toASTString());
+    if (hasThreadLocalStorage) {
+      lASTString.append("_Thread_local ");
+    }
     lASTString.append(
         switch (pAAstNodeRepresentation) {
           case DEFAULT -> getType().toASTString(getName());
@@ -115,6 +127,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     final int prime = 31;
     int result = 7;
     result = prime * result + Objects.hashCode(cStorageClass);
+    result = prime * result + Boolean.hashCode(hasThreadLocalStorage);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -127,6 +140,7 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
 
     return obj instanceof CVariableDeclaration other
         && super.equals(obj)
+        && other.hasThreadLocalStorage == hasThreadLocalStorage
         && Objects.equals(other.cStorageClass, cStorageClass);
   }
 

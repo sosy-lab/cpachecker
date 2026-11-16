@@ -13,21 +13,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public final class AcslBinaryPredicate extends ABinaryExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = 7019956121956900L;
+  @Serial private static final long serialVersionUID = 2340946883565651164L;
 
   public AcslBinaryPredicate(
       FileLocation pFileLocation,
       AcslPredicate pOperand1,
       AcslPredicate pOperand2,
       AcslBinaryPredicateOperator pOperator) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand1, pOperand2, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pOperand1);
-    checkNotNull(pOperand2);
-    checkNotNull(pOperator);
+    super(
+        checkNotNull(pFileLocation),
+        AcslBuiltinLogicType.BOOLEAN,
+        checkNotNull(pOperand1),
+        checkNotNull(pOperand2),
+        checkNotNull(pOperator));
   }
 
   @Override
@@ -40,27 +42,32 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     return v.visit(this);
   }
 
-  public enum AcslBinaryPredicateOperator implements ABinaryOperator, AcslAstNode {
+  @Override
+  public AcslPredicate getOperand1() {
+    return (AcslPredicate) super.getOperand1();
+  }
+
+  @Override
+  public AcslPredicate getOperand2() {
+    return (AcslPredicate) super.getOperand2();
+  }
+
+  @Override
+  public AcslBinaryPredicateOperator getOperator() {
+    return (AcslBinaryPredicateOperator) super.getOperator();
+  }
+
+  public enum AcslBinaryPredicateOperator implements ABinaryOperator {
     IMPLICATION("==>"),
     EQUIVALENT("<==>"),
     AND("&&"),
     OR("||"),
-    EQUALS("=="),
-    NOT_EQUALS("!="),
-    LESS_EQUAL("<="),
-    GREATER_EQUAL(">="),
-    LESS_THAN("<"),
-    GREATER_THAN(">"),
-    ;
-
-    @Serial private static final long serialVersionUID = 701123361956900L;
+    XOR("^^");
 
     private final String operator;
-    private final FileLocation fileLocation;
 
     AcslBinaryPredicateOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
     public static AcslBinaryPredicateOperator of(String pOperator) {
@@ -86,26 +93,6 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     @Override
     public boolean isLogicalOperator() {
       return true;
-    }
-
-    @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }

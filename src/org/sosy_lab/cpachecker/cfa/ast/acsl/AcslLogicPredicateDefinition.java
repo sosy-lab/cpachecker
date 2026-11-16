@@ -19,14 +19,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  */
 public final class AcslLogicPredicateDefinition extends AcslLogicDefinition {
 
-  @Serial private static final long serialVersionUID = 145671239875456789L;
+  @Serial private static final long serialVersionUID = -4397604607115444492L;
 
   public AcslLogicPredicateDefinition(
       FileLocation pFileLocation, AcslPredicateDeclaration pDeclaration, AcslPredicate pBody) {
-    super(pFileLocation, pDeclaration, pBody);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
-    checkNotNull(pBody);
+    super(checkNotNull(pFileLocation), checkNotNull(pDeclaration), checkNotNull(pBody));
   }
 
   @Override
@@ -35,8 +32,8 @@ public final class AcslLogicPredicateDefinition extends AcslLogicDefinition {
   }
 
   @Override
-  public AcslTerm getBody() {
-    return (AcslTerm) super.getBody();
+  public AcslPredicate getBody() {
+    return (AcslPredicate) super.getBody();
   }
 
   @Override

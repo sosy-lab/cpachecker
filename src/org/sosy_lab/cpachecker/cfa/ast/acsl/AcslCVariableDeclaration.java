@@ -13,13 +13,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslCType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslCVariableDeclaration extends AVariableDeclaration
-    implements AcslDeclaration {
+    implements AcslSimpleDeclaration {
 
-  @Serial private static final long serialVersionUID = -814550243801231276L;
+  @Serial private static final long serialVersionUID = -2209796745371316472L;
 
-  private CVariableDeclaration variableDeclaration;
+  private final CVariableDeclaration variableDeclaration;
 
   public AcslCVariableDeclaration(CVariableDeclaration pCVariableDeclaration) {
     super(
@@ -30,8 +32,11 @@ public final class AcslCVariableDeclaration extends AVariableDeclaration
         pCVariableDeclaration.getOrigName(),
         pCVariableDeclaration.getQualifiedName(),
         pCVariableDeclaration.getInitializer());
-    variableDeclaration = pCVariableDeclaration;
-    checkNotNull(pCVariableDeclaration);
+    variableDeclaration = checkNotNull(pCVariableDeclaration);
+  }
+
+  public CVariableDeclaration getCVariableDeclaration() {
+    return variableDeclaration;
   }
 
   @Override

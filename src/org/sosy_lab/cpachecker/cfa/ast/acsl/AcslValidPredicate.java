@@ -8,42 +8,48 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
-public final class AcslValidPredicate implements AcslPredicate {
-  @Serial private static final long serialVersionUID = -69678901611906290L;
-  private final FileLocation fileLocation;
-  private final AcslType type;
+public final class AcslValidPredicate extends AbstractExpression implements AcslPredicate {
+
+  @Serial private static final long serialVersionUID = 388198222103405755L;
   private final AcslMemoryLocationSet memoryLocationSet;
 
   // Needs to be null for serialization
-  @Nullable private final AcslLabel optionalLabel;
+  private final @Nullable AcslLabel optionalLabel;
 
   public AcslValidPredicate(
       FileLocation pFileLocation, AcslMemoryLocationSet pMemoryLocationSet, AcslLabel pLabel) {
-    fileLocation = pFileLocation;
-    type = AcslBuiltinLogicType.BOOLEAN;
-    memoryLocationSet = pMemoryLocationSet;
-    optionalLabel = pLabel;
-    checkNotNull(pFileLocation);
-    checkNotNull(memoryLocationSet);
-    checkNotNull(pLabel);
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
+    memoryLocationSet = checkNotNull(pMemoryLocationSet);
+    optionalLabel = checkNotNull(pLabel);
+    checkArgument(
+        FluentIterable.from(memoryLocationSet.getTerms())
+            .allMatch(term -> AcslType.isPointer(term.getExpressionType())),
+        "\\valid needs pointers, not %s",
+        memoryLocationSet);
   }
 
   public AcslValidPredicate(FileLocation pFileLocation, AcslMemoryLocationSet pMemoryLocationSet) {
-    fileLocation = pFileLocation;
-    type = AcslBuiltinLogicType.BOOLEAN;
-    memoryLocationSet = pMemoryLocationSet;
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
+    memoryLocationSet = checkNotNull(pMemoryLocationSet);
     optionalLabel = null;
-    checkNotNull(pFileLocation);
-    checkNotNull(memoryLocationSet);
+    checkArgument(
+        FluentIterable.from(memoryLocationSet.getTerms())
+            .allMatch(term -> AcslType.isPointer(term.getExpressionType())),
+        "\\valid needs pointers, not %s",
+        memoryLocationSet);
   }
 
   @Override
@@ -51,9 +57,8 @@ public final class AcslValidPredicate implements AcslPredicate {
     return v.visit(this);
   }
 
-  @Override
-  public Type getExpressionType() {
-    return type;
+  public AcslMemoryLocationSet getMemoryLocationSet() {
+    return memoryLocationSet;
   }
 
   public Optional<AcslLabel> getLabel() {
@@ -66,27 +71,21 @@ public final class AcslValidPredicate implements AcslPredicate {
   }
 
   @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
-  }
-
-  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "\\valid(" + memoryLocationSet.toASTString(pAAstNodeRepresentation) + ")";
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "\\valid(" + memoryLocationSet.toASTString(pAAstNodeRepresentation) + ")";
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override
   public int hashCode() {
     final int prime = 37;
     int result = 8;
-    result = prime * result + Objects.hashCode(type);
-    result = prime * result + Objects.hashCode(fileLocation);
-    result = prime * result + Objects.hashCode(memoryLocationSet);
+    result = prime * result + super.hashCode();
+    result = prime * result + memoryLocationSet.hashCode();
     result = prime * result + Objects.hashCode(optionalLabel);
     return result;
   }
@@ -98,9 +97,8 @@ public final class AcslValidPredicate implements AcslPredicate {
     }
 
     return obj instanceof AcslValidPredicate other
-        && Objects.equals(other.type, type)
-        && Objects.equals(other.fileLocation, fileLocation)
-        && Objects.equals(other.memoryLocationSet, memoryLocationSet)
+        && super.equals(other)
+        && other.memoryLocationSet.equals(memoryLocationSet)
         && Objects.equals(other.optionalLabel, optionalLabel);
   }
 }

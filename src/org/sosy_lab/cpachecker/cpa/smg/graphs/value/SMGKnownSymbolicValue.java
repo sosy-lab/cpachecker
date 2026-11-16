@@ -8,4 +8,5 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
-public interface SMGKnownSymbolicValue extends SMGSymbolicValue {}
+public sealed interface SMGKnownSymbolicValue extends SMGSymbolicValue
+    permits SMGKnownSymValue, SMGZeroValue {}

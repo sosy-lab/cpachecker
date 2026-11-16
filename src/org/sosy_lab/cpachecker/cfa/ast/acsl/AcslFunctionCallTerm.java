@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
@@ -15,10 +16,11 @@ import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslFunctionCallTerm extends AFunctionCallExpression implements AcslTerm {
 
-  @Serial private static final long serialVersionUID = -612040123327639887L;
+  @Serial private static final long serialVersionUID = 300878915220884911L;
 
   public AcslFunctionCallTerm(
       FileLocation pLocation,
@@ -26,12 +28,39 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
       AcslTerm pFunctionName,
       List<AcslTerm> pParameters,
       AcslFunctionDeclaration pDeclaration) {
-    super(pLocation, pType, pFunctionName, pParameters, pDeclaration);
-    checkNotNull(pLocation);
-    checkNotNull(pType);
-    checkNotNull(pFunctionName);
-    checkNotNull(pParameters);
-    checkNotNull(pDeclaration);
+    super(
+        checkNotNull(pLocation),
+        checkNotNull(pType),
+        checkNotNull(pFunctionName),
+        checkNotNull(pParameters),
+        checkNotNull(pDeclaration));
+    checkArgument(
+        pType.equals(pDeclaration.getType().getReturnType()),
+        "The type %s of the call is not the return type of %s",
+        pType,
+        pDeclaration);
+    checkArgument(
+        pFunctionName instanceof AcslIdTerm idTerm && idTerm.getDeclaration().equals(pDeclaration),
+        "%s does not name the function %s",
+        pFunctionName,
+        pDeclaration);
+    checkArgument(
+        argumentsFit(pParameters, pDeclaration.getType().getParameters()),
+        "%s cannot be applied to %s",
+        pDeclaration,
+        pParameters);
+  }
+
+  static boolean argumentsFit(List<AcslTerm> pArguments, List<AcslType> pParameterTypes) {
+    if (pArguments.size() != pParameterTypes.size()) {
+      return false;
+    }
+    for (int i = 0; i < pArguments.size(); i++) {
+      if (!AcslType.areCompatible(pArguments.get(i).getExpressionType(), pParameterTypes.get(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
@@ -58,16 +87,11 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
 
   @Override
   public AcslType getExpressionType() {
-    return (AcslType) getDeclaration().getType().getReturnType();
+    return getDeclaration().getType().getReturnType();
   }
 
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return null;
   }
 }

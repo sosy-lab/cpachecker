@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -29,10 +32,10 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
       ImmutableSet<AcslLoopInvariant> pLoopInvariants,
       ImmutableSet<AcslAssigns> pLoopAssigns) {
     super(pFileLocation);
-    Preconditions.checkNotNull(pLoopInvariants);
-    Preconditions.checkNotNull(pLoopAssigns);
-    loopInvariants = pLoopInvariants;
-    loopAssigns = pLoopAssigns;
+    loopInvariants = checkNotNull(pLoopInvariants);
+    loopAssigns = checkNotNull(pLoopAssigns);
+    checkArgument(
+        !loopInvariants.isEmpty() || !loopAssigns.isEmpty(), "A loop annotation has a clause");
   }
 
   @Override
@@ -41,16 +44,16 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
       return true;
     }
     return pO instanceof AcslLoopAnnotation other
-        && Objects.equals(loopInvariants, other.loopInvariants)
-        && Objects.equals(loopAssigns, other.loopAssigns);
+        && loopInvariants.equals(other.loopInvariants)
+        && loopAssigns.equals(other.loopAssigns);
   }
 
   @Override
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash * Objects.hashCode(loopInvariants);
-    hash = prime * hash * Objects.hashCode(loopAssigns);
+    hash = prime * hash * loopInvariants.hashCode();
+    hash = prime * hash * loopAssigns.hashCode();
     return hash;
   }
 
@@ -64,13 +67,9 @@ public final class AcslLoopAnnotation extends AAcslAnnotation {
 
   @Override
   public String toAstString() {
-    StringBuilder astString = new StringBuilder();
-    for (AcslLoopInvariant l : loopInvariants) {
-      astString.append(l.toAstString()).append(System.lineSeparator());
-    }
-    for (AcslAssigns a : loopAssigns) {
-      astString.append("loop ").append(a.toAstString()).append(System.lineSeparator());
-    }
-    return astString.toString();
+    return FluentIterable.concat(
+            FluentIterable.from(loopInvariants).transform(AcslLoopInvariant::toAstString),
+            FluentIterable.from(loopAssigns).transform(assigns -> "loop " + assigns.toAstString()))
+        .join(Joiner.on(' '));
   }
 }

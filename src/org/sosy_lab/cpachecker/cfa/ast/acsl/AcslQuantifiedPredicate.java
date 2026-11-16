@@ -8,37 +8,49 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.io.Serial;
 import java.util.List;
-import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
-public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
-    permits AcslExistsPredicate, AcslForallPredicate {
+public final class AcslQuantifiedPredicate extends AbstractExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = -81123952385151276L;
+  @Serial private static final long serialVersionUID = -6454842818334326221L;
 
-  private final FileLocation fileLocation;
-  private final List<AcslParameterDeclaration> binders;
+  private final AcslQuantifier quantifier;
+  private final ImmutableList<AcslParameterDeclaration> binders;
   private final AcslPredicate predicate;
 
-  AcslQuantifiedPredicate(
+  public AcslQuantifiedPredicate(
       FileLocation pFileLocation,
+      AcslQuantifier pQuantifier,
       List<AcslParameterDeclaration> pBinders,
       AcslPredicate pPredicate) {
-    fileLocation = pFileLocation;
-    binders = pBinders;
-    predicate = pPredicate;
-    checkNotNull(pFileLocation);
-    checkNotNull(pBinders);
-    checkNotNull(pPredicate);
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
+    quantifier = checkNotNull(pQuantifier);
+    binders = ImmutableList.copyOf(pBinders);
+    predicate = checkNotNull(pPredicate);
+    checkArgument(!binders.isEmpty(), "A quantifier binds at least one variable");
+    checkArgument(
+        ImmutableSet.copyOf(Lists.transform(binders, AcslParameterDeclaration::getName)).size()
+            == binders.size(),
+        "The variables of a quantifier have different names, not %s",
+        binders);
   }
 
-  public List<AcslParameterDeclaration> getBinders() {
+  public AcslQuantifier getQuantifier() {
+    return quantifier;
+  }
+
+  public ImmutableList<AcslParameterDeclaration> getBinders() {
     return binders;
   }
 
@@ -47,32 +59,33 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
   }
 
   @Override
-  public Type getExpressionType() {
-    return AcslBuiltinLogicType.BOOLEAN;
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
   @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
+  public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
   }
 
-  String toString(String quantifier) {
-    StringBuilder sb = new StringBuilder();
-    sb.append(quantifier);
-    sb.append(" ");
-    sb.append(Joiner.on(", ").join(binders));
-    sb.append(": ");
-    sb.append(predicate);
-    return sb.toString();
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return quantifier
+        + " "
+        + Joiner.on(", ")
+            .join(Lists.transform(binders, binder -> binder.toASTString(pAAstNodeRepresentation)))
+        + "; "
+        + predicate.toASTString(pAAstNodeRepresentation);
   }
 
   @Override
   public int hashCode() {
     final int prime = 3;
     int result = 7;
-    result = prime * result + Objects.hash(fileLocation);
-    result = prime * result + Objects.hash(binders);
-    result = prime * result + Objects.hash(predicate);
+    result = prime * result + super.hashCode();
+    result = prime * result + quantifier.hashCode();
+    result = prime * result + binders.hashCode();
+    result = prime * result + predicate.hashCode();
     return result;
   }
 
@@ -83,9 +96,35 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
     }
 
     return obj instanceof AcslQuantifiedPredicate other
-        && Objects.equals(other.getClass(), getClass())
-        && Objects.equals(other.fileLocation, fileLocation)
-        && Objects.equals(other.binders, binders)
-        && Objects.equals(other.predicate, predicate);
+        && super.equals(other)
+        && other.quantifier == quantifier
+        && other.binders.equals(binders)
+        && other.predicate.equals(predicate);
+  }
+
+  public enum AcslQuantifier {
+    FORALL("\\forall"),
+    EXISTS("\\exists"),
+    ;
+
+    private final String keyword;
+
+    AcslQuantifier(String pKeyword) {
+      keyword = pKeyword;
+    }
+
+    public static AcslQuantifier of(String pKeyword) {
+      for (AcslQuantifier quantifier : values()) {
+        if (quantifier.keyword.equals(pKeyword)) {
+          return quantifier;
+        }
+      }
+      throw new IllegalArgumentException("Unknown quantifier: " + pKeyword);
+    }
+
+    @Override
+    public String toString() {
+      return keyword;
+    }
   }
 }

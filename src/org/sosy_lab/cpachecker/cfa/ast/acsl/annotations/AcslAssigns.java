@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 
@@ -20,8 +22,7 @@ public final class AcslAssigns extends AAcslAnnotation {
 
   public AcslAssigns(FileLocation pFileLocation, ImmutableSet<AcslMemoryLocationSet> pLocations) {
     super(pFileLocation);
-    Preconditions.checkNotNull(pLocations);
-    locations = pLocations;
+    locations = checkNotNull(pLocations);
   }
 
   @Override
@@ -36,18 +37,16 @@ public final class AcslAssigns extends AAcslAnnotation {
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash * Objects.hashCode(locations);
+    hash = prime * hash * locations.hashCode();
     return hash;
   }
 
   @Override
   public String toAstString() {
-    StringBuilder astString = new StringBuilder("assigns ");
-    for (AcslMemoryLocationSet l : locations) {
-      astString.append(l.toASTString());
-      astString.append(", ".repeat(Math.max(0, locations.size() - 2)));
-    }
-    astString.append(";");
-    return astString.toString();
+    return "assigns "
+        + (locations.isEmpty()
+            ? "\\nothing"
+            : Joiner.on(", ").join(Collections2.transform(locations, l -> l.toASTString())))
+        + ";";
   }
 }

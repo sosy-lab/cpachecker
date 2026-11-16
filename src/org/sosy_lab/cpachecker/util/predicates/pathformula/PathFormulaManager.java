@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
@@ -77,6 +78,13 @@ public interface PathFormulaManager {
   PathFormula makeAnd(PathFormula pPathFormula, SvLibRelationalTerm pAssumption)
       throws CPATransferException, InterruptedException;
 
+  /**
+   * Returns the path formula with the ACSL predicate as assumption. A predicate that cannot be
+   * converted is ignored, which over-approximates.
+   */
+  PathFormula makeAnd(PathFormula pPathFormula, AcslPredicate pAssumption)
+      throws CPATransferException;
+
   PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
       throws CPATransferException, InterruptedException;
 
@@ -135,7 +143,7 @@ public interface PathFormulaManager {
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
    * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
-   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
+   * Predicate, java.util.function.BiPredicate)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
@@ -152,7 +160,7 @@ public interface PathFormulaManager {
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
    * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
-   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
+   * Predicate, java.util.function.BiPredicate)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.

@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
@@ -31,7 +32,10 @@ public final class SeqThreadSimulationFunctionBuilder {
       MPOROptions pOptions, CCompoundStatement pFunctionBody, MPORThread pThread) {
 
     CFunctionType functionType = new CFunctionType(CVoidType.VOID, ImmutableList.of(), false);
-    String functionName = SeqNameUtil.buildThreadPrefix(pOptions, pThread.id()) + "_sequentialized";
+    String functionName =
+        Sequentialization.MPOR_PREFIX
+            + SeqNameUtil.buildThreadPrefix(pOptions, pThread.id())
+            + "_sequentialized";
     CFunctionDeclaration functionDeclaration =
         new CFunctionDeclaration(
             FileLocation.DUMMY, functionType, functionName, ImmutableList.of(), ImmutableSet.of());

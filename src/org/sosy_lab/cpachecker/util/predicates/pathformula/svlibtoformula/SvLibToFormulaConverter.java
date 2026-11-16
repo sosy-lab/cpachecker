@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedOperationByDesignException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.LanguageToSmtConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -72,7 +74,6 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
   @SuppressWarnings("unused")
   private final BitvectorFormulaManagerView efmgr;
 
-  @SuppressWarnings("unused")
   private final FunctionFormulaManagerView ffmgr;
 
   private final LogManagerWithoutDuplicates logger;
@@ -148,31 +149,36 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     SSAMapBuilder ssa = pOldFormula.getSsa().builder();
     Constraints constraints = new Constraints(bfmgr);
 
-    BooleanFormula edgeFormula =
-        switch (pEdge) {
-          case BlankEdge ignored -> bfmgr.makeTrue();
-          case SvLibDeclarationEdge declarationEdge ->
-              makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
-          case SvLibFunctionCallEdge procedureCallEdge ->
-              makeProcedureCall(procedureCallEdge, function, ssa, constraints, pErrorConditions);
-          case SvLibAssumeEdge assumeEdge ->
-              makePredicate(assumeEdge, function, ssa, constraints, pErrorConditions);
-          case SvLibProcedureReturnEdge returnEdge ->
-              makeExitFunction(
-                  returnEdge.getSummaryEdge(), function, ssa, constraints, pErrorConditions);
-          case SvLibStatementEdge statementEdge ->
-              SvLibStatementToFormulaConverter.convertStatement(
-                  statementEdge.getStatement(), ssa, fmgr, this);
+    BooleanFormula edgeFormula;
+    try {
+      edgeFormula =
+          switch (pEdge) {
+            case BlankEdge ignored -> bfmgr.makeTrue();
+            case SvLibDeclarationEdge declarationEdge ->
+                makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
+            case SvLibFunctionCallEdge procedureCallEdge ->
+                makeProcedureCall(procedureCallEdge, function, ssa, constraints, pErrorConditions);
+            case SvLibAssumeEdge assumeEdge ->
+                makePredicate(assumeEdge, function, ssa, constraints, pErrorConditions);
+            case SvLibProcedureReturnEdge returnEdge ->
+                makeExitFunction(
+                    returnEdge.getSummaryEdge(), function, ssa, constraints, pErrorConditions);
+            case SvLibStatementEdge statementEdge ->
+                SvLibStatementToFormulaConverter.convertStatement(
+                    statementEdge.getStatement(), ssa, fmgr, this);
 
-          default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
-        };
+            default -> throw new UnrecognizedCodeException("Unsupported edge", pEdge);
+          };
+    } catch (UnsupportedOperationByDesignException e) {
+      // The term converter cannot throw a checked exception, because it converts in lambdas
+      throw new UnsupportedCodeException(e.getMessage(), pEdge);
+    }
 
     edgeFormula = bfmgr.and(edgeFormula, constraints.get());
-    SSAMap newSsa = ssa.build();
 
     // There are no pointers in SV-LIB, so the pointer target set remains unchanged, and can
-    // therefore
-    // be ignored.
+    // therefore be ignored.
+    SSAMap newSsa = ssa.build();
     if (bfmgr.isTrue(edgeFormula) && (newSsa == pOldFormula.getSsa())) {
       // formula is just "true" and rest is equal
       // i.e. no writes to SSAMap, no branching and length should stay the same
@@ -187,7 +193,14 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     PathFormula result =
         PathFormula.createManually(
             newFormula, newSsa, pOldFormula.getPointerTargetSet(), newLength);
+
     return result;
+  }
+
+  /** Create an application of the uninterpreted function with the given name. */
+  Formula makeUninterpretedFunctionApplication(
+      String pName, FormulaType<?> pReturnType, List<Formula> pArguments) {
+    return ffmgr.declareAndCallUF(pName, pReturnType, pArguments);
   }
 
   protected BooleanFormula makePredicate(

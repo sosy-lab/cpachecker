@@ -117,7 +117,8 @@ final class PredicateForcedCovering implements ForcedCovering, StatisticsProvide
             predicateCpa.getCfa().getVarClassification(),
             config,
             predicateCpa.getShutdownNotifier(),
-            pLogger);
+            pLogger,
+            /* pEnableCounterexampleAnalysis= */ false);
     fmgr = predicateCpa.getSolver().getFormulaManager();
     predAbsMgr = predicateCpa.getPredicateManager();
     impact = new ImpactUtility(config, fmgr, predAbsMgr);

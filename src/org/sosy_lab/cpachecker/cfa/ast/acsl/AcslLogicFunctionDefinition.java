@@ -8,22 +8,26 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 /** Defines functions with arbitrary return type. */
 public final class AcslLogicFunctionDefinition extends AcslLogicDefinition {
 
-  @Serial private static final long serialVersionUID = 145671239875456789L;
+  @Serial private static final long serialVersionUID = -4600895736566083632L;
 
   public AcslLogicFunctionDefinition(
       FileLocation pFileLocation, AcslFunctionDeclaration pDeclaration, AcslTerm pBody) {
-    super(pFileLocation, pDeclaration, pBody);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
-    checkNotNull(pBody);
+    super(checkNotNull(pFileLocation), checkNotNull(pDeclaration), checkNotNull(pBody));
+    checkArgument(
+        AcslType.areCompatible(pBody.getExpressionType(), pDeclaration.getType().getReturnType()),
+        "The body %s does not have the return type of %s",
+        pBody,
+        pDeclaration);
   }
 
   @Override

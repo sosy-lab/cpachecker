@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 
 /**
@@ -16,6 +17,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
  * <pre>{@code label:}</pre>
  */
 public record CLabelStatement(String name) implements CExportStatement {
+
+  @Override
+  public ImmutableList<CCompoundStatementElement> getAllNestedStatements() {
+    return ImmutableList.of(this);
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {

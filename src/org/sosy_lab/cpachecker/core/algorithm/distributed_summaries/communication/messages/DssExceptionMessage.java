@@ -9,8 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Message for exceptions that occur during distributed summary computation. The content contains a
+ * single key-value pair with the key "exception" and the value being the exception message.
+ */
 public class DssExceptionMessage extends DssMessage {
 
   public static final String DSS_MESSAGE_EXCEPTION_KEY = "exception";
@@ -24,6 +29,11 @@ public class DssExceptionMessage extends DssMessage {
 
   DssExceptionMessage(String pSenderId, ImmutableMap<String, String> pExceptionMessage) {
     super(pSenderId, DssMessageType.EXCEPTION, pExceptionMessage);
+  }
+
+  DssExceptionMessage(
+      String pSenderId, ImmutableMap<String, String> pExceptionMessage, Instant pTimestamp) {
+    super(pSenderId, DssMessageType.EXCEPTION, pExceptionMessage, pTimestamp);
   }
 
   @Override

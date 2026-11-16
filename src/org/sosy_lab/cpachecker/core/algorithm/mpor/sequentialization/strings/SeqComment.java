@@ -13,11 +13,7 @@ import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
 /** The comments are sorted as they appear in the output program. */
 public class SeqComment {
 
-  public static final String COMMENT_BLOCK_BEGIN = "/*";
-
-  public static final String COMMENT_BLOCK_END = "*/";
-
-  public static final CComment UNCHANGED_DECLARATIONS =
+  public static final CComment INPUT_PROGRAM_DECLARATIONS =
       new CComment("input program declarations, optionally with function declarations");
 
   public static final CComment GLOBAL_VAR_DECLARATIONS =

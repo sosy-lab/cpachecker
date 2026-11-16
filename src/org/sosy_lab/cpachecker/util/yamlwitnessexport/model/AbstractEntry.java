@@ -41,7 +41,7 @@ public abstract class AbstractEntry {
 
   @Override
   public int hashCode() {
-    return Objects.hash(entryType);
+    return Objects.hashCode(entryType);
   }
 
   @Override

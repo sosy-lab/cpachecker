@@ -21,6 +21,8 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -87,6 +89,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
@@ -505,7 +508,7 @@ public class SMGCPAExpressionEvaluator {
     // only interesting in a failure case in which the analysis stops!
     SMGState currentState = pState;
     SMGCPAAddressVisitor addressVisitor =
-        new SMGCPAAddressVisitor(this, currentState, cfaEdge, logger, options);
+        new SMGCPAAddressVisitor(this, currentState, cfaEdge, logger);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset objectAndOffsetOrState :
         operand.accept(addressVisitor)) {
@@ -898,7 +901,8 @@ public class SMGCPAExpressionEvaluator {
 
       // The object may be null if no such object exists, check and log if 0
       if (object.isZero()) {
-        SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
+        SMGState errorState =
+            pState.withNullPointerDereferenceWhenReading(exprReading.toQualifiedASTString());
         returnBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 errorState, "Returned unknown value due to null-pointer dereference."));
@@ -1535,8 +1539,7 @@ public class SMGCPAExpressionEvaluator {
     // Get the memory for the left hand side variable
     // Write the return value into the left hand side variable
     for (SMGStateAndOptionalSMGObjectAndOffset variableMemoryAndOffsetOrState :
-        leftHandSideValue.accept(
-            new SMGCPAAddressVisitor(this, currentState, edge, logger, options))) {
+        leftHandSideValue.accept(new SMGCPAAddressVisitor(this, currentState, edge, logger))) {
       if (!variableMemoryAndOffsetOrState.hasSMGObjectAndOffset()) {
         // throw new SMG2Exception("No memory found to assign the value to.");
         successorsBuilder.add(variableMemoryAndOffsetOrState.getSMGState());
@@ -1547,7 +1550,7 @@ public class SMGCPAExpressionEvaluator {
       Value offset = variableMemoryAndOffsetOrState.getOffsetForObject();
 
       ValueAndSMGState castedValueAndState =
-          new SMGCPAValueVisitor(this, currentState, edge, logger, options)
+          new SMGCPAValueVisitor(this, currentState, edge, logger)
               .castCValue(valueToWrite, leftHandSideValue.getExpressionType(), currentState);
       valueToWrite = castedValueAndState.getValue();
       currentState = castedValueAndState.getState();
@@ -1600,7 +1603,7 @@ public class SMGCPAExpressionEvaluator {
         CType arrayLengthType = arrayLength.getExpressionType().getCanonicalType();
         // Evaluate using the value visitor, and reuse symbolic size
         List<ValueAndSMGState> lengths =
-            new SMGCPAValueVisitor(this, pInitialSmgState, pEdge, logger, options)
+            new SMGCPAValueVisitor(this, pInitialSmgState, pEdge, logger)
                 .evaluate(arrayLength, arrayLengthType);
         if (lengths.size() == 1) {
           ValueAndSMGState arrayLengthValueAndState = lengths.getFirst();
@@ -1689,7 +1692,8 @@ public class SMGCPAExpressionEvaluator {
 
       // The object may be null if no such object exists, check and log if 0
       if (sourceObject.isZero()) {
-        returnBuilder.add(pState.withNullPointerDereferenceWhenReading(sourceObject));
+        returnBuilder.add(
+            pState.withNullPointerDereferenceWhenReading("when copying memory, the source was 0"));
         continue;
       }
 
@@ -1857,7 +1861,8 @@ public class SMGCPAExpressionEvaluator {
     // The object may be null if no such object exists, check and log if 0
     if (firstObject.isZero()) {
       return ValueAndSMGState.ofUnknownValue(
-          currentState.withNullPointerDereferenceWhenReading(firstObject),
+          currentState.withNullPointerDereferenceWhenReading(
+              "when comparing 2 strings, the first argument was zero"),
           "Returned unknown value due to unknown value in string comparing expression with invalid"
               + " dereference.");
     }
@@ -2012,8 +2017,7 @@ public class SMGCPAExpressionEvaluator {
                       CFANode.newDummyCFANode(),
                       CFANode.newDummyCFANode(),
                       "dummy edge for variable sizes arrays"),
-                  logger,
-                  options))) {
+                  logger))) {
         Value lengthValue = lengthValueAndState.getValue();
         // We simply ignore the State for this as if it's not numeric it does not matter
         if (lengthValue instanceof NumericValue numLengthValue) {
@@ -2404,6 +2408,15 @@ public class SMGCPAExpressionEvaluator {
     }
 
     if (newInitializer != null) {
+      if (cType instanceof CArrayType || isStructOrUnionType(cType)) {
+        // Members and elements of an aggregate that are not explicitly initialized are initialized
+        // to 0 (C11 6.7.9 (19) and (21)). We zero the entire memory first, so that the initializer
+        // only needs to write the explicitly initialized values.
+        // This also zeroes padding bytes. Their value is only guaranteed to be zero for static
+        // storage duration (C11 6.7.9 (10)), otherwise padding bytes take unspecified values
+        // (C11 6.2.6.1 (6)), i.e. zero is a valid choice.
+        currentState = currentState.writeToStackOrGlobalVariableToZero(pVarName, cType, pEdge);
+      }
       return handleInitializer(
           currentState,
           pVarDecl,
@@ -2596,8 +2609,9 @@ public class SMGCPAExpressionEvaluator {
     return ImmutableList.of(currentState);
   }
 
-  /*
-   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case arrays.
+  /**
+   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case
+   * arrays (but we might interpret them as pointers!).
    */
   private List<SMGState> handleInitializerList(
       SMGState pState,
@@ -2612,40 +2626,116 @@ public class SMGCPAExpressionEvaluator {
     CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(pLValueType.getType());
     Value memberTypeSize = getBitSizeof(pState, memberType, pEdge);
 
-    List<CInitializer> initList = pNewInitializer.getInitializers();
-    // The initilizerlist might exceed the memory allocated. In this case we cut off the rest of the
-    // initializer
-    // Also, the initializer might be smaller, in that case we pad 0
-    if (pVarDecl != null && pVarDecl.getType().getCanonicalType().hasKnownConstantSize()) {
-      BigInteger typeSize = machineModel.getSizeof(pVarDecl.getType().getCanonicalType());
-      int initializerSize = pNewInitializer.getInitializers().size();
-      if (typeSize.intValueExact() < initializerSize) {
-        initList = initList.subList(0, typeSize.intValueExact());
-      }
-      // TODO: handle smaller initializer lists
-    }
+    // The initializer-list might exceed the memory allocated.
+    // In this case we cut off the rest of the initializer.
+    // Elements without explicit initializer are not written here, as the memory of a declared
+    // array is zeroed before its initializer is handled (see handleInitializerForDeclaration()).
+    int numberOfElements =
+        getNumberOfArrayElementsToInitialize(pLValueType, variableName, memberTypeSize, pEdge);
 
     SMGState currentState = pState;
-    Value offset = pOffset;
-    for (CInitializer initializer : initList) {
-      // TODO: this has to be checked with a test!!!!
-      if (initializer instanceof CDesignatedInitializer) {
-        initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
+    // The index of the next element to initialize, i.e. the current position in the list.
+    // Designators change it, and following initializers continue from the designated position.
+    int index = 0;
+    for (CInitializer initializer : pNewInitializer.getInitializers()) {
+      int lastIndex = index;
+      if (initializer instanceof CDesignatedInitializer designatedInitializer) {
+        List<CDesignator> designators = designatedInitializer.getDesignators();
+        if (designators.size() != 1) {
+          throw new UnsupportedCodeException(
+              "Nested designators in array initializer " + pNewInitializer.toASTString(),
+              pEdge,
+              designatedInitializer);
+        }
+        switch (designators.getFirst()) {
+          case CArrayDesignator arrayDesignator -> {
+            index =
+                evaluateArrayDesignatorIndex(
+                    currentState, arrayDesignator.getSubscriptExpression(), pEdge);
+            lastIndex = index;
+          }
+          case CArrayRangeDesignator rangeDesignator -> {
+            index =
+                evaluateArrayDesignatorIndex(
+                    currentState, rangeDesignator.getFloorExpression(), pEdge);
+            lastIndex =
+                evaluateArrayDesignatorIndex(
+                    currentState, rangeDesignator.getCeilExpression(), pEdge);
+          }
+          default ->
+              throw new UnrecognizedCodeException(
+                  "Non array designator in initializer for array", pEdge, designatedInitializer);
+        }
+        initializer = designatedInitializer.getRightHandSide();
       }
 
-      List<SMGState> newStates =
-          handleInitializer(
-              currentState, pVarDecl, pEdge, variableName, offset, memberType, initializer);
+      for (int i = index; i <= lastIndex; i++) {
+        if (i >= numberOfElements) {
+          // Excess initializers are cut off
+          break;
+        }
+        Value offsetInBits =
+            addBitOffsetValues(
+                pOffset, multiplyBitOffsetValues(memberTypeSize, BigInteger.valueOf(i)));
+        List<SMGState> newStates =
+            handleInitializer(
+                currentState, pVarDecl, pEdge, variableName, offsetInBits, memberType, initializer);
 
-      offset = addBitOffsetValues(offset, memberTypeSize);
-
-      // If this ever fails we have to split the rest of the initializer such that all states are
-      // treated the same from this point onwards
-      checkArgument(newStates.size() == 1);
-      currentState = newStates.getFirst();
+        // If this ever fails we have to split the rest of the initializer such that all states are
+        // treated the same from this point onwards
+        checkArgument(newStates.size() == 1);
+        currentState = newStates.getFirst();
+      }
+      index = lastIndex + 1;
     }
 
     return ImmutableList.of(currentState);
+  }
+
+  /**
+   * Returns the number of elements of the array of the given type that is initialized by an
+   * initializer list. The array might be the variable itself, or a member or element of it, e.g. an
+   * array in a struct or a row of a multidimensional array.
+   *
+   * <p>The size of declared arrays without explicit size, e.g. {@code int a[] = {1, 2};}, is
+   * already determined by the frontend using the initializer.
+   *
+   * @param pArrayType the type of the initialized array (not the type of the variable).
+   * @throws CPATransferException if the number of elements can not be determined, e.g. for flexible
+   *     array members.
+   */
+  private int getNumberOfArrayElementsToInitialize(
+      CArrayType pArrayType, String pVariableName, Value pMemberTypeSizeInBits, CFAEdge pEdge)
+      throws CPATransferException {
+    if (!(pMemberTypeSizeInBits instanceof NumericValue numMemberTypeSizeInBits)) {
+      throw new SMGException(
+          "Can't handle symbolic array element size in initializer for: " + pVariableName);
+    }
+    if (!pArrayType.hasKnownConstantSize()) {
+      throw new UnsupportedCodeException(
+          "Initializer for array without size in variable " + pVariableName, pEdge);
+    }
+
+    BigInteger memSizeInBits =
+        machineModel
+            .getSizeof(pArrayType)
+            .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
+    return memSizeInBits.divide(numMemberTypeSizeInBits.bigIntegerValue()).intValueExact();
+  }
+
+  /** Evaluates the (constant) index expression of an array designator to a concrete index. */
+  private int evaluateArrayDesignatorIndex(
+      SMGState pState, CExpression pIndexExpression, CFAEdge pEdge) throws CPATransferException {
+    List<ValueAndSMGState> indexValuesAndStates =
+        new SMGCPAValueVisitor(this, pState, pEdge, logger)
+            .evaluate(pIndexExpression, getCanonicalType(pIndexExpression));
+    if (indexValuesAndStates.size() == 1
+        && indexValuesAndStates.getFirst().getValue() instanceof NumericValue numIndex) {
+      return numIndex.bigIntegerValue().intValueExact();
+    }
+    throw new SMGException(
+        "Could not evaluate array designator index to a concrete value: "
+            + pIndexExpression.toASTString());
   }
 
   /*
@@ -2686,6 +2776,7 @@ public class SMGCPAExpressionEvaluator {
               pEdge,
               stringVarName,
               new NumericValue(BigInteger.ZERO),
+              stringArrayType,
               pFileLocation,
               pExpression);
 
@@ -2714,16 +2805,33 @@ public class SMGCPAExpressionEvaluator {
       return stateBuilder.build();
     }
 
+    // The initialized array might be smaller than the string literal, e.g. char a[3] = "abc";
+    CArrayType destinationArrayType =
+        pCurrentExpressionType.getCanonicalType() instanceof CArrayType arrayType
+            ? arrayType
+            : pExpression.getExpressionType();
     return transformStringToArrayAndInitialize(
-        pState, pVarDecl, pEdge, variableName, pOffset, pFileLocation, pExpression);
+        pState,
+        pVarDecl,
+        pEdge,
+        variableName,
+        pOffset,
+        destinationArrayType,
+        pFileLocation,
+        pExpression);
   }
 
+  /**
+   * Initializes the array of the given type with the characters of the string literal. Characters
+   * (including the terminating \0) that exceed the destination array are cut off.
+   */
   private List<SMGState> transformStringToArrayAndInitialize(
       SMGState pState,
       CVariableDeclaration pVarDecl,
       CFAEdge pEdge,
       String variableName,
       Value pOffset,
+      CArrayType pDestinationArrayType,
       FileLocation pFileLocation,
       CStringLiteralExpression pExpression)
       throws CPATransferException {
@@ -2739,7 +2847,7 @@ public class SMGCPAExpressionEvaluator {
         pEdge,
         variableName,
         pOffset,
-        arrayType,
+        pDestinationArrayType,
         new CInitializerList(pFileLocation, charArrayInitialziersBuilder.build()));
   }
 
@@ -2767,7 +2875,7 @@ public class SMGCPAExpressionEvaluator {
       // Copy of the entire structure instead of just writing
       // Source == right hand side
       for (SMGStateAndOptionalSMGObjectAndOffset sourceObjectAndOffsetOrState :
-          exprToWrite.accept(new SMGCPAAddressVisitor(this, pState, cfaEdge, logger, options))) {
+          exprToWrite.accept(new SMGCPAAddressVisitor(this, pState, cfaEdge, logger))) {
         if (!sourceObjectAndOffsetOrState.hasSMGObjectAndOffset()) {
           resultStatesBuilder.add(sourceObjectAndOffsetOrState.getSMGState());
           continue;
@@ -2811,7 +2919,7 @@ public class SMGCPAExpressionEvaluator {
 
     } else {
       // Just a normal write
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(this, pState, cfaEdge, logger, options);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(this, pState, cfaEdge, logger);
       for (ValueAndSMGState valueAndState : vv.evaluate(exprToWrite, typeOfWrite)) {
 
         ValueAndSMGState valueAndStateToAssign =

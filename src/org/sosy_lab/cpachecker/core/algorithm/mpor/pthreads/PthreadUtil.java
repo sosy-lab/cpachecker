@@ -9,15 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution.isPthreadObjectType;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -25,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -41,6 +45,9 @@ public class PthreadUtil {
       if (pCfaEdge.getRawAST().orElseThrow() instanceof CFunctionCall functionCall) {
         return Optional.of(functionCall);
       }
+    }
+    if (pCfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
+      return Optional.of(functionSummaryEdge.getExpression());
     }
     return Optional.empty();
   }
@@ -110,6 +117,27 @@ public class PthreadUtil {
 
   // START_ROUTINE =================================================================================
 
+  public static CFunctionCall createStartRoutineFunctionCall(
+      CFunctionDeclaration pStartRoutineDeclaration, Optional<CExpression> pParameter) {
+
+    if (pParameter.isPresent()) {
+      checkArgument(pStartRoutineDeclaration.getType().getParameters().size() == 1);
+    } else {
+      checkArgument(pStartRoutineDeclaration.getType().getParameters().isEmpty());
+    }
+
+    CFunctionCallExpression initRoutineCallExpression =
+        new CFunctionCallExpression(
+            FileLocation.DUMMY,
+            pStartRoutineDeclaration.getType(),
+            new CIdExpression(FileLocation.DUMMY, pStartRoutineDeclaration),
+            pParameter.isPresent()
+                ? ImmutableList.of(pParameter.orElseThrow())
+                : ImmutableList.of(),
+            pStartRoutineDeclaration);
+    return new CFunctionCallStatement(FileLocation.DUMMY, initRoutineCallExpression);
+  }
+
   public static CFunctionDeclaration extractStartRoutineDeclaration(CFunctionCall pFunctionCall)
       throws UnsupportedCodeException {
 
@@ -169,13 +197,6 @@ public class PthreadUtil {
         .get(returnValueIndex);
   }
 
-  public static boolean isCallToPthreadExitWithReturnValue(CFunctionCall pFunctionCall) {
-    return isCallToPthreadFunction(pFunctionCall, PthreadFunctionType.PTHREAD_EXIT)
-        && !MPORUtil.isVoidPointer(
-            Iterables.getOnlyElement(
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions()));
-  }
-
   // PTHREAD_MUTEX_INITIALIZER =====================================================================
 
   /**
@@ -211,7 +232,7 @@ public class PthreadUtil {
 
     // if the type yields a trailing white space (from declaration edge), we strip it
     String typeName = pVariableDeclaration.getType().toASTString("").strip();
-    if (typeName.equals(PthreadObjectType.PTHREAD_MUTEX_T.name)) {
+    if (typeName.equals(PthreadObjectType.PTHREAD_MUTEX_T.getName())) {
       // preprocessing yields initializer lists for PTHREAD_MUTEX_INITIALIZER
       // see e.g. goblint-regression/13-privatized_34-traces-minepp-L-needs-to-be-um_true
       return pVariableDeclaration.getInitializer() instanceof CInitializerList;
@@ -221,18 +242,30 @@ public class PthreadUtil {
 
   // boolean helpers ===============================================================================
 
-  /**
-   * Returns {@code true} if {@code pType} matches any {@link PthreadObjectType} by name and {@code
-   * false} otherwise.
-   */
   public static boolean isAnyPthreadObjectType(CType pType) {
-    String typeName = pType.toString().strip();
-    for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
-      if (typeName.equals(pthreadObjectType.name)) {
+    for (PthreadObjectType objectType : PthreadObjectType.values()) {
+      if (isPthreadObjectType(pType, objectType)) {
         return true;
       }
     }
     return false;
+  }
+
+  /**
+   * Returns {@code true} if {@code pCfaEdge} is a call to {@code pFunctionType} and {@code false}
+   * otherwise.
+   */
+  public static boolean isCallToPthreadFunction(
+      CFAEdge pCfaEdge, PthreadFunctionType pFunctionType) {
+
+    Optional<CFunctionCall> functionCall = tryGetFunctionCallFromCfaEdge(pCfaEdge);
+    return functionCall.isPresent()
+        && functionCall
+            .orElseThrow()
+            .getFunctionCallExpression()
+            .getFunctionNameExpression()
+            .toASTString()
+            .equals(pFunctionType.name);
   }
 
   /**

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -22,6 +23,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * CExportStatement} can be {@code record}, and do not have to be {@code class}.
  */
 public record CComment(String comment) implements CExportStatement {
+
+  @Override
+  public ImmutableList<CCompoundStatementElement> getAllNestedStatements() {
+    return ImmutableList.of(this);
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)

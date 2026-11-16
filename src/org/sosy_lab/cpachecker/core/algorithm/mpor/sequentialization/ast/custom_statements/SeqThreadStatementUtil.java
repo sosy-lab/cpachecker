@@ -21,10 +21,14 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread.BlockType;
 import org.sosy_lab.cpachecker.util.cwriter.export.CGotoStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CLabelStatement;
 
@@ -40,7 +44,7 @@ public final class SeqThreadStatementUtil {
     for (SubstituteEdge substituteEdge : pStatement.data().getSubstituteEdges()) {
       CFAEdgeForThread threadEdge = substituteEdge.getThreadEdge();
       // use the predecessor, since we require information about this statement
-      if (threadEdge.getPredecessor().isInAtomicBlock) {
+      if (threadEdge.getPredecessor().blockTypes.containsValue(BlockType.ATOMIC)) {
         return true;
       }
     }
@@ -80,13 +84,17 @@ public final class SeqThreadStatementUtil {
       ImmutableList<SeqInstrumentation> pInstrumentation) {
 
     for (SeqInstrumentation instrumentation : pInstrumentation) {
-      if (instrumentation.type().equals(SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION)) {
-        if (instrumentation.statement() instanceof CGotoStatement) {
+      if (instrumentation.type().equals(SeqInstrumentationType.EXECUTE_UNTIL_CONFLICT_REDUCTION)) {
+        if (instrumentation.exportStatement() instanceof CGotoStatement) {
           return true;
         }
       }
     }
     return false;
+  }
+
+  static boolean isFunctionExitOrTerminationNode(CFANode pCfaNode) {
+    return pCfaNode instanceof FunctionExitNode || pCfaNode instanceof CFATerminationNode;
   }
 
   // Statement Finder ==============================================================================
@@ -179,7 +187,7 @@ public final class SeqThreadStatementUtil {
 
     // create the pc write
     CExpressionAssignmentStatement pcAssignmentStatement =
-        ProgramCounterVariables.buildPcAssignmentStatement(pPcLeftHandSide, pTargetPc);
+        SeqProgramCounterVariables.buildPcAssignmentStatement(pPcLeftHandSide, pTargetPc);
     boolean emptyBitVectorEvaluation =
         SeqThreadStatementUtil.isAnyBitVectorEvaluationExpressionEmpty(pruned);
 
@@ -243,7 +251,7 @@ public final class SeqThreadStatementUtil {
     // first add partial order reduction statements, since if they abort, the rest is not needed
     leftOver.addAll(
         getInstrumentationByType(
-            pInstrumentation, SeqInstrumentationType.UNTIL_CONFLICT_REDUCTION));
+            pInstrumentation, SeqInstrumentationType.EXECUTE_UNTIL_CONFLICT_REDUCTION));
     // bit vector updates are placed at the end, i.e. where pc etc. updates are
     leftOver.addAll(
         getInstrumentationByType(pInstrumentation, SeqInstrumentationType.THREAD_SYNC_UPDATE));

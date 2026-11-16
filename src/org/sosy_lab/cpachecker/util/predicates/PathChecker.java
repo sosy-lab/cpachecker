@@ -33,12 +33,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -49,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.overflow.OverflowState;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -135,7 +138,7 @@ public class PathChecker {
     pmgr = pPmgr;
     solver = pSolver;
     assignmentToPathAllocator = pAssignmentToPathAllocator;
-    pConfig.inject(this);
+    pConfig.inject(this, PathChecker.class);
   }
 
   /**
@@ -301,7 +304,7 @@ public class PathChecker {
    * @param pPath calculate the precise list of SSAMaps for this path.
    * @return the PathFormula and the precise list of SSAMaps for the given path.
    */
-  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
+  protected Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
       throws CPATransferException, InterruptedException {
 
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
@@ -356,12 +359,24 @@ public class PathChecker {
         }
         for (AExpression expr : assumptionState.getAssumptions()) {
           if (expr instanceof CExpression pCExpression) {
+            // assumptions do not contain complete type nor scope information
+            // hence, not all types can be resolved, so ignore these
+            if (CFAUtils.getCIdExpressionsOfExpression(pCExpression)
+                    .anyMatch(var -> var.getExpressionType() instanceof CProblemType)
+                || pCExpression.getExpressionType() instanceof CProblemType) {
+              logger.log(
+                  Level.INFO, "Ignoring assumption", pCExpression, "because of CProblemType");
+              continue;
+            }
             pathFormula = pmgr.makeAnd(pathFormula, pCExpression);
           } else if (expr instanceof SvLibRelationalTerm pTerm) {
             pathFormula = pmgr.makeAnd(pathFormula, pTerm);
+          } else if (expr instanceof AcslPredicate predicate) {
+            pathFormula = pmgr.makeAnd(pathFormula, predicate);
           } else {
             throw new CPATransferException(
-                "Expected a CExpression or a SvLibFinalRelationalTerm as assumption!");
+                "Expected a CExpression, a SvLibFinalRelationalTerm, or an ACSL predicate as"
+                    + " assumption!");
           }
         }
       }

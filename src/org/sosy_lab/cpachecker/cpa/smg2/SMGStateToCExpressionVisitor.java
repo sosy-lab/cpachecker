@@ -167,7 +167,8 @@ public final class SMGStateToCExpressionVisitor
             variableRenamingFunction.apply(variableDeclaration.getName()),
             variableRenamingFunction.apply(variableDeclaration.getOrigName()),
             variableDeclaration.getQualifiedName(),
-            variableDeclaration.getInitializer());
+            variableDeclaration.getInitializer(),
+            variableDeclaration.hasThreadLocalStorage());
     CExpression leftHandSide = new CIdExpression(fileLocation, renamedVariableDeclaration);
 
     SMGStateToCExpressionVisitor initialVisitor =

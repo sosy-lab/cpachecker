@@ -37,23 +37,18 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
 
   @Override
   public CompositeState deserialize(DssMessage pMessage) throws InterruptedException {
-    try {
-      stats.getDeserializationCount().inc();
-      stats.getDeserializationTime().start();
-      ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
-      for (ConfigurableProgramAnalysis analysis : analyses) {
-        if (analysis instanceof DistributedConfigurableProgramAnalysis dcpa) {
-          states.add(dcpa.getDeserializeOperator().deserialize(pMessage));
-        } else {
-          states.add(
-              analysis.getInitialState(
-                  DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
-                  StateSpacePartition.getDefaultPartition()));
-        }
+    stats.getDeserializationCount().inc();
+    ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis analysis : analyses) {
+      if (analysis instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        states.add(dcpa.getDeserializeOperator().deserialize(pMessage));
+      } else {
+        states.add(
+            analysis.getInitialState(
+                DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
+                StateSpacePartition.getDefaultPartition()));
       }
-      return new CompositeState(states.build());
-    } finally {
-      stats.getDeserializationTime().stop();
     }
+    return new CompositeState(states.build());
   }
 }

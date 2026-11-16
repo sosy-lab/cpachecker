@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
+import com.google.common.collect.ImmutableList;
 import java.util.StringJoiner;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -32,6 +33,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public record CWhileLoopStatement(CExportExpression condition, CCompoundStatement body)
     implements CExportStatement {
+
+  @Override
+  public ImmutableList<CCompoundStatementElement> getAllNestedStatements() {
+    return body.getAllNestedStatements();
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)

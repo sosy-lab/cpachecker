@@ -14,6 +14,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibNotRecurringTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRecurringTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagAttribute;
@@ -21,6 +23,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.CheckTruePropertyContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.EnsuresPropertyContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.InvariantPropertyContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.NotRecurringPropertyContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.RecurringPropertyContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.RequiresPropertyContext;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.TagAttributeContext;
 
@@ -48,7 +52,7 @@ class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   @Override
   public SvLibTagAttribute visitTagAttribute(TagAttributeContext pContext) {
     SvLibTagReference tagReference =
-        new SvLibTagReference(pContext.symbol().getText(), fileLocationFromContext(pContext));
+        new SvLibTagReference(nameOf(pContext.symbol()), fileLocationFromContext(pContext));
     tagReferenceToScopeBuilder.put(tagReference, scope.copy());
     return tagReference;
   }
@@ -69,6 +73,16 @@ class TagToAstConverter extends AbstractAntlrToAstConverter<SvLibTagAttribute> {
   public SvLibTagAttribute visitEnsuresProperty(EnsuresPropertyContext pContext) {
     SvLibRelationalTerm term = pContext.relationalTerm().accept(termToAstConverter);
     return new SvLibEnsuresTag(term, fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public SvLibTagAttribute visitRecurringProperty(RecurringPropertyContext pContext) {
+    return new SvLibRecurringTag(fileLocationFromContext(pContext));
+  }
+
+  @Override
+  public SvLibTagAttribute visitNotRecurringProperty(NotRecurringPropertyContext pContext) {
+    return new SvLibNotRecurringTag(fileLocationFromContext(pContext));
   }
 
   @Override

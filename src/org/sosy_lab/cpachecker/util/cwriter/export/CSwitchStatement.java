@@ -44,6 +44,11 @@ public final class CSwitchStatement implements CExportStatement {
       implements CExportStatement {
 
     @Override
+    public ImmutableList<CCompoundStatementElement> getAllNestedStatements() {
+      return statement.getAllNestedStatements();
+    }
+
+    @Override
     public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
         throws UnrecognizedCodeException {
 
@@ -65,6 +70,15 @@ public final class CSwitchStatement implements CExportStatement {
 
     switchExpression = pSwitchExpression;
     statements = pStatements;
+  }
+
+  @Override
+  public ImmutableList<CCompoundStatementElement> getAllNestedStatements() {
+    ImmutableList.Builder<CCompoundStatementElement> nestedStatements = ImmutableList.builder();
+    for (CCompoundStatement compoundStatement : statements.values()) {
+      nestedStatements.addAll(compoundStatement.getAllNestedStatements());
+    }
+    return nestedStatements.build();
   }
 
   @Override

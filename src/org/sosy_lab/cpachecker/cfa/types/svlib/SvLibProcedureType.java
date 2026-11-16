@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.types.svlib;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
@@ -43,18 +44,15 @@ public final class SvLibProcedureType implements SvLibType, AFunctionType {
   public String toASTString(String declarator) {
     return declarator
         + " ("
-        + String.join(
-            "", FluentIterable.from(getInputTypes()).transform(x -> "(" + x.toASTString("") + ")"))
+        + from(getInputTypes()).transform(x -> "(" + x.toASTString("") + ")").join(Joiner.on(""))
         + ") ("
-        + String.join(
-            ", ",
-            FluentIterable.from(getLocalVariableTypes())
-                .transform(x -> "(" + x.toASTString("") + ")"))
+        + from(getLocalVariableTypes())
+            .transform(x -> "(" + x.toASTString("") + ")")
+            .join(Joiner.on(", "))
         + ") ("
-        + String.join(
-            ", ",
-            FluentIterable.from(getReturnType().getElementTypes())
-                .transform(x -> "(" + x.toASTString("") + ")"))
+        + from(getReturnType().getElementTypes())
+            .transform(x -> "(" + x.toASTString("") + ")")
+            .join(Joiner.on(", "))
         + ")";
   }
 

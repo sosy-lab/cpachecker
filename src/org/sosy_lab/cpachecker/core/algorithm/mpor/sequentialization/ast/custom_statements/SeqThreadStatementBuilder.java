@@ -17,13 +17,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -31,16 +31,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -49,45 +46,49 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputMessage;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SequentializationUtils;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqIntegerLiteralExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.SeqAssumeFunctionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionReturnValueAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.function_statements.FunctionStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.CondSignaledFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.MutexLockedFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.RwLockNumReadersWritersFlag;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.ThreadSyncFlags;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.functions.VerifierNondetFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.thread_sync_flags.SeqThreadSyncFlags;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.cwriter.export.CComment;
-import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionStatementWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CIfStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CStatementWrapper;
-import org.sosy_lab.cpachecker.util.cwriter.export.CVariableDeclarationWrapper;
 
 public record SeqThreadStatementBuilder(
+    MPOROptions options,
     MPORThread thread,
     ImmutableList<MPORThread> allThreads,
     ImmutableMap<CFAEdgeForThread, SubstituteEdge> substituteEdges,
-    FunctionStatements functionStatements,
-    ThreadSyncFlags threadSyncFlags,
+    SeqPointerAliasingMap pointerAliasingMap,
+    SeqFunctionStatements functionStatements,
+    SeqThreadSyncFlags threadSyncFlags,
     CLeftHandSide pcLeftHandSide,
-    ProgramCounterVariables pcVariables) {
+    SeqProgramCounterVariables pcVariables,
+    SequentializationUtils utils) {
 
   private static final String REACH_ERROR_FUNCTION_NAME = "reach_error";
 
@@ -116,277 +117,78 @@ public record SeqThreadStatementBuilder(
   private static final CFunctionCallStatement REACH_ERROR_FUNCTION_CALL_STATEMENT =
       new CFunctionCallStatement(FileLocation.DUMMY, REACH_ERROR_FUNCTION_CALL_EXPRESSION);
 
-  public ImmutableList<SeqThreadStatement> buildStatementsFromThreadNode(
-      CFANodeForThread pThreadNode, Set<CFANodeForThread> pCoveredNodes)
-      throws UnsupportedCodeException {
+  ImmutableList<SeqThreadStatement> buildStatementsFromThreadNode(CFANodeForThread pThreadNode)
+      throws UnrecognizedCodeException {
+
+    if (!pThreadNode.leavingEdges().isEmpty()) {
+      if (SeqThreadStatementUtil.isFunctionExitOrTerminationNode(pThreadNode.getCfaNode())) {
+        ImmutableSet<SubstituteEdge> edges =
+            pThreadNode.leavingEdges().stream()
+                .map(substituteEdges::get)
+                .filter(Objects::nonNull)
+                .collect(ImmutableSet.toImmutableSet());
+        return ImmutableList.of(
+            SeqThreadStatementBuilder.buildGhostOnlyStatement(
+                thread, edges, pcLeftHandSide, pThreadNode.firstLeavingEdge().getSuccessor().pc));
+      }
+    }
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
     for (CFAEdgeForThread threadEdge : pThreadNode.leavingEdges()) {
-      // handle const CPAchecker_TMP first because it requires successor nodes and edges
-      if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
-        rStatements.add(buildConstCpaCheckerTmpStatement(threadEdge, pCoveredNodes));
-
-      } else if (MPORUtil.isCpaCheckerTmpDeclarationWithoutInitializer(threadEdge.cfaEdge)) {
-        rStatements.add(buildCpaCheckerTmpWithoutInitializerStatement(threadEdge));
-
-      } else {
-        // exclude all function summaries, the calling context is handled by return edges
-        if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
-          if (substituteEdges.containsKey(threadEdge)) {
-            SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
-            rStatements.add(buildStatementFromThreadEdge(threadEdge, substitute));
-          }
+      // exclude all function summaries, the calling context is handled by return edges
+      if (!isExcludedSummaryEdge(threadEdge.cfaEdge)) {
+        if (substituteEdges.containsKey(threadEdge)) {
+          SubstituteEdge substitute = Objects.requireNonNull(substituteEdges.get(threadEdge));
+          rStatements.addAll(buildStatementsFromThreadEdge(threadEdge, substitute));
         }
       }
     }
     return rStatements.build();
   }
 
-  // const CPAchecker_TMP ==========================================================================
-
-  private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      CFAEdgeForThread pThreadEdge, Set<CFANodeForThread> pCoveredNodes)
-      throws UnsupportedCodeException {
-
-    SubstituteEdge constCpaCheckerTmpEdge =
-        Objects.requireNonNull(substituteEdges.get(pThreadEdge));
-
-    // ensure there are two single successors that are both statement edges
-    CFANodeForThread firstSuccessor = pThreadEdge.getSuccessor();
-    pCoveredNodes.add(firstSuccessor);
-    // const CPAchecker_TMP declarations can have only 1 successor edge
-    CFAEdgeForThread firstSuccessorEdge = Iterables.getOnlyElement(firstSuccessor.leavingEdges());
-    assert firstSuccessorEdge.cfaEdge instanceof CStatementEdge
-        : "successor edge of const CPAchecker_TMP declaration must be CStatementEdge";
-    CFANodeForThread secondSuccessor = firstSuccessorEdge.getSuccessor();
-    // second successor of const CPAchecker_TMP declarations can have only 1 successor edge
-    CFAEdgeForThread secondSuccessorEdge = Iterables.getOnlyElement(secondSuccessor.leavingEdges());
-
-    CStatementEdge secondSuccessorStatement = (CStatementEdge) secondSuccessorEdge.cfaEdge;
-    // there are programs where a const CPAchecker_TMP statement has only two parts.
-    // in the tested programs, this only happened when the statement was followed by a function call
-    if (secondSuccessorStatement.getStatement() instanceof CFunctionCallStatement) {
-      return buildTwoPartConstCpaCheckerTmpStatement(constCpaCheckerTmpEdge, firstSuccessorEdge);
-    } else {
-      // cover second successor only when it is a three part const CPAchecker_TMP statement
-      pCoveredNodes.add(secondSuccessor);
-      return buildThreePartConstCpaCheckerTmpStatement(
-          constCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge);
-    }
-  }
-
-  private SeqThreadStatement buildTwoPartConstCpaCheckerTmpStatement(
-      SubstituteEdge pConstCpaCheckerTmpEdge, CFAEdgeForThread pSuccessorEdge)
-      throws UnsupportedCodeException {
-
-    // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-    SubstituteEdge substituteEdgeA = Objects.requireNonNull(substituteEdges.get(pSuccessorEdge));
-    int newTargetPc = pSuccessorEdge.getSuccessor().pc;
-
-    return buildConstCpaCheckerTmpStatement(
-        pConstCpaCheckerTmpEdge,
-        substituteEdgeA,
-        Optional.empty(),
-        ImmutableSet.of(pConstCpaCheckerTmpEdge, substituteEdgeA),
-        newTargetPc);
-  }
-
-  private SeqThreadStatement buildThreePartConstCpaCheckerTmpStatement(
-      SubstituteEdge pConstCpaCheckerTmpEdge,
-      CFAEdgeForThread pFirstSuccessorEdge,
-      CFAEdgeForThread pSecondSuccessorEdge)
-      throws UnsupportedCodeException {
-
-    // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-    SubstituteEdge firstSuccessorEdge =
-        Objects.requireNonNull(substituteEdges.get(pFirstSuccessorEdge));
-    SubstituteEdge secondSuccessorEdge =
-        Objects.requireNonNull(substituteEdges.get(pSecondSuccessorEdge));
-    int newTargetPc = pSecondSuccessorEdge.getSuccessor().pc;
-
-    return buildConstCpaCheckerTmpStatement(
-        pConstCpaCheckerTmpEdge,
-        firstSuccessorEdge,
-        Optional.of(secondSuccessorEdge),
-        ImmutableSet.of(pConstCpaCheckerTmpEdge, firstSuccessorEdge, secondSuccessorEdge),
-        newTargetPc);
-  }
-
-  private SeqThreadStatement buildConstCpaCheckerTmpStatement(
-      SubstituteEdge pConstCpaCheckerTmpEdge,
-      SubstituteEdge pFirstSuccessorEdge,
-      Optional<SubstituteEdge> pSecondSuccessorEdge,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pNewTargetPc)
-      throws UnsupportedCodeException {
-
-    SeqThreadStatementData data =
-        new SeqThreadStatementData(
-            SeqThreadStatementType.CONST_CPACHECKER_TMP,
-            pSubstituteEdges,
-            thread.id(),
-            pcLeftHandSide);
-
-    // ensure that the declaration is a CVariableDeclaration and cast accordingly
-    CDeclarationEdge declarationEdge = (CDeclarationEdge) pConstCpaCheckerTmpEdge.cfaEdge;
-    CVariableDeclaration variableDeclaration =
-        (CVariableDeclaration) declarationEdge.getDeclaration();
-
-    checkConstCpaCheckerTmpArguments(
-        variableDeclaration, pFirstSuccessorEdge, pSecondSuccessorEdge);
-
-    ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
-    exportStatements.add(new CVariableDeclarationWrapper(variableDeclaration));
-    exportStatements.add(
-        new CStatementWrapper(((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement()));
-
-    if (pSecondSuccessorEdge.isPresent()) {
-      exportStatements.add(
-          new CStatementWrapper(
-              ((CStatementEdge) pSecondSuccessorEdge.orElseThrow().cfaEdge).getStatement()));
-    }
-    return SeqThreadStatement.of(data, pNewTargetPc, exportStatements.build());
-  }
-
-  private void checkConstCpaCheckerTmpArguments(
-      CVariableDeclaration pVariableDeclaration,
-      SubstituteEdge pFirstSuccessorEdge,
-      Optional<SubstituteEdge> pSecondSuccessorEdge)
-      throws UnsupportedCodeException {
-
-    checkArgument(
-        MPORUtil.isConstCpaCheckerTmp(pVariableDeclaration),
-        "pDeclaration must declare a const __CPAchecker_TMP variable");
-    checkArgument(
-        pFirstSuccessorEdge.cfaEdge instanceof CStatementEdge,
-        "pFirstSuccessorEdge.cfaEdge must be CStatementEdge");
-    if (pSecondSuccessorEdge.isPresent()) {
-      checkArgument(
-          pSecondSuccessorEdge.orElseThrow().cfaEdge instanceof CStatementEdge,
-          "pSecondSuccessorEdge.cfaEdge must be CStatementEdge");
-
-      CStatement secondStatement =
-          ((CStatementEdge) pSecondSuccessorEdge.orElseThrow().cfaEdge).getStatement();
-      if (secondStatement instanceof CExpressionStatement secondExpressionStatement) {
-        CIdExpression secondIdExpression =
-            getIdExpressionFromSecondSuccessor(secondExpressionStatement.getExpression());
-        CSimpleDeclaration secondDeclaration = secondIdExpression.getDeclaration();
-        checkArgument(
-            pVariableDeclaration.equals(secondDeclaration),
-            "pDeclaration and pSecondSuccessorEdge must use the same __CPAchecker_TMP variable when"
-                + " pSecondSuccessorEdge is a CExpressionStatement");
-
-      } else if (secondStatement instanceof CExpressionAssignmentStatement secondAssignment) {
-        CStatement firstStatement = ((CStatementEdge) pFirstSuccessorEdge.cfaEdge).getStatement();
-        checkArgument(
-            firstStatement instanceof CExpressionAssignmentStatement,
-            "pFirstSuccessorEdge must be CExpressionAssignmentStatement when pSecondSuccessorEdge"
-                + " is a CExpressionAssignmentStatement");
-        CExpressionAssignmentStatement firstAssignment =
-            (CExpressionAssignmentStatement) firstStatement;
-        if (pVariableDeclaration.getInitializer()
-            instanceof CInitializerExpression initializerExpression) {
-          if (initializerExpression.getExpression().equals(firstAssignment.getLeftHandSide())) {
-            if (secondAssignment.getRightHandSide() instanceof CIdExpression secondIdExpression) {
-              // this happens e.g. in weaver/parallel-ticket-6.wvr.c
-              // _Atomic int CPA_TMP_0 = t; t = t + 1; m1 = CPA_TMP_0;
-              // we want to ensure that the declaration is equal to the RHS in the last statement
-              checkArgument(
-                  pVariableDeclaration.equals(secondIdExpression.getDeclaration()),
-                  "pVariableDeclaration must equal pSecondSuccessorEdge RHS");
-              return;
-            }
-          }
-        }
-        // this happens e.g. in ldv-races/race-2_2-container_of:
-        // CPA_TMP_0 = {  }; CPA_TMP_1 = (struct my_data *)(((char *)mptr) - 40); data = CPA_TMP_1;
-        // check if the middle statement LHS matches the last statements RHS (CPA_TMP_1)
-        checkArgument(
-            firstAssignment.getLeftHandSide().equals(secondAssignment.getRightHandSide()),
-            "pFirstSuccessorEdge LHS must equal pSecondSuccessorEdge RHS when pSecondSuccessorEdge"
-                + " is a CExpressionAssignmentStatement");
-      }
-    }
-  }
-
-  private CIdExpression getIdExpressionFromSecondSuccessor(CExpression pExpression)
-      throws UnsupportedCodeException {
-
-    if (pExpression instanceof CIdExpression idExpression) {
-      return idExpression;
-    } else if (pExpression instanceof CPointerExpression pointerExpression) {
-      if (pointerExpression.getOperand() instanceof CIdExpression idExpression) {
-        return idExpression;
-      }
-    }
-    throw new UnsupportedCodeException(
-        String.format(
-            "pExpression must be either CIdExpression or CPointerExpression %s",
-            pExpression.toASTString()),
-        null);
-  }
-
-  // CPAchecker_TMP without initializer ============================================================
-
-  private SeqThreadStatement buildCpaCheckerTmpWithoutInitializerStatement(
-      CFAEdgeForThread pThreadEdge) {
-
-    SubstituteEdge cpaCheckerTmpEdge = Objects.requireNonNull(substituteEdges.get(pThreadEdge));
-    CDeclarationEdge declarationEdge = (CDeclarationEdge) cpaCheckerTmpEdge.cfaEdge;
-    CVariableDeclaration variableDeclaration =
-        (CVariableDeclaration) declarationEdge.getDeclaration();
-    CIdExpression idExpression = new CIdExpression(FileLocation.DUMMY, variableDeclaration);
-    CExpressionStatementWrapper exportStatement =
-        new CExpressionStatementWrapper(new CExpressionWrapper(idExpression));
-
-    SeqThreadStatementData data =
-        new SeqThreadStatementData(
-            SeqThreadStatementType.CPACHECKER_TMP_WITHOUT_INITIALIZER,
-            ImmutableSet.of(cpaCheckerTmpEdge),
-            thread.id(),
-            pcLeftHandSide);
-
-    return SeqThreadStatement.of(
-        data, pThreadEdge.getSuccessor().pc, ImmutableList.of(exportStatement));
-  }
-
   // Statement build methods =======================================================================
 
-  private SeqThreadStatement buildStatementFromThreadEdge(
+  private ImmutableList<SeqThreadStatement> buildStatementsFromThreadEdge(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
-    CFANode successor = pThreadEdge.getSuccessor().getCfaNode();
 
-    if (resultsInBlankStatement(pSubstituteEdge, successor)) {
-      return buildGhostOnlyStatement(
-          thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, targetPc);
+    if (resultsInBlankStatement(pSubstituteEdge)) {
+      return ImmutableList.of(
+          buildGhostOnlyStatement(
+              thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, targetPc));
     }
 
     return switch (pSubstituteEdge.cfaEdge) {
       case BlankEdge blankEdge ->
-          buildWhileTrueLoopHeadStatement(blankEdge, pSubstituteEdge, targetPc);
+          ImmutableList.of(buildWhileTrueLoopHeadStatement(blankEdge, pSubstituteEdge, targetPc));
 
-      case CAssumeEdge assumeEdge -> buildAssumeStatement(assumeEdge, pSubstituteEdge, targetPc);
+      case CAssumeEdge assumeEdge ->
+          ImmutableList.of(buildAssumeStatement(assumeEdge, pSubstituteEdge, targetPc));
 
       case CDeclarationEdge declarationEdge ->
           // "leftover" declarations should be local variables with an initializer
-          buildLocalVariableInitializationStatement(
-              (CVariableDeclaration) declarationEdge.getDeclaration(), pSubstituteEdge, targetPc);
+          ImmutableList.of(
+              buildLocalVariableDeclarationStatement(
+                  (CVariableDeclaration) declarationEdge.getDeclaration(),
+                  pSubstituteEdge,
+                  targetPc));
 
       case CFunctionCallEdge functionCallEdge ->
-          buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc);
+          ImmutableList.of(
+              buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc));
 
       case CReturnStatementEdge ignore ->
-          buildReturnValueAssignmentStatement(pThreadEdge, pSubstituteEdge, targetPc);
+          ImmutableList.of(
+              buildReturnValueAssignmentStatement(pThreadEdge, pSubstituteEdge, targetPc));
 
       case CFAEdge edge when PthreadUtil.isExplicitlyHandledPthreadFunction(edge) ->
           buildStatementFromPthreadFunction(pThreadEdge, pSubstituteEdge, targetPc);
 
       case CStatementEdge statementEdge ->
-          buildDefaultStatement(statementEdge, pSubstituteEdge, targetPc);
+          ImmutableList.of(buildDefaultStatement(statementEdge, pSubstituteEdge, targetPc));
 
       default ->
           throw new AssertionError("Unhandled CFAEdge type: " + cfaEdge.getClass().getSimpleName());
@@ -448,24 +250,67 @@ public record SeqThreadStatementBuilder(
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of());
   }
 
-  private SeqThreadStatement buildLocalVariableInitializationStatement(
+  private SeqThreadStatement buildLocalVariableDeclarationStatement(
       CVariableDeclaration pVariableDeclaration, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
     checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
-    checkArgument(
-        pVariableDeclaration.getInitializer() != null,
-        "pVariableDeclaration must have an initializer");
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
-            SeqThreadStatementType.LOCAL_VARIABLE_INITIALIZATION,
+            SeqThreadStatementType.LOCAL_VARIABLE_DECLARATION,
             pSubstituteEdge,
             thread.id(),
             pcLeftHandSide);
-    CStatementWrapper assignmentStatement =
-        buildExpressionAssignmentStatementFromVariableDeclaration(pVariableDeclaration);
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assignmentStatement));
+    CIdExpression idExpression =
+        new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
+
+    // if there is no initializer, then add a nondet assignment e.g. 'x = __VERIFIER_nondet_int;'.
+    // preserving this statement and not removing it is useful so that loop heads are preserved.
+    if (pVariableDeclaration.getInitializer() == null) {
+      CType variableType = pVariableDeclaration.getType();
+      Optional<CFunctionCallExpression> nondetFunctionCallExpression =
+          VerifierNondetFunctionType.tryBuildFunctionCallExpressionByType(variableType);
+
+      if (nondetFunctionCallExpression.isPresent()) {
+        CFunctionCallAssignmentStatement functionCallAssignmentStatement =
+            new CFunctionCallAssignmentStatement(
+                pVariableDeclaration.getFileLocation(),
+                idExpression,
+                nondetFunctionCallExpression.orElseThrow());
+        return SeqThreadStatement.of(
+            data,
+            pTargetPc,
+            ImmutableList.of(new CStatementWrapper(functionCallAssignmentStatement)));
+
+      } else {
+        InputWarning.logWarningWithFileLocationAndCode(
+            InputMessage.UNHANDLED_NONDET_TYPE,
+            pVariableDeclaration.getFileLocation(),
+            variableType.toASTString(""),
+            utils.logger());
+        CExpressionStatement expressionStatement =
+            new CExpressionStatement(pVariableDeclaration.getFileLocation(), idExpression);
+        return SeqThreadStatement.of(
+            data, pTargetPc, ImmutableList.of(new CStatementWrapper(expressionStatement)));
+      }
+    }
+
+    if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
+      throw new UnsupportedCodeException(
+          "The sequentialization does not support CInitializer other than CInitializerExpression"
+              + " for local variables.",
+          null);
+    }
+    // the local variable is declared outside main() without an initializer e.g. 'int x;',
+    // and here it is assigned the initializer e.g. 'x = 7;'
+    CExpressionAssignmentStatement assignmentStatement =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            idExpression,
+            ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
+    return SeqThreadStatement.of(
+        data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignmentStatement)));
   }
 
   private SeqThreadStatement buildFunctionCallStatement(
@@ -485,7 +330,7 @@ public record SeqThreadStatementBuilder(
 
     // handle (some arbitrary) function with parameters
     if (functionStatements.parameterAssignments().containsKey(pThreadEdge)) {
-      ImmutableList<FunctionParameterAssignment> assignments =
+      ImmutableList<SeqFunctionParameterAssignment> assignments =
           functionStatements.parameterAssignments().get(pThreadEdge);
       return buildParameterAssignmentStatement(
           functionName, assignments, parameterAssignmentData, pTargetPc);
@@ -510,7 +355,7 @@ public record SeqThreadStatementBuilder(
 
   private SeqThreadStatement buildParameterAssignmentStatement(
       String pFunctionName,
-      ImmutableList<FunctionParameterAssignment> pFunctionParameterAssignments,
+      ImmutableList<SeqFunctionParameterAssignment> pFunctionParameterAssignments,
       SeqThreadStatementData pData,
       int pTargetPc) {
 
@@ -524,9 +369,9 @@ public record SeqThreadStatementBuilder(
     if (pFunctionName.equals(REACH_ERROR_FUNCTION_NAME)) {
       functionStatementBuilder.add(new CStatementWrapper(REACH_ERROR_FUNCTION_CALL_STATEMENT));
     }
-    for (FunctionParameterAssignment assignment : pFunctionParameterAssignments) {
+    for (SeqFunctionParameterAssignment assignment : pFunctionParameterAssignments) {
       functionStatementBuilder.add(
-          new CStatementWrapper(assignment.toExpressionAssignmentStatement()));
+          new CStatementWrapper(assignment.expressionAssignmentStatement()));
     }
     return SeqThreadStatement.of(pData, pTargetPc, functionStatementBuilder.build());
   }
@@ -534,15 +379,32 @@ public record SeqThreadStatementBuilder(
   private SeqThreadStatement buildReturnValueAssignmentStatement(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
-    // returning from non-start-routine function: assign return value to return vars
+    // return from non start_routine function: assign return value to return vars
     if (functionStatements.returnValueAssignments().containsKey(pThreadEdge)) {
-      FunctionReturnValueAssignment assignment =
+      SeqFunctionReturnValueAssignment assignment =
           Objects.requireNonNull(functionStatements.returnValueAssignments().get(pThreadEdge));
       SeqThreadStatementData data =
           SeqThreadStatementData.of(
-              SeqThreadStatementType.DEFAULT, pSubstituteEdge, thread.id(), pcLeftHandSide);
+              SeqThreadStatementType.FUNCTION_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
       return SeqThreadStatement.of(
-          data, pTargetPc, ImmutableList.of(new CStatementWrapper(assignment.statement())));
+          data,
+          pTargetPc,
+          ImmutableList.of(new CStatementWrapper(assignment.expressionAssignmentStatement())));
+    }
+
+    // return from start_routine, but exclude pthread_exit because it is handled separately.
+    if (!PthreadUtil.isCallToPthreadFunction(pThreadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)
+        && functionStatements.startRoutineExitAssignments().containsKey(pThreadEdge)) {
+
+      SeqFunctionReturnValueAssignment assignment =
+          Objects.requireNonNull(functionStatements.startRoutineExitAssignments().get(pThreadEdge));
+      SeqThreadStatementData data =
+          SeqThreadStatementData.of(
+              SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
+      return SeqThreadStatement.of(
+          data,
+          pTargetPc,
+          ImmutableList.of(new CStatementWrapper(assignment.expressionAssignmentStatement())));
     }
 
     // -> function does not return anything, i.e. return;
@@ -550,129 +412,121 @@ public record SeqThreadStatementBuilder(
         thread, ImmutableSet.of(pSubstituteEdge), pcLeftHandSide, pTargetPc);
   }
 
-  private SeqThreadStatement buildStatementFromPthreadFunction(
+  private ImmutableList<SeqThreadStatement> buildStatementFromPthreadFunction(
       CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+      throws UnrecognizedCodeException {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(cfaEdge).orElseThrow();
-    PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(functionCall);
+    PthreadFunctionType functionType = PthreadUtil.getPthreadFunctionType(functionCall);
 
-    return switch (pthreadFunctionType) {
+    return switch (functionType) {
+      case PTHREAD_BARRIER_INIT ->
+          ImmutableList.of(
+              buildBarrierStatement(
+                  SeqThreadStatementType.BARRIER_INIT, pSubstituteEdge, pTargetPc));
+      case PTHREAD_BARRIER_WAIT ->
+          throw new AssertionError(
+              "pthread_barrier_wait is handled separately, it requires two clauses");
       case PTHREAD_COND_SIGNAL ->
-          buildCondSignalStatement(functionCall, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(
+              buildCondStatement(SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, pTargetPc));
       case PTHREAD_COND_WAIT ->
           throw new AssertionError(
               "pthread_cond_wait is handled separately, it requires two clauses");
       case PTHREAD_CREATE ->
-          buildThreadCreationStatement(functionCall, pThreadEdge, pSubstituteEdge, pTargetPc);
-      case PTHREAD_EXIT -> buildThreadExitStatement(pThreadEdge, pSubstituteEdge, pTargetPc);
-      case PTHREAD_JOIN -> buildThreadJoinStatement(functionCall, pSubstituteEdge, pTargetPc);
-      case PTHREAD_MUTEX_LOCK -> buildMutexLockStatement(functionCall, pSubstituteEdge, pTargetPc);
+          ImmutableList.of(buildThreadCreationStatement(pThreadEdge, pSubstituteEdge, pTargetPc));
+      case PTHREAD_EXIT ->
+          ImmutableList.of(buildThreadExitStatement(pThreadEdge, pSubstituteEdge, pTargetPc));
+      case PTHREAD_JOIN ->
+          ImmutableList.of(
+              buildThreadJoinStatement(functionCall, pThreadEdge, pSubstituteEdge, pTargetPc));
+      case PTHREAD_MUTEX_LOCK ->
+          ImmutableList.of(
+              buildMutexStatement(SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, pTargetPc));
       case PTHREAD_MUTEX_UNLOCK ->
-          buildMutexUnlockStatement(functionCall, pSubstituteEdge, pTargetPc);
-      case PTHREAD_RWLOCK_RDLOCK, PTHREAD_RWLOCK_UNLOCK, PTHREAD_RWLOCK_WRLOCK ->
-          buildRwLockStatement(functionCall, pSubstituteEdge, pTargetPc, pthreadFunctionType);
+          ImmutableList.of(
+              buildMutexStatement(SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, pTargetPc));
+      case PTHREAD_ONCE -> buildOnceLockStatements(pSubstituteEdge, pTargetPc);
+      case PTHREAD_RWLOCK_RDLOCK ->
+          ImmutableList.of(
+              buildRwLockStatement(
+                  SeqThreadStatementType.RW_LOCK_RD_LOCK, pSubstituteEdge, pTargetPc));
+      case PTHREAD_RWLOCK_UNLOCK ->
+          ImmutableList.of(
+              buildRwLockStatement(
+                  SeqThreadStatementType.RW_LOCK_UNLOCK, pSubstituteEdge, pTargetPc));
+      case PTHREAD_RWLOCK_WRLOCK ->
+          ImmutableList.of(
+              buildRwLockStatement(
+                  SeqThreadStatementType.RW_LOCK_WR_LOCK, pSubstituteEdge, pTargetPc));
       case VERIFIER_ATOMIC_BEGIN ->
-          buildAtomicStatement(
-              PthreadFunctionType.VERIFIER_ATOMIC_BEGIN,
-              SeqThreadStatementType.ATOMIC_BEGIN,
-              pSubstituteEdge,
-              pTargetPc);
+          ImmutableList.of(
+              buildAtomicStatement(
+                  SeqThreadStatementType.ATOMIC_BEGIN, pSubstituteEdge, pTargetPc));
       case VERIFIER_ATOMIC_END ->
-          buildAtomicStatement(
-              PthreadFunctionType.VERIFIER_ATOMIC_END,
-              SeqThreadStatementType.ATOMIC_END,
-              pSubstituteEdge,
-              pTargetPc);
+          ImmutableList.of(
+              buildAtomicStatement(SeqThreadStatementType.ATOMIC_END, pSubstituteEdge, pTargetPc));
       default ->
           throw new AssertionError(
-              "unhandled relevant pthread method: " + pthreadFunctionType.name);
+              "The following pthread function from the input program was not rejected, but it"
+                  + " cannot be handled: "
+                  + functionType.name);
     };
   }
 
-  public SeqThreadStatement buildAtomicStatement(
-      PthreadFunctionType pFunctionType,
-      SeqThreadStatementType pStatementType,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc) {
+  private SeqThreadStatement buildAtomicStatement(
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc) {
 
     checkArgument(
-        pFunctionType.equals(PthreadFunctionType.VERIFIER_ATOMIC_BEGIN)
-            || pFunctionType.equals(PthreadFunctionType.VERIFIER_ATOMIC_END),
-        "pFunctionType must be VERIFIER_ATOMIC_BEGIN or VERIFIER_ATOMIC_END.");
+        pStatementType.equals(SeqThreadStatementType.ATOMIC_BEGIN)
+            || pStatementType.equals(SeqThreadStatementType.ATOMIC_END),
+        "pStatementType must be ATOMIC_BEGIN or ATOMIC_END.");
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
     // just add a comment with the function name for better overview in the output program
-    CComment commentStatement = new CComment(pFunctionType.name + ";");
+    CComment commentStatement = new CComment(pStatementType.toString());
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(commentStatement));
   }
 
-  private SeqThreadStatement buildCondSignalStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+  SeqThreadStatement buildBarrierStatement(
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnrecognizedCodeException {
 
-    CIdExpression pthreadCondT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_COND_T);
-    CondSignaledFlag condSignaledFlag = threadSyncFlags.getCondSignaledFlag(pthreadCondT);
-    CExpressionAssignmentStatement setCondSignaledTrue =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
+    checkArgument(
+        pStatementType.in(
+            SeqThreadStatementType.BARRIER_INIT,
+            SeqThreadStatementType.BARRIER_WAIT_INCREMENT,
+            SeqThreadStatementType.BARRIER_WAIT_ASSUMPTION),
+        "pStatementType is not allowed.");
 
     SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.COND_SIGNAL, pSubstituteEdge, thread.id(), pcLeftHandSide);
-
+        SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data, pTargetPc, ImmutableList.of(new CStatementWrapper(setCondSignaledTrue)));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
-  public SeqThreadStatement buildCondWaitStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+  SeqThreadStatement buildCondStatement(
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnrecognizedCodeException {
 
-    CIdExpression pthreadCondT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_COND_T);
-    CondSignaledFlag condSignaledFlag = threadSyncFlags.getCondSignaledFlag(pthreadCondT);
-
-    CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
-    MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pthreadMutexT);
+    checkArgument(
+        pStatementType.in(
+            SeqThreadStatementType.COND_SIGNAL,
+            SeqThreadStatementType.COND_WAIT_UNLOCK,
+            SeqThreadStatementType.COND_WAIT_LOCK),
+        "pStatementType is not allowed.");
 
     SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.COND_WAIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
-
-    // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
-    // step 1: the calling thread blocks on the condition variable -> assume(signaled == 1)
-    CFunctionCallStatement assumeSignaled =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-            condSignaledFlag.isSignaledExpression());
-    CExpressionAssignmentStatement setSignaledFalse =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            condSignaledFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0);
-
-    // step 2: on return, the mutex is locked and owned by the calling thread -> mutex_locked = 1
-    CExpressionAssignmentStatement setMutexLockedTrue =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
-
+        SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data,
-        pTargetPc,
-        ImmutableList.of(
-            new CStatementWrapper(assumeSignaled),
-            new CStatementWrapper(setSignaledFalse),
-            new CStatementWrapper(setMutexLockedTrue)));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
   private SeqThreadStatement buildThreadCreationStatement(
-      CFunctionCall pFunctionCall,
-      CFAEdgeForThread pThreadEdge,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc)
+      CFAEdgeForThread pThreadEdge, SubstituteEdge pSubstituteEdge, int pTargetPc)
       throws UnsupportedCodeException {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
@@ -684,24 +538,27 @@ public record SeqThreadStatementBuilder(
         SeqThreadStatementData.of(
             SeqThreadStatementType.THREAD_CREATION, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
+    // use the original function call, not the substituted, to find the thread objects
+    CFunctionCall originalFunctionCall =
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge).orElseThrow();
     CExpression pthreadTObject =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_T);
+        PthreadUtil.extractPthreadObject(originalFunctionCall, PthreadObjectType.PTHREAD_T);
     MPORThread createdThread =
         MPORThreadUtil.getThreadByObject(allThreads, Optional.of(pthreadTObject));
-    Optional<FunctionParameterAssignment> startRoutineArgAssignment =
-        functionStatements.tryGetStartRoutineArgAssignmentByThreadEdge(pThreadEdge);
 
     ImmutableList.Builder<CCompoundStatementElement> exportStatements = ImmutableList.builder();
-    if (startRoutineArgAssignment.isPresent()) {
+    if (functionStatements.startRoutineArgAssignments().containsKey(pThreadEdge)) {
       exportStatements.add(
           new CStatementWrapper(
-              startRoutineArgAssignment.orElseThrow().toExpressionAssignmentStatement()));
+              Objects.requireNonNull(
+                      functionStatements.startRoutineArgAssignments().get(pThreadEdge))
+                  .expressionAssignmentStatement()));
     }
     exportStatements.add(
         new CStatementWrapper(
-            ProgramCounterVariables.buildPcAssignmentStatement(
+            SeqProgramCounterVariables.buildPcAssignmentStatement(
                 pcVariables().getPcLeftHandSide(createdThread.id()),
-                ProgramCounterVariables.INIT_PC)));
+                SeqProgramCounterVariables.INIT_PC)));
 
     return SeqThreadStatement.of(data, pTargetPc, exportStatements.build());
   }
@@ -716,55 +573,59 @@ public record SeqThreadStatementBuilder(
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.THREAD_EXIT, pSubstituteEdge, thread.id(), pcLeftHandSide);
-    FunctionReturnValueAssignment returnValueAssignment =
+    SeqFunctionReturnValueAssignment returnValueAssignment =
         Objects.requireNonNull(functionStatements.startRoutineExitAssignments().get(pThreadEdge));
     return SeqThreadStatement.of(
         data,
         pTargetPc,
-        ImmutableList.of(new CStatementWrapper(returnValueAssignment.statement())));
+        ImmutableList.of(
+            new CStatementWrapper(returnValueAssignment.expressionAssignmentStatement())));
   }
 
   private SeqThreadStatement buildThreadJoinStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      CFunctionCall pFunctionCall,
+      CFAEdgeForThread pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc)
       throws UnsupportedCodeException {
 
     SeqThreadStatementData data =
         SeqThreadStatementData.of(
             SeqThreadStatementType.THREAD_JOIN, pSubstituteEdge, thread.id(), pcLeftHandSide);
 
-    MPORThread targetThread = MPORThreadUtil.getThreadByCFunctionCall(allThreads, pFunctionCall);
+    // use the original function call, not the substituted, to find the thread objects
+    CFunctionCall originalFunctionCall =
+        PthreadUtil.tryGetFunctionCallFromCfaEdge(pThreadEdge.cfaEdge).orElseThrow();
+    MPORThread targetThread =
+        MPORThreadUtil.getThreadByCFunctionCall(allThreads, originalFunctionCall);
     CStatementWrapper assumeCall =
         new CStatementWrapper(
             SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
                 pcVariables.getThreadInactiveExpression(targetThread.id())));
 
-    CExpression parameter =
+    CExpression returnVariableExpression =
         PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
             pFunctionCall, PthreadObjectType.RETURN_VALUE);
-    if (!MPORUtil.isVoidPointer(parameter)) {
-      if (targetThread.startRoutineExitVariable().isPresent()) {
-        CStatementWrapper returnValueRead =
-            new CStatementWrapper(
-                buildReturnValueRead(
-                    targetThread.startRoutineExitVariable().orElseThrow(), pSubstituteEdge));
-        return SeqThreadStatement.of(
-            data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
-      }
+    if (!(returnVariableExpression instanceof CCastExpression)
+        && !(returnVariableExpression instanceof CLiteralExpression)) {
+      CStatementWrapper returnValueRead =
+          new CStatementWrapper(
+              buildReturnValueAssignmentStatement(
+                  targetThread.startRoutineExitVariable(),
+                  returnVariableExpression,
+                  pSubstituteEdge));
+      return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall, returnValueRead));
     }
     return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(assumeCall));
   }
 
-  private static CStatement buildReturnValueRead(
-      CIdExpression pJoinedThreadExitVariable, SubstituteEdge pSubstituteEdge)
+  private static CExpressionAssignmentStatement buildReturnValueAssignmentStatement(
+      CIdExpression pJoinedThreadExitVariable,
+      CExpression pReturnVariableExpression,
+      SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
 
-    int returnValueIndex =
-        PthreadFunctionType.PTHREAD_JOIN.getParameterIndex(PthreadObjectType.RETURN_VALUE);
-    CFunctionCall functionCall =
-        PthreadUtil.tryGetFunctionCallFromCfaEdge(pSubstituteEdge.cfaEdge).orElseThrow();
-    CExpression returnValueParameter =
-        functionCall.getFunctionCallExpression().getParameterExpressions().get(returnValueIndex);
-    if (returnValueParameter instanceof CUnaryExpression unaryExpression) {
+    if (pReturnVariableExpression instanceof CUnaryExpression unaryExpression) {
       // extract retval from unary expression &retval
       if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
         if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
@@ -775,141 +636,153 @@ public record SeqThreadStatementBuilder(
     }
     throw new UnsupportedCodeException(
         "pthread_join retval could not be extracted from the following expression: "
-            + returnValueParameter,
+            + pReturnVariableExpression,
         pSubstituteEdge.cfaEdge);
   }
 
-  private SeqThreadStatement buildMutexLockStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+  SeqThreadStatement buildMutexStatement(
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnrecognizedCodeException {
+
+    checkArgument(
+        pStatementType.in(SeqThreadStatementType.MUTEX_LOCK, SeqThreadStatementType.MUTEX_UNLOCK),
+        "pStatementType is not allowed.");
 
     SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.MUTEX_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
-
-    CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
-    MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pthreadMutexT);
-
-    CFunctionCallStatement assumeCall =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-            mutexLockedFlag.notLockedExpression());
-    CExpressionAssignmentStatement setMutexLockedTrue =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_1);
-
+        SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
     return SeqThreadStatement.of(
-        data,
-        pTargetPc,
-        ImmutableList.of(
-            new CStatementWrapper(assumeCall), new CStatementWrapper(setMutexLockedTrue)));
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
   }
 
-  public SeqThreadStatement buildMutexUnlockStatement(
-      CFunctionCall pFunctionCall, SubstituteEdge pSubstituteEdge, int pTargetPc)
-      throws UnsupportedCodeException {
+  private ImmutableList<SeqThreadStatement> buildOnceLockStatements(
+      SubstituteEdge pSubstituteEdge, int pTargetPc) throws UnrecognizedCodeException {
 
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.MUTEX_UNLOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
+    ImmutableList<CExpression> expressions =
+        getUpdatedParameterExpressions(pSubstituteEdge.cfaEdge);
+    CExpression onceIfExpression =
+        PthreadFunctionSubstitution.buildOnceLockIfExpression(
+            expressions, utils.binaryExpressionBuilder());
 
-    CIdExpression pthreadMutexT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_MUTEX_T);
-    MutexLockedFlag mutexLockedFlag = threadSyncFlags.getMutexLockedFlag(pthreadMutexT);
+    SeqThreadStatementDataWithIfExpression data =
+        new SeqThreadStatementDataWithIfExpression(
+            SeqThreadStatementType.ONCE_LOCK,
+            ImmutableSet.of(pSubstituteEdge),
+            thread.id(),
+            pcLeftHandSide,
+            onceIfExpression);
 
-    CStatementWrapper lockedFalseAssignment =
-        new CStatementWrapper(
-            SeqStatementBuilder.buildExpressionAssignmentStatement(
-                mutexLockedFlag.idExpression(), SeqIntegerLiteralExpressions.INT_0));
+    ImmutableList<CFAEdgeForThread> successorLeavingEdges =
+        pSubstituteEdge.getThreadEdge().getSuccessor().leavingEdges();
+    checkArgument(successorLeavingEdges.size() == 2);
 
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(lockedFalseAssignment));
+    CFAEdgeForThread functionCallEdge = successorLeavingEdges.getFirst();
+    CFAEdgeForThread functionSummaryEdge = successorLeavingEdges.getLast();
+    checkArgument(functionCallEdge.cfaEdge instanceof CFunctionCallEdge);
+    checkArgument(functionSummaryEdge.cfaEdge instanceof CFunctionSummaryEdge);
+
+    SeqThreadStatement thenStatement =
+        SeqThreadStatement.of(
+            data,
+            // the then branch enters the init_routine, so use the given target pc
+            pTargetPc,
+            ImmutableList.of(PthreadFunctionSubstitution.buildOnceLockThenStatement(expressions)));
+    SeqThreadStatement elseStatement =
+        SeqThreadStatement.of(
+            data,
+            // the else branch skips the init_routine, so use the CFunctionSummaryEdge target pc
+            functionSummaryEdge.getSuccessor().pc,
+            ImmutableList.of(
+                PthreadFunctionSubstitution.buildOnceLockElseStatement(
+                    expressions, utils.binaryExpressionBuilder())));
+    return ImmutableList.of(thenStatement, elseStatement);
   }
-
-  // rw_lock statements
 
   private SeqThreadStatement buildRwLockStatement(
-      CFunctionCall pFunctionCall,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc,
-      PthreadFunctionType pPthreadFunctionType)
-      throws UnsupportedCodeException {
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge, int pTargetPc)
+      throws UnrecognizedCodeException {
 
-    CIdExpression rwLockT =
-        PthreadUtil.extractPthreadObject(pFunctionCall, PthreadObjectType.PTHREAD_RWLOCK_T);
-    RwLockNumReadersWritersFlag rwLockFlags = threadSyncFlags.getRwLockFlag(rwLockT);
-    return switch (pPthreadFunctionType) {
-      case PTHREAD_RWLOCK_RDLOCK ->
-          buildRwLockRdLockStatement(rwLockFlags, pSubstituteEdge, pTargetPc);
-      case PTHREAD_RWLOCK_UNLOCK ->
-          buildRwLockUnlockStatement(rwLockFlags, pSubstituteEdge, pTargetPc);
-      case PTHREAD_RWLOCK_WRLOCK ->
-          buildRwLockWrLockStatement(rwLockFlags, pSubstituteEdge, pTargetPc);
+    checkArgument(
+        pStatementType.in(
+            SeqThreadStatementType.RW_LOCK_RD_LOCK,
+            SeqThreadStatementType.RW_LOCK_UNLOCK,
+            SeqThreadStatementType.RW_LOCK_WR_LOCK),
+        "pStatementType is not allowed.");
+
+    SeqThreadStatementData data =
+        SeqThreadStatementData.of(pStatementType, pSubstituteEdge, thread.id(), pcLeftHandSide);
+    return SeqThreadStatement.of(
+        data, pTargetPc, buildThreadSyncStatements(pStatementType, pSubstituteEdge));
+  }
+
+  // Thread Sync Statements
+
+  private ImmutableList<CCompoundStatementElement> buildThreadSyncStatements(
+      SeqThreadStatementType pStatementType, SubstituteEdge pSubstituteEdge)
+      throws UnrecognizedCodeException {
+
+    ImmutableList<CExpression> expressions =
+        getUpdatedParameterExpressions(pSubstituteEdge.cfaEdge);
+
+    return switch (pStatementType) {
+      case BARRIER_INIT ->
+          PthreadFunctionSubstitution.buildBarrierInitFunctionStatements(expressions);
+      case BARRIER_WAIT_INCREMENT ->
+          PthreadFunctionSubstitution.buildBarrierIncrementFunctionStatements(
+              Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());
+      case BARRIER_WAIT_ASSUMPTION ->
+          PthreadFunctionSubstitution.buildBarrierAssumptionFunctionStatements(
+              Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());
+      case COND_SIGNAL ->
+          PthreadFunctionSubstitution.buildCondSignalFunctionStatements(
+              Iterables.getOnlyElement(expressions));
+      case COND_WAIT_UNLOCK ->
+          PthreadFunctionSubstitution.buildCondWaitUnlockFunctionStatements(expressions);
+      case COND_WAIT_LOCK ->
+          PthreadFunctionSubstitution.buildCondWaitLockFunctionStatements(expressions);
+      case MUTEX_LOCK ->
+          PthreadFunctionSubstitution.buildMutexLockFunctionStatements(
+              Iterables.getOnlyElement(expressions));
+      case MUTEX_UNLOCK ->
+          PthreadFunctionSubstitution.buildMutexUnlockFunctionStatements(
+              Iterables.getOnlyElement(expressions));
+      case RW_LOCK_RD_LOCK ->
+          PthreadFunctionSubstitution.buildRwLockRdLockFunctionStatements(
+              Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());
+      case RW_LOCK_UNLOCK ->
+          PthreadFunctionSubstitution.buildRwLockUnlockFunctionStatements(
+              Iterables.getOnlyElement(expressions), utils.binaryExpressionBuilder());
+      case RW_LOCK_WR_LOCK ->
+          PthreadFunctionSubstitution.buildRwLockWrLockFunctionStatements(
+              Iterables.getOnlyElement(expressions));
       default ->
-          throw new AssertionError(
-              String.format("pPthreadFunctionType is no rwlock method: %s", pPthreadFunctionType));
+          throw new IllegalArgumentException(
+              "Cannot build inlined statements for the following SeqThreadStatementType: "
+                  + pStatementType);
     };
   }
 
-  private SeqThreadStatement buildRwLockRdLockStatement(
-      RwLockNumReadersWritersFlag pRwLockFlags, SubstituteEdge pSubstituteEdge, int pTargetPc) {
+  static ImmutableList<CExpression> getUpdatedParameterExpressions(CFAEdge pCfaEdge) {
+    CFunctionCall functionCall = PthreadUtil.tryGetFunctionCallFromCfaEdge(pCfaEdge).orElseThrow();
+    ImmutableList<CExpression> rExpressions =
+        functionCall.getFunctionCallExpression().getParameterExpressions();
 
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.RW_LOCK_RD_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
+    if (!isAnyPointer(rExpressions)) {
+      ImmutableList.Builder<CExpression> nonPointerExpressions = ImmutableList.builder();
+      for (CExpression expression : rExpressions) {
+        if (expression instanceof CUnaryExpression unaryExpression
+            && unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+          // from unary amper expressions such as "&mutex", only "mutex" is used
+          nonPointerExpressions.add(unaryExpression.getOperand());
+        } else {
+          // all other expressions such as "(void*)0" or literals "capacity" are added unchanged,
+          // regardless of whether they are actually used s.t. the parameter list has the same size
+          nonPointerExpressions.add(expression);
+        }
+      }
+      rExpressions = nonPointerExpressions.build();
+    }
 
-    CStatementWrapper assumption =
-        new CStatementWrapper(
-            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(
-                pRwLockFlags.writerEqualsZero()));
-    CStatementWrapper rwLockReadersIncrement =
-        new CStatementWrapper(pRwLockFlags.readersIncrement());
-
-    return SeqThreadStatement.of(
-        data, pTargetPc, ImmutableList.of(assumption, rwLockReadersIncrement));
-  }
-
-  private SeqThreadStatement buildRwLockUnlockStatement(
-      RwLockNumReadersWritersFlag pRwLockFlags, SubstituteEdge pSubstituteEdge, int pTargetPc) {
-
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.RW_LOCK_UNLOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
-
-    CExpressionAssignmentStatement setNumWritersToZero =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            pRwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_0);
-    CIfStatement ifStatement =
-        new CIfStatement(
-            new CExpressionWrapper(pRwLockFlags.writerEqualsZero()),
-            new CCompoundStatement(new CStatementWrapper(pRwLockFlags.readersDecrement())),
-            new CCompoundStatement(new CStatementWrapper(setNumWritersToZero)));
-
-    return SeqThreadStatement.of(data, pTargetPc, ImmutableList.of(ifStatement));
-  }
-
-  private SeqThreadStatement buildRwLockWrLockStatement(
-      RwLockNumReadersWritersFlag pRwLockFlags, SubstituteEdge pSubstituteEdge, int pTargetPc) {
-
-    SeqThreadStatementData data =
-        SeqThreadStatementData.of(
-            SeqThreadStatementType.RW_LOCK_WR_LOCK, pSubstituteEdge, thread.id(), pcLeftHandSide);
-
-    CExpressionAssignmentStatement setWritersToOne =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            pRwLockFlags.writersIdExpression(), SeqIntegerLiteralExpressions.INT_1);
-
-    CFunctionCallStatement assumptionWriters =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(pRwLockFlags.writerEqualsZero());
-    CFunctionCallStatement assumptionReaders =
-        SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(pRwLockFlags.readersEqualsZero());
-
-    return SeqThreadStatement.of(
-        data,
-        pTargetPc,
-        ImmutableList.of(
-            new CStatementWrapper(assumptionWriters),
-            new CStatementWrapper(assumptionReaders),
-            new CStatementWrapper(setWritersToOne)));
+    return rExpressions;
   }
 
   // Helpers
@@ -931,15 +804,10 @@ public record SeqThreadStatementBuilder(
    *       handled.
    * </ul>
    */
-  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge, CFANode pSuccessor)
+  private boolean resultsInBlankStatement(SubstituteEdge pSubstituteEdge)
       throws UnsupportedCodeException {
 
-    // exiting start_routine of thread -> blank, just set pc = EXIT_PC;
-    if (pSuccessor instanceof FunctionExitNode
-        && pSuccessor.getFunction().equals(thread.startRoutine())) {
-      return true;
-
-    } else if (pSubstituteEdge.cfaEdge instanceof BlankEdge
+    if (pSubstituteEdge.cfaEdge instanceof BlankEdge
         && !pSubstituteEdge.cfaEdge.getPredecessor().isLoopStart()) {
       // blank edges have no code
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
@@ -951,14 +819,10 @@ public record SeqThreadStatementBuilder(
 
     } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
       // IMPORTANT: this step (checking for declaration edges) must come after checking for
-      // PTHREAD_MUTEX_INITIALIZER (which may be inside a CDeclarationEdge too!)
-      CDeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof CVariableDeclaration variableDeclaration) {
-        // all variables, functions, structs... are declared outside the main function,
-        // EXCEPT local variables that have an initializer:
-        return !(!variableDeclaration.isGlobal() && variableDeclaration.getInitializer() != null);
-      }
-      return true;
+      // PTHREAD_MUTEX_INITIALIZER (which may be inside a CDeclarationEdge too).
+      // all variables, functions, structs... are initialized outside main() except local variables:
+      return !(declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration)
+          || variableDeclaration.isGlobal();
 
     } else {
       Optional<CFunctionCall> functionCall =
@@ -973,25 +837,23 @@ public record SeqThreadStatementBuilder(
     return false;
   }
 
-  private static CStatementWrapper buildExpressionAssignmentStatementFromVariableDeclaration(
-      CVariableDeclaration pVariableDeclaration) throws UnsupportedCodeException {
-
-    if (!(pVariableDeclaration.getInitializer() instanceof CInitializerExpression)) {
-      throw new UnsupportedCodeException(
-          "The sequentialization does not support CInitializer other than CInitializerExpression"
-              + " for local variables.",
-          null);
+  private static boolean isAnyPointer(ImmutableList<CExpression> pExpressions) {
+    for (CExpression expression : pExpressions) {
+      ImmutableSet<CSimpleDeclaration> declarations =
+          SeqPointerAliasingUtil.getAllSimpleDeclarationsInExpression(expression, true);
+      // finding no declaration is possible e.g. for "(void*)0" or "2"
+      if (!declarations.isEmpty()) {
+        // if there are multiple declarations, such as pthread_mutex_array[i], then use the pointer
+        if (declarations.size() > 1) {
+          return true;
+        }
+        CSimpleDeclaration declaration = Iterables.getOnlyElement(declarations);
+        if (declaration.getType().getCanonicalType() instanceof CPointerType) {
+          return true;
+        }
+      }
     }
-    // the local variable is declared outside main() without an initializer e.g. 'int x;', and here
-    // it is assigned the initializer e.g. 'x = 7;'
-    CIdExpression idExpression =
-        new CIdExpression(pVariableDeclaration.getFileLocation(), pVariableDeclaration);
-    CExpressionAssignmentStatement assignmentStatement =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            idExpression,
-            ((CInitializerExpression) pVariableDeclaration.getInitializer()).getExpression());
-    return new CStatementWrapper(assignmentStatement);
+    return false;
   }
 
   private static boolean isExcludedSummaryEdge(CFAEdge pCfaEdge) {

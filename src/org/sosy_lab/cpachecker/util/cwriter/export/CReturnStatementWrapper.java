@@ -8,12 +8,18 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.export;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode.AAstNodeRepresentation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public record CReturnStatementWrapper(Optional<CExportExpression> expression)
     implements CJumpStatement {
+
+  @Override
+  public ImmutableList<CCompoundStatementElement> getAllNestedStatements() {
+    return ImmutableList.of(this);
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)

@@ -11,7 +11,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 shopt -s globstar extglob
-GENERATED_FILES="ACSLParser|ACSLScanner|AutomatonParser|AutomatonScanner|FormulaParser|FormulaScanner|LtlGrammarParser"
+GENERATED_FILES="AutomatonParser|AutomatonScanner|FormulaParser|FormulaScanner|LtlGrammarParser"
 
 DIR="$(dirname "$0")/.."
 SRC_DIR="$(realpath --relative-to=. "$DIR/src")"

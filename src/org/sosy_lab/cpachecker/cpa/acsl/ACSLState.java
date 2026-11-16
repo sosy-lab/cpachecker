@@ -10,105 +10,27 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicateToExpressionTreeVisitor;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
-import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
-import org.sosy_lab.cpachecker.util.expressions.And;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.expressions.Or;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
-public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeReportingState {
+/** The ACSL predicates that hold at a location, which are assumptions for other analyses. */
+public class ACSLState implements AbstractStateWithAssumptions {
 
-  private final ImmutableSet<ACSLAnnotation> annotations;
-  private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
-  private final ToCExpressionVisitor expressionTreeVisitor;
-  private final LogManager logger;
+  private final ImmutableSet<AcslPredicate> annotations;
 
-  public ACSLState(
-      Set<ACSLAnnotation> pAnnotations,
-      ACSLPredicateToExpressionTreeVisitor pACSLVisitor,
-      ToCExpressionVisitor pExpressionTreeVisitor,
-      LogManager pLogManager) {
+  ACSLState(Set<AcslPredicate> pAnnotations) {
     annotations = ImmutableSet.copyOf(pAnnotations);
-    acslVisitor = pACSLVisitor;
-    expressionTreeVisitor = pExpressionTreeVisitor;
-    logger = pLogManager;
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
-      throws TranslationToExpressionTreeFailedException {
-    return toExpressionTree();
-  }
-
-  private ExpressionTree<Object> toExpressionTree() {
-    if (annotations.isEmpty()) {
-      return ExpressionTrees.getTrue();
-    }
-    List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
-    for (ACSLAnnotation annotation : annotations) {
-      ACSLPredicate predicate = annotation.getPredicateRepresentation();
-      try {
-        representations.add(predicate.accept(acslVisitor));
-      } catch (UnrecognizedCodeException e) {
-        throw new AssertionError("Could not convert predicate to expression tree: " + predicate);
-      }
-    }
-    ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-    return factory.and(representations);
-  }
-
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationInputProgramInScopeVariables(
-      FunctionEntryNode pFunctionScope,
-      CFANode pLocation,
-      AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
-      throws InterruptedException,
-          ReportingMethodNotImplementedException,
-          TranslationToExpressionTreeFailedException {
-    throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationInputProgramInScopeVariable' is not implemented for"
-            + " 'ACSLState'");
-  }
-
-  @Override
-  public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
-      throws InterruptedException,
-          ReportingMethodNotImplementedException,
-          TranslationToExpressionTreeFailedException {
-    throw new ReportingMethodNotImplementedException(
-        "The method 'getFormulaApproximationFunctionReturnVariableOnly' is not implemented for"
-            + " 'ACSLState'");
-  }
-
-  public boolean hasAnnotations() {
-    return !annotations.isEmpty();
+  public ImmutableList<AcslPredicate> getAssumptions() {
+    return annotations.asList();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(annotations);
+    return annotations.hashCode();
   }
 
   @Override
@@ -122,30 +44,5 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
   @Override
   public String toString() {
     return "ACSLState " + annotations;
-  }
-
-  @Override
-  public List<? extends AExpression> getAssumptions() {
-    try {
-      @SuppressWarnings("unchecked")
-      ExpressionTree<AExpression> exp =
-          (ExpressionTree<AExpression>) ((ExpressionTree<?>) toExpressionTree());
-      if (exp.equals(ExpressionTrees.getTrue())) {
-        return ImmutableList.of();
-      } else if (exp.equals(ExpressionTrees.getFalse())) {
-        return ImmutableList.of(expressionTreeVisitor.visitFalse());
-      } else if (exp instanceof LeafExpression) {
-        return ImmutableList.of(expressionTreeVisitor.visit((LeafExpression<AExpression>) exp));
-      } else if (exp instanceof And) {
-        return ImmutableList.of(expressionTreeVisitor.visit((And<AExpression>) exp));
-      } else if (exp instanceof Or) {
-        return ImmutableList.of(expressionTreeVisitor.visit((Or<AExpression>) exp));
-      } else {
-        throw new AssertionError("Unknown type of ExpressionTree.");
-      }
-    } catch (UnrecognizedCodeException e) {
-      logger.log(Level.WARNING, "Could not convert some annotations to assumption, ignoring");
-      return ImmutableList.of();
-    }
   }
 }

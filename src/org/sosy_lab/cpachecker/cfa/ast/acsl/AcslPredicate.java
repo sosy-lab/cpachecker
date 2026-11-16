@@ -16,18 +16,17 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibExpressionVisitor;
 public sealed interface AcslPredicate extends AExpression, AcslAstNode
     permits AcslBinaryPredicate,
         AcslBinaryTermPredicate,
-        AcslCanAccessPredicate,
-        AcslFunctionCallPredicate,
         AcslIdPredicate,
         AcslLiteralPredicate,
         AcslOldPredicate,
-        AcslPredicateApplicationPredicate,
-        AcslPredicateTerm,
-        AcslQuantifiedPredicate,
-        AcslSeparateMemoryConjunctionPredicate,
         AcslTernaryPredicate,
         AcslUnaryPredicate,
-        AcslValidPredicate {
+        AcslValidPredicate,
+        AcslQuantifiedPredicate,
+        AcslPredicateApplicationPredicate,
+        AcslFunctionCallPredicate,
+        AcslCanAccessPredicate,
+        AcslSeparateMemoryConjunctionPredicate {
 
   <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X;
 

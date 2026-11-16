@@ -8,24 +8,26 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslIntegerLiteralTerm extends AcslLiteralTerm {
 
-  @Serial private static final long serialVersionUID = -814512301151276L;
+  @Serial private static final long serialVersionUID = 8310267718101617233L;
 
   private final BigInteger value;
 
   public AcslIntegerLiteralTerm(FileLocation pFileLocation, AcslType pType, BigInteger pValue) {
-    super(pFileLocation, pType);
-    value = pValue;
-    checkNotNull(pFileLocation);
-    checkNotNull(pValue);
-    checkNotNull(pType);
+    super(checkNotNull(pFileLocation), checkNotNull(pType));
+    checkArgument(
+        AcslType.isIntegral(pType), "An integer literal has an integer type, not %s", pType);
+    value = checkNotNull(pValue);
   }
 
   public static final AcslIntegerLiteralTerm ZERO =

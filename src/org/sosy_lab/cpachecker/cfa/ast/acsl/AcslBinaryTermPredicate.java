@@ -8,26 +8,53 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPolymorphicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslBinaryTermPredicate extends ABinaryExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = 8144911237675011353L;
+  @Serial private static final long serialVersionUID = 2054315275866810313L;
 
   public AcslBinaryTermPredicate(
       FileLocation pFileLocation,
       AcslTerm pOperand1,
       AcslTerm pOperand2,
-      AcslBinaryTermExpressionOperator pOperator) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand1, pOperand2, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pOperand1);
-    checkNotNull(pOperand2);
-    checkNotNull(pOperator);
+      AcslBinaryTermPredicateOperator pOperator) {
+    super(
+        checkNotNull(pFileLocation),
+        AcslBuiltinLogicType.BOOLEAN,
+        checkNotNull(pOperand1),
+        checkNotNull(pOperand2),
+        checkNotNull(pOperator));
+    checkArgument(
+        operandsFit(pOperator, pOperand1.getExpressionType(), pOperand2.getExpressionType()),
+        "%s and %s cannot be compared with %s",
+        pOperand1,
+        pOperand2,
+        pOperator);
+  }
+
+  private static boolean operandsFit(
+      AcslBinaryTermPredicateOperator pOperator, AcslType pType1, AcslType pType2) {
+    return switch (pOperator) {
+      // A pointer can be compared with 0, e.g., for a pointer as predicate
+      case EQUALS, NOT_EQUALS ->
+          AcslType.areCompatible(pType1, pType2)
+              || (AcslType.isPointer(pType1) && AcslType.isIntegral(pType2))
+              || (AcslType.isIntegral(pType1) && AcslType.isPointer(pType2));
+      case LESS_EQUAL, GREATER_EQUAL, LESS_THAN, GREATER_THAN ->
+          pType1 instanceof AcslPolymorphicType
+              || pType2 instanceof AcslPolymorphicType
+              || (AcslType.isNumeric(pType1) && AcslType.isNumeric(pType2))
+              || (AcslType.isPointer(pType1) && AcslType.isPointer(pType2));
+    };
   }
 
   @Override
@@ -51,8 +78,8 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
   }
 
   @Override
-  public AcslBinaryTermExpressionOperator getOperator() {
-    return (AcslBinaryTermExpressionOperator) super.getOperator();
+  public AcslBinaryTermPredicateOperator getOperator() {
+    return (AcslBinaryTermPredicateOperator) super.getOperator();
   }
 
   @Override
@@ -60,7 +87,7 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
     return (AcslType) super.getExpressionType();
   }
 
-  public enum AcslBinaryTermExpressionOperator implements ABinaryOperator, AcslAstNode {
+  public enum AcslBinaryTermPredicateOperator implements ABinaryOperator {
     EQUALS("=="),
     NOT_EQUALS("!="),
     LESS_EQUAL("<="),
@@ -69,18 +96,14 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
     GREATER_THAN(">"),
     ;
 
-    @Serial private static final long serialVersionUID = 70136361956900L;
-
     private final String operator;
-    private final FileLocation fileLocation;
 
-    AcslBinaryTermExpressionOperator(String pOperator) {
+    AcslBinaryTermPredicateOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
-    public static AcslBinaryTermExpressionOperator of(String pOperator) {
-      for (AcslBinaryTermExpressionOperator op : values()) {
+    public static AcslBinaryTermPredicateOperator of(String pOperator) {
+      for (AcslBinaryTermPredicateOperator op : values()) {
         if (op.operator.equals(pOperator)) {
           return op;
         }
@@ -102,26 +125,6 @@ public final class AcslBinaryTermPredicate extends ABinaryExpression implements 
     @Override
     public boolean isLogicalOperator() {
       return true;
-    }
-
-    @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }

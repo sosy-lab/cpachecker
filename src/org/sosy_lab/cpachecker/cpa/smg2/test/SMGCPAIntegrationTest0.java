@@ -16,7 +16,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.sosy_lab.cpachecker.core.CPAcheckerTest.setUpConfiguration;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.ProgramSubject.assertUsing;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.WitnessType.GRAPHML_VIOLATION;
 import static org.sosy_lab.cpachecker.cpa.smg2.test.SMGCPAIntegrationTest0.WitnessType.YML_CORRECTNESS;
@@ -40,6 +39,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalInt;
 import java.util.Set;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -56,8 +56,9 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
@@ -73,6 +74,11 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
  */
 @RunWith(Parameterized.class)
 public abstract class SMGCPAIntegrationTest0 {
+
+  @BeforeClass
+  public static void skipUnlessExtendedTestsEnabled() {
+    IntegrationTestRunner.skipUnlessExtendedTestsEnabled();
+  }
 
   /** File name template for YAML witnesses, '%s' is replaced by the witness version. */
   private static final String YAML_WITNESS_FILE_TEMPLATE = "witness-%s.yml";
@@ -156,24 +162,13 @@ public abstract class SMGCPAIntegrationTest0 {
   private static Configuration buildConfigForC(
       String cpaConfiguration, String specification, MachineModel machineModel)
       throws IOException, InvalidConfigurationException {
-    return getConfig(
-        CPA_CONFIG_COMMON_PREFIX + cpaConfiguration,
-        Language.C,
-        SPECIFICATION_COMMON_PREFIX + specification,
-        machineModel);
-  }
 
-  /** Uses the default {@link Configuration} and does not allow generated files to be accessed. */
-  protected static Configuration getConfig(
-      String configurationFile,
-      Language inputLanguage,
-      String specificationFile,
-      MachineModel machineModel)
-      throws InvalidConfigurationException, IOException {
-
-    Configuration configForFiles = Configuration.defaultConfiguration();
-    return setUpConfiguration(
-        configurationFile, inputLanguage, specificationFile, configForFiles, machineModel);
+    return TestUtils.configurationForTest()
+        .loadFromFile(CPA_CONFIG_COMMON_PREFIX + cpaConfiguration)
+        .setOption("analysis.machineModel", machineModel.toString())
+        .setOption("language", Language.C.name())
+        .setOption("specification", SPECIFICATION_COMMON_PREFIX + specification)
+        .build();
   }
 
   /**
@@ -295,7 +290,7 @@ public abstract class SMGCPAIntegrationTest0 {
     }
 
     private void verifySafeResult() throws Exception {
-      isExpectedResult(runAnalysis(), Result.TRUE, "TRUE (safe program for chosen specification)");
+      runAnalysis().assertIs(Result.TRUE);
     }
 
     /** Check that the analysis result of the program is UNSAFE in the current analysis. */
@@ -303,11 +298,8 @@ public abstract class SMGCPAIntegrationTest0 {
       verifyUnsafeResult(runAnalysis());
     }
 
-    private void verifyUnsafeResult(TestResults verificationResult) throws Exception {
-      isExpectedResult(
-          verificationResult,
-          Result.FALSE,
-          "FALSE (violation found in program for chosen specification)");
+    private void verifyUnsafeResult(IntegrationTestResult verificationResult) throws Exception {
+      verificationResult.assertIs(Result.FALSE);
     }
 
     /** Check that the analysis result of the program is UNKNOWN in the current analysis. */
@@ -316,7 +308,7 @@ public abstract class SMGCPAIntegrationTest0 {
     }
 
     private void verifyUnknownResult() throws Exception {
-      isExpectedResult(runAnalysis(), Result.UNKNOWN, "UNKNOWN");
+      runAnalysis().assertIs(Result.UNKNOWN);
     }
 
     /**
@@ -330,11 +322,11 @@ public abstract class SMGCPAIntegrationTest0 {
 
     private void returnsWitnessContaining(String stringContainedInWitness, WitnessType witnessType)
         throws Exception {
-      TestResults res = runAnalysisWithOutputFiles();
+      IntegrationTestResult res = runAnalysisWithOutputFiles();
       verifyUnsafeResult(res);
       // TODO: do we need statistics?
       // res.getCheckerResult().printStatistics(statisticsStream);
-      res.getCheckerResult().writeOutputFiles();
+      res.cpaCheckerResult().writeOutputFiles();
       String witness =
           getWitnessContentCheckingOutputCorrectness(
               res, getDefaultWitnessOutputPathFor(witnessType));
@@ -392,15 +384,15 @@ public abstract class SMGCPAIntegrationTest0 {
     public void returnsCorrectnessWitnessV2d4WithLoopInvariantContaining(
         String function, int line, int column, Iterable<String> expectedContainedExpressions)
         throws Exception {
-      TestResults res =
+      IntegrationTestResult res =
           runAnalysisWithOutputFiles(
               ImmutableMap.of(
                   "witness.yamlexporter.witnessVersions",
                   YAMLWitnessVersion.V2d4.name(),
                   "cpa.arg.yamlProofWitness",
                   getDefaultWitnessOutputPathFor(YML_CORRECTNESS).toString()));
-      isExpectedResult(res, Result.TRUE, "TRUE (safe program for chosen specification)");
-      res.getCheckerResult().writeOutputFiles();
+      res.assertIs(Result.TRUE);
+      res.cpaCheckerResult().writeOutputFiles();
       String witness =
           getWitnessContentCheckingOutputCorrectness(
               res,
@@ -451,10 +443,10 @@ public abstract class SMGCPAIntegrationTest0 {
     }
 
     private String getWitnessContentCheckingOutputCorrectness(
-        TestResults pResult, Path pWitnessOutputPath) throws IOException {
+        IntegrationTestResult pResult, Path pWitnessOutputPath) throws IOException {
 
       // No CFA -> no witness
-      CFA cfa = pResult.getCheckerResult().getCfa();
+      CFA cfa = pResult.cpaCheckerResult().getCfa();
       if (cfa == null) {
         failWithoutActual(
             Fact.fact("CFA should be present in the result when witnesses are requested", cfa));
@@ -469,7 +461,7 @@ public abstract class SMGCPAIntegrationTest0 {
       return checkNotNull(Files.readString(pWitnessOutputPath));
     }
 
-    private TestResults runAnalysis() throws Exception {
+    private IntegrationTestResult runAnalysis() throws Exception {
       return runAnalysis(config);
     }
 
@@ -477,7 +469,7 @@ public abstract class SMGCPAIntegrationTest0 {
      * Runs the analysis and sets the "output.path" option to the absolute path of this subjects
      * current tempFolder
      */
-    private TestResults runAnalysisWithOutputFiles() throws Exception {
+    private IntegrationTestResult runAnalysisWithOutputFiles() throws Exception {
       return runAnalysisWithOutputFiles(ImmutableMap.of());
     }
 
@@ -485,7 +477,7 @@ public abstract class SMGCPAIntegrationTest0 {
      * Runs the analysis with the given additional options, writing output files into the current
      * tempFolder of this subject.
      */
-    private TestResults runAnalysisWithOutputFiles(Map<String, String> additionalOptions)
+    private IntegrationTestResult runAnalysisWithOutputFiles(Map<String, String> additionalOptions)
         throws Exception {
       String outputPath = tempFolder.getRoot().getAbsolutePath();
       // The file type converter resolves the output paths, so it needs to know the output path
@@ -503,40 +495,14 @@ public abstract class SMGCPAIntegrationTest0 {
       return runAnalysis(configWithOutputFiles.build());
     }
 
-    private TestResults runAnalysis(Configuration configToRun) throws Exception {
+    private IntegrationTestResult runAnalysis(Configuration configToRun) throws Exception {
       // Check that the file exists and is a C file before running
       checkArgument(
           programPath.endsWith(".i") || programPath.endsWith(".c"),
           "Test program file ending does not match allowed C files endings '.c' or '.i'");
       checkArgument(
           new File(programPath).isFile(), "Test program could not be found: %s", programPath);
-      return CPATestRunner.run(configToRun, programPath);
-    }
-
-    /**
-     * Check that the subject is a certain result, returning an error with the String when failing.
-     */
-    public void isExpectedResult(
-        TestResults actualResult, Result expectedResult, String expectedResultString) {
-      Result verdict = actualResult.getCheckerResult().getResult();
-
-      if (verdict == expectedResult) {
-        return;
-      }
-
-      String log = checkNotNull(actualResult.getLog()).trim();
-      if (verdict == Result.NOT_YET_STARTED) {
-        failWithoutActual(
-            Fact.fact("analysis result expected to be", expectedResultString),
-            Fact.fact("but was", verdict),
-            Fact.fact("which has log", log));
-      }
-
-      failWithActual(
-          Fact.fact("analysis result expected to be", expectedResultString),
-          Fact.fact("but was", verdict),
-          Fact.fact("due to", actualResult.getCheckerResult().getTargetDescription()),
-          Fact.fact("which has log", log));
+      return IntegrationTestRunner.run(configToRun, programPath);
     }
 
     /**

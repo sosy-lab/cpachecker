@@ -8,13 +8,29 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static com.google.common.base.Preconditions.checkState;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker.InvariantCheckResult;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -24,53 +40,191 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
 
 /**
  * CPA for termination analysis of C programs. Abstract states represent a memory, where we can
  * store an already seen state. Transition relation allows to non-deterministically store an already
  * visiting state.
  */
+@Options(prefix = "cpa.terminationviamemory")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private Solver solver;
+  private InterpolationManager itpMgr;
+  private PathFormulaManager pfmgr;
+  private Configuration configuration;
+  private ShutdownNotifier shutdownNotifier;
   private FormulaManagerView fmgr;
   private BooleanFormulaManagerView bfmgr;
   private PrecisionAdjustment precisionAdjustment;
+  private ImmutableSet<Loop> possiblyNonTerminatingLoops;
   private final CFA cfa;
   private final TerminationToReachStatistics statistics;
   private final LogManager logger;
+  private final Specification specification;
 
-  public TerminationToReachCPA(LogManager pLogger, Configuration pConfiguration, CFA pCFA)
+  @Option(secure = true, description = "Enables use of transition predicates from the witness.")
+  private boolean useTransitionPredicatesFromWitness = false;
+
+  @Option(
+      secure = true,
+      description =
+          "configuration of the analysis that checks whether the supporting invariants of the"
+              + " witness are invariants of the program before they are used, see"
+              + " useTransitionPredicatesFromWitness")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path supportingInvariantsConfig = null;
+
+  public TerminationToReachCPA(
+      LogManager pLogger,
+      Configuration pConfiguration,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA,
+      Specification pSpecification)
       throws InvalidConfigurationException {
-    super("sep", "sep", null);
-    statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA);
+    // It is not possible to merge the states across different branches since we are checking
+    // for inductivity of transition invariants only with respect to an iteration formula
+    // and given prefix formula. If we compute the same transition invariant
+    // on a different ARG path, we cannot cover (nor merge) it with the transition invariants
+    // from different branches because they have different prefix formula.
+    // Hence, they could continue with different iteration formulas for which
+    // we have not yet proven these transition predicates to be inductive.
+    // Therefore, in this state, we need to keep merge as "sep".
+    // It is a future work to implement better merging mechanism.
+    super(
+        "sep",
+        "sep",
+        new TerminationToReachAbstractDomain(pCFA.getLoopStructure().orElseThrow()),
+        null);
+    pConfiguration.inject(this);
+    statistics = new TerminationToReachStatistics(pConfiguration, pLogger, pCFA, this);
     cfa = pCFA;
+    configuration = pConfiguration;
+    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
+    specification = pSpecification;
+
+    ImmutableSet.Builder<Loop> builder = ImmutableSet.builder();
+    builder.addAll(cfa.getLoopStructure().orElseThrow().getAllLoops());
+    possiblyNonTerminatingLoops = builder.build();
   }
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TerminationToReachCPA.class);
   }
 
-  public void setSolver(Solver pSolver) {
+  public void setSolverAndManagers(Solver pSolver, PathFormulaManager pPfmgr)
+      throws CPAException, InterruptedException, InvalidConfigurationException {
+    checkState(solver == null, "The solver of %s is already set", getClass().getSimpleName());
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    pfmgr = pPfmgr;
+    itpMgr =
+        new InterpolationManager(
+            pfmgr,
+            solver,
+            Optional.empty(),
+            Optional.empty(),
+            configuration,
+            shutdownNotifier,
+            logger,
+            false);
     precisionAdjustment =
-        new TerminationToReachPrecisionAdjustment(solver, statistics, logger, cfa, bfmgr, fmgr);
+        useTransitionPredicatesFromWitness
+            ? new TerminationToReachValidationPrecisionAdjustment(
+                solver,
+                logger,
+                cfa,
+                bfmgr,
+                fmgr,
+                pfmgr,
+                itpMgr,
+                configuration,
+                possiblyNonTerminatingLoops,
+                collectCandidateTransitionInvariants())
+            : new TerminationToReachPrecisionAdjustment(
+                solver,
+                logger,
+                cfa,
+                bfmgr,
+                fmgr,
+                itpMgr,
+                configuration,
+                possiblyNonTerminatingLoops);
+
+    // Statistics need formula manager because it converts the Formula for transition invariant
+    // to a CExpression for witness export.
+    statistics.setFormulaManager(fmgr);
+    statistics.setBooleanFormulaManager(bfmgr);
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new TerminationToReachTransferRelation(fmgr);
+    return new TerminationToReachTransferRelation(fmgr, pfmgr, possiblyNonTerminatingLoops);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new TerminationToReachState(ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
+    return new TerminationToReachState(
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty(),
+        ImmutableList.of(),
+        ImmutableList.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of());
+  }
+
+  private ImmutableSet<ExpressionTreeLocationInvariant> collectCandidateTransitionInvariants()
+      throws CPAException, InterruptedException, InvalidConfigurationException {
+    Set<ExpressionTreeLocationInvariant> invariants = new HashSet<>();
+    try {
+      for (Path witnessPath : specification.getPathToSpecificationAutomata().keySet()) {
+        WitnessInvariantsExtractor invariantsExtractor =
+            new WitnessInvariantsExtractor(
+                configuration, logger, cfa, shutdownNotifier, witnessPath);
+        Set<ExpressionTreeLocationInvariant> witnessInvariants =
+            invariantsExtractor.extractInvariantsFromReachedSet();
+        // The supporting invariants strengthen the checks of the transition invariants, so they
+        // have to be proven to be invariants of the program first.
+        if (witnessInvariants.stream()
+            .anyMatch(
+                invariant -> !(invariant instanceof ExpressionTreeLocationTransitionInvariant))) {
+          if (supportingInvariantsConfig == null) {
+            throw new InvalidConfigurationException(
+                "The witness contains supporting invariants, but the option"
+                    + " cpa.terminationviamemory.supportingInvariantsConfig is not set.");
+          }
+          InvariantCheckResult result =
+              SupportingInvariantsChecker.checkInvariants(
+                  supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier);
+          if (result != InvariantCheckResult.VALID) {
+            throw new CPAException(
+                "The supporting invariants of the witness could not be confirmed (" + result + ")");
+          }
+        }
+        invariants.addAll(witnessInvariants);
+      }
+    } catch (InvalidWitnessException e) {
+      throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
+    }
+    return ImmutableSet.copyOf(invariants);
   }
 
   @Override

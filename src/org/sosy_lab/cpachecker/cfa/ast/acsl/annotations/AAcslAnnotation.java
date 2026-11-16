@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -32,13 +33,16 @@ public abstract sealed class AAcslAnnotation
         AcslRequires,
         AcslEnsures,
         AcslAssigns,
-        AcslLogicDefinitionAnnotation {
+        AcslLogicDefinitionAnnotation,
+        AcslAssumes,
+        AcslBehavior,
+        AcslCompletenessClause,
+        AcslStatementContract {
 
   private final FileLocation fileLocation;
 
   protected AAcslAnnotation(FileLocation pFileLocation) {
-    Preconditions.checkNotNull(pFileLocation);
-    fileLocation = pFileLocation;
+    fileLocation = checkNotNull(pFileLocation);
   }
 
   public FileLocation getFileLocation() {

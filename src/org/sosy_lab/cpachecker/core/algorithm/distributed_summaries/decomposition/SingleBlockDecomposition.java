@@ -16,6 +16,7 @@ import java.util.SequencedSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 
@@ -34,24 +35,21 @@ public class SingleBlockDecomposition implements DssBlockDecomposition {
         continue;
       }
       if (current.getNumLeavingEdges() == 0) {
-        assert lastNode == null;
         lastNode = current;
       }
       seen.add(current);
       for (CFAEdge leavingEdge : current.getAllLeavingEdges()) {
+        if (leavingEdge instanceof CFunctionSummaryEdge) {
+          continue;
+        }
         edges.add(leavingEdge);
         waitlist.add(leavingEdge.getSuccessor());
       }
     }
-    assert seen.containsAll(cfa.nodes());
     assert lastNode != null;
     return BlockGraph.fromBlockNodesWithoutGraphInformation(
         ImmutableSet.of(
             new BlockNodeWithoutGraphInformation(
-                "SB1",
-                cfa.getMainFunction(),
-                lastNode,
-                ImmutableSet.copyOf(cfa.nodes()),
-                edges.build())));
+                "SB1", cfa.getMainFunction(), lastNode, ImmutableSet.copyOf(seen), edges.build())));
   }
 }

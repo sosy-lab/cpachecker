@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement.createNoArgsFunctionCall;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_BEGIN_DECLARATION;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.ATOMIC_END_DECLARATION;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -28,15 +31,18 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.eclipse.cdt.core.dom.ast.IASTAlignmentSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTAttribute;
+import org.eclipse.cdt.core.dom.ast.IASTAttributeOwner;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
@@ -74,6 +80,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
+import org.eclipse.cdt.core.dom.ast.IASTToken;
 import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdInitializerExpression;
@@ -84,6 +91,7 @@ import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IProblemType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier;
+import org.eclipse.cdt.core.dom.ast.c.ICASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
@@ -93,8 +101,6 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -148,7 +154,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -310,6 +315,7 @@ class ASTConverter {
   private final EclipseCParserOptions options;
   private final LogManager logger;
   private final ASTLiteralConverter literalConverter;
+  private final AlignedAttributeEvaluator alignedAttributeEvaluator;
   private final ASTOperatorConverter operatorConverter;
   private final ASTTypeConverter typeConverter;
   private final MachineModel machineModel;
@@ -337,14 +343,25 @@ class ASTConverter {
       MachineModel pMachineModel,
       String pStaticVariablePrefix,
       Sideassignments pSideAssignmentStack,
-      Set<FileLocation> pUnhandledAtomicOccurrences) {
+      NavigableSet<FileLocation> pUnhandledAtomicOccurrences,
+      Set<FileLocation> pUnhandledThreadLocalOccurrences) {
     options = pOptions;
     scope = pScope;
     logger = pLogger;
     typeConverter =
         new ASTTypeConverter(
-            scope, this, pStaticVariablePrefix, pParseContext, pUnhandledAtomicOccurrences);
+            scope,
+            this,
+            pStaticVariablePrefix,
+            pParseContext,
+            pUnhandledAtomicOccurrences,
+            pUnhandledThreadLocalOccurrences);
     literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
+    alignedAttributeEvaluator =
+        new AlignedAttributeEvaluator(
+            pMachineModel,
+            pParseContext,
+            name -> pScope.lookupTypedef(pScope.getFileSpecificTypeName(name)));
     operatorConverter = new ASTOperatorConverter(pParseContext);
     parseContext = pParseContext;
     machineModel = pMachineModel;
@@ -609,8 +626,8 @@ class ASTConverter {
    */
   private Condition getConditionKind(IASTExpression exp) {
     if (exp instanceof IASTBinaryExpression binExp
-        && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
-            || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
+        && (binExp.getOperator() == IASTBinaryExpression.op_logicalAnd
+            || binExp.getOperator() == IASTBinaryExpression.op_logicalOr)) {
       return switch (binExp.getOperator()) {
         case IASTBinaryExpression.op_logicalAnd -> {
           Condition left = getConditionKind(binExp.getOperand1());
@@ -672,6 +689,15 @@ class ASTConverter {
     return false;
   }
 
+  /** Check whether the given expression is a local variable. */
+  private boolean isLocalVariable(CExpression exp) {
+    if (exp instanceof CIdExpression cIdExpression
+        && cIdExpression.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
+      return !cVariableDeclaration.isGlobal();
+    }
+    return false;
+  }
+
   /**
    * Evaluate a constant expression into an integer literal. This method is for cases where the
    * frontend really needs to know the resulting int value, so we simplify the expression and force
@@ -710,6 +736,18 @@ class ASTConverter {
     CExpression arrayExpr = convertExpressionWithoutSideEffects(e.getArrayExpression());
     CExpression subscriptExpr = convertExpressionWithoutSideEffects(toExpression(e.getArgument()));
 
+    if (!CTypes.isIntegerType(subscriptExpr.getExpressionType())) {
+      if (CTypes.isIntegerType(arrayExpr.getExpressionType())) {
+        // i[a] is the same as a[i] in C, we normalize it.
+        CExpression tmp = arrayExpr;
+        arrayExpr = subscriptExpr;
+        subscriptExpr = tmp;
+      } else if (!(subscriptExpr.getExpressionType() instanceof CProblemType)) {
+        parseContext.parseError(
+            "Array subscript with non-integer type " + subscriptExpr.getExpressionType(), e);
+      }
+    }
+
     // Eclipse CDT has a bug in determining the result type if the array type is a typedef.
     CType resultType = arrayExpr.getExpressionType();
     while (resultType instanceof CTypedefType typedefType) {
@@ -719,7 +757,7 @@ class ASTConverter {
       resultType = arrayType.getType();
     } else if (resultType instanceof CPointerType pointerType) {
       resultType = pointerType.getType();
-    } else if (resultType instanceof CTypedefType || resultType instanceof CProblemType) {
+    } else if (resultType instanceof CProblemType) {
       // TODO probably we should throw exception,
       // but for now we delegate to Eclipse CDT and see whether it knows better than we do
       resultType = typeConverter.convert(e.getExpressionType());
@@ -852,7 +890,8 @@ class ASTConverter {
             name,
             name,
             scope.createScopedNameOf(name),
-            initializer);
+            initializer,
+            /* pHasThreadLocalStorage= */ false);
 
     scope.registerDeclaration(decl);
     sideAssignmentStack.addPreSideAssignment(decl);
@@ -916,13 +955,29 @@ class ASTConverter {
         };
 
       } else {
-        // a += b etc.
+        // a += b, a *= b etc.
         CExpression rightHandSide = convertExpressionWithoutSideEffects(e.getOperand2());
 
-        // first create expression "a + b"
-        CBinaryExpression exp = buildBinaryExpression(leftHandSide, rightHandSide, op);
+        // C11 _Atomic compound assignments (+=, -=, etc.) must appear inside an atomic
+        // section so that concurrent analyses treat the read-modify-write as indivisible.
+        // see https://en.cppreference.com/w/c/language/atomic.html
+        if (lhs.getExpressionType().isAtomic() && !isLocalVariable(lhs)) {
+          // If a has an atomic type, a += b is transformed to
+          // atomic_begin(); a = a + b; atomic_end();
+          CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
+          CExpressionAssignmentStatement result =
+              new CExpressionAssignmentStatement(fileLoc, lhs, exp);
 
-        // and now the assignment
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(lhs.getFileLocation(), ATOMIC_END_DECLARATION));
+
+          return lhs;
+        }
+
+        CBinaryExpression exp = buildBinaryExpression(lhs, rightHandSide, op);
         return new CExpressionAssignmentStatement(fileLoc, lhs, exp);
       }
 
@@ -1014,7 +1069,8 @@ class ASTConverter {
 
   /**
    * Try to lower a GCC cast-to-union extension into a temporary union value initialized with a
-   * designated initializer. Returns {@code null} if this cast is not a cast to a union type.
+   * designated initializer. Returns {@code null} if this cast is not a cast to a union type, and
+   * the operand if it already has the union type.
    *
    * <p>GCC extension: (U)expr is valid iff {@code expr}'s type is an exact match of a direct union
    * member type. If no member matches (or the union is empty), this method throws a {@link
@@ -1028,11 +1084,18 @@ class ASTConverter {
       return null;
     }
 
+    CType operandType = castOperand.getExpressionType().getCanonicalType();
+    if (operandType
+        .withQualifiersSetTo(CTypeQualifiers.NONE)
+        .equals(compositeType.withQualifiersSetTo(CTypeQualifiers.NONE))) {
+      // GCC accepts casts of a union to its own type
+      return castOperand;
+    }
+
     if (compositeType.getMembers().isEmpty()) {
       throw new CFAGenerationRuntimeException("Invalid cast to empty union type at " + loc);
     }
 
-    CType operandType = castOperand.getExpressionType().getCanonicalType();
     CCompositeTypeMemberDeclaration matchingMember =
         findUnionMemberWithExactType(compositeType, operandType);
 
@@ -1476,8 +1539,8 @@ class ASTConverter {
 
   private boolean areCompatibleTypes(CType a, CType b) {
     // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005ftypes_005fcompatible_005fp-3613
-    a = a.getCanonicalType().withoutQualifiers();
-    b = b.getCanonicalType().withoutQualifiers();
+    a = a.getCanonicalType().asUnqualified();
+    b = b.getCanonicalType().asUnqualified();
     if (a.equals(b)) {
       return true;
     }
@@ -1500,36 +1563,15 @@ class ASTConverter {
     // Furthermore, a global variable and a function with the same name
     // cannot exist, so the following code works correctly.
     // We first try to lookup static variables.
-    ASimpleDeclaration lookupDeclaration = scope.lookupVariable(staticVariablePrefix + name);
-    CSimpleDeclaration declaration = null;
-    if (lookupDeclaration != null) {
-      assert lookupDeclaration instanceof CSimpleDeclaration
-          : "Expected C variable, but got " + lookupDeclaration;
-      declaration = (CSimpleDeclaration) lookupDeclaration;
-    }
-
+    CSimpleDeclaration declaration = scope.lookupVariable(staticVariablePrefix + name);
     if (declaration == null) {
-      ASimpleDeclaration variable = scope.lookupVariable(name);
-      if (variable != null) {
-        assert variable instanceof CSimpleDeclaration : "Expected C variable, but got " + variable;
-        declaration = (CSimpleDeclaration) variable;
-      }
+      declaration = scope.lookupVariable(name);
     }
     if (declaration == null) {
-      AFunctionDeclaration functionDeclaration = scope.lookupFunction(staticVariablePrefix + name);
-      if (functionDeclaration != null) {
-        assert functionDeclaration instanceof CFunctionDeclaration
-            : "Expected C function declaration, but got " + functionDeclaration;
-        declaration = (CFunctionDeclaration) functionDeclaration;
-      }
+      declaration = scope.lookupFunction(staticVariablePrefix + name);
     }
     if (declaration == null) {
-      AFunctionDeclaration functionDeclaration = scope.lookupFunction(staticVariablePrefix + name);
-      if (functionDeclaration != null) {
-        assert functionDeclaration instanceof CFunctionDeclaration
-            : "Expected C function declaration, but got " + functionDeclaration;
-        declaration = (CFunctionDeclaration) functionDeclaration;
-      }
+      declaration = scope.lookupFunction(name);
     }
 
     if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(name)) {
@@ -1562,8 +1604,7 @@ class ASTConverter {
     if (declaration != null
         // We cannot use declaration in case (B).
         && !(declaration instanceof CEnumerator enumerator && enumerator.getEnum() == null)) {
-      CType lookupType = declaration.getType();
-      type = lookupType;
+      type = declaration.getType();
     } else {
       type = typeConverter.convert(e.getExpressionType());
     }
@@ -1672,8 +1713,32 @@ class ASTConverter {
         CBinaryExpression preExp =
             buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, preOp);
         CLeftHandSide lhsPre = (CLeftHandSide) operand;
+        CExpressionAssignmentStatement result =
+            new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
 
-        return new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        if (operandType.isAtomic() && !isLocalVariable(operand)) {
+          // if x is an atomic type, ++x is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); return tmp;
+          //
+          // e.g., y = ++x; is transformed to
+          // atomic_begin(); x = x + 1; tmp = x; atomic_end(); y = tmp;
+          //
+          // That is, the new value of x is saved to a temporary variable still in the atomic block
+          // so that the value of the expression is correct even for concurrent analyses.
+          // Without the temporary variable, another thread modifying x could interleave with the
+          // incrementing thread after the atomic block end, but before the value of x is read.
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+          sideAssignmentStack.addPreSideAssignment(result);
+          CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPre);
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+          return tmp;
+        }
+
+        return result;
       }
       case IASTUnaryExpression.op_postFixIncr, IASTUnaryExpression.op_postFixDecr -> {
         // instead of x++ create "x = x + 1"
@@ -1695,8 +1760,34 @@ class ASTConverter {
           return result;
         }
 
+        // C11 _Atomic operations must appear inside an atomic section so that concurrent
+        // analyses treat the read-modify-write as a single indivisible step.
+        // see https://en.cppreference.com/w/c/language/atomic.html
+
+        // if x is an atomic type, x++ is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); return tmp;
+        //
+        // e.g., y = x++; is transformed to
+        // atomic_begin(); tmp = x; x = x + 1; atomic_end(); y = tmp;
+        //
+        // That is, the old value of x is saved to a temporary variable within the atomic block
+        // so that the value of the expression is correct even for concurrent analyses.
+        // Without the temporary variable, another thread modifying x could interleave with the
+        // incrementing thread after saving the old value of x, but before the atomic block start.
+        boolean isAtomic = operandType.isAtomic() && !isLocalVariable(operand);
+
+        if (isAtomic) {
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_BEGIN_DECLARATION));
+        }
+
         CExpression tmp = createTemporaryVariableWithInitializer(fileLoc, lhsPost);
         sideAssignmentStack.addPreSideAssignment(result);
+
+        if (isAtomic) {
+          sideAssignmentStack.addPreSideAssignment(
+              createNoArgsFunctionCall(operand.getFileLocation(), ATOMIC_END_DECLARATION));
+        }
 
         return tmp;
       }
@@ -1890,6 +1981,7 @@ class ASTConverter {
 
   public CFunctionDeclaration convert(final IASTFunctionDefinition f) {
     Pair<CStorageClass, ? extends CType> specifier = convert(f.getDeclSpecifier());
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(f.getDeclSpecifier(), f);
 
     CStorageClass cStorageClass = specifier.getFirst();
     if (!(cStorageClass == CStorageClass.AUTO
@@ -1933,9 +2025,17 @@ class ASTConverter {
     Pair<CStorageClass, ? extends CType> specifier = convert(d.getDeclSpecifier());
     CStorageClass cStorageClass = specifier.getFirst();
     CType type = specifier.getSecond();
+    // __thread / _Thread_local arrives as a preprocessor-inserted attribute on the decl specifier,
+    // because CDT has no thread-local storage class of its own (see EclipseCdtWrapper)
+    boolean hasThreadLocalStorage =
+        typeConverter.hasCPAcheckerAttributeForThreadLocal(d.getDeclSpecifier());
 
     IASTDeclarator[] declarators = d.getDeclarators();
     List<CDeclaration> result = new ArrayList<>();
+
+    if (hasThreadLocalStorage && (declarators == null || declarators.length == 0)) {
+      throw parseContext.parseError("_Thread_local in declaration without declarator", d);
+    }
 
     if (type instanceof CCompositeType || type instanceof CEnumType) {
       // struct, union, or enum declaration
@@ -1947,10 +2047,8 @@ class ASTConverter {
       // we can be sure the variable gets the correct (perhaps renamed) type
       if (declarators.length > 0 && type instanceof CCompositeType) {
         addSideEffectDeclarationForType((CCompositeType) complexType, fileLoc);
-        Type lookupType = scope.lookupType(complexType.getQualifiedName());
-        assert lookupType instanceof CComplexType : "Expected CComplexType, but got " + lookupType;
+        complexType = scope.lookupType(complexType.getQualifiedName());
 
-        complexType = (CComplexType) lookupType;
       } else {
         result.add(new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType));
       }
@@ -1998,7 +2096,8 @@ class ASTConverter {
                   fileLoc.getEndingLineInOrigin(),
                   fileLoc.isOffsetRelatedToOrigin());
         }
-        result.add(createDeclaration(declaratorLocation, cStorageClass, type, c));
+        result.add(
+            createDeclaration(declaratorLocation, cStorageClass, type, c, hasThreadLocalStorage));
       }
     }
 
@@ -2006,7 +2105,11 @@ class ASTConverter {
   }
 
   private CDeclaration createDeclaration(
-      FileLocation fileLoc, CStorageClass cStorageClass, CType type, IASTDeclarator d) {
+      FileLocation fileLoc,
+      CStorageClass cStorageClass,
+      CType type,
+      IASTDeclarator d,
+      boolean hasThreadLocalStorage) {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
@@ -2025,6 +2128,9 @@ class ASTConverter {
         if (initializer != null) {
           throw parseContext.parseError("Typedef with initializer", d);
         }
+        if (hasThreadLocalStorage) {
+          throw parseContext.parseError("Typedef with _Thread_local", d);
+        }
 
         name = scope.getFileSpecificTypeName(name);
         return new CTypeDefDeclaration(
@@ -2040,6 +2146,9 @@ class ASTConverter {
       if (innerType instanceof CFunctionType functionType) {
         if (initializer != null) {
           throw parseContext.parseError("Function definition with initializer", d);
+        }
+        if (hasThreadLocalStorage) {
+          throw parseContext.parseError("Function declaration with _Thread_local", d);
         }
 
         // Note that this silently ignores const and volatile qualifiers
@@ -2077,6 +2186,11 @@ class ASTConverter {
         throw parseContext.parseError("Variable cannot have type void", d);
       }
 
+      if (hasThreadLocalStorage && !isGlobal && cStorageClass == CStorageClass.AUTO) {
+        // C11 §6.7.1 (3)
+        throw parseContext.parseError("_Thread_local at block scope requires static or extern", d);
+      }
+
       String origName = name;
 
       if (cStorageClass == CStorageClass.STATIC) {
@@ -2107,7 +2221,15 @@ class ASTConverter {
       final String scopedName = isGlobal ? name : scope.createScopedNameOf(name);
       CVariableDeclaration declaration =
           new CVariableDeclaration(
-              fileLoc, isGlobal, cStorageClass, type, name, origName, scopedName, null);
+              fileLoc,
+              isGlobal,
+              cStorageClass,
+              type,
+              name,
+              origName,
+              scopedName,
+              null,
+              hasThreadLocalStorage);
       scope.registerDeclaration(declaration);
 
       // Now that we registered the declaration, we can parse the initializer.
@@ -2125,8 +2247,12 @@ class ASTConverter {
     }
   }
 
-  private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(
-      final IASTDeclaration d, int nofMember) {
+  /**
+   * @param pTypePacked whether the composite type is packed, which applies to all its members
+   * @param pTypeAlignment the alignment of the composite type for its first member, or 0
+   */
+  private ImmutableList<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(
+      final IASTDeclaration d, int nofMember, boolean pTypePacked, int pTypeAlignment) {
     if (d.getParent() instanceof IASTCompositeTypeSpecifier) {
       // FIXME: remove conditional after debugging
     }
@@ -2138,8 +2264,28 @@ class ASTConverter {
       throw parseContext.parseError("unknown declaration type " + d.getClass().getSimpleName(), d);
     }
 
-    Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
-    // TODO: add knowledge about sd.DeclSpecifier.alignmentSpecifiers
+    IASTDeclSpecifier declSpecifier = sd.getDeclSpecifier();
+    Pair<CStorageClass, ? extends CType> specifier = convert(declSpecifier);
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(declSpecifier, d);
+    // Alignment specifiers always apply to the member (C11 § 6.7.5 (6)).
+    boolean packed;
+    int alignment;
+    if (declSpecifier instanceof IASTCompositeTypeSpecifier
+        || declSpecifier instanceof IASTEnumerationSpecifier) {
+      // The member declaration defines a struct, union, or enum type in place. GCC applies
+      // attributes after its keyword or closing brace to this type and not to the member
+      // (https://gcc.gnu.org/onlinedocs/gcc/Attribute-Syntax.html#Type-Attributes-1), so they are
+      // handled with the type. CDT also stores attributes before the keyword here, which GCC
+      // applies to the member (unsupported).
+      packed = false;
+      alignment = getAlignmentSpecifier(declSpecifier);
+    } else {
+      // The member has a basic type or refers to an existing type (e.g., "struct T" or a typedef
+      // name), so the attributes apply to the member.
+      packed = hasPackedAttribute(declSpecifier);
+      alignment =
+          Math.max(getAlignmentSpecifier(declSpecifier), getAlignedAttribute(declSpecifier));
+    }
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class inside composite type", d);
     }
@@ -2157,32 +2303,27 @@ class ASTConverter {
               compositeType);
     }
 
-    List<CCompositeTypeMemberDeclaration> result;
+    packed |= pTypePacked;
     IASTDeclarator[] declarators = sd.getDeclarators();
     if (declarators == null || declarators.length == 0) {
       // declaration without declarator, anonymous struct field?
-      CCompositeTypeMemberDeclaration newD =
-          createDeclarationForCompositeType(type, null, nofMember);
-      result = Collections.singletonList(newD);
-
-    } else if (declarators.length == 1) {
-      CCompositeTypeMemberDeclaration newD =
-          createDeclarationForCompositeType(type, declarators[0], nofMember);
-      result = Collections.singletonList(newD);
-
-    } else {
-      result = new ArrayList<>(declarators.length);
-      for (IASTDeclarator c : declarators) {
-
-        result.add(createDeclarationForCompositeType(type, c, nofMember));
-      }
+      return ImmutableList.of(
+          createDeclarationForCompositeType(
+              type, null, nofMember, packed, Math.max(alignment, pTypeAlignment)));
     }
-
-    return result;
+    ImmutableList.Builder<CCompositeTypeMemberDeclaration> result =
+        ImmutableList.builderWithExpectedSize(declarators.length);
+    for (int i = 0; i < declarators.length; i++) {
+      int memberAlignment = i == 0 ? Math.max(alignment, pTypeAlignment) : alignment;
+      result.add(
+          createDeclarationForCompositeType(
+              type, declarators[i], nofMember, packed, memberAlignment));
+    }
+    return result.build();
   }
 
   private CCompositeTypeMemberDeclaration createDeclarationForCompositeType(
-      CType type, IASTDeclarator d, int nofMember) {
+      CType type, IASTDeclarator d, int nofMember, boolean packed, int alignment) {
     String name = null;
 
     if (d != null) {
@@ -2194,13 +2335,15 @@ class ASTConverter {
 
       type = declarator.type();
       name = declarator.name();
+      packed |= hasPackedAttribute(d);
+      alignment = Math.max(alignment, getAlignedAttribute(d));
     }
 
     if (isNullOrEmpty(name)) {
       name = "__anon_type_member_" + nofMember;
     }
 
-    return new CCompositeTypeMemberDeclaration(type, name);
+    return new CCompositeTypeMemberDeclaration(type, name, packed, alignment);
   }
 
   private Declarator convert(IASTDeclarator d, CType specifier, boolean isFunctionParameter) {
@@ -2314,7 +2457,7 @@ class ASTConverter {
           // clear added modifiers
           tmpArrMod.clear();
 
-          type = typeConverter.convert(iASTPointerOperator, type);
+          type = typeConverter.convert(iASTPointerOperator, type, modifiers, d);
 
         } else {
           throw new AssertionError();
@@ -2433,6 +2576,64 @@ class ASTConverter {
       }
     }
     return type;
+  }
+
+  /** Whether the node has the GCC attribute packed. */
+  private static boolean hasPackedAttribute(IASTAttributeOwner pNode) {
+    return Arrays.stream(pNode.getAttributes())
+        .anyMatch(attribute -> getAttributeString(attribute.getName()).equals("packed"));
+  }
+
+  /**
+   * Return the maximum alignment that the GCC attributes aligned of the node request, or 0 if there
+   * is none. Documentation: https://gcc.gnu.org/onlinedocs/gcc/Common-Attributes.html#index-aligned
+   */
+  private int getAlignedAttribute(IASTAttributeOwner pNode) {
+    int alignment = 0;
+    for (IASTAttribute attribute : pNode.getAttributes()) {
+      if (getAttributeString(attribute.getName()).equals("aligned")) {
+        alignment = Math.max(alignment, evaluateAlignedAttribute(attribute));
+      }
+    }
+    return alignment;
+  }
+
+  /** Return the maximum alignment of the alignment specifiers (C11 § 6.7.5), or 0 if none. */
+  private int getAlignmentSpecifier(IASTDeclSpecifier pDeclSpecifier) {
+    int alignment = 0;
+    if (pDeclSpecifier instanceof ICASTDeclSpecifier cDeclSpecifier) {
+      for (IASTAlignmentSpecifier specifier : cDeclSpecifier.getAlignmentSpecifiers()) {
+        int value =
+            specifier.getTypeId() != null
+                ? machineModel.getAlignof(convert(specifier.getTypeId()))
+                : checkAlignment(
+                    evaluateIntegerConstantExpression(specifier.getExpression()), specifier);
+        alignment = Math.max(alignment, value);
+      }
+    }
+    return alignment;
+  }
+
+  private int checkAlignment(BigInteger pAlignment, IASTNode pNode) {
+    if (pAlignment.signum() < 0 || pAlignment.bitCount() > 1) {
+      throw parseContext.parseError("Alignment " + pAlignment + " is not a power of two", pNode);
+    }
+    return pAlignment.intValueExact();
+  }
+
+  private int evaluateAlignedAttribute(IASTAttribute pAttribute) {
+    IASTToken argument = pAttribute.getArgumentClause();
+    if (argument == null) {
+      // __BIGGEST_ALIGNMENT__ of GCC
+      return switch (machineModel) {
+        case LINUX32, LINUX64, ARM64 -> 16;
+        case ARM -> 8;
+      };
+    }
+    return checkAlignment(
+        alignedAttributeEvaluator.evaluate(
+            AlignedAttributeEvaluator.getTokens(argument), pAttribute),
+        pAttribute);
   }
 
   /** Return normalized string for a name etc. in an attribute context. */
@@ -2646,11 +2847,16 @@ class ASTConverter {
   }
 
   private CCompositeType convert(IASTCompositeTypeSpecifier d) {
+    // Store the attributes of the type in its members: packed in all members and aligned in the
+    // first member. GCC defines this as equivalent, cf. CCompositeType.
+    boolean packed = hasPackedAttribute(d);
+    int alignment = getAlignedAttribute(d);
     List<CCompositeTypeMemberDeclaration> list = new ArrayList<>(d.getMembers().length);
 
     int nofMember = 0;
     for (IASTDeclaration c : d.getMembers()) {
-      List<CCompositeTypeMemberDeclaration> newCs = convertDeclarationInCompositeType(c, nofMember);
+      List<CCompositeTypeMemberDeclaration> newCs =
+          convertDeclarationInCompositeType(c, nofMember, packed, list.isEmpty() ? alignment : 0);
       nofMember++;
       assert !newCs.isEmpty();
       list.addAll(newCs);
@@ -2663,6 +2869,9 @@ class ASTConverter {
           default ->
               throw parseContext.parseError("Unknown key " + d.getKey() + " for composite type", d);
         };
+    if (alignment > 0 && list.isEmpty()) {
+      throw parseContext.parseError("Unsupported aligned attribute for empty " + kind, d);
+    }
     String name = convert(d.getName());
     String origName = name;
     if (name.isEmpty()) {
@@ -2696,6 +2905,7 @@ class ASTConverter {
         }
       }
     }
+
     CCompositeType compositeType =
         new CCompositeType(typeConverter.convertCTypeQualifiers(d), kind, list, name, origName);
 
@@ -2725,7 +2935,7 @@ class ASTConverter {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
-    CSimpleType integerType = getEnumerationType(list);
+    CSimpleType integerType = getEnumerationType(list, hasPackedAttribute(d));
     CEnumType enumType =
         new CEnumType(typeConverter.convertCTypeQualifiers(d), integerType, list, name, origName);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
@@ -2746,6 +2956,17 @@ class ASTConverter {
           CNumericTypes.SIGNED_LONG_LONG_INT,
           CNumericTypes.UNSIGNED_LONG_LONG_INT);
 
+  /** GCC uses the smallest possible type for enumerations with the packed attribute. */
+  private static final ImmutableList<CSimpleType> PACKED_ENUM_REPRESENTATION_CANDIDATE_TYPES =
+      ImmutableList.<CSimpleType>builder()
+          .add(
+              CNumericTypes.SIGNED_CHAR,
+              CNumericTypes.UNSIGNED_CHAR,
+              CNumericTypes.SHORT_INT,
+              CNumericTypes.UNSIGNED_SHORT_INT)
+          .addAll(ENUM_REPRESENTATION_CANDIDATE_TYPES)
+          .build();
+
   /**
    * Compute a matching integer type for an enumeration. We use SIGNED_INT and switch to larger type
    * if needed.
@@ -2754,14 +2975,15 @@ class ASTConverter {
    * an unsigned integer type. The choice of type is implementation-defined, but shall be capable of
    * representing the values of all the members of the enumeration.
    */
-  private CSimpleType getEnumerationType(final List<CEnumerator> enumerators) {
+  private CSimpleType getEnumerationType(final List<CEnumerator> enumerators, boolean packed) {
     List<BigInteger> enumeratorValues = enumerators.stream().map(CEnumerator::getValue).toList();
 
     Preconditions.checkState(
         !enumeratorValues.isEmpty(), "enumeration does not provide any values");
     final BigInteger minValue = Collections.min(enumeratorValues);
     final BigInteger maxValue = Collections.max(enumeratorValues);
-    for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
+    for (CSimpleType integerType :
+        packed ? PACKED_ENUM_REPRESENTATION_CANDIDATE_TYPES : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
       if (minValue.compareTo(machineModel.getMinimalIntegerValue(integerType)) >= 0
           && maxValue.compareTo(machineModel.getMaximalIntegerValue(integerType)) <= 0) {
         // if all enumeration values are matching into the range, we use it
@@ -2879,7 +3101,8 @@ class ASTConverter {
     }
 
     CExpression subscriptExpression =
-        convertExpressionWithoutSideEffects(arrayDesignator.getSubscriptExpression());
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(arrayDesignator.getSubscriptExpression()));
     CDesignator designator = new CArrayDesignator(fileLoc, subscriptExpression);
     return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
   }
@@ -2896,9 +3119,12 @@ class ASTConverter {
       elementType = ownerType;
     }
 
-    CExpression rangeFloor = convertExpressionWithoutSideEffects(rangeDesignator.getRangeFloor());
+    CExpression rangeFloor =
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(rangeDesignator.getRangeFloor()));
     CExpression rangeCeiling =
-        convertExpressionWithoutSideEffects(rangeDesignator.getRangeCeiling());
+        simplifyExpressionRecursively(
+            convertExpressionWithoutSideEffects(rangeDesignator.getRangeCeiling()));
 
     CDesignator designator = new CArrayRangeDesignator(fileLoc, rangeFloor, rangeCeiling);
     return new DesignatorsAndLastType(ImmutableList.of(designator), elementType);
@@ -3171,7 +3397,7 @@ class ASTConverter {
       if (pDeclarationType instanceof CPointerType cPointerType) {
         canonicalType = cPointerType.getType().getCanonicalType();
       }
-      return canonicalType.withoutQualifiers().equals(CNumericTypes.CHAR);
+      return canonicalType.asUnqualified().equals(CNumericTypes.CHAR);
     }
     return false;
   }
@@ -3192,6 +3418,7 @@ class ASTConverter {
 
   private CParameterDeclaration convert(IASTParameterDeclaration p) {
     Pair<CStorageClass, ? extends CType> specifier = convert(p.getDeclSpecifier());
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(p.getDeclSpecifier(), p);
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class for parameters", p);
     }
@@ -3222,6 +3449,7 @@ class ASTConverter {
 
   CType convert(IASTTypeId t) {
     Pair<CStorageClass, ? extends CType> specifier = convert(t.getDeclSpecifier());
+    typeConverter.checkNoCPAcheckerAttributeForThreadLocal(t.getDeclSpecifier(), t);
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class for type ids", t);
     }
@@ -3499,23 +3727,20 @@ class ASTConverter {
     private Pair<List<Integer>, CType> resolveIndicesOfDesignator(
         ICASTDesignator designator, CType parentType) {
       CType currentType = parentType.getCanonicalType();
-      switch (designator) {
+      return switch (designator) {
         case ICASTFieldDesignator fieldDesignator -> {
           String targetFieldName = fieldDesignator.getName().toString();
-          return resolveIndicesOfFieldDesignator(targetFieldName, currentType);
+          yield resolveIndicesOfFieldDesignator(targetFieldName, currentType);
         }
 
-        case ICASTArrayDesignator arrayDesignator -> {
-          return resolveIndicesOfArraySubscript(
-              arrayDesignator.getSubscriptExpression(), currentType);
-        }
+        case ICASTArrayDesignator arrayDesignator ->
+            resolveIndicesOfArraySubscript(arrayDesignator.getSubscriptExpression(), currentType);
 
-        case IGCCASTArrayRangeDesignator rangeDesignator -> {
-          return resolveIndicesOfArraySubscript(rangeDesignator.getRangeCeiling(), currentType);
-        }
+        case IGCCASTArrayRangeDesignator rangeDesignator ->
+            resolveIndicesOfArraySubscript(rangeDesignator.getRangeCeiling(), currentType);
         case null, default ->
             throw new AssertionError("Unexpected designator in sequence: " + designator);
-      }
+      };
     }
 
     private Pair<List<Integer>, CType> resolveIndicesOfFieldDesignator(

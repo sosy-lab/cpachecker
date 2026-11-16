@@ -107,6 +107,13 @@ public final class AbstractionManager {
     }
   }
 
+  public AbstractionPredicate parsePredicate(String predicate) {
+    if (predicate.isBlank()) {
+      return makeFalsePredicate();
+    }
+    return makePredicate(fmgr.parse(predicate));
+  }
+
   public int getNumberOfPredicates() {
     return symbVarToPredicate.size();
   }

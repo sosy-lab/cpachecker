@@ -14,6 +14,7 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 /**
  * Formally this differs from the ACSL syntax, since there a literal can only be contained in a term
@@ -28,12 +29,10 @@ public abstract sealed class AcslLiteralTerm extends ALiteralExpression implemen
         AcslRealLiteralTerm,
         AcslStringLiteralTerm {
 
-  @Serial private static final long serialVersionUID = -81455251151276L;
+  @Serial private static final long serialVersionUID = 5949667495566535665L;
 
   protected AcslLiteralTerm(FileLocation pLocation, AcslType pType) {
-    super(pLocation, pType);
-    checkNotNull(pLocation);
-    checkNotNull(pType);
+    super(checkNotNull(pLocation), checkNotNull(pType));
   }
 
   @Override

@@ -13,27 +13,26 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslIdTerm extends AIdExpression implements AcslTerm {
 
-  @Serial private static final long serialVersionUID = -81455024312376L;
+  @Serial private static final long serialVersionUID = 9161175786153151188L;
 
   private AcslIdTerm(
       FileLocation pFileLocation,
       AcslType pType,
       final String pName,
       final AcslSimpleDeclaration pDeclaration) {
-    super(pFileLocation, pType, pName, pDeclaration);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
-    checkNotNull(pType);
-    checkNotNull(pName);
+    super(
+        checkNotNull(pFileLocation),
+        checkNotNull(pType),
+        checkNotNull(pName),
+        checkNotNull(pDeclaration));
   }
 
   public AcslIdTerm(FileLocation pFileLocation, AcslSimpleDeclaration pDeclaration) {
     this(pFileLocation, pDeclaration.getType(), pDeclaration.getName(), pDeclaration);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
   }
 
   @Override

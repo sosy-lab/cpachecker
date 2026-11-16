@@ -1,0 +1,133 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
+
+import static com.google.common.base.Verify.verify;
+
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryPredicateOperator;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.BinaryTermPredTernaryConditionContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.ComparisonTermPredTernaryConditionContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LogicalFalseTermPredTernaryConditionContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.LogicalTrueTermPredTernaryConditionContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.OldTermPredTernaryConditionContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.ParenthesesTermPredTernaryConditionContext;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.generated.AcslGrammarParser.UnaryTermPredTernaryConditionContext;
+
+class TernaryConditionPredicateToAstConverter extends AbstractAntlrToAstConverter<AcslPredicate> {
+
+  private final TernaryConditionTermToAstConverter termConverter;
+
+  TernaryConditionPredicateToAstConverter(
+      CProgramScope pCProgramScope, AcslScope pAcslScope, FileLocation pInitialFileLocation) {
+    super(pCProgramScope, pAcslScope, pInitialFileLocation);
+    termConverter =
+        new TernaryConditionTermToAstConverter(pCProgramScope, pAcslScope, pInitialFileLocation);
+  }
+
+  @Override
+  public AcslPredicate visitOldTermPredTernaryCondition(OldTermPredTernaryConditionContext ctx) {
+    // The second child is the term inside the old, the others are
+    // '\old' '(' term ')'
+    AcslPredicate expression = visit(ctx.getChild(2));
+
+    return new AcslOldPredicate(fileLocationFromContext(ctx), expression);
+  }
+
+  @Override
+  public AcslPredicate visitLogicalTrueTermPredTernaryCondition(
+      LogicalTrueTermPredTernaryConditionContext ctx) {
+    return new AcslBooleanLiteralPredicate(fileLocationFromContext(ctx), true);
+  }
+
+  @Override
+  public AcslPredicate visitLogicalFalseTermPredTernaryCondition(
+      LogicalFalseTermPredTernaryConditionContext ctx) {
+    return new AcslBooleanLiteralPredicate(fileLocationFromContext(ctx), false);
+  }
+
+  @Override
+  public AcslPredicate visitParenthesesTermPredTernaryCondition(
+      ParenthesesTermPredTernaryConditionContext ctx) {
+    return visit(ctx.getChild(1));
+  }
+
+  @Override
+  public AcslPredicate visitUnaryTermPredTernaryCondition(
+      UnaryTermPredTernaryConditionContext ctx) {
+    AcslUnaryPredicateOperator operator = AcslUnaryPredicateOperator.of(ctx.getChild(0).getText());
+    AcslPredicate expression = visit(ctx.getChild(1));
+
+    return new AcslUnaryPredicate(fileLocationFromContext(ctx), expression, operator);
+  }
+
+  @Override
+  public AcslPredicate visitBinaryTermPredTernaryCondition(
+      BinaryTermPredTernaryConditionContext ctx) {
+    AcslPredicate leftExpression = visit(ctx.getChild(0));
+    AcslBinaryPredicateOperator operator =
+        AcslBinaryPredicateOperator.of(ctx.getChild(1).getText());
+    AcslPredicate rightExpression = visit(ctx.getChild(2));
+
+    return new AcslBinaryPredicate(
+        fileLocationFromContext(ctx), leftExpression, rightExpression, operator);
+  }
+
+  @Override
+  public AcslPredicate visitComparisonTermPredTernaryCondition(
+      ComparisonTermPredTernaryConditionContext ctx) {
+    // In ACSL it is allowed to write something like `0 <= i <= n`, which we get as the list
+    // [`0`, `<=`, `i`, `<=`, `n`]
+    AcslPredicate currentExpression = null;
+    int amountOfChildren = ctx.getChildCount();
+    int i;
+    for (i = 0; i + 1 < amountOfChildren; i += 2) {
+      verify(
+          i + 3 <= amountOfChildren,
+          "Unexpected number of children when creating comparison operator");
+
+      AcslTerm leftTerm = termConverter.visit(ctx.getChild(i));
+      AcslBinaryTermPredicateOperator operator =
+          AcslBinaryTermPredicateOperator.of(ctx.getChild(i + 1).getText());
+      AcslTerm righTerm = termConverter.visit(ctx.getChild(i + 2));
+
+      AcslPredicate newComparison =
+          new AcslBinaryTermPredicate(fileLocationFromContext(ctx), leftTerm, righTerm, operator);
+
+      if (currentExpression == null) {
+        currentExpression = newComparison;
+      } else {
+        currentExpression =
+            new AcslBinaryPredicate(
+                fileLocationFromContext(ctx),
+                currentExpression,
+                newComparison,
+                AcslBinaryPredicateOperator.AND);
+      }
+    }
+
+    verify(
+        currentExpression != null, "Expected at least one comparison for a comparison predicate");
+    verify(
+        i + 1 == amountOfChildren,
+        "Not all children were considered during parsing a comparison predicate");
+
+    return currentExpression;
+  }
+}

@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class AssigningValueVisitorTest {
 
@@ -47,7 +47,7 @@ public class AssigningValueVisitorTest {
         valState,
         pMachine,
         logger,
-        new ValueTransferOptions(TestDataTools.configurationForTest().build()));
+        new ValueTransferOptions(TestUtils.configurationForTest().build()));
   }
 
   @Test

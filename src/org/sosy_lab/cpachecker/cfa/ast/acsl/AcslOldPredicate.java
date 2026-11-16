@@ -11,23 +11,25 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public final class AcslOldPredicate extends AbstractExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = -81455023251276L;
+  @Serial private static final long serialVersionUID = 8738238784652077408L;
 
   private AcslPredicate expression;
 
   public AcslOldPredicate(FileLocation pLocation, AcslPredicate pExpression) {
-    super(pLocation, pExpression.getExpressionType());
-    assert Objects.equals(pExpression.getExpressionType(), AcslBuiltinLogicType.BOOLEAN);
-    checkNotNull(pExpression);
-    checkNotNull(pLocation);
-    expression = pExpression;
+    super(checkNotNull(pLocation), pExpression.getExpressionType());
+    assert pExpression.getExpressionType().equals(AcslBuiltinLogicType.BOOLEAN);
+    expression = checkNotNull(pExpression);
+  }
+
+  public AcslPredicate getExpression() {
+    return expression;
   }
 
   @Override

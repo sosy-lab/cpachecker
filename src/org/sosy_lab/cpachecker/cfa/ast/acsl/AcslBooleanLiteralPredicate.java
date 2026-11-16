@@ -15,14 +15,13 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslBooleanLiteralPredicate extends AcslLiteralPredicate {
 
-  @Serial private static final long serialVersionUID = 7019912361956900L;
+  @Serial private static final long serialVersionUID = 3768934753588804045L;
 
   private final boolean value;
 
   public AcslBooleanLiteralPredicate(FileLocation pFileLocation, boolean pValue) {
-    super(pFileLocation);
+    super(checkNotNull(pFileLocation));
     value = pValue;
-    checkNotNull(pFileLocation);
   }
 
   @Override

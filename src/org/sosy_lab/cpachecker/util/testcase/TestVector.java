@@ -82,9 +82,7 @@ public class TestVector {
     checkState(
         inputValues.size()
             == inputVariableValues.size()
-                + inputFunctionValues.values().stream()
-                    .map(ImmutableList::size)
-                    .reduce(0, (x, y) -> x + y));
+                + inputFunctionValues.values().stream().mapToInt(ImmutableList::size).sum());
     return inputValues;
   }
 

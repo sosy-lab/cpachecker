@@ -8,26 +8,40 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslCharLiteralTerm extends AcslLiteralTerm {
 
-  @Serial private static final long serialVersionUID = -814550243801151276L;
+  @Serial private static final long serialVersionUID = 3651182318094711551L;
   private final char character;
 
   public AcslCharLiteralTerm(FileLocation pFileLocation, AcslType pType, char pCharacter) {
-    super(pFileLocation, pType);
+    super(checkNotNull(pFileLocation), checkNotNull(pType));
+    checkArgument(
+        AcslType.isIntegral(pType), "A character literal has an integer type, not %s", pType);
     character = pCharacter;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
   }
 
   @Override
   public Character getValue() {
     return character;
+  }
+
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return switch (character) {
+      case '\'' -> "'\\''";
+      case '\\' -> "'\\\\'";
+      default ->
+          character >= ' ' && character < 127
+              ? "'" + character + "'"
+              : String.format("'\\x%x'", (int) character);
+    };
   }
 
   @Override

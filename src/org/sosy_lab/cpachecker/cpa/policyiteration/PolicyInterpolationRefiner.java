@@ -12,8 +12,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -144,19 +142,19 @@ public class PolicyInterpolationRefiner implements Refiner {
   private <T> boolean injectPrecision(
       InterpolatingProverEnvironment<T> itp, final PolicyIntermediateState iState)
       throws SolverException, InterruptedException {
-    List<Set<T>> handles = new ArrayList<>();
+    List<T> handles = new ArrayList<>();
 
     int pushed = 0;
     for (PolicyIntermediateState predecessor : iState.allStatesToRoot()) {
       T handle = itp.push(predecessor.getPathFormula().getFormula());
       assert handle != null;
-      handles.add(ImmutableSet.of(handle));
+      handles.add(handle);
       pushed++;
     }
 
     Preconditions.checkState(itp.isUnsat());
 
-    List<BooleanFormula> interpolants = itp.getSeqInterpolants(handles);
+    List<BooleanFormula> interpolants = itp.getSeqInterpolants0(handles);
 
     boolean changed = injectPrecisionFromInterpolants(interpolants, iState);
 
@@ -204,7 +202,7 @@ public class PolicyInterpolationRefiner implements Refiner {
       final PolicyIntermediateState pState, InterpolatingProverEnvironment<T> itp)
       throws SolverException, InterruptedException {
 
-    List<Set<T>> handles = new ArrayList<>();
+    List<T> handles = new ArrayList<>();
 
     for (PolicyIntermediateState predecessor : pState.allStatesToRoot()) {
       BooleanFormula f = predecessor.getPathFormula().getFormula();
@@ -214,11 +212,11 @@ public class PolicyInterpolationRefiner implements Refiner {
 
       T handle = itp.push(weakened);
       assert handle != null;
-      handles.add(ImmutableSet.of(handle));
+      handles.add(handle);
     }
 
     if (itp.isUnsat()) {
-      return Optional.of(itp.getSeqInterpolants(handles));
+      return Optional.of(itp.getSeqInterpolants0(handles));
 
     } else {
       return Optional.empty();
@@ -289,9 +287,6 @@ public class PolicyInterpolationRefiner implements Refiner {
   }
 
   private void forceRestart(ReachedSet reached) throws InterruptedException {
-    ARGState firstChild =
-        Iterables.getOnlyElement(((ARGState) reached.getFirstState()).getChildren());
-
-    new ARGReachedSet(reached).removeSubtree(firstChild);
+    new ARGReachedSet(reached).removeAllExceptFirstState();
   }
 }

@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatementUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.ProgramCounterVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elements.program_counter.SeqProgramCounterVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public record PrevThreadAssignmentInjector(
@@ -38,13 +38,13 @@ public record PrevThreadAssignmentInjector(
       int targetPc = pStatement.targetPc().orElseThrow();
 
       // if a thread exits, set prev_thread to NUM_THREADS
-      if (targetPc == ProgramCounterVariables.EXIT_PC) {
+      if (targetPc == SeqProgramCounterVariables.EXIT_PC) {
         return injectPrevThreadUpdateIntoStatement(pStatement, numThreads);
       }
       // if targetPc != EXIT_PC, then pLabelClause contains targetPc, otherwise NPE
       SeqThreadStatementClause targetClause = Objects.requireNonNull(labelClauseMap.get(targetPc));
 
-      if (options.abortCommutingContextSwitches()) {
+      if (options.abortCommutingContextSwitches() && numThreads > 1) {
         // For sync locations, set prev_thread to NUM_THREADS. This is necessary when
         // abortCommutingContextSwitches (ACS) is enabled, otherwise the analysis is unsound.
         //

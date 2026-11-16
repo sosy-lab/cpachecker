@@ -8,29 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
-
 public interface AcslAstNodeVisitor<R, X extends Exception>
     extends AcslPredicateVisitor<R, X>,
         AcslSimpleDeclarationVisitor<R, X>,
-        AcslInitializerVisitor<R, X>,
         AcslTermVisitor<R, X>,
-        AcslMemoryLocationSetVisitor<R, X>,
         AcslLogicDefinitionVisitor<R, X> {
 
-  R visit(AcslBinaryPredicateOperator pDecl) throws X;
-
-  R visit(AcslBinaryTermOperator pDecl) throws X;
-
-  R visit(AcslBinaryTermExpressionOperator pDecl) throws X;
-
-  R visit(AcslUnaryTermOperator pDecl) throws X;
-
-  R visit(AcslUnaryExpressionOperator pDecl) throws X;
+  R visit(AcslMemoryLocationSet pMemoryLocationSet) throws X;
 
   R visit(AcslBuiltinLabel pAcslBuiltinLabel) throws X;
 

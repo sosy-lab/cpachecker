@@ -29,11 +29,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -43,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -55,7 +51,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * Implementation of {@link Scope} for the local scope inside functions. Only variables can be
  * declared. Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
-public class FunctionScope extends AbstractScope {
+class FunctionScope extends AbstractScope {
 
   private final Scope artificialScope;
   private final Map<String, CFunctionDeclaration> localFunctions = new HashMap<>();
@@ -74,6 +70,29 @@ public class FunctionScope extends AbstractScope {
   private final Deque<PersistentSet<AVariableDeclaration>> localVarsStackWitNewNames =
       new ArrayDeque<>();
   private boolean modifiedParameters = true;
+
+  // The local variables and parameters in scope as in the input program. Unlike the caches above,
+  // they do not contain hidden declarations: a declaration in an inner block hides (shadows) a
+  // declaration with the same name in an outer block until the inner block ends. The CFA builder
+  // renames the inner declaration, so the caches above contain both. Example:
+  //
+  //   int f(int x) {
+  //     int y = x;
+  //     {
+  //       int x = 1;  // hides parameter x, renamed to x__1
+  //       int y = 2;  // hides variable y, renamed to y__1
+  //       // caches above: parameter x, variables y, x__1, y__1
+  //       // stacks below: variables x__1, y__1
+  //     }
+  //     // both: parameter x, variable y
+  //   }
+  //
+  // The CFA builder records them for each CFA node. While no local variable is hidden, the sets of
+  // local variables below are the same instances as above, so they need no additional memory.
+  private final Deque<PersistentSet<AVariableDeclaration>> visibleLocalVarsStack =
+      new ArrayDeque<>();
+  private final Deque<ImmutableSet<AParameterDeclaration>> visibleParametersStack =
+      new ArrayDeque<>();
 
   private CFunctionDeclaration currentFunction = null;
   private Optional<CVariableDeclaration> returnVariable = null;
@@ -97,7 +116,10 @@ public class FunctionScope extends AbstractScope {
     varsListWithNewNames.push(pGlobalVars);
 
     artificialScope = pArtificialScope;
-    localVarsStackWitNewNames.add(PersistentSet.of());
+    PersistentSet<AVariableDeclaration> noLocalVars = PersistentSet.of();
+    localVarsStackWitNewNames.add(noLocalVars);
+    visibleLocalVarsStack.add(noLocalVars);
+    visibleParametersStack.add(ImmutableSet.of());
 
     enterBlock();
   }
@@ -144,7 +166,8 @@ public class FunctionScope extends AbstractScope {
                   name,
                   name,
                   createScopedNameOf(name),
-                  null));
+                  null,
+                  /* pHasThreadLocalStorage= */ false));
     }
   }
 
@@ -158,6 +181,8 @@ public class FunctionScope extends AbstractScope {
     varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
     // Optimizations to keep track of all variables which are in scope
     localVarsStackWitNewNames.addLast(localVarsStackWitNewNames.peekLast());
+    visibleLocalVarsStack.addLast(visibleLocalVarsStack.peekLast());
+    visibleParametersStack.addLast(visibleParametersStack.peekLast());
   }
 
   public void leaveBlock() {
@@ -169,6 +194,8 @@ public class FunctionScope extends AbstractScope {
     labelsNodeStack.removeLast();
     // Optimizations to keep track of all variables which are in scope
     localVarsStackWitNewNames.removeLast();
+    visibleLocalVarsStack.removeLast();
+    visibleParametersStack.removeLast();
   }
 
   /** returns only the most local scope, i.e., the scope between the nearest curly brackets. */
@@ -217,6 +244,51 @@ public class FunctionScope extends AbstractScope {
     return parameterDeclarations;
   }
 
+  /**
+   * Like {@link #getVariablesInScope}, but without the variables hidden (shadowed) by a declaration
+   * with the same name in an inner block, see the example at {@code visibleLocalVarsStack}.
+   */
+  public Set<AVariableDeclaration> getVisibleVariablesInScope() {
+    return visibleLocalVarsStack.peekLast();
+  }
+
+  /**
+   * Like {@link #getParameters}, but without the parameters hidden (shadowed) by a local variable
+   * with the same name in an inner block, see the example at {@code visibleLocalVarsStack}.
+   */
+  public ImmutableSet<AParameterDeclaration> getVisibleParameters() {
+    return visibleParametersStack.peekLast();
+  }
+
+  /** Like {@link #getVisibleVariablesInScope}, but for the block around the current block. */
+  public Set<AVariableDeclaration> getVisibleVariablesOfEnclosingBlock() {
+    return Iterables.get(visibleLocalVarsStack::descendingIterator, 1);
+  }
+
+  /** Like {@link #getVisibleParameters}, but for the block around the current block. */
+  public ImmutableSet<AParameterDeclaration> getVisibleParametersOfEnclosingBlock() {
+    return Iterables.get(visibleParametersStack::descendingIterator, 1);
+  }
+
+  /**
+   * Returns the local variable or parameter that a new declaration with this name in the current
+   * block hides (shadows), i.e., the innermost one with this name in the enclosing blocks. In the
+   * example at {@code visibleLocalVarsStack}, this is parameter x for {@code int x = 1;}. Global
+   * variables and enumerators are not in the caches, so it skips them.
+   */
+  private @Nullable CSimpleDeclaration getHiddenDeclaration(String pName) {
+    Iterator<Map<String, CSimpleDeclaration>> it = varsStack.descendingIterator();
+    while (it.hasNext()) {
+      CSimpleDeclaration declaration = it.next().get(pName);
+      if (declaration instanceof CParameterDeclaration
+          || (declaration instanceof CVariableDeclaration variable
+              && localVarsStackWitNewNames.peekLast().contains(variable))) {
+        return declaration;
+      }
+    }
+    return null;
+  }
+
   @Override
   public CSimpleDeclaration lookupVariable(String name) {
     checkNotNull(name);
@@ -231,16 +303,7 @@ public class FunctionScope extends AbstractScope {
       }
     }
 
-    ASimpleDeclaration declaration = artificialScope.lookupVariable(name);
-    // For some reason this is sometimes null
-    if (declaration == null) {
-      return null;
-    }
-
-    assert declaration instanceof CSimpleDeclaration
-        : "Only C declarations are allowed in the scope: " + declaration;
-
-    return (CSimpleDeclaration) declaration;
+    return artificialScope.lookupVariable(name);
   }
 
   @Override
@@ -258,15 +321,7 @@ public class FunctionScope extends AbstractScope {
       return returnDecl;
     }
 
-    AFunctionDeclaration declaration = artificialScope.lookupFunction(name);
-    if (declaration == null) {
-      return null;
-    }
-
-    assert declaration instanceof CFunctionDeclaration
-        : "Only C declarations are allowed in the scope: " + declaration;
-
-    return (CFunctionDeclaration) declaration;
+    return artificialScope.lookupFunction(name);
   }
 
   @Override
@@ -288,11 +343,7 @@ public class FunctionScope extends AbstractScope {
       }
     }
 
-    Type declaration = artificialScope.lookupType(name);
-    assert declaration instanceof CComplexType
-        : "Only C declarations are allowed in the scope: " + declaration;
-
-    return (CComplexType) declaration;
+    return artificialScope.lookupType(name);
   }
 
   @Override
@@ -304,10 +355,7 @@ public class FunctionScope extends AbstractScope {
       return declaration.getType();
     }
 
-    Type type = artificialScope.lookupTypedef(name);
-    assert type instanceof CType : "Only C declarations are allowed in the scope: " + type;
-
-    return (CType) type;
+    return artificialScope.lookupTypedef(name);
   }
 
   @Override
@@ -324,12 +372,7 @@ public class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public void registerDeclaration(ASimpleDeclaration pDeclaration) {
-    assert pDeclaration instanceof CSimpleDeclaration
-        : "Only C declarations are allowed in the scope: " + pDeclaration;
-
-    CSimpleDeclaration declaration = (CSimpleDeclaration) pDeclaration;
-
+  public void registerDeclaration(CSimpleDeclaration declaration) {
     assert declaration instanceof CVariableDeclaration
             || declaration instanceof CEnumerator
             || declaration instanceof CParameterDeclaration
@@ -348,25 +391,45 @@ public class FunctionScope extends AbstractScope {
           "Variable " + name + " already declared", declaration);
     }
 
+    CSimpleDeclaration hidden = getHiddenDeclaration(name);
     vars.put(name, declaration);
     varsWithNewNames.put(declaration.getName(), declaration);
 
     // Optimizations to keep track of all variables which are in scope
     if (declaration instanceof AVariableDeclaration pAVariableDeclaration) {
-      localVarsStackWitNewNames.addLast(
-          localVarsStackWitNewNames.removeLast().addAndCopy(pAVariableDeclaration));
-    } else if (declaration instanceof AParameterDeclaration) {
+      PersistentSet<AVariableDeclaration> localVars = localVarsStackWitNewNames.removeLast();
+      PersistentSet<AVariableDeclaration> newLocalVars =
+          localVars.addAndCopy(pAVariableDeclaration);
+      localVarsStackWitNewNames.addLast(newLocalVars);
+
+      // In the example at visibleLocalVarsStack, x__1 replaces parameter x and y__1 replaces y
+      PersistentSet<AVariableDeclaration> visibleLocalVars = visibleLocalVarsStack.removeLast();
+      if (hidden instanceof AVariableDeclaration hiddenVariable) {
+        visibleLocalVars = visibleLocalVars.removeAndCopy(hiddenVariable);
+      }
+      visibleLocalVarsStack.addLast(
+          visibleLocalVars == localVars
+              ? newLocalVars
+              : visibleLocalVars.addAndCopy(pAVariableDeclaration));
+
+      if (hidden instanceof AParameterDeclaration hiddenParameter) {
+        visibleParametersStack.addLast(
+            FluentIterable.from(visibleParametersStack.removeLast())
+                .filter(parameter -> !parameter.equals(hiddenParameter))
+                .toSet());
+      }
+    } else if (declaration instanceof AParameterDeclaration pAParameterDeclaration) {
       modifiedParameters = true;
+      visibleParametersStack.addLast(
+          ImmutableSet.<AParameterDeclaration>builder()
+              .addAll(visibleParametersStack.removeLast())
+              .add(pAParameterDeclaration)
+              .build());
     }
   }
 
   @Override
-  public boolean registerTypeDeclaration(AbstractDeclaration pDeclaration) {
-    assert pDeclaration instanceof CComplexTypeDeclaration
-        : "Only C declarations are allowed in the scope: " + pDeclaration;
-
-    CComplexTypeDeclaration declaration = (CComplexTypeDeclaration) pDeclaration;
-
+  public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
     checkArgument(declaration.getName() == null);
 
     String typeName = declaration.getType().getQualifiedName();

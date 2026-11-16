@@ -1022,19 +1022,17 @@ public class ApronTransferRelation
     public Set<Texpr0Node> visit(CUnaryExpression e) throws CPATransferException {
       Set<Texpr0Node> operand = e.getOperand().accept(this);
 
-      switch (e.getOperator()) {
-        case AMPER, SIZEOF, TILDE -> {
-          return ImmutableSet.of();
-        }
+      return switch (e.getOperator()) {
+        case AMPER, SIZEOF, TILDE -> ImmutableSet.of();
         case MINUS -> {
           Set<Texpr0Node> returnCoefficients = new HashSet<>();
           for (Texpr0Node coeffs : operand) {
             returnCoefficients.add(new Texpr0UnNode(Texpr0UnNode.OP_NEG, coeffs));
           }
-          return returnCoefficients;
+          yield returnCoefficients;
         }
         default -> throw new AssertionError("Unhandled case in switch clause.");
-      }
+      };
     }
 
     @Override

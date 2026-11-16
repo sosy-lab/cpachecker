@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -90,10 +93,8 @@ public class SequentialInterpolation extends ITPStrategy {
           yield getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
-          // Rebuild solver env as it might be tainted after an exception
-          interpolator.destroyAndRebuildSolverEnvironment();
+          yield getBwdInterpolants(interpolator, rebuildSolverEnvironment(interpolator, formulas));
         }
-        yield getBwdInterpolants(interpolator, formulas);
       }
       case BWD -> getBwdInterpolants(interpolator, formulas);
       case BWD_FALLBACK -> {
@@ -101,10 +102,8 @@ public class SequentialInterpolation extends ITPStrategy {
           yield getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_FWD_MSG);
-          // Rebuild solver env as it might be tainted after an exception
-          interpolator.destroyAndRebuildSolverEnvironment();
+          yield getFwdInterpolants(interpolator, rebuildSolverEnvironment(interpolator, formulas));
         }
-        yield getFwdInterpolants(interpolator, formulas);
       }
       case FWD -> getFwdInterpolants(interpolator, formulas);
       case CONJUNCTION, DISJUNCTION, WEIGHTED, RANDOM -> {
@@ -113,9 +112,7 @@ public class SequentialInterpolation extends ITPStrategy {
           forward = getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
-          // Rebuild solver env as it might be tainted after an exception
-          interpolator.destroyAndRebuildSolverEnvironment();
-          yield getBwdInterpolants(interpolator, formulas);
+          yield getBwdInterpolants(interpolator, rebuildSolverEnvironment(interpolator, formulas));
         }
 
         try {
@@ -133,6 +130,18 @@ public class SequentialInterpolation extends ITPStrategy {
         }
       }
     };
+  }
+
+  /**
+   * Rebuild the solver environment, as it might be tainted after an exception.
+   *
+   * @return the group ids of the given formulas in the new environment
+   */
+  private <T> List<T> rebuildSolverEnvironment(
+      final InterpolationManager.Interpolator<T> interpolator, final List<T> groupIds)
+      throws InterruptedException, SolverException {
+    Map<T, T> newGroupIds = interpolator.destroyAndRebuildSolverEnvironment();
+    return transformedImmutableListCopy(groupIds, newGroupIds::get);
   }
 
   /**
@@ -186,14 +195,14 @@ public class SequentialInterpolation extends ITPStrategy {
     Preconditions.checkNotNull(forward);
     Preconditions.checkNotNull(backward);
 
-    switch (sequentialStrategy) {
+    return switch (sequentialStrategy) {
       case CONJUNCTION -> {
         final ImmutableList.Builder<BooleanFormula> interpolants =
             ImmutableList.builderWithExpectedSize(forward.size());
         for (int i = 0; i < forward.size(); i++) {
           interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
         }
-        return interpolants.build();
+        yield interpolants.build();
       }
       case DISJUNCTION -> {
         final ImmutableList.Builder<BooleanFormula> interpolants =
@@ -201,18 +210,16 @@ public class SequentialInterpolation extends ITPStrategy {
         for (int i = 0; i < forward.size(); i++) {
           interpolants.add(bfmgr.or(forward.get(i), backward.get(i)));
         }
-        return interpolants.build();
+        yield interpolants.build();
       }
       case WEIGHTED -> {
         long weightFwd = getWeight(forward);
         long weightBwd = getWeight(backward);
-        return weightFwd <= weightBwd ? forward : backward;
+        yield weightFwd <= weightBwd ? forward : backward;
       }
-      case RANDOM -> {
-        return rnd.nextBoolean() ? forward : backward;
-      }
+      case RANDOM -> rnd.nextBoolean() ? forward : backward;
       default -> throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
-    }
+    };
   }
 
   /**

@@ -110,10 +110,10 @@ public final class SMGInformation {
 
   @Override
   public int hashCode() {
-    return Objects.hash(nonHeapAssignments)
-        + 31 * Objects.hash(variableToTypeMap)
-        + 17 * Objects.hash(variableNameAndSizeInBits)
-        + 23 * Objects.hash(heapValuesRemoved);
+    return Objects.hashCode(nonHeapAssignments)
+        + 31 * Objects.hashCode(variableToTypeMap)
+        + 17 * Objects.hashCode(variableNameAndSizeInBits)
+        + 23 * Objects.hashCode(heapValuesRemoved);
   }
 
   @Override

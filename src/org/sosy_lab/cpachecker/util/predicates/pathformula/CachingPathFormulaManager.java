@@ -16,6 +16,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
@@ -181,6 +182,12 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, SvLibRelationalTerm pAssumption)
       throws CPATransferException, InterruptedException {
+    return delegate.makeAnd(pPathFormula, pAssumption);
+  }
+
+  @Override
+  public PathFormula makeAnd(PathFormula pPathFormula, AcslPredicate pAssumption)
+      throws CPATransferException {
     return delegate.makeAnd(pPathFormula, pAssumption);
   }
 

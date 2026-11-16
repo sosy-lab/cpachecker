@@ -104,6 +104,11 @@ public interface PointerTargetSetBuilder {
 
   int getFreshAllocationId();
 
+  /** The facts about equal strings that currently hold, the newest first. */
+  PersistentList<StringEqualityFact> getStringFacts();
+
+  void setStringFacts(PersistentList<StringEqualityFact> facts);
+
   /** Returns an immutable PointerTargetSet with all the changes made to the builder. */
   PointerTargetSet build();
 
@@ -130,6 +135,7 @@ public interface PointerTargetSetBuilder {
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
     private PersistentList<Formula> highestAllocatedAddresses;
     private int allocationCount;
+    private PersistentList<StringEqualityFact> stringFacts;
 
     /**
      * Creates a new RealPointerTargetSetBuilder.
@@ -160,6 +166,7 @@ public interface PointerTargetSetBuilder {
       }
       highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
       allocationCount = pointerTargetSet.getAllocationCount();
+      stringFacts = pointerTargetSet.getStringFacts();
       typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
       options = pOptions;
@@ -353,7 +360,11 @@ public interface PointerTargetSetBuilder {
                 containerOffset + properOffset,
                 field);
           }
-          if (isTargetComposite && memberDeclaration.equals(field.getFieldDeclaration())) {
+          // the field may come from a field reference, which has no attributes
+          if (isTargetComposite
+              && memberDeclaration
+                  .withoutAttributes()
+                  .equals(field.getFieldDeclaration().withoutAttributes())) {
             MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
             targets =
                 ptsMgr.addToTargets(
@@ -750,7 +761,8 @@ public interface PointerTargetSetBuilder {
               deferredAllocations,
               targets,
               highestAllocatedAddresses,
-              allocationCount);
+              allocationCount,
+              stringFacts);
       if (result.isEmpty()) {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
@@ -759,6 +771,16 @@ public interface PointerTargetSetBuilder {
     }
 
     /** Returns a fresh ID that can be used as identifier for a heap allocation. */
+    @Override
+    public PersistentList<StringEqualityFact> getStringFacts() {
+      return stringFacts;
+    }
+
+    @Override
+    public void setStringFacts(PersistentList<StringEqualityFact> pFacts) {
+      stringFacts = pFacts;
+    }
+
     @Override
     public int getFreshAllocationId() {
       allocationCount = Math.incrementExact(allocationCount);
@@ -884,6 +906,16 @@ public interface PointerTargetSetBuilder {
     @Override
     public Iterable<PointerTarget> getNonMatchingTargets(
         MemoryRegion region, Predicate<PointerTarget> pPattern) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PersistentList<StringEqualityFact> getStringFacts() {
+      return PersistentLinkedList.of();
+    }
+
+    @Override
+    public void setStringFacts(PersistentList<StringEqualityFact> pFacts) {
       throw new UnsupportedOperationException();
     }
 

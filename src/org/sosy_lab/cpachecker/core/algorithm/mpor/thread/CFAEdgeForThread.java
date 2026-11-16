@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
-import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -34,16 +33,13 @@ public class CFAEdgeForThread {
 
   public final CFAEdge cfaEdge;
 
-  /** Not all edges have a calling context, e.g. {@code main()} function statements. */
-  public final Optional<CFAEdgeForThread> callContext;
+  public final SeqCallContext callContext;
 
   @Nullable private CFANodeForThread predecessor = null;
 
   @Nullable private CFANodeForThread successor = null;
 
-  public CFAEdgeForThread(
-      int pThreadId, CFAEdge pCfaEdge, Optional<CFAEdgeForThread> pCallContext) {
-
+  public CFAEdgeForThread(int pThreadId, CFAEdge pCfaEdge, SeqCallContext pCallContext) {
     id = getNewId();
     threadId = pThreadId;
     cfaEdge = pCfaEdge;
@@ -55,7 +51,7 @@ public class CFAEdgeForThread {
     return predecessor;
   }
 
-  protected void setPredecessor(CFANodeForThread pPredecessor) {
+  void setPredecessor(CFANodeForThread pPredecessor) {
     checkNotNull(pPredecessor);
     checkArgument(predecessor == null, "predecessor set already");
     predecessor = pPredecessor;
@@ -66,7 +62,7 @@ public class CFAEdgeForThread {
     return successor;
   }
 
-  protected void setSuccessor(CFANodeForThread pSuccessor) {
+  void setSuccessor(CFANodeForThread pSuccessor) {
     checkNotNull(pSuccessor);
     checkArgument(successor == null, "successor set already");
     successor = pSuccessor;
@@ -74,12 +70,7 @@ public class CFAEdgeForThread {
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        id,
-        threadId,
-        cfaEdge,
-        predecessor == null ? null : predecessor.id,
-        successor == null ? null : successor.id);
+    return Objects.hash(id, threadId, cfaEdge);
   }
 
   @Override
@@ -90,8 +81,11 @@ public class CFAEdgeForThread {
     return pOther instanceof CFAEdgeForThread other
         && id == other.id
         && threadId == other.threadId
-        && cfaEdge.equals(other.cfaEdge)
-        && (predecessor == null || predecessor.id == other.predecessor.id)
-        && (successor == null || successor.id == other.successor.id);
+        && cfaEdge.equals(other.cfaEdge);
+  }
+
+  @Override
+  public String toString() {
+    return cfaEdge.toString();
   }
 }

@@ -16,18 +16,18 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public record SeqBitVectorVariables(
-    Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors,
-    Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors,
-    Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors,
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseAccessBitVectors,
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseReadBitVectors,
-    Optional<ImmutableMap<SeqMemoryLocation, SparseBitVector>> sparseWriteBitVectors,
+    Optional<ImmutableSet<SeqDenseBitVector>> denseAccessBitVectors,
+    Optional<ImmutableSet<SeqDenseBitVector>> denseReadBitVectors,
+    Optional<ImmutableSet<SeqDenseBitVector>> denseWriteBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseAccessBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseReadBitVectors,
+    Optional<ImmutableMap<SeqMemoryLocation, SeqSparseBitVector>> sparseWriteBitVectors,
     Optional<PrevDenseBitVector> prevDenseAccessBitVector,
     Optional<PrevDenseBitVector> prevDenseReadBitVector,
     Optional<PrevDenseBitVector> prevDenseWriteBitVector,
@@ -38,7 +38,7 @@ public record SeqBitVectorVariables(
   /**
    * Represents a dense bit vector variable where each index represents a relevant memory locations.
    */
-  public record DenseBitVector(
+  public record SeqDenseBitVector(
       MPORThread thread,
       Optional<CIdExpression> directVariable,
       Optional<CIdExpression> reachableVariable) {
@@ -47,7 +47,7 @@ public record SeqBitVectorVariables(
      * Note that both direct and reachable can be empty, when there are no relevant memory
      * locations.
      */
-    public CIdExpression getVariableByReachType(ReachType pReachType) {
+    public CIdExpression getVariableByReachType(SeqMemoryReachType pReachType) {
       return switch (pReachType) {
         case DIRECT -> directVariable.orElseThrow();
         case REACHABLE -> reachableVariable.orElseThrow();
@@ -59,7 +59,7 @@ public record SeqBitVectorVariables(
    * Represents a sparse bit vector, where each memory location, for each thread, has its own
    * variable in the sequentialization which can be either {@code 0} or {@code 1}.
    */
-  public static final class SparseBitVector {
+  public static final class SeqSparseBitVector {
 
     private final boolean isPruned;
 
@@ -67,7 +67,7 @@ public record SeqBitVectorVariables(
 
     private final ImmutableMap<MPORThread, CIdExpression> reachableVariables;
 
-    public SparseBitVector(
+    public SeqSparseBitVector(
         boolean pIsPruned,
         ImmutableMap<MPORThread, CIdExpression> pDirectVariables,
         ImmutableMap<MPORThread, CIdExpression> pReachableVariables) {
@@ -78,7 +78,7 @@ public record SeqBitVectorVariables(
     }
 
     public Optional<CIdExpression> tryGetVariableByReachTypeAndThread(
-        ReachType pReachType, MPORThread pThread) {
+        SeqMemoryReachType pReachType, MPORThread pThread) {
 
       return switch (pReachType) {
         case DIRECT -> {
@@ -108,9 +108,9 @@ public record SeqBitVectorVariables(
   public record PrevSparseBitVector(CIdExpression directVariable) {}
 
   public CIdExpression getDenseBitVector(
-      MPORThread pThread, MemoryAccessType pAccessType, ReachType pReachType) {
+      MPORThread pThread, SeqMemoryAccessType pAccessType, SeqMemoryReachType pReachType) {
 
-    for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
+    for (SeqDenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
       if (denseBitVector.thread().equals(pThread)) {
         return denseBitVector.getVariableByReachType(pReachType);
       }
@@ -119,18 +119,19 @@ public record SeqBitVectorVariables(
   }
 
   public ImmutableSet<CExpression> getOtherDenseReachableBitVectorsByAccessType(
-      MemoryAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
+      SeqMemoryAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
 
     ImmutableSet.Builder<CExpression> rDenseBitVectors = ImmutableSet.builder();
-    for (DenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
+    for (SeqDenseBitVector denseBitVector : getDenseBitVectorsByAccessType(pAccessType)) {
       if (pOtherThreads.contains(denseBitVector.thread())) {
-        rDenseBitVectors.add(denseBitVector.getVariableByReachType(ReachType.REACHABLE));
+        rDenseBitVectors.add(denseBitVector.getVariableByReachType(SeqMemoryReachType.REACHABLE));
       }
     }
     return rDenseBitVectors.build();
   }
 
-  public ImmutableSet<DenseBitVector> getDenseBitVectorsByAccessType(MemoryAccessType pAccessType) {
+  public ImmutableSet<SeqDenseBitVector> getDenseBitVectorsByAccessType(
+      SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
       case ACCESS -> denseAccessBitVectors.orElseThrow();
@@ -139,8 +140,8 @@ public record SeqBitVectorVariables(
     };
   }
 
-  public ImmutableMap<SeqMemoryLocation, SparseBitVector> getSparseBitVectorByAccessType(
-      MemoryAccessType pAccessType) {
+  public ImmutableMap<SeqMemoryLocation, SeqSparseBitVector> getSparseBitVectorByAccessType(
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE sparse bit vectors");
@@ -150,7 +151,7 @@ public record SeqBitVectorVariables(
     };
   }
 
-  public PrevDenseBitVector getPrevDenseBitVectorByAccessType(MemoryAccessType pAccessType) {
+  public PrevDenseBitVector getPrevDenseBitVectorByAccessType(SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type prev dense bit vector");
       case ACCESS -> prevDenseAccessBitVector.orElseThrow();
@@ -160,7 +161,7 @@ public record SeqBitVectorVariables(
   }
 
   public Optional<ImmutableMap<SeqMemoryLocation, PrevSparseBitVector>>
-      tryGetPrevSparseBitVectorByAccessType(MemoryAccessType pAccessType) {
+      tryGetPrevSparseBitVectorByAccessType(SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type prev dense bit vector");
@@ -171,7 +172,7 @@ public record SeqBitVectorVariables(
   }
 
   public ImmutableMap<SeqMemoryLocation, PrevSparseBitVector> getPrevSparseBitVectorByAccessType(
-      MemoryAccessType pAccessType) {
+      SeqMemoryAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type prev dense bit vector");
@@ -183,7 +184,7 @@ public record SeqBitVectorVariables(
 
   // Boolean Helpers ===============================================================================
 
-  public boolean areSparseBitVectorsPresentByAccessType(MemoryAccessType pAccessType) {
+  public boolean areSparseBitVectorsPresentByAccessType(SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE, READ ->
           throw new IllegalArgumentException(
@@ -193,7 +194,7 @@ public record SeqBitVectorVariables(
     };
   }
 
-  public boolean isPrevDenseBitVectorPresentByAccessType(MemoryAccessType pAccessType) {
+  public boolean isPrevDenseBitVectorPresentByAccessType(SeqMemoryAccessType pAccessType) {
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("no NONE access type prev dense bit vector");
       case ACCESS -> prevDenseAccessBitVector.isPresent();

@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class CPreprocessorTest {
 
@@ -25,7 +25,7 @@ public class CPreprocessorTest {
   public void testCommandLine32() throws InvalidConfigurationException {
     CPreprocessor preprocessor =
         new CPreprocessor(
-            TestDataTools.configurationForTest().build(),
+            TestUtils.configurationForTest().build(),
             LogManager.createTestLogManager(),
             MachineModel.LINUX32);
 
@@ -39,7 +39,7 @@ public class CPreprocessorTest {
   public void testCommandLine64() throws InvalidConfigurationException {
     CPreprocessor preprocessor =
         new CPreprocessor(
-            TestDataTools.configurationForTest().build(),
+            TestUtils.configurationForTest().build(),
             LogManager.createTestLogManager(),
             MachineModel.LINUX64);
 

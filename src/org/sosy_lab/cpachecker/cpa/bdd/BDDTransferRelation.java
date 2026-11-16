@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
+import org.sosy_lab.cpachecker.util.predicates.bdd.BDDVariableLimitException;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -96,6 +97,17 @@ public class BDDTransferRelation
     assert cfa.getVarClassification().isPresent();
     varClass = cfa.getVarClassification().orElseThrow();
     bvComputer = pBvComputer;
+  }
+
+  @Override
+  public Collection<BDDState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
+    try {
+      return super.getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
+    } catch (BDDVariableLimitException e) {
+      throw new CPATransferException(e.getMessage(), e);
+    }
   }
 
   @Override
@@ -205,8 +217,7 @@ public class BDDTransferRelation
 
         // make region for RIGHT SIDE and build equality of var and region
         final Region[] regRHS =
-            bvComputer.evaluateVectorExpression(
-                partition, (CExpression) rhs, targetType, location, precision);
+            bvComputer.evaluateVectorExpression(partition, exp, targetType, location, precision);
         newState = newState.addAssignment(var, regRHS);
       }
       return newState;
@@ -605,7 +616,11 @@ public class BDDTransferRelation
     for (AbstractState otherState : states) {
       if (otherState instanceof PointerState pointerState) {
         super.setInfo(bddState, pPrecision, cfaEdge);
-        bddState = strengthenWithPointerInformation(pointerState, cfaEdge);
+        try {
+          bddState = strengthenWithPointerInformation(pointerState, cfaEdge);
+        } catch (BDDVariableLimitException e) {
+          throw new CPATransferException(e.getMessage(), e);
+        }
         super.resetInfo();
         if (bddState == null) {
           return ImmutableList.of();

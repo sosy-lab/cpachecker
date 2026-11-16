@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 public enum YAMLWitnessVersion {
   V2,
   V2d1,
+  V2d2,
   V2d4;
 
   @Override
@@ -20,7 +23,34 @@ public enum YAMLWitnessVersion {
     return switch (this) {
       case V2 -> "2.0";
       case V2d1 -> "2.1";
+      case V2d2 -> "2.2";
       case V2d4 -> "2.4";
+    };
+  }
+
+  /**
+   * The types of information which the invariant set of a correctness witness in this format
+   * version may contain.
+   *
+   * <p>Version 2.0 only knows loop and location invariants, transition invariants and function
+   * contracts were added in version 2.1. Version 2.4 additionally knows predicate definitions,
+   * which are not part of the invariant set.
+   *
+   * @return the types this version supports, in the declaration order of {@link
+   *     WitnessInvariantType}
+   */
+  public ImmutableSet<WitnessInvariantType> supportedInvariantTypes() {
+    return switch (this) {
+      case V2 ->
+          Sets.immutableEnumSet(
+              WitnessInvariantType.LOOP_INVARIANT, WitnessInvariantType.LOCATION_INVARIANT);
+      case V2d1, V2d2, V2d4 ->
+          Sets.immutableEnumSet(
+              WitnessInvariantType.LOOP_INVARIANT,
+              WitnessInvariantType.LOCATION_INVARIANT,
+              WitnessInvariantType.LOOP_TRANSITION_INVARIANT,
+              WitnessInvariantType.LOCATION_TRANSITION_INVARIANT,
+              WitnessInvariantType.FUNCTION_CONTRACT);
     };
   }
 
@@ -29,6 +59,7 @@ public enum YAMLWitnessVersion {
     return switch (pVersion) {
       case "2.0" -> V2;
       case "2.1" -> V2d1;
+      case "2.2" -> V2d2;
       case "2.4" -> V2d4;
       default -> throw new InvalidConfigurationException("The version is not recognized.");
     };

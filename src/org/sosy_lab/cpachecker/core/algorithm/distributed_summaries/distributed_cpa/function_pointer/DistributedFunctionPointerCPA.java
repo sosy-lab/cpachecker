@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -39,8 +39,9 @@ public class DistributedFunctionPointerCPA
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ViolationConditionOperator verificationConditionOperator;
   private final CoverageOperator coverageOperator;
-  private final CombineOperator combineOperator;
+  private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final CombinePrecisionOperator combinePrecisionOperator;
+  private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
   private final FunctionPointerCPA functionPointerCPA;
 
@@ -52,10 +53,13 @@ public class DistributedFunctionPointerCPA
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
-            pParentCPA.getTransferRelation(), pParentCPA);
+            pParentCPA.getTransferRelation(), pParentCPA, serialize);
     coverageOperator = new FunctionPointerStateCoverageOperator();
-    combineOperator = new EqualityCombineOperator(coverageOperator, getAbstractStateClass());
+    FunctionPointerStateCombinePreconditionsOperator combination =
+        new FunctionPointerStateCombinePreconditionsOperator();
+    combinePreconditionsOperator = combination;
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
+    combineViolationConditionsOperator = combination;
   }
 
   @Override
@@ -123,7 +127,17 @@ public class DistributedFunctionPointerCPA
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
+  public Object computeProgramPointId(AbstractState pAbstractState) {
+    return 0;
+  }
+
+  @Override
+  public CombineViolationConditionsOperator getCombineViolationConditionsOperator() {
+    return combineViolationConditionsOperator;
+  }
+
+  @Override
+  public CombinePreconditionsOperator getCombineOperator() {
+    return combinePreconditionsOperator;
   }
 }

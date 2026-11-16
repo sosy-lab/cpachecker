@@ -8,15 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.ast;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public abstract class BranchingElement extends StatementElement {
 
-  protected BranchingElement(FileLocation pStatementLocation, ImmutableSet<CFAEdge> pEdges) {
-    super(pStatementLocation, pEdges);
+  protected BranchingElement(FileLocation pStatementLocation) {
+    super(pStatementLocation);
   }
 
   /**

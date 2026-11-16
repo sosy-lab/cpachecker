@@ -12,7 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
 
-public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue {
+public sealed class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue
+    permits SMGZeroValue {
 
   protected SMGKnownExpValue(BigInteger pValue) {
     super(pValue);

@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # This file is part of CPAchecker,
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
@@ -18,7 +16,7 @@ import unittest
 import unittest.mock
 from unittest.mock import patch
 
-import post_processing.coverage.generate_coverage as generate_coverage
+from post_processing.coverage import generate_coverage
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 

@@ -12,19 +12,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslStringLiteralTerm extends AcslLiteralTerm {
 
-  @Serial private static final long serialVersionUID = -81455024380987676L;
+  @Serial private static final long serialVersionUID = -4832255209875171982L;
 
   private final String value;
 
   public AcslStringLiteralTerm(FileLocation pFileLocation, AcslType pType, String pValue) {
-    super(pFileLocation, pType);
-    value = pValue;
-    checkNotNull(pFileLocation);
-    checkNotNull(pType);
-    checkNotNull(pValue);
+    super(checkNotNull(pFileLocation), checkNotNull(pType));
+    value = checkNotNull(pValue);
   }
 
   @Override

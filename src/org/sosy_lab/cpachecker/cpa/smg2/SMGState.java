@@ -487,38 +487,38 @@ public class SMGState
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    switch (pProperty) {
+    return switch (pProperty) {
       case HAS_LEAKS -> {
         if (hasMemoryLeak()) {
           // TODO: Give more information
           issueMemoryError("Memory leak found", false);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_WRITES -> {
         if (hasInvalidWrite()) {
           // TODO: Give more information
           issueMemoryError("Invalid write found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_READS -> {
         if (hasInvalidRead()) {
           // TODO: Give more information
           issueMemoryError("Invalid read found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_INVALID_FREES -> {
         if (hasInvalidFree()) {
           // TODO: Give more information
           issueMemoryError("Invalid free found", true);
-          return true;
+          yield true;
         }
-        return false;
+        yield false;
       }
       case HAS_HEAP_OBJECTS -> {
         // Having heap objects is not an error on its own.
@@ -534,10 +534,10 @@ public class SMGState
             heapObs = heapObs.removeAndCopy(object);
           }
         }
-        return !heapObs.isEmpty();
+        yield !heapObs.isEmpty();
       }
       default -> throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-    }
+    };
   }
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
@@ -3314,24 +3314,16 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  /**
-   * I.e. int bla = *pointer; With pointer failing to dereference because it's pointing to 0.
-   *
-   * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
-   * @return A new SMGState with the error info.
-   */
-  public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject) {
+  /** I.e. int bla = *pointer; With pointer failing to dereference because it's pointing to 0. */
+  public SMGState withNullPointerDereferenceWhenReading(String additionalInfo) {
     // getValueForSMGValue(pValue)
     // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
         "Null pointer dereference on read of object with the intent to read it: "
-            + nullObject
+            + additionalInfo
             + ".";
     SMGErrorInfo newErrorInfo =
-        SMGErrorInfo.of()
-            .withProperty(Property.INVALID_READ)
-            .withErrorMessage(errorMSG)
-            .withInvalidObjects(Collections.singleton(nullObject));
+        SMGErrorInfo.of().withProperty(Property.INVALID_READ).withErrorMessage(errorMSG);
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithNewErrorInfo(newErrorInfo);
@@ -4533,7 +4525,6 @@ public class SMGState
       // Perform free by invalidating the object behind the address and delete all its edges.
       SymbolicProgramConfiguration newSPC = currentMemModel.invalidateSMGObject(regionToFree, true);
       // state in our implementation.
-      // performConsistencyCheck(SMGRuntimeCheck.HALF);
       returnBuilder.add(currentState.copyAndReplaceMemoryModel(newSPC));
     }
     return returnBuilder.build();
@@ -5080,7 +5071,7 @@ public class SMGState
       // The offset is not necessarily concrete now! We assign a concrete value in one state and
       //   block it in the symbolic value for another state.
       List<SMGStateAndOptionalSMGObjectAndOffset> assignedAndEvaldStates =
-          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+          expr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger));
       if (options.isMemoryErrorTarget()) {
         for (SMGStateAndOptionalSMGObjectAndOffset assignedAndEvaldState : assignedAndEvaldStates) {
           if (assignedAndEvaldState.getSMGState().hasMemoryErrors()) {
@@ -5102,8 +5093,7 @@ public class SMGState
     List<SMGStateAndOptionalSMGObjectAndOffset> targetsAndOffsetsAndStates;
     try {
       targetsAndOffsetsAndStates =
-          lValueExpr.accept(
-              new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger, options));
+          lValueExpr.accept(new SMGCPAAddressVisitor(evaluator, assignedState, edge, logger));
     } catch (CPATransferException e) {
       if (e instanceof SMGException smgException) {
         throw smgException;
@@ -5135,8 +5125,7 @@ public class SMGState
     List<ValueAndSMGState> valuesAndStates;
     try {
       valuesAndStates =
-          exprReading.accept(
-              new SMGCPAValueVisitor(evaluator, assignedState, edge, logger, options));
+          exprReading.accept(new SMGCPAValueVisitor(evaluator, assignedState, edge, logger));
     } catch (CPATransferException e) {
       if (e instanceof SMGException sMGException) {
         throw sMGException;
@@ -5153,8 +5142,7 @@ public class SMGState
   private ValueAndSMGState reEvaluateValueToWriteAfterConcreteAssignment(
       CRightHandSide rValueExpr, CFAEdge edge, SMGState currentAssignedState)
       throws SMGException, SMGSolverException {
-    SMGCPAValueVisitor vv =
-        new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger, options);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentAssignedState, edge, logger);
     List<ValueAndSMGState> possibleValues;
     try {
       possibleValues = rValueExpr.accept(vv);
@@ -7092,7 +7080,9 @@ public class SMGState
               varName,
               varName,
               qualVarName,
-              null);
+              null,
+              // SMG2 does not track thread-local storage of variables
+              /* pHasThreadLocalStorage= */ false);
 
       assignmentsBuilder.addAll(
           resolveAssignmentsAndInvariantsForVariable(
@@ -8328,7 +8318,7 @@ public class SMGState
   // including internal variables etc.
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
 
     // TODO: it is usually not good to use the model present in every state!
@@ -8354,7 +8344,8 @@ public class SMGState
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
@@ -8362,19 +8353,15 @@ public class SMGState
     checkArgument(getStackFrameTopFunctionName().equals(pFunctionScope.getFunctionName()));
 
     Function<String, String> renamingFunction =
-        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName;
+        varName -> {
+          String name = pAstCfaRelation.getNameInInputProgram(pLocation, varName);
+          return useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name;
+        };
 
     // Only variables of the input program that are in scope at the location are allowed in
     // witnesses, i.e., no variables introduced by CPAchecker or of other scopes.
-    Optional<FluentIterable<AbstractSimpleDeclaration>> variablesInScope =
-        pAstCfaRelation.getVariablesAndParametersInScope(pLocation);
-    if (variablesInScope.isEmpty()) {
-      throw new TranslationToExpressionTreeFailedException(
-          "The variables in scope at location " + pLocation + " are not available.");
-    }
     ImmutableSet<String> qualifiedNamesOfVariablesInScope =
-        variablesInScope
-            .orElseThrow()
+        ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation)
             .transform(AbstractSimpleDeclaration::getQualifiedName)
             .toSet();
     Predicate<MemoryLocation> isInputProgramVariableInScope =
@@ -8402,7 +8389,9 @@ public class SMGState
   // Version 2 (YAML) correctness witness export for function return variables
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
@@ -8476,6 +8465,10 @@ public class SMGState
     return pCurrentLocation.getNumEnteringEdges() > 0
         ? pCurrentLocation.getEnteringEdge(0).getFileLocation()
         : pFunctionScope.getFileLocation();
+  }
+
+  public SMGOptions getOptions() {
+    return options;
   }
 
   // TODO: To be replaced with a better structure, i.e. union-find

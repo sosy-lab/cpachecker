@@ -33,6 +33,15 @@ public class ARGStateCoverageOperator implements CoverageOperator {
   }
 
   @Override
+  public boolean areStatesSyntacticallyEqual(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    return wrapped
+        .getCoverageOperator()
+        .areStatesSyntacticallyEqual(
+            ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
+  }
+
+  @Override
   public boolean isBasedOnEquality() {
     return false;
   }

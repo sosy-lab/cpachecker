@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
@@ -59,18 +60,17 @@ public final class SvLibTrace implements SvLibParsingAstNode {
     return Joiner.on(System.lineSeparator())
         .join(
             "(model " + model.toASTString() + ")",
-            "(init-global-vars "
-                + Joiner.on(" ")
-                    .join(
-                        setGlobalVariables.stream().map(SvLibParsingAstNode::toASTString).toList())
-                + ")",
+            setGlobalVariables.stream()
+                .map(SvLibParsingAstNode::toASTString)
+                .collect(Collectors.joining(" ", "(init-global-vars ", ")")),
             entryProc.toASTString(),
-            "(steps "
-                + Joiner.on(" ").join(steps.stream().map(SvLibParsingAstNode::toASTString).toList())
-                + ")",
+            steps.stream()
+                .map(SvLibParsingAstNode::toASTString)
+                .collect(Collectors.joining(" ", "(steps ", ")")),
             violatedProperty.toASTString(),
-            Joiner.on(System.lineSeparator())
-                .join(usingAnnotations.stream().map(SvLibParsingAstNode::toASTString).toList()));
+            usingAnnotations.stream()
+                .map(SvLibParsingAstNode::toASTString)
+                .collect(Collectors.joining(System.lineSeparator())));
   }
 
   public ImmutableList<SvLibTraceSetGlobalVariable> getSetGlobalVariables() {

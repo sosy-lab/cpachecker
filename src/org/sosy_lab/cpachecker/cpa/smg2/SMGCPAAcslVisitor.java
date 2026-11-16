@@ -51,40 +51,32 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpressionTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCLeftHandSideTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCanAccessPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicPredicateDefinition;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslQuantifiedPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSeparateMemoryConjunctionPredicate;
@@ -93,14 +85,15 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -115,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -130,7 +124,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibArrayConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBitVectorConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
@@ -139,6 +136,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTermAssignmentCfaStatement;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclaration;
@@ -147,6 +145,8 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibNotRecurringTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRecurringTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibSymbolApplicationRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -156,6 +156,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -521,8 +522,8 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     }
 
     ImmutableSet.Builder<SMGState> res = ImmutableSet.builder();
-    res.addAll(exp.getOperand1().accept_(this));
-    res.addAll(exp.getOperand2().accept_(this));
+    res.addAll(exp.getOperand1().accept(this));
+    res.addAll(exp.getOperand2().accept(this));
 
     return res.build();
 
@@ -633,7 +634,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
         checkState(nestedFlattened1.size() >= 2);
         flattenedListBuilder.addAll(nestedFlattened1);
       } else {
-        flattenedListBuilder.add((AcslPredicate) exp.getOperand1());
+        flattenedListBuilder.add(exp.getOperand1());
       }
       if (exp.getOperand2() instanceof AcslBinaryPredicate op2
           && op2.getOperator().equals(opToFlatten)) {
@@ -642,18 +643,12 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
         checkState(nestedFlattened2.size() >= 2);
         flattenedListBuilder.addAll(nestedFlattened2);
       } else {
-        flattenedListBuilder.add((AcslPredicate) exp.getOperand2());
+        flattenedListBuilder.add(exp.getOperand2());
       }
       return flattenedListBuilder.build();
     }
 
     return ImmutableList.of();
-  }
-
-  @Override
-  public Set<SMGState> visit(AcslInitializerExpression pInitializerExpression)
-      throws CPATransferException {
-    throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
@@ -669,14 +664,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   }
 
   @Override
-  public Set<SMGState> visit(AcslMemoryLocationSetEmpty pAcslMemoryLocationSetEmpty)
-      throws CPATransferException {
-    throw new UnsupportedOperationException("not implemented");
-  }
-
-  @Override
-  public Set<SMGState> visit(AcslMemoryLocationSetTerm pAcslMemoryLocationSetTerm)
-      throws CPATransferException {
+  public Set<SMGState> visit(AcslUnaryPredicate pAcslUnaryPredicate) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -688,7 +676,18 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   @Override
   public Set<SMGState> visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate)
       throws CPATransferException {
-    // E.g. ITE conditions like 'size == 1'
+    // E.g. comparisons of C terms like 'start->next != 0', or ITE conditions like 'size == 1'
+    Optional<CExpression> cOperand1 = asCExpression(pAcslBinaryTermPredicate.getOperand1());
+    Optional<CExpression> cOperand2 = asCExpression(pAcslBinaryTermPredicate.getOperand2());
+    if (cOperand1.isPresent() && cOperand2.isPresent()) {
+      CBinaryExpression cComparison =
+          new CBinaryExpressionBuilder(initialState.getMachineModel(), logger)
+              .buildBinaryExpressionUnchecked(
+                  cOperand1.orElseThrow(),
+                  cOperand2.orElseThrow(),
+                  toCBinaryOperator(pAcslBinaryTermPredicate.getOperator()));
+      return cComparison.accept(this);
+    }
 
     throw new UnsupportedOperationException(
         "AcslBinaryTermPredicate failed to be resolved for " + pAcslBinaryTermPredicate);
@@ -711,6 +710,17 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
 
     }
     return */
+  }
+
+  private static BinaryOperator toCBinaryOperator(AcslBinaryTermPredicateOperator pOperator) {
+    return switch (pOperator) {
+      case EQUALS -> BinaryOperator.EQUALS;
+      case NOT_EQUALS -> BinaryOperator.NOT_EQUALS;
+      case LESS_EQUAL -> BinaryOperator.LESS_EQUAL;
+      case GREATER_EQUAL -> BinaryOperator.GREATER_EQUAL;
+      case LESS_THAN -> BinaryOperator.LESS_THAN;
+      case GREATER_THAN -> BinaryOperator.GREATER_THAN;
+    };
   }
 
   @Override
@@ -765,12 +775,13 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   }
 
   @Override
-  public Set<SMGState> visit(AcslForallPredicate pForallPredicate) throws CPATransferException {
+  public Set<SMGState> visit(AcslQuantifiedPredicate pQuantifiedPredicate)
+      throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
-  public Set<SMGState> visit(AcslExistsPredicate pAcslExistsPredicate) throws CPATransferException {
+  public Set<SMGState> visit(AcslMemoryLocationSet pMemoryLocationSet) throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -803,9 +814,9 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
      * start = start->next; end = end; for function-call pred_sll(start->next, end, size - 1)
      */
 
-    AcslPredicateDeclaration funDecl = pAcslPredicateApplicationPredicate.getDeclaration();
+    AcslPredicateDeclaration funDecl = pAcslPredicateApplicationPredicate.getPredicateDeclaration();
 
-    AcslTerm calledBody =
+    AcslPredicate calledBody =
         getBodyForAcslPredicateApplicationPredicate(pAcslPredicateApplicationPredicate);
     checkNotNull(calledBody);
 
@@ -975,16 +986,12 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
       AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
     ImmutableList.Builder<CParameterDeclaration> declarationsCParametersBuilder =
         ImmutableList.builder();
-    ImmutableList<? extends AParameterDeclaration> acslParameters =
-        pAcslPredicateApplicationPredicate.getDeclaration().getParameters();
+    ImmutableList<AcslParameterDeclaration> acslParameters =
+        pAcslPredicateApplicationPredicate.getPredicateDeclaration().getParameters();
 
-    for (AParameterDeclaration acslParamDecl : checkNotNull(acslParameters)) {
-      // TODO: a visitor would be better! We could reuse a visitor in other locations as well.
-      if (acslParamDecl instanceof AcslCParameterDeclaration acslCParamDecl) {
-        CParameterDeclaration cParamDecl = acslCParamDecl.getDeclaration();
-        declarationsCParametersBuilder.add(checkNotNull(cParamDecl));
-      }
+    for (AcslParameterDeclaration acslParamDecl : checkNotNull(acslParameters)) {
       // We simply ignore pure ACSL parameter declarations
+      acslParamDecl.asCParameterDeclaration().ifPresent(declarationsCParametersBuilder::add);
     }
     return declarationsCParametersBuilder.build();
   }
@@ -997,27 +1004,8 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   private static List<CExpression> getCArgumentsFrom(
       AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
     ImmutableList.Builder<CExpression> cArgumentsBuilder = ImmutableList.builder();
-    for (AcslTerm param : pAcslPredicateApplicationPredicate.getArguments()) {
-      // Explicit listing of all types so that we never miss a new type that supports C
-      // expressions.'
-      // TODO: a visitor would be better! We could reuse a visitor in other locations as well.
-      switch (param) {
-        case AcslCExpressionTerm cParam -> cArgumentsBuilder.add(cParam.getCExpression());
-        case AcslCIdExpression pAcslCIdExpression ->
-            cArgumentsBuilder.add(pAcslCIdExpression.getCIdExpression());
-        case AcslCLeftHandSideTerm pAcslCLeftHandSideTerm ->
-            cArgumentsBuilder.add(pAcslCLeftHandSideTerm.getCLeftHandSideExpression());
-        case AcslArraySubscriptTerm pAcslArraySubscriptTerm -> {}
-        case AcslAtTerm pAcslAtTerm -> {}
-        case AcslBinaryTerm pAcslBinaryTerm -> {}
-        case AcslFunctionCallTerm pAcslFunctionCallTerm -> {}
-        case AcslIdTerm pAcslIdTerm -> {}
-        case AcslLiteralTerm pAcslLiteralTerm -> {}
-        case AcslOldTerm pAcslOldTerm -> {}
-        case AcslResultTerm pAcslResultTerm -> {}
-        case AcslTernaryTerm pAcslTernaryTerm -> {}
-        case AcslUnaryTerm pAcslUnaryTerm -> {}
-      }
+    for (AcslTerm param : pAcslPredicateApplicationPredicate.getParameters()) {
+      asCExpression(param).ifPresent(cArgumentsBuilder::add);
     }
     return cArgumentsBuilder.build();
   }
@@ -1028,24 +1016,54 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
    */
   private static CExpression getCExpressionArgument(
       AExpression pArgument, AcslCanAccessPredicate pAcslCanAccessPredicate) {
-    return switch (pArgument) {
-      case CExpression cExpression -> cExpression;
-      case AcslCExpressionTerm pAcslCExpressionTerm -> pAcslCExpressionTerm.getCExpression();
-      case AcslCIdExpression pAcslCIdExpression -> pAcslCIdExpression.getCIdExpression();
-      case AcslCLeftHandSideTerm pAcslCLeftHandSideTerm ->
-          pAcslCLeftHandSideTerm.getCLeftHandSideExpression();
-      default ->
-          throw new UnsupportedOperationException(
-              "Validation of ACSL arguments of " + pAcslCanAccessPredicate + " is not supported");
+    Optional<CExpression> cArgument =
+        switch (pArgument) {
+          case CExpression cExpression -> Optional.of(cExpression);
+          case AcslTerm acslTerm -> asCExpression(acslTerm);
+          default -> Optional.empty();
+        };
+    return cArgument.orElseThrow(
+        () ->
+            new UnsupportedOperationException(
+                "Validation of ACSL arguments of "
+                    + pAcslCanAccessPredicate
+                    + " is not supported"));
+  }
+
+  /**
+   * Returns the given ACSL term as {@link CExpression} if it is a C expression, i.e., a C
+   * expression lifted to ACSL, a C variable, or a parameter with a C type. Pure ACSL terms are not
+   * converted and result in {@link Optional#empty()}.
+   */
+  private static Optional<CExpression> asCExpression(AcslTerm pTerm) {
+    return switch (pTerm) {
+      case AcslCExpression cExpression -> Optional.of(cExpression.getCExpression());
+      case AcslIdTerm idTerm ->
+          switch (idTerm.getDeclaration()) {
+            case AcslCVariableDeclaration cVariable ->
+                Optional.of(
+                    new CIdExpression(
+                        idTerm.getFileLocation(), cVariable.getCVariableDeclaration()));
+            case AcslParameterDeclaration parameter ->
+                parameter
+                    .asCParameterDeclaration()
+                    .map(cParameter -> new CIdExpression(idTerm.getFileLocation(), cParameter));
+            default -> Optional.empty();
+          };
+      case AcslIntegerLiteralTerm literal ->
+          Optional.of(
+              new CIntegerLiteralExpression(
+                  literal.getFileLocation(), CNumericTypes.INT, literal.getValue()));
+      default -> Optional.empty();
     };
   }
 
   /** Pulls the body for the given predicate application out of the known logic-definitions. */
-  private AcslTerm getBodyForAcslPredicateApplicationPredicate(
+  private AcslPredicate getBodyForAcslPredicateApplicationPredicate(
       AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate) {
     final AcslPredicateDeclaration calledPredicateDecl =
-        pAcslPredicateApplicationPredicate.getDeclaration();
-    AcslTerm bodyForCalledFunction = null;
+        pAcslPredicateApplicationPredicate.getPredicateDeclaration();
+    AcslPredicate bodyForCalledFunction = null;
     for (AcslLogicDefinition logicDef : logicDefinitions) {
       if (logicDef instanceof AcslLogicPredicateDefinition pAcslLogicPredicateDefinition) {
         if (pAcslLogicPredicateDefinition.getDeclaration().equals(calledPredicateDecl)) {
@@ -1076,13 +1094,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   public Set<SMGState> visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate)
       throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
-  }
-
-  @Override
-  public Set<SMGState> visit(AcslPredicateTerm pAcslPredicateTerm) throws CPATransferException {
-    // Terms wrapped as predicates (i.e. they return only boolean results)
-    // For example AcslCExpressionTerm with a C expression like:  start->next != 0
-    return pAcslPredicateTerm.getTerm().accept(this);
   }
 
   /**
@@ -1123,7 +1134,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     ImmutableSet.Builder<SMGState> resultStates = ImmutableSet.builder();
 
     for (ValueAndSMGState lenArgAndState :
-        new SMGCPAValueVisitor(evaluator, initialState, originCfaEdge, logger, options)
+        new SMGCPAValueVisitor(evaluator, initialState, originCfaEdge, logger)
             .evaluate(lenArgExpr, lenArgExpr.getExpressionType().getCanonicalType())) {
 
       Value lenValueInBytes = lenArgAndState.getValue();
@@ -1131,7 +1142,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
       for (SMGStateAndOptionalSMGObjectAndOffset targetMemory :
           exprTargetingMemory.accept(
               new SMGCPAAddressVisitor(
-                  evaluator, lenArgAndState.getState(), originCfaEdge, logger, options))) {
+                  evaluator, lenArgAndState.getState(), originCfaEdge, logger))) {
 
         if (!targetMemory.hasSMGObjectAndOffset()) {
           // Invalid witness
@@ -1192,9 +1203,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
           //  We might want to look into that as well.
           evaluatedStates.addAll(
               sepCExpr
-                  .accept(
-                      new SMGCPAValueVisitor(
-                          evaluator, currentState, originCfaEdge, logger, options))
+                  .accept(new SMGCPAValueVisitor(evaluator, currentState, originCfaEdge, logger))
                   .stream()
                   .map(ValueAndSMGState::getState)
                   .collect(ImmutableList.toImmutableList()));
@@ -1258,16 +1267,6 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   }
 
   @Override
-  public Set<SMGState> visit(AcslCParameterDeclaration pAcslCParameterDeclaration) {
-    throw new UnsupportedOperationException("Implement me");
-  }
-
-  @Override
-  public Set<SMGState> visit(AcslCIdExpression pAcslCIdExpression) {
-    throw new UnsupportedOperationException("Implement me");
-  }
-
-  @Override
   public Set<SMGState> visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm)
       throws CPATransferException {
     throw new UnsupportedOperationException("not implemented");
@@ -1321,14 +1320,9 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   }
 
   @Override
-  public Set<SMGState> visit(AcslCLeftHandSideTerm pAcslCLeftHandSideTerm) {
-    throw new UnsupportedOperationException("not implemented");
-  }
-
-  @Override
-  public Set<SMGState> visit(AcslCExpressionTerm pAcslCExpressionTerm) throws CPATransferException {
+  public Set<SMGState> visit(AcslCExpression pAcslCExpression) throws CPATransferException {
     // C expressions wrapped in Acsl terms, e.g.: start->next != 0
-    return pAcslCExpressionTerm.getCExpression().accept(this);
+    return pAcslCExpression.getCExpression().accept(this);
   }
 
   @Override
@@ -1565,6 +1559,30 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   }
 
   @Override
+  public Set<SMGState> accept(SvLibArrayConstantTerm pSvLibArrayConstantTerm)
+      throws CPATransferException {
+    throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
+  }
+
+  @Override
+  public Set<SMGState> accept(SvLibBitVectorConstantTerm pSvLibBitVectorConstantTerm)
+      throws CPATransferException {
+    throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
+  }
+
+  @Override
+  public Set<SMGState> accept(SvLibFloatingPointConstantTerm pSvLibFloatingPointConstantTerm)
+      throws CPATransferException {
+    throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
+  }
+
+  @Override
+  public Set<SMGState> accept(SvLibRoundingModeConstantTerm pSvLibRoundingModeConstantTerm)
+      throws CPATransferException {
+    throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
+  }
+
+  @Override
   public Set<SMGState> accept(SvLibTagReference pSvLibTagReference) throws CPATransferException {
     throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
@@ -1590,28 +1608,14 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
   }
 
   @Override
-  public Set<SMGState> visit(AcslBinaryPredicateOperator pDecl) throws CPATransferException {
-    throw new UnsupportedOperationException("Operators should not be visited!");
+  public Set<SMGState> accept(SvLibNotRecurringTag pSvLibNotRecurringTag)
+      throws CPATransferException {
+    throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
-  public Set<SMGState> visit(AcslBinaryTermOperator pDecl) throws CPATransferException {
-    throw new UnsupportedOperationException("Operators should not be visited!");
-  }
-
-  @Override
-  public Set<SMGState> visit(AcslBinaryTermExpressionOperator pDecl) throws CPATransferException {
-    throw new UnsupportedOperationException("Operators should not be visited!");
-  }
-
-  @Override
-  public Set<SMGState> visit(AcslUnaryTermOperator pDecl) throws CPATransferException {
-    throw new UnsupportedOperationException("Operators should not be visited!");
-  }
-
-  @Override
-  public Set<SMGState> visit(AcslUnaryExpressionOperator pDecl) throws CPATransferException {
-    throw new UnsupportedOperationException("Operators should not be visited!");
+  public Set<SMGState> accept(SvLibRecurringTag pSvLibRecurringTag) throws CPATransferException {
+    throw new UnsupportedOperationException("SV-LIB is not supported by the SMG-CPA");
   }
 
   @Override
@@ -1637,8 +1641,7 @@ public class SMGCPAAcslVisitor extends AAstNodeVisitor<Set<SMGState>, CPATransfe
     final boolean updatedTruthValue = simplifiedExpression.getSecond();
 
     ImmutableSet.Builder<SMGState> resultStateBuilder = ImmutableSet.builder();
-    SMGCPAValueVisitor vv =
-        new SMGCPAValueVisitor(evaluator, state, originCfaEdge, logger, options);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, originCfaEdge, logger);
     // Get the value of the expression (either true[1], false[0], or unknown)
     // Note: this might materialize an abstracted linked-list (more than 1 element in the
     //  resultStateBuilder)

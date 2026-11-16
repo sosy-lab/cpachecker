@@ -1,0 +1,47 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.types.acsl;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.Serial;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
+public final class AcslCType implements AcslType {
+
+  @Serial private static final long serialVersionUID = -7647456338392769900L;
+
+  private final CType type;
+
+  public AcslCType(CType pType) {
+    type = checkNotNull(pType);
+  }
+
+  public CType getType() {
+    return type;
+  }
+
+  @Override
+  public String toASTString(String declarator) {
+    return type.toASTString(declarator);
+  }
+
+  @Override
+  public int hashCode() {
+    return type.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    return pObj instanceof AcslCType other && type.equals(other.type);
+  }
+}

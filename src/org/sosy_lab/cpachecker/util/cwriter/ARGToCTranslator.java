@@ -865,23 +865,22 @@ public class ARGToCTranslator {
   }
 
   private CompoundStatement getBlockAfterEndOfFunction(CompoundStatement currentBlock) {
-    switch (config.doHandleCompoundStatementAtEndOfFunction()) {
+    return switch (config.doHandleCompoundStatementAtEndOfFunction()) {
       case CLOSEFUNCTIONBLOCK -> {
         while (!(currentBlock instanceof InlinedFunction)) {
           currentBlock = currentBlock.getSurroundingBlock();
         }
-        return currentBlock.getSurroundingBlock();
+        yield currentBlock.getSurroundingBlock();
       }
       case ADDNEWBLOCK -> {
         currentBlock = new CompoundStatement(currentBlock);
         currentBlock.getSurroundingBlock().addStatement(currentBlock);
-        return currentBlock;
+        yield currentBlock;
       }
-      default -> {
-        // KEEPBLOCK
-        return currentBlock;
-      }
-    }
+      default ->
+          // KEEPBLOCK
+          currentBlock;
+    };
   }
 
   private @Nullable Statement processTargetState(

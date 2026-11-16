@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -37,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
-public abstract class AAstNodeVisitor<R, X extends Exception> extends APredicateVisitor<R, X>
+public abstract class AAstNodeVisitor<R, X extends Exception> extends AExpressionVisitor<R, X>
     implements CAstNodeVisitor<R, X>,
         JAstNodeVisitor<R, X>,
         SvLibAstNodeVisitor<R, X>,
@@ -173,11 +172,6 @@ public abstract class AAstNodeVisitor<R, X extends Exception> extends APredicate
 
   @Override
   public R visit(JVariableDeclaration decl) throws X {
-    return visit((AVariableDeclaration) decl);
-  }
-
-  @Override
-  public R visit(AcslVariableDeclaration decl) throws X {
     return visit((AVariableDeclaration) decl);
   }
 

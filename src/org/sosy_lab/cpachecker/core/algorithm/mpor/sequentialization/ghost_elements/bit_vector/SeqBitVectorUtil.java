@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_elem
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -21,10 +22,10 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.MemoryModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.ReachType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.memory_model.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryLocation;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqMemoryReachType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SeqBitVectorUtil {
@@ -32,27 +33,28 @@ public class SeqBitVectorUtil {
   public static CIntegerLiteralExpression buildBitVectorExpression(
       SeqBitVectorEncoding pEncoding,
       MachineModel pMachineModel,
-      MemoryModel pMemoryModel,
+      SeqPointerAliasingMap pPointerAliasingMap,
       ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations)
       throws UnsupportedCodeException {
 
     checkArgument(pEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
-        pMemoryModel.getAllMemoryLocations().containsAll(pAccessedMemoryLocations),
+        pPointerAliasingMap.getAllMemoryLocations().containsAll(pAccessedMemoryLocations),
         "pMemoryLocationIds must contain all pAccessedMemoryLocations as keys.");
 
-    CSimpleType type = SeqBitVectorUtil.getBitVectorTypeByMemoryModel(pMachineModel, pMemoryModel);
-    BigInteger mask = getRelevantMemoryLocationMask(pAccessedMemoryLocations, pMemoryModel);
+    CSimpleType type = SeqBitVectorUtil.getBitVectorType(pMachineModel, pPointerAliasingMap);
+    BigInteger mask = getRelevantMemoryLocationMask(pAccessedMemoryLocations, pPointerAliasingMap);
     CIntegerLiteralBase base = getIntegerLiteralBaseByEncoding(pEncoding);
     return new CIntegerLiteralExpression(FileLocation.DUMMY, type, mask, base);
   }
 
   private static BigInteger getRelevantMemoryLocationMask(
-      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations, MemoryModel pMemoryModel) {
+      ImmutableSet<SeqMemoryLocation> pAccessedMemoryLocations,
+      SeqPointerAliasingMap pPointerAliasingMap) {
 
     BigInteger mask = BigInteger.ZERO;
     final ImmutableMap<SeqMemoryLocation, Integer> relevantMemoryLocationIds =
-        pMemoryModel.getRelevantMemoryLocations();
+        pPointerAliasingMap.getRelevantMemoryLocations();
     for (SeqMemoryLocation accessedMemoryLocation : pAccessedMemoryLocations) {
       if (relevantMemoryLocationIds.containsKey(accessedMemoryLocation)) {
         Integer bitIndex = checkNotNull(relevantMemoryLocationIds.get(accessedMemoryLocation));
@@ -65,10 +67,11 @@ public class SeqBitVectorUtil {
 
   // Vector Length =================================================================================
 
-  static CSimpleType getBitVectorTypeByMemoryModel(
-      MachineModel pMachineModel, MemoryModel pMemoryModel) throws UnsupportedCodeException {
+  static CSimpleType getBitVectorType(
+      MachineModel pMachineModel, SeqPointerAliasingMap pPointerAliasingMap)
+      throws UnsupportedCodeException {
 
-    final int minimumLength = getMinimumBitVectorLengthInBytes(pMachineModel, pMemoryModel);
+    final int minimumLength = getMinimumBitVectorLengthInBytes(pMachineModel, pPointerAliasingMap);
     if (minimumLength == pMachineModel.getSizeofChar()) {
       return CNumericTypes.UNSIGNED_CHAR;
     }
@@ -95,9 +98,9 @@ public class SeqBitVectorUtil {
   }
 
   private static int getMinimumBitVectorLengthInBytes(
-      MachineModel pMachineModel, MemoryModel pMemoryModel) {
+      MachineModel pMachineModel, SeqPointerAliasingMap pPointerAliasingMap) {
 
-    final int memoryLocationAmount = pMemoryModel.getRelevantMemoryLocationAmount();
+    final int memoryLocationAmount = pPointerAliasingMap.getRelevantMemoryLocationAmount();
     // a char is always a byte, but a byte doesn't have to be 8 bits
     final int byteSize = pMachineModel.getSizeofCharInBits();
     int lengthInBit = byteSize;
@@ -123,26 +126,48 @@ public class SeqBitVectorUtil {
     };
   }
 
+  public record SeqMemoryAccessReachTypePair(
+      SeqMemoryAccessType accessType, SeqMemoryReachType reachType) {}
+
   /**
-   * Returns {@code true} if creating a bit vector with the given {@link MemoryAccessType} and
-   * {@link ReachType} is required based on the specified options.
+   * Returns the list of {@link SeqMemoryAccessReachTypePair} used in the output program based on
+   * the specified options.
+   */
+  public static ImmutableList<SeqMemoryAccessReachTypePair> getAccessReachTypePairs(
+      MPOROptions pOptions) {
+
+    ImmutableList.Builder<SeqMemoryAccessReachTypePair> rPairs = ImmutableList.builder();
+    for (SeqMemoryAccessType accessType : SeqMemoryAccessType.values()) {
+      for (SeqMemoryReachType reachType : SeqMemoryReachType.values()) {
+        if (SeqBitVectorUtil.isAccessReachPairNeeded(pOptions, accessType, reachType)) {
+          rPairs.add(new SeqMemoryAccessReachTypePair(accessType, reachType));
+        }
+      }
+    }
+    return rPairs.build();
+  }
+
+  /**
+   * Returns {@code true} if creating a bit vector with the given {@link SeqMemoryAccessType} and
+   * {@link SeqMemoryReachType} is required based on the specified options.
    */
   public static boolean isAccessReachPairNeeded(
-      MPOROptions pOptions, MemoryAccessType pAccessType, ReachType pReachType) {
+      MPOROptions pOptions, SeqMemoryAccessType pAccessType, SeqMemoryReachType pReachType) {
 
-    if (pReachType.equals(ReachType.DIRECT)
+    if (pReachType.equals(SeqMemoryReachType.DIRECT)
         && !pOptions.executeCommutingThreadsFirst()
         && !pOptions.abortCommutingContextSwitches()) {
       return false;
     }
-    return switch (pOptions.partialOrderReductionMode()) {
+    return switch (pOptions.partialOrderReductionPrecision()) {
       case NONE ->
-          throw new IllegalArgumentException("cannot check for partialOrderReductionMode NONE");
-      case ACCESS_ONLY -> pAccessType.equals(MemoryAccessType.ACCESS);
+          throw new IllegalArgumentException(
+              "cannot check for partialOrderReductionPrecision NONE");
+      case ACCESS_ONLY -> pAccessType.equals(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           switch (pReachType) {
-            case DIRECT -> pAccessType.in(MemoryAccessType.READ, MemoryAccessType.WRITE);
-            case REACHABLE -> pAccessType.in(MemoryAccessType.ACCESS, MemoryAccessType.WRITE);
+            case DIRECT -> pAccessType.in(SeqMemoryAccessType.READ, SeqMemoryAccessType.WRITE);
+            case REACHABLE -> pAccessType.in(SeqMemoryAccessType.ACCESS, SeqMemoryAccessType.WRITE);
           };
     };
   }

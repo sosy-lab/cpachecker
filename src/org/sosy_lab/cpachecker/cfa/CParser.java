@@ -131,7 +131,7 @@ public interface CParser extends Parser {
    *   bar();
    *   a = 2;
    *   }
-   * </code> Example output: AST for "<bar();, a = 2;>"
+   * </code> Example output: AST for {@code ["bar();", "a = 2;"]}
    *
    * <p>This method guarantees that the AST does not contain CProblem nodes.
    *
@@ -155,8 +155,20 @@ public interface CParser extends Parser {
     @Option(secure = true, description = "C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
 
-    @Option(secure = true, description = "Whether to collect ACSL annotations if present")
+    @Option(
+        secure = true,
+        description = "Whether to add the ACSL annotations of the program to the CFA metadata")
     private boolean collectACSLAnnotations = false;
+
+    @Option(
+        secure = true,
+        description =
+            "Whether to enable (experimental) support for the atomic type specifier"
+                + " '_Atomic(type-name)' by rewriting it to the equivalent '_Atomic' qualifier"
+                + " before parsing. Disadvantage: this rewriting is a purely textual replacement"
+                + " that is applied unconditionally to the whole input, including string literals"
+                + " and comments.")
+    private boolean handleAtomicTypeSpecifiers = false;
 
     protected ParserOptions() {}
 
@@ -166,6 +178,10 @@ public interface CParser extends Parser {
 
     public boolean shouldCollectACSLAnnotations() {
       return collectACSLAnnotations;
+    }
+
+    public boolean shouldHandleAtomicTypeSpecifiers() {
+      return handleAtomicTypeSpecifiers;
     }
   }
 

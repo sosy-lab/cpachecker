@@ -8,22 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLBuiltinCollectingVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLPredicateToExpressionTreeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLTermToCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -32,62 +21,39 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
-/** This CPA is for deriving invariants from ACSL annotations. */
-@Options(prefix = "cpa.acsl")
+/**
+ * This CPA provides the ACSL predicates that hold at a location as assumptions, e.g., for the
+ * predicate analysis.
+ */
 public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
 
-  @Option(
-      secure = true,
-      description = "only store pure C expressions without ACSL-specific constructs")
-  private boolean usePureExpressionsOnly = true;
-
-  private final CFA cfa;
-  private final LogManager logger;
-  private final ACSLPredicateToExpressionTreeVisitor acslVisitor;
-  private final ToCExpressionVisitor expressionTreeVisitor;
+  private final ImmutableSetMultimap<CFANode, AcslPredicate> invariants;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ACSLCPA.class);
   }
 
-  private ACSLCPA(CFA pCFA, LogManager pLogManager, Configuration pConfig)
-      throws InvalidConfigurationException {
+  private ACSLCPA(CFA pCFA, LogManager pLogManager) {
     super("sep", "sep", null);
-    logger = pLogManager;
-    cfa = pCFA;
-    if (!pCFA.getEdgesToAnnotations().isPresent()) {
-      logger.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
+    if (pCFA.getAcslMetadata() == null) {
+      pLogManager.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
     }
-    ACSLTermToCExpressionVisitor termVisitor = new ACSLTermToCExpressionVisitor(cfa, logger);
-    acslVisitor = new ACSLPredicateToExpressionTreeVisitor(termVisitor);
-    expressionTreeVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
-    pConfig.inject(this);
+    invariants = AcslInvariants.of(pCFA);
+  }
+
+  /** Returns the state for the predicates that hold at the given node. */
+  ACSLState getStateForNode(CFANode pNode) {
+    return new ACSLState(invariants.get(pNode));
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new ACSLTransferRelation(
-        cfa, logger, acslVisitor, expressionTreeVisitor, usePureExpressionsOnly);
+    return new ACSLTransferRelation(this);
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
-      throws InterruptedException {
-    ImmutableSet.Builder<ACSLAnnotation> annotations = ImmutableSet.builder();
-    for (CFAEdge edge : node.getEnteringEdges()) {
-      Collection<ACSLAnnotation> annotationsForEdge =
-          cfa.getEdgesToAnnotations().orElse(ImmutableListMultimap.of()).get(edge);
-      if (usePureExpressionsOnly) {
-        ACSLBuiltinCollectingVisitor visitor = new ACSLBuiltinCollectingVisitor();
-        annotationsForEdge =
-            FluentIterable.from(annotationsForEdge)
-                .filter(x -> x.getPredicateRepresentation().accept(visitor).isEmpty())
-                .toSet();
-      }
-      annotations.addAll(annotationsForEdge);
-    }
-    return new ACSLState(annotations.build(), acslVisitor, expressionTreeVisitor, logger);
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
+    return getStateForNode(node);
   }
 }

@@ -13,17 +13,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
 
 public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = -6073836890768425L;
+  @Serial private static final long serialVersionUID = -4362991898716030717L;
 
   public AcslUnaryPredicate(
-      FileLocation pFileLocation, AcslPredicate pOperand, AcslUnaryExpressionOperator pOperator) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand, pOperator);
-    checkNotNull(pFileLocation);
-    checkNotNull(pOperand);
-    checkNotNull(pOperator);
+      FileLocation pFileLocation, AcslPredicate pOperand, AcslUnaryPredicateOperator pOperator) {
+    super(
+        checkNotNull(pFileLocation),
+        AcslBuiltinLogicType.BOOLEAN,
+        checkNotNull(pOperand),
+        checkNotNull(pOperator));
   }
 
   @Override
@@ -34,6 +36,16 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
+  }
+
+  @Override
+  public AcslPredicate getOperand() {
+    return (AcslPredicate) super.getOperand();
+  }
+
+  @Override
+  public AcslUnaryPredicateOperator getOperator() {
+    return (AcslUnaryPredicateOperator) super.getOperator();
   }
 
   @Override
@@ -53,20 +65,18 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
     return obj instanceof AcslUnaryPredicate && super.equals(obj);
   }
 
-  public enum AcslUnaryExpressionOperator implements AUnaryOperator, AcslAstNode {
+  public enum AcslUnaryPredicateOperator implements AUnaryOperator {
     NEGATION("!"),
     ;
 
     private final String operator;
-    private final FileLocation fileLocation;
 
-    AcslUnaryExpressionOperator(String pOperator) {
+    AcslUnaryPredicateOperator(String pOperator) {
       operator = pOperator;
-      fileLocation = FileLocation.DUMMY;
     }
 
-    public static AcslUnaryExpressionOperator of(String pOperator) {
-      for (AcslUnaryExpressionOperator op : values()) {
+    public static AcslUnaryPredicateOperator of(String pOperator) {
+      for (AcslUnaryPredicateOperator op : values()) {
         if (op.operator.equals(pOperator)) {
           return op;
         }
@@ -83,26 +93,6 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
     @Override
     public String getOperator() {
       return operator;
-    }
-
-    @Override
-    public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
-      return v.visit(this);
-    }
-
-    @Override
-    public FileLocation getFileLocation() {
-      return fileLocation;
-    }
-
-    @Override
-    public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
-    }
-
-    @Override
-    public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-      return toString();
     }
   }
 }

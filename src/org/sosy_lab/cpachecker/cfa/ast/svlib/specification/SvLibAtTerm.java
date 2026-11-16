@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
@@ -45,7 +46,7 @@ public final class SvLibAtTerm implements SvLibRelationalTerm {
     return "(at "
         + term.toASTString(pAAstNodeRepresentation)
         + " "
-        + tagReference.getTagName()
+        + SmtLibSymbols.quoteIfNeeded(tagReference.getTagName())
         + ")";
   }
 

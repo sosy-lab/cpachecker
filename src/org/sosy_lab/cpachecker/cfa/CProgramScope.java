@@ -13,17 +13,17 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -44,14 +44,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -195,41 +194,19 @@ public class CProgramScope implements Scope {
 
   private final Predicate<FileLocation> locationDescriptor;
 
-  public static CProgramScope mutableCoy(CProgramScope pCProgramScope) {
-    return new CProgramScope(
-        new HashSet<>(pCProgramScope.variableNames),
-        LinkedListMultimap.create(pCProgramScope.qualifiedDeclarations),
-        LinkedListMultimap.create(pCProgramScope.simpleDeclarations),
-        LinkedListMultimap.create(pCProgramScope.functionDeclarations),
-        new HashMap<>(pCProgramScope.qualifiedTypes),
-        new HashMap<>(pCProgramScope.qualifiedTypeDefs),
-        new HashMap<>(pCProgramScope.retValDeclarations),
-        LinkedListMultimap.create(pCProgramScope.uses),
-        pCProgramScope.functionName,
-        pCProgramScope.locationDescriptor);
-  }
-
-  private CProgramScope(
-      Set<String> pVariableNames,
-      Multimap<String, CSimpleDeclaration> pQualifiedDeclarations,
-      Multimap<String, CSimpleDeclaration> pSimpleDeclarations,
-      Multimap<String, CFunctionDeclaration> pFunctionDeclarations,
-      Map<String, CComplexType> pQualifiedTypes,
-      Map<String, CType> pQualifiedTypeDefs,
-      Map<String, CSimpleDeclaration> pRetValDeclarations,
-      Multimap<CAstNode, FileLocation> pUses,
-      String pFunctionName,
-      Predicate<FileLocation> pLocationDescriptor) {
-    variableNames = pVariableNames;
-    qualifiedDeclarations = pQualifiedDeclarations;
-    simpleDeclarations = pSimpleDeclarations;
-    functionDeclarations = pFunctionDeclarations;
-    qualifiedTypes = pQualifiedTypes;
-    qualifiedTypeDefs = pQualifiedTypeDefs;
-    retValDeclarations = pRetValDeclarations;
-    uses = pUses;
-    functionName = pFunctionName;
-    locationDescriptor = pLocationDescriptor;
+  /** Returns a program scope with only the given function declarations. */
+  private CProgramScope(Collection<CFunctionDeclaration> pFunctionDeclarations) {
+    variableNames = ImmutableSet.of();
+    qualifiedDeclarations = ImmutableListMultimap.of();
+    simpleDeclarations = ImmutableListMultimap.of();
+    functionDeclarations =
+        Multimaps.index(pFunctionDeclarations, CProgramScope::getOriginalQualifiedName);
+    qualifiedTypes = ImmutableMap.of();
+    qualifiedTypeDefs = ImmutableMap.of();
+    retValDeclarations = ImmutableMap.of();
+    uses = ImmutableListMultimap.of();
+    functionName = null;
+    locationDescriptor = Predicates.alwaysTrue();
   }
 
   /**
@@ -251,6 +228,63 @@ public class CProgramScope implements Scope {
     uses = pScope.uses;
     functionName = pFunctionName;
     locationDescriptor = pLocationDescriptor;
+  }
+
+  /**
+   * Copies the given program scope and adds the given declarations to it.
+   *
+   * @param pScope the old scope.
+   * @param pAdditionalDeclarations the declarations that are added to the scope.
+   */
+  private CProgramScope(
+      CProgramScope pScope, Collection<? extends CSimpleDeclaration> pAdditionalDeclarations) {
+    variableNames =
+        ImmutableSet.<String>builder()
+            .addAll(pScope.variableNames)
+            .addAll(from(pAdditionalDeclarations).transform(CProgramScope::getName))
+            .build();
+    simpleDeclarations =
+        ImmutableListMultimap.<String, CSimpleDeclaration>builder()
+            .putAll(pScope.simpleDeclarations)
+            .putAll(Multimaps.index(pAdditionalDeclarations, CProgramScope::getName))
+            .build();
+    qualifiedDeclarations =
+        ImmutableListMultimap.<String, CSimpleDeclaration>builder()
+            .putAll(pScope.qualifiedDeclarations)
+            .putAll(
+                Multimaps.index(pAdditionalDeclarations, CProgramScope::getOriginalQualifiedName))
+            .build();
+    functionDeclarations = pScope.functionDeclarations;
+    qualifiedTypes = pScope.qualifiedTypes;
+    qualifiedTypeDefs = pScope.qualifiedTypeDefs;
+    retValDeclarations = pScope.retValDeclarations;
+    uses = pScope.uses;
+    functionName = pScope.functionName;
+    locationDescriptor = pScope.locationDescriptor;
+  }
+
+  /**
+   * Copies the given program scope but keeps only the declarations that satisfy the given
+   * predicate.
+   *
+   * @param pScope the old scope.
+   * @param pKeptDeclarations the declarations that are kept.
+   */
+  private CProgramScope(CProgramScope pScope, Predicate<CSimpleDeclaration> pKeptDeclarations) {
+    variableNames = pScope.variableNames;
+    simpleDeclarations =
+        ImmutableListMultimap.copyOf(
+            Multimaps.filterValues(pScope.simpleDeclarations, pKeptDeclarations::test));
+    qualifiedDeclarations =
+        ImmutableListMultimap.copyOf(
+            Multimaps.filterValues(pScope.qualifiedDeclarations, pKeptDeclarations::test));
+    functionDeclarations = pScope.functionDeclarations;
+    qualifiedTypes = pScope.qualifiedTypes;
+    qualifiedTypeDefs = pScope.qualifiedTypeDefs;
+    retValDeclarations = pScope.retValDeclarations;
+    uses = pScope.uses;
+    functionName = pScope.functionName;
+    locationDescriptor = pScope.locationDescriptor;
   }
 
   /**
@@ -317,17 +351,19 @@ public class CProgramScope implements Scope {
   }
 
   public static CProgramScope empty() {
-    return new CProgramScope(
-        ImmutableSet.of(),
-        ImmutableListMultimap.of(),
-        ImmutableListMultimap.of(),
-        ImmutableListMultimap.of(),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        ImmutableListMultimap.of(),
-        null,
-        Predicates.alwaysTrue());
+    return new CProgramScope(ImmutableList.of());
+  }
+
+  /**
+   * Returns a program scope that contains only the given declarations, e.g., for tests that have no
+   * CFA.
+   */
+  @VisibleForTesting
+  public static CProgramScope ofDeclarations(
+      Collection<? extends CSimpleDeclaration> pDeclarations) {
+    return new CProgramScope(from(pDeclarations).filter(CFunctionDeclaration.class).toList())
+        .withAdditionalDeclarations(
+            from(pDeclarations).filter(not(instanceOf(CFunctionDeclaration.class))).toList());
   }
 
   @Override
@@ -440,27 +476,12 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public void registerDeclaration(ASimpleDeclaration pDeclaration) {
-    if (simpleDeclarations instanceof ImmutableMultimap<String, CSimpleDeclaration>
-        || functionDeclarations instanceof ImmutableMultimap<String, CFunctionDeclaration>) {
-      // Previously adding new declarations to a scope was ignored and all data structures
-      // were immutable. To remain consistent with this behavior, we skip the addition in case the
-      // data structures are immutable
-      return;
-    }
-
-    if (pDeclaration instanceof CFunctionDeclaration pFunctionDeclaration) {
-      // Function declarations are not stored in the simple declarations map
-      functionDeclarations.put(pDeclaration.getOrigName(), pFunctionDeclaration);
-    } else if (pDeclaration instanceof CSimpleDeclaration pSimpleDeclaration) {
-      simpleDeclarations.put(pDeclaration.getOrigName(), pSimpleDeclaration);
-    } else {
-      throw new AssertionError("Unsupported declaration type: " + pDeclaration);
-    }
+  public void registerDeclaration(CSimpleDeclaration pDeclaration) {
+    // Assume that all declarations are already registered
   }
 
   @Override
-  public boolean registerTypeDeclaration(AbstractDeclaration pDeclaration) {
+  public boolean registerTypeDeclaration(CComplexTypeDeclaration pDeclaration) {
     // Assume that all type declarations are already registered
     return false;
   }
@@ -504,6 +525,38 @@ public class CProgramScope implements Scope {
    */
   public CProgramScope withFunctionScope(String pFunctionName) {
     return new CProgramScope(this, pFunctionName, locationDescriptor);
+  }
+
+  /**
+   * Create a CProgramScope that additionally contains the given declarations, e.g., of variables
+   * that are not declared in the program.
+   *
+   * @param pDeclarations the declarations that are added to the scope.
+   */
+  public CProgramScope withAdditionalDeclarations(
+      Collection<? extends CSimpleDeclaration> pDeclarations) {
+    if (pDeclarations.isEmpty()) {
+      return this;
+    }
+    return new CProgramScope(this, pDeclarations);
+  }
+
+  /**
+   * Create a CProgramScope whose variables and parameters are only the given ones, e.g., the ones
+   * in scope at a location of the program, so that a name of the input program refers to the only
+   * one of them with this name.
+   *
+   * @param pVariablesInScope the variables and parameters of the new scope.
+   */
+  public CProgramScope withVariablesInScope(
+      Collection<? extends CSimpleDeclaration> pVariablesInScope) {
+    return new CProgramScope(
+            this,
+            declaration ->
+                !(declaration instanceof CVariableDeclaration
+                        || declaration instanceof CParameterDeclaration)
+                    || retValDeclarations.containsValue(declaration))
+        .withAdditionalDeclarations(pVariablesInScope);
   }
 
   /**
@@ -596,7 +649,8 @@ public class CProgramScope implements Scope {
                 original.getName(),
                 original.getOrigName(),
                 original.getQualifiedName(),
-                null);
+                null,
+                original.hasThreadLocalStorage());
           }
           return v;
         });
@@ -702,7 +756,8 @@ public class CProgramScope implements Scope {
                           original.getName(),
                           original.getOrigName(),
                           original.getQualifiedName(),
-                          null);
+                          null,
+                          original.hasThreadLocalStorage());
                     }
                     return decl;
                   }
@@ -879,7 +934,8 @@ public class CProgramScope implements Scope {
         name,
         name,
         createScopedNameOf(pFunctionDeclaration.getName(), name),
-        null);
+        null,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   public static boolean isArtificialFunctionReturnVariable(CIdExpression pCIdExpression) {

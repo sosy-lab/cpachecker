@@ -44,7 +44,8 @@ public class SSAMapTest {
                 PersistentLinkedList.of(),
                 PathCopyingPersistentTreeMap.of(),
                 PersistentLinkedList.of(),
-                0);
+                0,
+                PersistentLinkedList.of());
 
     return new ClassSanityTester()
         .setDistinctValues(

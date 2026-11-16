@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
@@ -16,12 +17,14 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslIdPredicate extends AIdExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = -814550123151276L;
+  @Serial private static final long serialVersionUID = -616762001493190801L;
 
   public AcslIdPredicate(FileLocation pFileLocation, AcslPredicateDeclaration pDeclaration) {
-    super(pFileLocation, pDeclaration);
-    checkNotNull(pFileLocation);
-    checkNotNull(pDeclaration);
+    super(checkNotNull(pFileLocation), checkNotNull(pDeclaration));
+    checkArgument(
+        pDeclaration.getParameters().isEmpty(),
+        "The predicate %s is applied to no arguments",
+        pDeclaration);
   }
 
   @Override

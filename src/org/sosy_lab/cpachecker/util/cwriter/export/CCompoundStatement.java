@@ -32,6 +32,11 @@ public record CCompoundStatement(ImmutableList<CCompoundStatementElement> statem
   }
 
   @Override
+  public ImmutableList<CCompoundStatementElement> getAllNestedStatements() {
+    return statements;
+  }
+
+  @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation)
       throws UnrecognizedCodeException {
 

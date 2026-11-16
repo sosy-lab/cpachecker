@@ -8,23 +8,33 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslType;
 
 public final class AcslArraySubscriptTerm extends AArraySubscriptExpression implements AcslTerm {
 
-  @Serial private static final long serialVersionUID = 8359800949073538182L;
+  @Serial private static final long serialVersionUID = -8309491987090278085L;
 
   public AcslArraySubscriptTerm(
       FileLocation pLocation, AcslType pType, AcslTerm pArrayTerm, AcslTerm pSubscriptTerm) {
-    super(pLocation, pType, pArrayTerm, pSubscriptTerm);
-    checkNotNull(pLocation);
-    checkNotNull(pType);
-    checkNotNull(pArrayTerm);
-    checkNotNull(pSubscriptTerm);
+    super(
+        checkNotNull(pLocation),
+        checkNotNull(pType),
+        checkNotNull(pArrayTerm),
+        checkNotNull(pSubscriptTerm));
+    checkArgument(
+        AcslType.isPointer(pArrayTerm.getExpressionType()),
+        "%s is no array or pointer",
+        pArrayTerm);
+    checkArgument(
+        AcslType.isIntegral(pSubscriptTerm.getExpressionType()),
+        "The subscript %s is no integer",
+        pSubscriptTerm);
   }
 
   @Override

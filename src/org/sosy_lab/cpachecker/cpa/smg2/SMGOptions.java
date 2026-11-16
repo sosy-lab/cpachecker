@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 
 @Options(prefix = "cpa.smg2")
@@ -130,8 +129,55 @@ public class SMGOptions {
   @Option(
       secure = true,
       name = "enableMallocFail",
-      description = "If this Option is enabled, failure of malloc is simulated")
+      description =
+          "If this Option is enabled, failure of malloc is simulated, i.e. it may return 0."
+              + " For calloc, see option enableCallocFail) and for realloc see option"
+              + " enableReallocFail.")
   private boolean enableMallocFailure = true;
+
+  @Option(
+      secure = true,
+      name = "enableCallocFail",
+      description =
+          "If this Option is enabled, failure of calloc is simulated, returning 0 on failure.")
+  private boolean enableCallocFailure = true;
+
+  @Option(
+      secure = true,
+      name = "enableReallocFail",
+      description =
+          "If this Option is enabled, failure of realloc is simulated, i.e. it may return 0 and"
+              + " leave the old memory given unchanged. This also applies to realloc with a null"
+              + " pointer, which otherwise behaves like malloc.")
+  private boolean enableReallocFailure = true;
+
+  @Option(
+      secure = true,
+      toUppercase = true,
+      name = "reallocWithZeroSize",
+      description =
+          "Sets how realloc(ptr, 0) with a valid ptr is handled, which is implementation-defined"
+              + " (C11 7.22.3 (1), C17 7.22.3.5 (3)) and undefined since C23.\n"
+              + "FREE_AND_ALLOCATE_ZERO_SIZE: the memory of ptr is freed and the result is that of"
+              + " an allocation with size 0 (see option mallocZeroReturnsZero), e.g. musl and BSD"
+              + " libc.\n"
+              + "FREE_AND_RETURN_ZERO: the memory of ptr is freed and 0 is returned, e.g. glibc.")
+  private ReallocZeroSizeHandling reallocWithZeroSize =
+      ReallocZeroSizeHandling.FREE_AND_ALLOCATE_ZERO_SIZE;
+
+  public enum ReallocZeroSizeHandling {
+    FREE_AND_ALLOCATE_ZERO_SIZE,
+    FREE_AND_RETURN_ZERO
+  }
+
+  @Option(
+      secure = true,
+      name = "callocSizeOverflowReturnsZero",
+      description =
+          "If this Option is enabled, calloc returns 0 if the product of its arguments can not be"
+              + " represented in size_t, as required by C23 and implemented by common C libraries."
+              + " Otherwise, the product is used as size of the allocation.")
+  private boolean callocSizeOverflowReturnsZero = false;
 
   @Option(
       secure = true,
@@ -145,15 +191,16 @@ public class SMGOptions {
               + " is checked for validity and the result is a UNKNOWN value (which may itself"
               + " violate memorysafety etc.). Warning: ASSUME_SAFE can be unsound due to side"
               + " effects, the unknown return value etc.!\n"
-              + "ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and may"
-              + " cause memory based errors. Returned values are unknown, but in a valid new memory"
-              + " section that can be freed normally. Functions allocating external memory and"
-              + " returning their address can be defined with option externalAllocationFunction and"
-              + " externalAllocationSize.\n"
+              + "ASSUME_EXTERNALLY_ALLOCATED: Input into the function is checked for validity and"
+              + " may cause memory based errors. Returned values are unknown, but in a valid new"
+              + " memory section that can be freed normally. Functions allocating external memory"
+              + " and returning their address can be defined with option externalAllocationFunction"
+              + " and externalAllocationSize. ASSUME_EXTERNALLY_ALLOCATED_WARN is equal, but prints"
+              + " warnings.\n"
               + "Functions defined in option \"safeUnknownFunctions\" are handled equally to"
               + " ASSUME_SAFE in all cases.")
   private UnknownFunctionHandling handleUnknownFunctions =
-      UnknownFunctionHandling.ASSUME_EXTERNAL_ALLOCATED;
+      UnknownFunctionHandling.ASSUME_EXTERNALLY_ALLOCATED;
 
   @Option(
       secure = true,
@@ -294,7 +341,8 @@ public class SMGOptions {
   public enum UnknownFunctionHandling {
     STRICT,
     ASSUME_SAFE,
-    ASSUME_EXTERNAL_ALLOCATED
+    ASSUME_EXTERNALLY_ALLOCATED,
+    ASSUME_EXTERNALLY_ALLOCATED_WARN
   }
 
   @Option(
@@ -451,12 +499,6 @@ public class SMGOptions {
       name = "unknownOnUndefined",
       description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
-
-  @Option(
-      secure = true,
-      name = "runtimeCheck",
-      description = "Sets the level of runtime checking: NONE, HALF, FULL")
-  private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
   @Option(
       secure = true,
@@ -657,6 +699,22 @@ public class SMGOptions {
     return enableMallocFailure;
   }
 
+  public boolean isEnableCallocFailure() {
+    return enableCallocFailure;
+  }
+
+  public boolean isEnableReallocFailure() {
+    return enableReallocFailure;
+  }
+
+  public ReallocZeroSizeHandling getReallocWithZeroSize() {
+    return reallocWithZeroSize;
+  }
+
+  public boolean isCallocSizeOverflowReturnsZero() {
+    return callocSizeOverflowReturnsZero;
+  }
+
   public boolean isPreciseSMGRead() {
     return preciseSMGRead;
   }
@@ -743,10 +801,6 @@ public class SMGOptions {
 
   public boolean unknownOnUndefined() {
     return unknownOnUndefined;
-  }
-
-  public SMGRuntimeCheck getRuntimeCheck() {
-    return runtimeCheck;
   }
 
   public PathTemplate getExportSMGFilePattern() {

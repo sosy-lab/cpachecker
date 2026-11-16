@@ -8,9 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.annotations;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Objects;
+import com.google.common.collect.Lists;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -35,19 +40,46 @@ public final class AcslFunctionContract extends AAcslAnnotation {
   private final ImmutableSet<AcslRequires> requiresClauses;
   private final ImmutableSet<AcslEnsures> ensuresClauses;
   private final ImmutableSet<AcslAssigns> assignsClauses;
+  private final ImmutableList<AcslBehavior> behaviors;
+  private final ImmutableList<AcslCompletenessClause> completenessClauses;
 
   public AcslFunctionContract(
       FileLocation pFileLocation,
       ImmutableSet<AcslRequires> pRequiresClauses,
       ImmutableSet<AcslEnsures> pEnsuresClauses,
       ImmutableSet<AcslAssigns> pAssignsClauses) {
+    this(
+        pFileLocation,
+        pRequiresClauses,
+        pEnsuresClauses,
+        pAssignsClauses,
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public AcslFunctionContract(
+      FileLocation pFileLocation,
+      ImmutableSet<AcslRequires> pRequiresClauses,
+      ImmutableSet<AcslEnsures> pEnsuresClauses,
+      ImmutableSet<AcslAssigns> pAssignsClauses,
+      ImmutableList<AcslBehavior> pBehaviors,
+      ImmutableList<AcslCompletenessClause> pCompletenessClauses) {
     super(pFileLocation);
-    Preconditions.checkNotNull(pRequiresClauses);
-    Preconditions.checkNotNull(pEnsuresClauses);
-    Preconditions.checkNotNull(pAssignsClauses);
-    requiresClauses = pRequiresClauses;
-    ensuresClauses = pEnsuresClauses;
-    assignsClauses = pAssignsClauses;
+    requiresClauses = checkNotNull(pRequiresClauses);
+    ensuresClauses = checkNotNull(pEnsuresClauses);
+    assignsClauses = checkNotNull(pAssignsClauses);
+    behaviors = checkNotNull(pBehaviors);
+    completenessClauses = checkNotNull(pCompletenessClauses);
+    ImmutableSet<String> behaviorNames =
+        ImmutableSet.copyOf(Lists.transform(behaviors, AcslBehavior::getName));
+    checkArgument(
+        behaviorNames.size() == behaviors.size(), "The behaviors %s have the same name", behaviors);
+    checkArgument(
+        FluentIterable.from(completenessClauses)
+            .allMatch(clause -> behaviorNames.containsAll(clause.getBehaviors())),
+        "The completeness clauses %s name behaviors other than %s",
+        completenessClauses,
+        behaviorNames);
   }
 
   @Override
@@ -56,38 +88,31 @@ public final class AcslFunctionContract extends AAcslAnnotation {
       return true;
     }
     return pO instanceof AcslFunctionContract other
-        && Objects.equals(assignsClauses, other.assignsClauses)
-        && Objects.equals(ensuresClauses, other.ensuresClauses)
-        && Objects.equals(requiresClauses, other.requiresClauses);
+        && assignsClauses.equals(other.assignsClauses)
+        && ensuresClauses.equals(other.ensuresClauses)
+        && requiresClauses.equals(other.requiresClauses)
+        && behaviors.equals(other.behaviors)
+        && completenessClauses.equals(other.completenessClauses);
   }
 
   @Override
   public int hashCode() {
     int hash = 7;
     int prime = 31;
-    hash = prime * hash + Objects.hashCode(ensuresClauses);
-    hash = prime * hash + Objects.hashCode(assignsClauses);
-    hash = prime * hash + Objects.hashCode(requiresClauses);
+    hash = prime * hash + ensuresClauses.hashCode();
+    hash = prime * hash + assignsClauses.hashCode();
+    hash = prime * hash + requiresClauses.hashCode();
+    hash = prime * hash + behaviors.hashCode();
+    hash = prime * hash + completenessClauses.hashCode();
     return hash;
   }
 
   @Override
   public String toAstString() {
-    StringBuilder astString = new StringBuilder();
-
-    for (AcslRequires r : requiresClauses) {
-      astString.append(r.toAstString()).append(System.lineSeparator());
-    }
-
-    for (AcslEnsures e : ensuresClauses) {
-      astString.append(e.toAstString()).append(System.lineSeparator());
-    }
-
-    for (AcslAssigns a : assignsClauses) {
-      astString.append(a.toAstString()).append(System.lineSeparator());
-    }
-
-    return astString.toString();
+    return FluentIterable.<AAcslAnnotation>concat(
+            requiresClauses, ensuresClauses, assignsClauses, behaviors, completenessClauses)
+        .transform(AAcslAnnotation::toAstString)
+        .join(Joiner.on(' '));
   }
 
   public ImmutableSet<AcslEnsures> getEnsuresClauses() {
@@ -100,5 +125,13 @@ public final class AcslFunctionContract extends AAcslAnnotation {
 
   public ImmutableSet<AcslAssigns> getAssignsClauses() {
     return assignsClauses;
+  }
+
+  public ImmutableList<AcslBehavior> getBehaviors() {
+    return behaviors;
+  }
+
+  public ImmutableList<AcslCompletenessClause> getCompletenessClauses() {
+    return completenessClauses;
   }
 }

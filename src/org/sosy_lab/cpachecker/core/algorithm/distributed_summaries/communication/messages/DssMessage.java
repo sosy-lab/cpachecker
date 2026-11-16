@@ -15,7 +15,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -25,11 +24,18 @@ import java.util.Objects;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
+/**
+ * Abstract base class for messages used in distributed summary synthesis. Each message has a sender
+ * ID, a type, a timestamp, and content. The content is a flat map of key-value pairs, where keys
+ * can be hierarchical using dot notation.
+ */
 public abstract class DssMessage {
 
   public enum DssMessageType {
@@ -37,7 +43,7 @@ public abstract class DssMessage {
     VIOLATION_CONDITION,
     EXCEPTION,
     RESULT,
-    STATISTIC
+    WITNESS
   }
 
   private static class DssMessageProxy {
@@ -76,14 +82,32 @@ public abstract class DssMessage {
   private final Instant timestamp;
   private final ImmutableMap<String, String> content;
 
+  /**
+   * Creates a new message with the given sender ID, type, and content.
+   *
+   * @param pSenderId the ID of the sender
+   * @param pType the type of the message
+   * @param pContent the content of the message
+   */
   DssMessage(String pSenderId, DssMessageType pType, Map<String, String> pContent) {
+    this(pSenderId, pType, pContent, Instant.now());
+  }
+
+  DssMessage(
+      String pSenderId, DssMessageType pType, Map<String, String> pContent, Instant pTimestamp) {
     checkArgument(isValid(pContent), "Invalid content for message type: %s", pType);
     senderId = pSenderId;
     type = pType;
-    timestamp = Instant.now();
+    timestamp = pTimestamp;
     content = ImmutableMap.copyOf(pContent);
   }
 
+  /**
+   * Checks whether the given content is valid for this message type.
+   *
+   * @param pContent the content to check
+   * @return true if the content is valid, false otherwise
+   */
   abstract boolean isValid(Map<String, String> pContent);
 
   public final Instant getTimestamp() {
@@ -100,13 +124,14 @@ public abstract class DssMessage {
 
   private ContentReader getArbitraryContent(String pKey) {
     checkArgument(
-        type == DssMessageType.POST_CONDITION || type == DssMessageType.VIOLATION_CONDITION,
+        type == DssMessageType.POST_CONDITION
+            || type == DssMessageType.VIOLATION_CONDITION
+            || type == DssMessageType.WITNESS,
         "Cannot get content for type: %s",
         type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
-    Preconditions.checkState(
-        !stateContent.isEmpty(), "State content cannot be empty for key %s.", pKey);
-    Preconditions.checkState(
+    checkState(!stateContent.isEmpty(), "State content cannot be empty for key %s.", pKey);
+    checkState(
         stateContent.values().stream().noneMatch(Objects::isNull),
         "Null values are not allowed in content.");
     return ContentReader.read(stateContent);
@@ -149,9 +174,60 @@ public abstract class DssMessage {
 
   public final Result getResult() {
     checkArgument(type == DssMessageType.RESULT, "Cannot get content for type: " + "%s", type);
-    String resultString = content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY);
-    Preconditions.checkNotNull(resultString, "Result content is missing in message: %s", this);
-    return Result.valueOf(resultString);
+    return Result.valueOf(
+        Preconditions.checkNotNull(
+            content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY),
+            "Result content is missing in message: %s",
+            this));
+  }
+
+  public final DssWitnessMessage.WitnessType getWitnessType() {
+    checkArgument(type == DssMessageType.WITNESS, "Cannot get content for type: %s", type);
+    return DssWitnessMessage.WitnessType.valueOf(
+        Preconditions.checkNotNull(
+            content.get(DssWitnessMessage.DSS_MESSAGE_WITNESS_TYPE_KEY),
+            "Witness type is missing in message: %s",
+            this));
+  }
+
+  public final DecisionGraph getViolationPath() {
+    checkArgument(
+        getWitnessType() == DssWitnessMessage.WitnessType.VIOLATION,
+        "Cannot get violation path for witness type: %s",
+        type);
+    return DecisionGraph.deserialize(
+        Preconditions.checkNotNull(
+            content.get(DssWitnessMessage.DSS_MESSAGE_VIOLATION_PATH_KEY),
+            "No violation path present in witness message: %s",
+            this));
+  }
+
+  public final String extractBlockStateWitnessString() {
+    checkArgument(
+        type == DssMessageType.VIOLATION_CONDITION, "Cannot get content for type: " + "%s", type);
+
+    checkState(getNumberOfContainedStates().orElse(-1) >= 1, "No state to extract witness from");
+
+    return ContentReader.read(content)
+        .pushLevel(BlockState.class.getName())
+        .pushLevel(SerializeOperator.STATE_KEY + 0)
+        .get(SerializeOperator.STATE_KEY);
+  }
+
+  /**
+   * Whether the sender reports the end of its block as unreachable, i.e., its postcondition is
+   * {@code false} and successor blocks must not be entered through it.
+   *
+   * <p>This is an explicit flag on purpose. It must not be inferred from the states the message
+   * carries: the most general (top) state is a perfectly valid postcondition for a block whose end
+   * is reachable but unconstrained, and treating it as a marker would silently discard it.
+   *
+   * @return whether this message reports an unreachable block end
+   */
+  public final boolean indicatesUnreachableBlockEnd() {
+    checkArgument(type == DssMessageType.POST_CONDITION, "Cannot get content for type: %s", type);
+    return Boolean.parseBoolean(
+        content.get(DssMessageFactory.DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY));
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
@@ -183,10 +259,10 @@ public abstract class DssMessage {
 
   public final String getExceptionMessage() {
     checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
-    String exceptionMessage = content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY);
-    Preconditions.checkNotNull(
-        exceptionMessage, "Exception message is missing in message: %s", this);
-    return exceptionMessage;
+    return Preconditions.checkNotNull(
+        content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY),
+        "Exception message is missing in message: %s",
+        this);
   }
 
   /**
@@ -195,11 +271,12 @@ public abstract class DssMessage {
    * @param pIdentifier A unique identifier indicating a set of messages that belong together. All
    *     messages produced in one run of DSS should have the same identifier. This simplifies the
    *     separation of old and new messages after the analysis, especially, .
+   * @param pCompress whether to dictionary-encode repeated content
    * @return JSON representation of the message.
    */
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
-      int pIdentifier) {
+      int pIdentifier, boolean pCompress) {
     ImmutableMap.Builder<String, String> header =
         ImmutableMap.<String, String>builder()
             .put(DSS_MESSAGE_HEADER_SENDER_ID_KEY, getSenderId())
@@ -211,23 +288,12 @@ public abstract class DssMessage {
             .put(DSS_MESSAGE_HEADER_IDENTIFIER_KEY, Integer.toString(pIdentifier));
     return ImmutableMap.<String, ImmutableMap<String, String>>builder()
         .put(DSS_MESSAGE_HEADER_ID, header.buildOrThrow())
-        .put(DSS_MESSAGE_CONTENT_ID, content)
+        .put(DSS_MESSAGE_CONTENT_ID, pCompress ? MessageContentDictionary.encode(content) : content)
         .buildOrThrow();
   }
 
   public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
-    return asJsonWithIdentifier(0);
-  }
-
-  public final Map<StatisticsKey, String> getStats() {
-    checkState(
-        type == DssMessageType.STATISTIC, "Cannot get stats for message type: " + "%s", type);
-    ImmutableMap.Builder<StatisticsKey, String> statsBuilder = ImmutableMap.builder();
-    for (Map.Entry<String, String> entry : content.entrySet()) {
-      StatisticsKey key = StatisticsKey.valueOf(entry.getKey());
-      statsBuilder.put(key, entry.getValue());
-    }
-    return statsBuilder.buildOrThrow();
+    return asJsonWithIdentifier(0, true);
   }
 
   public static DssMessage fromJson(Path pJson) throws IOException {
@@ -248,15 +314,23 @@ public abstract class DssMessage {
         Objects.requireNonNull(
             pJson.get(DSS_MESSAGE_CONTENT_ID), "Message JSON does not contain content: " + pJson);
 
+    content = MessageContentDictionary.decode(content);
+
     String senderId = header.get(DSS_MESSAGE_HEADER_SENDER_ID_KEY);
     DssMessageType type = DssMessageType.valueOf(header.get(DSS_MESSAGE_HEADER_TYPE_KEY));
+    String serializedTimestamp = header.get(DSS_MESSAGE_HEADER_TIMESTAMP_KEY);
+    Instant timestamp = Instant.now();
+    if (serializedTimestamp != null) {
+      long nanos = Long.parseLong(serializedTimestamp);
+      timestamp = Instant.ofEpochSecond(nanos / 1_000_000_000L, nanos % 1_000_000_000L);
+    }
 
     return switch (type) {
-      case POST_CONDITION -> new DssPostConditionMessage(senderId, ImmutableList.of(), content);
-      case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content);
-      case EXCEPTION -> new DssExceptionMessage(senderId, content);
-      case RESULT -> new DssResultMessage(senderId, content);
-      case STATISTIC -> new DssStatisticsMessage(senderId, content);
+      case POST_CONDITION -> new DssPostConditionMessage(senderId, content, timestamp);
+      case VIOLATION_CONDITION -> new DssViolationConditionMessage(senderId, content, timestamp);
+      case EXCEPTION -> new DssExceptionMessage(senderId, content, timestamp);
+      case RESULT -> new DssResultMessage(senderId, content, timestamp);
+      case WITNESS -> new DssWitnessMessage(senderId, content, timestamp);
     };
   }
 }

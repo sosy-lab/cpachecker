@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -59,25 +60,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.APredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCanAccessPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSeparateMemoryConjunctionPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -372,27 +359,25 @@ public class LiveVariablesTransferRelation
   protected LiveVariablesState handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
       throws CPATransferException {
     BitSet out = state.getDataCopy();
-    if (statement instanceof AExpressionAssignmentStatement) {
-      handleAssignment((AAssignment) statement, out);
-      return LiveVariablesState.ofUnique(out, this);
+    return switch (statement) {
+      case AExpressionAssignmentStatement unused -> {
+        handleAssignment((AAssignment) statement, out);
+        yield LiveVariablesState.ofUnique(out, this);
 
-      // no changes as there is no assignment, thus we can return the last state
-    } else if (statement instanceof AExpressionStatement) {
-      return state;
-
-    } else if (statement instanceof AFunctionCallAssignmentStatement) {
-      handleAssignment((AAssignment) statement, out);
-      return LiveVariablesState.ofUnique(out, this);
-
-    } else if (statement instanceof AFunctionCallStatement funcStmt) {
-
-      getVariablesUsedAsParameters(
-          funcStmt.getFunctionCallExpression().getParameterExpressions(), out);
-      return LiveVariablesState.ofUnique(out, this);
-
-    } else {
-      throw new CPATransferException("Missing case for if-then-else statement.");
-    }
+        // no changes as there is no assignment, thus we can return the last state
+      }
+      case AExpressionStatement unused -> state;
+      case AFunctionCallAssignmentStatement unused -> {
+        handleAssignment((AAssignment) statement, out);
+        yield LiveVariablesState.ofUnique(out, this);
+      }
+      case AFunctionCallStatement funcStmt -> {
+        getVariablesUsedAsParameters(
+            funcStmt.getFunctionCallExpression().getParameterExpressions(), out);
+        yield LiveVariablesState.ofUnique(out, this);
+      }
+      default -> throw new CPATransferException("Missing case for if-then-else statement.");
+    };
   }
 
   @Override
@@ -663,7 +648,7 @@ public class LiveVariablesTransferRelation
     }
   }
 
-  private static class LhsPointerDereferenceVisitor extends APredicateVisitor<Boolean, NoException>
+  private static class LhsPointerDereferenceVisitor extends AExpressionVisitor<Boolean, NoException>
       implements CExpressionVisitor<Boolean, NoException> {
 
     LhsPointerDereferenceVisitor() {}
@@ -860,75 +845,6 @@ public class LiveVariablesTransferRelation
 
     @Override
     public Boolean visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslIdPredicate pAcslIdPredicate) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslOldPredicate pAcslOldPredicate) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate)
-        throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslTernaryPredicate pAcslTernaryPredicate) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslValidPredicate pAcslValidPredicate) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslForallPredicate pForallPredicate) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslFunctionCallPredicate pAcslFunctionCallPredicate) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslPredicateTerm pAcslPredicateTerm) {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslCanAccessPredicate pAcslCanAccessPredicate) throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(
-        AcslSeparateMemoryConjunctionPredicate pAcslSeparateMemoryConjunctionPredicate)
-        throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslPredicateApplicationPredicate pAcslPredicateApplicationPredicate)
-        throws NoException {
       return false;
     }
   }

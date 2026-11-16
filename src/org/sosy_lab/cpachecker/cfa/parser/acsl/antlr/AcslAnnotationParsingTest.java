@@ -1,0 +1,513 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.parser.acsl.antlr;
+
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.math.BigInteger;
+import java.util.Objects;
+import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermPredicateOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateApplicationPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AAcslAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslAssertion;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslBehavior;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslCompletenessClause;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslEnsures;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslFunctionContract;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslLoopInvariant;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslRequires;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.annotations.AcslStatementContract;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.acsl.antlr.AcslParser.AcslParseException;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.acsl.AcslPredicateType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+
+public class AcslAnnotationParsingTest {
+
+  private CSimpleType basicInt() {
+    return new CSimpleType(
+        CTypeQualifiers.NONE, CBasicType.INT, false, false, true, false, false, false, false);
+  }
+
+  private CProgramScope getCProgramScope() {
+    String currentFunctionName = "f";
+    ImmutableList.Builder<CSimpleDeclaration> declarations = ImmutableList.builder();
+    for (String var : ImmutableList.of("x", "y", "z")) {
+      declarations.add(
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              true,
+              CStorageClass.AUTO,
+              basicInt(),
+              var,
+              var,
+              var,
+              null /* No initializer, we only want it for testing */,
+              /* pHasThreadLocalStorage= */ false));
+    }
+    declarations.add(
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            new CFunctionType(basicInt(), ImmutableList.of(), false),
+            currentFunctionName,
+            ImmutableList.of(),
+            ImmutableSet.of()));
+
+    return CProgramScope.ofDeclarations(declarations.build())
+        .withFunctionScope(currentFunctionName);
+  }
+
+  private AcslScope getAcslScope() {
+    AcslScope scope = AcslScope.empty();
+
+    return scope;
+  }
+
+  @Test
+  public void parseAcslAnnotationAssertionTest() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    String input = "//@ assert x == 10;";
+
+    AcslAssertion expected = getAssertion();
+
+    AcslAssertion parsed =
+        (AcslAssertion)
+            AcslParser.parseAcslComment(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void rejectTrailingInput() {
+    assertThrows(
+        AcslParseException.class,
+        () ->
+            AcslParser.parseAcslComment(
+                "//@ assert x == 10; x", FileLocation.DUMMY, getCProgramScope(), getAcslScope()));
+  }
+
+  @Test
+  public void testAssertionToAstString() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    String input = "//@ assert x == 10;";
+    AcslAssertion parsed =
+        (AcslAssertion)
+            AcslParser.parseAcslComment(input, FileLocation.DUMMY, cProgramScope, getAcslScope());
+    AcslAssertion parsedFromAstString =
+        (AcslAssertion)
+            AcslParser.parseAcslComment(
+                parsed.toAstString(), FileLocation.DUMMY, cProgramScope, getAcslScope());
+    assertThat(parsed).isEqualTo(parsedFromAstString);
+  }
+
+  @Test
+  public void parseLoopInvariantTest() throws AcslParseException {
+    String input = "loop invariant x <= 10;";
+
+    AcslLoopInvariant expected = getLoopInvariant();
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslLoopAnnotation annotation = (AcslLoopAnnotation) parsed;
+    assertThat(annotation.getLoopInvariants()).containsExactly(expected);
+  }
+
+  @Test
+  public void TestLoopAnnotationToAstString() throws AcslParseException {
+    String input = "loop invariant x <= 10;";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslLoopAnnotation annotation = (AcslLoopAnnotation) parsed;
+    AcslLoopAnnotation parsedFromAstString =
+        (AcslLoopAnnotation)
+            AcslParser.parseAcslComment(
+                annotation.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(parsedFromAstString);
+  }
+
+  @Test
+  public void parseEnsuresTest() throws AcslParseException {
+    String input = "ensures x <= 10;";
+    AcslEnsures expected = getEnsures();
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslFunctionContract functionContract = (AcslFunctionContract) parsed;
+    assertThat(functionContract.getEnsuresClauses()).containsExactly(expected);
+  }
+
+  @Test
+  public void parseRequiresTest() throws AcslParseException {
+    String input = "requires x == 10;";
+    AcslRequires expected = getRequires();
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslFunctionContract functionContract = (AcslFunctionContract) parsed;
+    assertThat(functionContract.getRequiresClauses()).containsExactly(expected);
+  }
+
+  @Test
+  public void parseFunctionContractTest() throws AcslParseException {
+    String input =
+"""
+requires x == 10;
+ensures x <= 10;
+""";
+    AcslFunctionContract expected = getFunctionContract();
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void functionContractAstStringTest() throws AcslParseException {
+    String input =
+        """
+        requires x == 10;
+        ensures x <= 10;
+        """;
+    AcslFunctionContract parsed =
+        (AcslFunctionContract)
+            AcslParser.parseAcslComment(
+                input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    String astString = parsed.toAstString();
+    AcslFunctionContract parsedFromAstString =
+        (AcslFunctionContract)
+            AcslParser.parseAcslComment(
+                astString, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(parsedFromAstString);
+  }
+
+  @Test
+  public void parseLoodAnnotationTest() throws AcslParseException {
+    String input = "loop invariant x <= 10;";
+    AcslLoopAnnotation expected = getLoopAnnotation();
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void loopAnnotationAstStringTest() throws AcslParseException {
+    String input = "loop invariant x <= 10;";
+    AcslLoopAnnotation parsed =
+        (AcslLoopAnnotation)
+            AcslParser.parseAcslComment(
+                input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    AcslLoopAnnotation parsedFromAstString =
+        (AcslLoopAnnotation)
+            AcslParser.parseAcslComment(
+                parsed.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isEqualTo(parsedFromAstString);
+  }
+
+  @Test
+  public void parseAssertionWithPredicate() throws AcslParseException {
+    String predicate = "predicate is_positive(integer i) = i >= 0;";
+    AcslLogicDefinition predDef =
+        AcslParser.parseLogicalDefinition(predicate, getAcslScope(), FileLocation.DUMMY);
+    AcslScope aScope = getAcslScope().withDeclaration(predDef.getDeclaration());
+
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive");
+    AcslPredicateDeclaration declaration =
+        new AcslPredicateDeclaration(
+            FileLocation.DUMMY,
+            new AcslPredicateType(ImmutableList.of(AcslBuiltinLogicType.INTEGER), false),
+            "is_positive",
+            "is_positive",
+            ImmutableList.of(),
+            ImmutableList.of(i));
+    AcslCVariableDeclaration x =
+        new AcslCVariableDeclaration(
+            new CVariableDeclaration(
+                FileLocation.DUMMY,
+                true,
+                CStorageClass.AUTO,
+                basicInt(),
+                "x",
+                "x",
+                "x",
+                null,
+                /* pHasThreadLocalStorage= */ false));
+    AcslAssertion expected =
+        new AcslAssertion(
+            FileLocation.DUMMY,
+            new AcslPredicateApplicationPredicate(
+                FileLocation.DUMMY,
+                declaration,
+                ImmutableList.of(new AcslIdTerm(FileLocation.DUMMY, x))));
+
+    String assertion = "assert is_positive(x);";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope);
+    assertThat(parsed).isEqualTo(expected);
+  }
+
+  @Test
+  public void parseAssertionPredWrongNumParameters() throws AcslParseException {
+    String predicate = "predicate is_positive(integer i) = i >= 0;";
+    AcslLogicDefinition predDef =
+        AcslParser.parseLogicalDefinition(predicate, getAcslScope(), FileLocation.DUMMY);
+    AcslScope aScope = getAcslScope().withDeclaration(predDef.getDeclaration());
+    CProgramScope cProgramScope = getCProgramScope();
+
+    String assertion = "assert is_positive(x, y);";
+    AcslParseException exception =
+        assertThrows(
+            AcslParseException.class,
+            () ->
+                AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, cProgramScope, aScope));
+    assertThat(exception).hasMessageThat().contains("cannot be applied to [x, y]");
+  }
+
+  @Test
+  public void assertionWithPredicateAstStringTest() throws AcslParseException {
+    String predicate = "predicate is_positive(integer i) = i >= 0;";
+    AcslLogicDefinition predDef =
+        AcslParser.parseLogicalDefinition(predicate, getAcslScope(), FileLocation.DUMMY);
+    AcslScope aScope = getAcslScope().withDeclaration(predDef.getDeclaration());
+
+    String assertion = "assert is_positive(x);";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(assertion, FileLocation.DUMMY, getCProgramScope(), aScope);
+    assertThat(parsed.toAstString()).isEqualTo(assertion);
+    assertThat(
+            AcslParser.parseAcslComment(
+                    parsed.toAstString(), FileLocation.DUMMY, getCProgramScope(), aScope)
+                .toAstString())
+        .isEqualTo(parsed.toAstString());
+  }
+
+  @Test
+  public void parseAssertionWithLogicFunction() throws AcslParseException {
+    String logicFunction = "logic integer is_positive (integer i) = i >= 0 ? 1 : 0;";
+    AcslLogicDefinition funcDef =
+        AcslParser.parseLogicalDefinition(logicFunction, getAcslScope(), FileLocation.DUMMY);
+    AcslScope acslScope = getAcslScope().withDeclaration(funcDef.getDeclaration());
+
+    CVariableDeclaration a =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            true,
+            CStorageClass.AUTO,
+            basicInt(),
+            "a",
+            "a",
+            "a",
+            null /* No initializer, we only want it for testing */,
+            /* pHasThreadLocalStorage= */ false);
+
+    CProgramScope scope = getCProgramScope().withAdditionalDeclarations(ImmutableList.of(a));
+
+    AcslParameterDeclaration i =
+        new AcslParameterDeclaration(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "i", "is_positive");
+    AcslFunctionDeclaration declaration =
+        new AcslFunctionDeclaration(
+            FileLocation.DUMMY,
+            new AcslFunctionType(
+                AcslBuiltinLogicType.INTEGER,
+                ImmutableList.of(AcslBuiltinLogicType.INTEGER),
+                false),
+            "is_positive",
+            "is_positive",
+            ImmutableList.of(),
+            ImmutableList.of(i));
+
+    AcslAssertion expected =
+        new AcslAssertion(
+            FileLocation.DUMMY,
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslFunctionCallTerm(
+                    FileLocation.DUMMY,
+                    AcslBuiltinLogicType.INTEGER,
+                    new AcslIdTerm(FileLocation.DUMMY, declaration),
+                    ImmutableList.of(
+                        new AcslIdTerm(FileLocation.DUMMY, new AcslCVariableDeclaration(a))),
+                    declaration),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                AcslBinaryTermPredicateOperator.EQUALS));
+    String input = "assert is_positive(a) == 1;";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, scope, acslScope);
+    assertThat(parsed.toAstString()).isEqualTo(expected.toAstString());
+  }
+
+  private AcslAssertion getAssertion() {
+    CProgramScope cProgramScope = getCProgramScope();
+    return new AcslAssertion(
+        FileLocation.DUMMY,
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(
+                FileLocation.DUMMY,
+                new AcslCVariableDeclaration(
+                    (CVariableDeclaration)
+                        Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+            AcslBinaryTermPredicateOperator.EQUALS));
+  }
+
+  private AcslLoopInvariant getLoopInvariant() {
+    CProgramScope cProgramScope = getCProgramScope();
+    return new AcslLoopInvariant(
+        FileLocation.DUMMY,
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(
+                FileLocation.DUMMY,
+                new AcslCVariableDeclaration(
+                    (CVariableDeclaration)
+                        Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+            AcslBinaryTermPredicateOperator.LESS_EQUAL));
+  }
+
+  private AcslEnsures getEnsures() {
+    CProgramScope cProgramScope = getCProgramScope();
+    return new AcslEnsures(
+        FileLocation.DUMMY,
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(
+                FileLocation.DUMMY,
+                new AcslCVariableDeclaration(
+                    (CVariableDeclaration)
+                        Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+            AcslBinaryTermPredicateOperator.LESS_EQUAL));
+  }
+
+  private AcslRequires getRequires() {
+    CProgramScope cProgramScope = getCProgramScope();
+    return new AcslRequires(
+        FileLocation.DUMMY,
+        new AcslBinaryTermPredicate(
+            FileLocation.DUMMY,
+            new AcslIdTerm(
+                FileLocation.DUMMY,
+                new AcslCVariableDeclaration(
+                    (CVariableDeclaration)
+                        Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+            AcslBinaryTermPredicateOperator.EQUALS));
+  }
+
+  private AcslFunctionContract getFunctionContract() {
+    return new AcslFunctionContract(
+        FileLocation.DUMMY,
+        ImmutableSet.of(getRequires()),
+        ImmutableSet.of(getEnsures()),
+        ImmutableSet.of());
+  }
+
+  private AcslLoopAnnotation getLoopAnnotation() {
+    return new AcslLoopAnnotation(
+        FileLocation.DUMMY, ImmutableSet.of(getLoopInvariant()), ImmutableSet.of());
+  }
+
+  @Test
+  public void testBlankLineCommentMarker() {
+    assertThat(AcslParser.blankCommentMarkers("//@ assert a == 20;"))
+        .isEqualTo("    assert a == 20;");
+  }
+
+  @Test
+  public void testBlankBlockCommentMarker() {
+    String blockComment = "/*@ ensures x == 0;\n  @ ensures !(x < 0);\n  @*/";
+    assertThat(AcslParser.blankCommentMarkers(blockComment))
+        .isEqualTo("    ensures x == 0;\n    ensures !(x < 0);\n     ");
+  }
+
+  @Test
+  public void parseContractWithBehaviors() throws AcslParseException {
+    String input =
+        "/*@ requires x > 0;\n  @ behavior pos:\n  @   assumes y > 0;\n  @   ensures z > 0;\n"
+            + "  @ complete behaviors pos;\n  @ disjoint behaviors; */";
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(input, FileLocation.DUMMY, getCProgramScope(), getAcslScope());
+    assertThat(parsed).isInstanceOf(AcslFunctionContract.class);
+    AcslFunctionContract contract = (AcslFunctionContract) parsed;
+    assertThat(contract.getRequiresClauses()).hasSize(1);
+    AcslBehavior behavior = Iterables.getOnlyElement(contract.getBehaviors());
+    assertThat(behavior.getName()).isEqualTo("pos");
+    assertThat(behavior.getAssumesClauses()).hasSize(1);
+    assertThat(behavior.getEnsuresClauses()).hasSize(1);
+    assertThat(contract.getCompletenessClauses())
+        .containsExactly(
+            new AcslCompletenessClause(
+                FileLocation.DUMMY, AcslCompletenessClause.Kind.COMPLETE, ImmutableList.of("pos")),
+            new AcslCompletenessClause(
+                FileLocation.DUMMY, AcslCompletenessClause.Kind.DISJOINT, ImmutableList.of()));
+    assertThat(
+            AcslParser.parseAcslComment(
+                contract.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope()))
+        .isEqualTo(contract);
+  }
+
+  @Test
+  public void parseContractWithOnlyBehaviors() throws AcslParseException {
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(
+            "/*@ behavior one: assumes x > 0; ensures y > 0; */",
+            FileLocation.DUMMY,
+            getCProgramScope(),
+            getAcslScope());
+    assertThat(parsed).isInstanceOf(AcslFunctionContract.class);
+    assertThat(((AcslFunctionContract) parsed).getBehaviors()).hasSize(1);
+  }
+
+  @Test
+  public void parseStatementContractForBehaviors() throws AcslParseException {
+    AAcslAnnotation parsed =
+        AcslParser.parseAcslComment(
+            "/*@ for a, b: ensures x == 0; */",
+            FileLocation.DUMMY,
+            getCProgramScope(),
+            getAcslScope());
+    assertThat(parsed).isInstanceOf(AcslStatementContract.class);
+    AcslStatementContract contract = (AcslStatementContract) parsed;
+    assertThat(contract.getEnclosingBehaviors()).containsExactly("a", "b").inOrder();
+    assertThat(contract.getContract().getEnsuresClauses()).hasSize(1);
+    assertThat(
+            AcslParser.parseAcslComment(
+                contract.toAstString(), FileLocation.DUMMY, getCProgramScope(), getAcslScope()))
+        .isEqualTo(contract);
+  }
+}
