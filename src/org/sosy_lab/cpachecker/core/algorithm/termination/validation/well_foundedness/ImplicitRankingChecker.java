@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -105,8 +106,7 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
       throws InvalidConfigurationException {
     pConfig.inject(this);
     expressionVariables = pExpressionVariables;
-    substitutionByVariables =
-        TransitionInvariantUtils.substitutionByVariables(pExpressionVariables);
+    substitutionByVariables = ExpressionSubstitution.substitutionByVariables(pExpressionVariables);
     fmgr = pFmgr;
     bfmgr = pBfmgr;
     config = pConfig;

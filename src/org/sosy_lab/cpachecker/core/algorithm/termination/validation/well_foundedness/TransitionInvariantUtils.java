@@ -14,10 +14,7 @@ import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -267,22 +264,6 @@ public class TransitionInvariantUtils {
       }
     }
     return equivalence;
-  }
-
-  /**
-   * Returns the substitution of the expressions with previous values by the variables for their
-   * values, see {@link
-   * org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ParsedInvariant#expressionVariables()}
-   * and {@link SubstitutingCAstNodeVisitor#substituteExpressions}.
-   */
-  public static ImmutableMap<CExpression, CExpression> substitutionByVariables(
-      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
-    ImmutableMap.Builder<CExpression, CExpression> substitution = ImmutableMap.builder();
-    pExpressionVariables.forEach(
-        (variable, expression) ->
-            substitution.put(expression, new CIdExpression(variable.getFileLocation(), variable)));
-    // An expression has a variable for each function of the invariants with it
-    return substitution.buildKeepingLast();
   }
 
   public static String removeFunctionFromVarsName(String pFormula) {

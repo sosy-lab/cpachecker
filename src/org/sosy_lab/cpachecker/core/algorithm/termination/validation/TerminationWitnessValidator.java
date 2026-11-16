@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -490,7 +491,7 @@ public class TerminationWitnessValidator implements Algorithm {
       return pInvariant;
     }
     ImmutableMap<CExpression, CExpression> substitution =
-        TransitionInvariantUtils.substitutionByVariables(pExpressionVariables);
+        ExpressionSubstitution.substitutionByVariables(pExpressionVariables);
     return new ExpressionTreeLocationInvariant(
         "Invariant with variables for the values of expressions",
         pInvariant.getLocation(),
