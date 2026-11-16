@@ -38,7 +38,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    */
   private CStringLiteralExpression(
       FileLocation pFileLocation, String pSourceCode, String pContent) {
-    super(pFileLocation, computeType(pSourceCode, pContent, pFileLocation), pContent);
+    super(pFileLocation, computeType(pContent, pFileLocation), pContent);
     sourceCode = pSourceCode;
   }
 
@@ -280,11 +280,9 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return result;
   }
 
-  private static CArrayType computeType(
-      String pSourceCode, String pContent, FileLocation pFileLocation) {
-    // literals with an encoding prefix keep their size from the source code
-    int size =
-        hasEncodingPrefix(pSourceCode) ? pSourceCode.length() - 2 + 1 : pContent.length() + 1;
+  private static CArrayType computeType(String pContent, FileLocation pFileLocation) {
+    // for literals with an encoding prefix, this is not correct because they are not decoded
+    int size = pContent.length() + 1;
     CExpression length =
         new CIntegerLiteralExpression(pFileLocation, CNumericTypes.INT, BigInteger.valueOf(size));
     return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR, length);

@@ -70,7 +70,7 @@ public class CStringLiteralExpressionTest {
   public void testEncodingPrefix() {
     CStringLiteralExpression e = literal("L\"a\\x1234\"");
     assertThat(e.toASTString()).isEqualTo("L\"a\\x1234\"");
-    assertThat(e.getSize()).isEqualTo(9);
+    assertThat(e.getSize()).isEqualTo(8);
     assertThrows(VerifyException.class, () -> e.getContentWithoutNullTerminator());
   }
 
