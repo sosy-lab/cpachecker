@@ -117,6 +117,30 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  /** Matches the edges that return from a function to its call site. */
+  public static class CheckIsFunctionReturnEdge implements AutomatonBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return pArgs.getCfaEdge() instanceof FunctionReturnEdge ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "IS_FUNCTION_RETURN_EDGE";
+    }
+
+    @Override
+    public int hashCode() {
+      return 1;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckIsFunctionReturnEdge;
+    }
+  }
+
   public static class CheckCoversLines implements AutomatonBoolExpr {
     private final ImmutableSet<Integer> linesToCover;
 

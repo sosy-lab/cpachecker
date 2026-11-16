@@ -172,7 +172,9 @@ public class AssignmentToPathAllocator {
       pathIt.advance();
     }
 
-    return new ConcreteStatePath(pathWithAssignments.build());
+    return new ConcreteStatePath(
+        pathWithAssignments.build(),
+        FluentIterable.from(pModel).filter(ValueAssignment::isFunction).toList());
   }
 
   private ConcreteExpressionEvaluator createPredicateAnalysisEvaluator(

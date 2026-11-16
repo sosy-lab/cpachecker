@@ -8,18 +8,21 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Table;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -29,12 +32,14 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
@@ -63,9 +68,17 @@ public class InvariantExchangeFormatTransformer {
   private final CFA cfa;
   private final LogManager logger;
 
-  private static final Pattern AT_ANY_PREV_PATTERN =
-      Pattern.compile("\\\\at\\(([^)]+),\\s*AnyPrev\\s*\\)");
-  private static final int PREV_VARS_GROUP_INDEX = 1;
+  private static final String EXPRESSION_VARIABLE_PREFIX = "__expression_";
+
+  /**
+   * The variables for the values of the expressions in \at(e, AnyPrev), by the functions of the
+   * invariants and the expressions, such that an expression has the same variable in all invariants
+   * of a function.
+   */
+  private final Table<String, CExpression, CSimpleDeclaration> expressionVariables =
+      HashBasedTable.create();
+
+  private int expressionVariableCount = 0;
 
   public InvariantExchangeFormatTransformer(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
@@ -118,13 +131,12 @@ public class InvariantExchangeFormatTransformer {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
-    String invariantString = pInvariantEntry.getValue();
-    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables = ImmutableMap.of();
+    PreviousValues previousValues =
+        new PreviousValues(pInvariantEntry.getValue(), ImmutableMap.of(), ImmutableMap.of());
     if (WitnessInvariantType.of(InvariantRecordType.fromKeyword(pInvariantEntry.getType()))
         .map(WitnessInvariantType::isTransitionInvariant)
         .orElse(false)) {
-      invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
-      previousValueVariables = registerThePrevVariables(pInvariantEntry);
+      previousValues = encodePreviousValues(pInvariantEntry);
     }
 
     Deque<String> callStack = new ArrayDeque<>();
@@ -138,15 +150,17 @@ public class InvariantExchangeFormatTransformer {
             yield variablesInScope(pInvariantEntry)
                 .map(programScope::withVariablesInScope)
                 .orElse(programScope)
-                .withAdditionalDeclarations(previousValueVariables.keySet());
+                .withAdditionalDeclarations(previousValues.variables().keySet());
           }
           default -> DummyScope.getInstance();
         };
 
     return new ParsedInvariant(
         pInvariantEntry,
-        createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope),
-        previousValueVariables);
+        createExpressionTreeFromString(
+            resultFunction, previousValues.invariant(), line, callStack, scope),
+        previousValues.variables(),
+        previousValues.expressions());
   }
 
   /**
@@ -200,94 +214,103 @@ public class InvariantExchangeFormatTransformer {
   }
 
   /**
-   * In case the witness is termination witness, it may contain \at(x, AnyPrev) keyword which is not
-   * parsed. We have to encode this keyword into the names of the variables.
+   * The encoding of the previous values \at(e, AnyPrev) in a transition invariant by fresh
+   * variables, since the C parser does not support them, see {@link PreviousValuesParserUtils}. For
+   * each expression e, e.g., x or *p, there is a variable __expression_N for the value of e, and
+   * the fresh variable is __expression_N__TransInv_PREV.
    *
-   * @param pInvariantEntry transition invariant string
-   * @return Invariant string with \at(x, AnyPrev) encoded as __PREV suffix
+   * @param invariant the invariant with the fresh variables
+   * @param variables the fresh variables mapped to the variables for the values of the expressions
+   *     whose previous values they are
+   * @param expressions the variables for the values of the expressions mapped to these expressions
    */
-  private String replacePrevKeywordWithFreshVariables(InvariantEntry pInvariantEntry) {
-    String invariantString = pInvariantEntry.getValue();
-    Matcher matcher = AT_ANY_PREV_PATTERN.matcher(invariantString);
-    StringBuilder result = new StringBuilder();
+  private record PreviousValues(
+      String invariant,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> variables,
+      ImmutableMap<CSimpleDeclaration, CExpression> expressions) {}
 
-    while (matcher.find()) {
-      String variable = matcher.group(PREV_VARS_GROUP_INDEX);
-      matcher.appendReplacement(result, variable + TransitionInvariantUtils.PREV_KEYWORD);
-    }
-    matcher.appendTail(result);
-    invariantString = result.toString().replace("\\", "");
-
-    return invariantString;
-  }
-
-  /**
-   * In case the witness is termination witness, it may contain x__PREV variables. These variables
-   * need to be registered in the scope. This method creates the declarations of these variables.
-   * The CFA is not modified, the declarations have to be added to the scope in which the invariant
-   * is parsed.
-   *
-   * @param pInvariantEntry the invariant entry
-   * @return the mapping from the declarations of the x__PREV variables to the declarations of the
-   *     corresponding variables x
-   */
-  public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> registerThePrevVariables(
-      InvariantEntry pInvariantEntry) {
-    String invariantString = pInvariantEntry.getValue();
-    Matcher matcher = AT_ANY_PREV_PATTERN.matcher(invariantString);
-    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurr =
-        ImmutableMap.builder();
-
-    // The column of the location is optional
-    Optional<CFANode> locationNode = nodeOfInvariant(pInvariantEntry);
-    String functionName = pInvariantEntry.getLocation().getFunction();
+  private PreviousValues encodePreviousValues(InvariantEntry pInvariantEntry)
+      throws InterruptedException {
+    String invariant = pInvariantEntry.getValue();
+    String function = pInvariantEntry.getLocation().getFunction();
     // As in the invariant, a name refers to the variable in scope, e.g., x to x__1
     CProgramScope programScope = new CProgramScope(cfa, logger);
     CProgramScope scope =
-        locationNode
+        nodeOfInvariant(pInvariantEntry)
             .map(
                 node ->
                     TerminationArgumentsToWitnessUtils.getScopeAtNode(
                         programScope, node, cfa.getAstCfaRelation()))
-            .orElseGet(() -> programScope.withFunctionScope(functionName));
-    Set<String> alreadyDeclaredVariables = new HashSet<>();
+            .orElseGet(() -> programScope.withFunctionScope(function));
 
-    while (matcher.find()) {
-      String prevVariable = matcher.group(PREV_VARS_GROUP_INDEX);
-      CSimpleDeclaration currDeclaration = scope.lookupVariable(prevVariable);
-      prevVariable = prevVariable + TransitionInvariantUtils.PREV_KEYWORD;
-
-      // We want to declare each PREV variable only once
-      if (alreadyDeclaredVariables.contains(prevVariable)) {
-        continue;
+    // The fresh variables by the variables for the values of the expressions
+    Map<CSimpleDeclaration, CSimpleDeclaration> previousVariables = new LinkedHashMap<>();
+    Map<CSimpleDeclaration, CExpression> expressions = new LinkedHashMap<>();
+    // The names of the fresh variables by the expressions as written in the invariant
+    Map<String, String> names = new HashMap<>();
+    for (String expression :
+        PreviousValuesParserUtils.getExpressionsWithPreviousValues(invariant)) {
+      Optional<CExpression> parsed =
+          PreviousValuesParserUtils.parseExpression(expression, cparser, scope);
+      if (parsed.isPresent()) {
+        names.put(
+            expression,
+            declarePreviousValue(
+                    parsed.orElseThrow(), function, scope, previousVariables, expressions)
+                .getName());
       }
-      alreadyDeclaredVariables.add(prevVariable);
-      CDeclaration prevDeclaration;
-      if (currDeclaration == null) {
-        currDeclaration =
-            (CVariableDeclaration)
-                cfa
-                    .getAstCfaRelation()
-                    .getAstLocalVariablesInScopeByCfaNode(locationNode.orElseThrow())
-                    .stream()
-                    .findAny()
-                    .orElseThrow();
-      }
-      prevDeclaration =
-          new CVariableDeclaration(
-              cfa.getMainFunction().getFileLocation(),
-              false,
-              CStorageClass.AUTO,
-              currDeclaration.getType(),
-              prevVariable,
-              prevVariable,
-              // The scope is not relevant as these variables are not in the original program
-              functionName + "::" + prevVariable,
-              null,
-              /* pHasThreadLocalStorage= */ false);
-      mapPrevToCurr.put(prevDeclaration, currDeclaration);
     }
-    return mapPrevToCurr.buildOrThrow();
+
+    ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> variables =
+        ImmutableMap.builderWithExpectedSize(previousVariables.size());
+    previousVariables.forEach((current, previous) -> variables.put(previous, current));
+    return new PreviousValues(
+        PreviousValuesParserUtils.replacePreviousValues(invariant, names),
+        variables.buildOrThrow(),
+        ImmutableMap.copyOf(expressions));
+  }
+
+  /**
+   * Returns the fresh variable for the previous value of the given expression, see {@link
+   * PreviousValues}, and adds it to the given maps.
+   */
+  private CSimpleDeclaration declarePreviousValue(
+      CExpression pExpression,
+      String pFunction,
+      Scope pScope,
+      Map<CSimpleDeclaration, CSimpleDeclaration> pPreviousVariables,
+      Map<CSimpleDeclaration, CExpression> pExpressions) {
+    CSimpleDeclaration current = expressionVariables.get(pFunction, pExpression);
+    if (current == null) {
+      String name;
+      do {
+        name = EXPRESSION_VARIABLE_PREFIX + expressionVariableCount++;
+      } while (pScope.variableNameInUse(name));
+      current = declareFreshVariable(name, pExpression.getExpressionType(), pScope);
+      expressionVariables.put(pFunction, pExpression, current);
+    }
+    pExpressions.put(current, pExpression);
+    return pPreviousVariables.computeIfAbsent(
+        current,
+        variable ->
+            declareFreshVariable(
+                variable.getName() + TransitionInvariantUtils.PREV_KEYWORD,
+                variable.getType(),
+                pScope));
+  }
+
+  /** Declares a variable that is not in the program as local variable of the given scope. */
+  private CVariableDeclaration declareFreshVariable(String pName, CType pType, Scope pScope) {
+    return new CVariableDeclaration(
+        FileLocation.DUMMY,
+        false,
+        CStorageClass.AUTO,
+        pType,
+        pName,
+        pName,
+        pScope.createScopedNameOf(pName),
+        null,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   /**
@@ -411,7 +434,8 @@ public class InvariantExchangeFormatTransformer {
                 column,
                 parsed.function(),
                 parsed.isLoopInvariant(),
-                parsed.previousValueVariables()));
+                parsed.previousValueVariables(),
+                parsed.expressionVariables()));
       } else {
         invariants.add(
             new Invariant(

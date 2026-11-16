@@ -36,6 +36,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -528,6 +529,15 @@ public class CFAUtils {
    */
   public static Optional<String> computeLoopCondition(
       CFANode pLoopHead, AstCfaRelation pAstCfaRelation) {
+    // The variables are printed with their names in the CFA, unlike ExpressionTree#toString, which
+    // prints their original names
+    return computeLoopConditionTree(pLoopHead, pAstCfaRelation)
+        .map(condition -> condition.accept(new ToCodeVisitor<>(CExpression::toASTString)));
+  }
+
+  /** Computes the condition of the loop like {@link #computeLoopCondition} as expression tree. */
+  public static Optional<ExpressionTree<CExpression>> computeLoopConditionTree(
+      CFANode pLoopHead, AstCfaRelation pAstCfaRelation) {
     Optional<IterationElement> iteration =
         pAstCfaRelation.getTightestIterationStructureForNode(pLoopHead);
     if (iteration.isEmpty() || iteration.orElseThrow().getControllingExpression().isEmpty()) {
@@ -566,9 +576,7 @@ public class CFAUtils {
     if (pathConditions.isEmpty()) {
       return Optional.empty();
     }
-    // The variables are printed with their names in the CFA, unlike ExpressionTree#toString, which
-    // prints their original names
-    return Optional.of(Or.of(pathConditions).accept(new ToCodeVisitor<>(CExpression::toASTString)));
+    return Optional.of(Or.of(pathConditions));
   }
 
   /**
@@ -1039,6 +1047,26 @@ public class CFAUtils {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns whether the given call of <code>__VERIFIER_nondet_memory</code> havocs a block that is
+   * not accessed between its allocation in memory and the call to <code>__VERIFIER_nondet_memory
+   * </code>.
+   *
+   * <p>The most trivial case for this:
+   *
+   * <pre>
+   * int * p = malloc(4 * sizeof(int));
+   * __VERIFIER_nondet_memory(p, 4);
+   * </pre>
+   *
+   * @see UntouchedAllocationCheck for details on the method's behavior
+   */
+  public static boolean isHavocOfUntouchedAllocation(
+      CStatementEdge pNondetMemoryCall, Predicate<String> pIsAllocationFunction) {
+    return new UntouchedAllocationCheck(pIsAllocationFunction)
+        .isHavocOfUntouchedAllocation(pNondetMemoryCall);
   }
 
   private static final Traverser<AAstNode> AST_LHS_TRAVERSER =

@@ -350,7 +350,7 @@ public interface PointerTargetSetBuilder {
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
           final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
           if (!offset.isPresent()) {
-            continue; // TODO this looses values of bit fields
+            continue; // TODO this loses values of bit fields that do not fit into a cell
           }
           if (tracksField(CompositeField.of(compositeType, memberDeclaration))) {
             addTargets(

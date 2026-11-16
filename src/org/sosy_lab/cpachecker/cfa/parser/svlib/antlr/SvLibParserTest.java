@@ -157,7 +157,8 @@ public class SvLibParserTest {
                                                     y.toSimpleDeclaration(), FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
-                                ImmutableList.of())),
+                                ImmutableList.of(
+                                    new SvLibTagReference("f1-check-1", FileLocation.DUMMY)))),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
                         ImmutableList.of(new SvLibTagReference("proc-f1", FileLocation.DUMMY)))),
@@ -252,7 +253,8 @@ public class SvLibParserTest {
                                                     FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
-                                ImmutableList.of())),
+                                ImmutableList.of(
+                                    new SvLibTagReference("f1-check-1", FileLocation.DUMMY)))),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
                         ImmutableList.of(new SvLibTagReference("proc-f1", FileLocation.DUMMY)))),
@@ -584,7 +586,9 @@ public class SvLibParserTest {
                                         new SvLibCheckTrueTag(
                                             new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
                                             FileLocation.DUMMY)),
-                                    ImmutableList.of())),
+                                    ImmutableList.of(
+                                        new SvLibTagReference(
+                                            "main-check-1", FileLocation.DUMMY)))),
                             new SvLibAssignmentStatement(
                                 ImmutableMap.of(
                                     resultVar,

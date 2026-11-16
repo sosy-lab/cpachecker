@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cpa.overflow;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -49,19 +51,20 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
-    if (cfaEdge.equals(prev.getOverflowingNextEdge())) {
+    if (prev.getOverflowingNextEdges().contains(cfaEdge)) {
       // The lookahead checked this edge when prev was created. The edge executed after prev can be
-      // another one (of another thread, or another branch), so only the successor via exactly the
-      // checked edge is a target.
-      return ImmutableList.of(new OverflowState(ImmutableSet.of(), null, prev, true));
+      // another one (of another thread), so only the successors via the checked edges are targets.
+      return ImmutableList.of(new OverflowState(ImmutableSet.of(), ImmutableSet.of(), prev, true));
     }
 
     if (cfaEdge.getSuccessor().getNumLeavingEdges() == 0) {
       // Preserve final states for terminal edges, e.g., thread termination.
-      return ImmutableList.of(new OverflowState(ImmutableSet.of(), null, prev, false));
+      return ImmutableList.of(new OverflowState(ImmutableSet.of(), ImmutableSet.of(), prev, false));
     }
 
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
+    // One successor per overflow condition, even if several edges have it (e.g., assume edges)
+    Map<CExpression, ImmutableSet.Builder<CFAEdge>> overflowingEdges = new LinkedHashMap<>();
 
     for (CFAEdge nextEdge : cfaEdge.getSuccessor().getLeavingEdges()) {
       Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(nextEdge);
@@ -79,12 +82,19 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       assumptions = logicalAssumptions.build();
 
       for (CExpression assumption : assumptions) {
-        outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), nextEdge, prev, false));
+        overflowingEdges
+            .computeIfAbsent(mkNot(assumption), unused -> ImmutableSet.builder())
+            .add(nextEdge);
       }
 
       // No overflows <=> all assumptions hold.
-      outStates.add(new OverflowState(assumptions, null, prev, false));
+      outStates.add(new OverflowState(assumptions, ImmutableSet.of(), prev, false));
     }
+
+    overflowingEdges.forEach(
+        (overflow, edges) ->
+            outStates.add(
+                new OverflowState(ImmutableSet.of(overflow), edges.build(), prev, false)));
 
     return outStates.build();
   }

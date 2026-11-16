@@ -171,7 +171,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public SvLibTerm asSvLibTerm(SvLibScope pScope) {
+    public SvLibTerm asSvLibTerm(SvLibScope pScope) throws InterruptedException {
       return getAbstractionFormula().asSvLibTerm(pScope);
     }
 

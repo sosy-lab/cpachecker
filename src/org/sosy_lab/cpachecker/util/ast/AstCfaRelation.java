@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
 /** Contains information relating the CFA to the AST of the program. */
@@ -272,7 +273,11 @@ public final class AstCfaRelation {
       return Optional.empty();
     }
 
-    return statement.edges().stream().map(CFAEdge::getPredecessor).findFirst();
+    return statement.edges().stream()
+        // The predecessor of a return edge is in the called function
+        .filter(edge -> !(edge instanceof FunctionReturnEdge))
+        .map(CFAEdge::getPredecessor)
+        .findFirst();
   }
 
   private void initializeMapFromLineAndStartColumnToIfStructure() {
@@ -485,6 +490,23 @@ public final class AstCfaRelation {
                                     || parenthesis.getStartColumnInLine() == pColumn.orElseThrow()))
                     .isPresent())
         .toSet();
+  }
+
+  /**
+   * Returns the column of the first closing parenthesis of a function call in the given line, which
+   * is where a waypoint at a call without a column points to.
+   */
+  public OptionalInt getColumnOfFirstCallInLine(int pLine) {
+    return FluentIterable.from(getEdgesOfCallsWithClosingParenthesisAt(pLine, OptionalInt.empty()))
+        .transform(AstCfaRelation::getCalledFunction)
+        .filter(Optional::isPresent)
+        .transform(call -> getClosingParenthesisOfFunctionCall(call.orElseThrow()))
+        .filter(Optional::isPresent)
+        .transform(Optional::orElseThrow)
+        .filter(parenthesis -> parenthesis.getStartingLineInOrigin() == pLine)
+        .stream()
+        .mapToInt(FileLocation::getStartColumnInLine)
+        .min();
   }
 
   /** Returns the tightest statement that contains the given line and column. */
