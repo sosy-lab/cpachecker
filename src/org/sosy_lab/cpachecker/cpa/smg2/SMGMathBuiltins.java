@@ -113,19 +113,19 @@ final class SMGMathBuiltins {
               BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(pFunctionName),
               numParameter);
       return ImmutableList.of(ValueAndSMGState.of(new NumericValue(arg.abs()), currentState));
-    } else if (symbolicArgument(
-            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
-        instanceof SymbolicExpression symbolicArgument) {
+    }
+    SymbolicExpression symbolicArgument =
+        symbolicArgument(parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger);
+    if (symbolicArgument != null) {
       return ImmutableList.of(
           ValueAndSMGState.of(
               symbolicAbsolute(symbolicArgument, pFunctionName, pMachineModel), currentState));
-    } else {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
-              pCfaEdge));
     }
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
+            pCfaEdge));
   }
 
   /**
@@ -365,18 +365,18 @@ final class SMGMathBuiltins {
               numParameter);
       return ImmutableList.of(
           ValueAndSMGState.of(new NumericValue(arg.isNan() ? 1 : 0), currentState));
-    } else if (symbolicArgument(
-            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
-        instanceof SymbolicExpression symbolicArgument) {
+    }
+    SymbolicExpression symbolicArgument =
+        symbolicArgument(parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger);
+    if (symbolicArgument != null) {
       return ImmutableList.of(
           ValueAndSMGState.of(symbolicIsNan(symbolicArgument, pFunctionName), currentState));
-    } else {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
-              pCfaEdge));
     }
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
+            pCfaEdge));
   }
 
   /**
@@ -407,19 +407,19 @@ final class SMGMathBuiltins {
               numParameter);
       return ImmutableList.of(
           ValueAndSMGState.of(new NumericValue(arg.isInfinite() ? 1 : 0), currentState));
-    } else if (symbolicArgument(
-            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
-        instanceof SymbolicExpression symbolicArgument) {
+    }
+    SymbolicExpression symbolicArgument =
+        symbolicArgument(parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger);
+    if (symbolicArgument != null) {
       return ImmutableList.of(
           ValueAndSMGState.of(
               symbolicIsInfinite(symbolicArgument, pFunctionName, pMachineModel), currentState));
-    } else {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
-              pCfaEdge));
     }
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
+            pCfaEdge));
   }
 
   /**
@@ -490,19 +490,19 @@ final class SMGMathBuiltins {
       return ImmutableList.of(
           ValueAndSMGState.of(
               new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1), currentState));
-    } else if (symbolicArgument(
-            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
-        instanceof SymbolicExpression symbolicArgument) {
+    }
+    SymbolicExpression symbolicArgument =
+        symbolicArgument(parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger);
+    if (symbolicArgument != null) {
       return ImmutableList.of(
           ValueAndSMGState.of(
               symbolicIsFinite(symbolicArgument, pFunctionName, pMachineModel), currentState));
-    } else {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
-              pCfaEdge));
     }
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
+            pCfaEdge));
   }
 
   /**
@@ -1064,19 +1064,19 @@ final class SMGMathBuiltins {
         fpClass = 4;
       }
       return ImmutableList.of(ValueAndSMGState.of(new NumericValue(fpClass), currentState));
-    } else if (symbolicArgument(
-            parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger)
-        instanceof SymbolicExpression symbolicArgument) {
+    }
+    SymbolicExpression symbolicArgument =
+        symbolicArgument(parameter, pFunctionName, currentState, pCfaEdge, pEvaluator, pLogger);
+    if (symbolicArgument != null) {
       return ImmutableList.of(
           ValueAndSMGState.of(
               symbolicFpclassify(symbolicArgument, pFunctionName, pMachineModel), currentState));
-    } else {
-      return ImmutableList.of(
-          ValueAndSMGState.ofUnknownValue(
-              currentState,
-              "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
-              pCfaEdge));
     }
+    return ImmutableList.of(
+        ValueAndSMGState.ofUnknownValue(
+            currentState,
+            "Returned unknown value due to unhandled builtin function " + pFunctionName + " in ",
+            pCfaEdge));
   }
 
   /**
