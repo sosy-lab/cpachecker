@@ -111,7 +111,8 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
             logger.log(Level.INFO, "SUCCESS: Detected array initialization: " + init);
 
             CProgramScope scope = new CProgramScope(cfa, logger);
-            AcslPredicate inv = detected.orElseThrow().toInvariant(scope, FileLocation.DUMMY, logger);
+            AcslPredicate inv =
+                detected.orElseThrow().toInvariant(scope, FileLocation.DUMMY, logger);
             logger.log(Level.INFO, "Generated ACSL invariant: " + inv);
 
             if (updatedState instanceof AcslState acslState) {

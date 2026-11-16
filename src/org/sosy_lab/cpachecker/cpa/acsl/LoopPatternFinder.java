@@ -143,7 +143,8 @@ class LoopPatternFinder {
     if (store.isEmpty() || update.isEmpty() || loopCondPredicate.isEmpty()) {
       return Optional.empty();
     } else {
-      if (!indexMatchesEveryWhere(store.orElseThrow(), update.orElseThrow(), loopCondPredicate.orElseThrow())) {
+      if (!indexMatchesEveryWhere(
+          store.orElseThrow(), update.orElseThrow(), loopCondPredicate.orElseThrow())) {
         return Optional.empty();
       }
 

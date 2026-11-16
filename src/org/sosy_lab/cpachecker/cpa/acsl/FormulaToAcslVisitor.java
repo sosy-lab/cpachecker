@@ -241,7 +241,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
           case ITE ->
               new AcslTernaryTerm(
                   DUMMY_LOC,
-                  getPredicate(newArgs.get(0)),
+                  getPredicate(newArgs.getFirst()),
                   getTerm(newArgs.get(1)),
                   getTerm(newArgs.get(2)));
 
@@ -254,7 +254,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
           case SELECT ->
               new AcslArraySubscriptTerm(
-                  DUMMY_LOC, getAcslType(f), getTerm(newArgs.get(0)), getTerm(newArgs.get(1)));
+                  DUMMY_LOC, getAcslType(f), getTerm(newArgs.getFirst()), getTerm(newArgs.get(1)));
           case STORE ->
               new AcslBinaryTermPredicate(
                   DUMMY_LOC,
@@ -322,7 +322,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
   private AcslTerm makeBinaryTerm(Formula f, List<Formula> args, AcslBinaryTermOperator operator) {
 
     return new AcslBinaryTerm(
-        DUMMY_LOC, getAcslType(f), getTerm(args.get(0)), getTerm(args.get(1)), operator);
+        DUMMY_LOC, getAcslType(f), getTerm(args.getFirst()), getTerm(args.get(1)), operator);
   }
 
   private AcslPredicate makeBinaryTermPredicate(
@@ -331,19 +331,19 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
     // Special case: for array store we see formulas like (= *int@x (store ...)) where store itself
     // creates the relevant ACSL predicates
     if (operator == AcslBinaryTermExpressionOperator.EQUALS
-        && getTerm(args.get(0)) instanceof AcslIdTerm
-        && getTerm(args.get(0)).toString().startsWith("*int@")) {
+        && getTerm(args.getFirst()) instanceof AcslIdTerm
+        && getTerm(args.getFirst()).toString().startsWith("*int@")) {
       return getPredicate(args.get(1));
     }
 
     return new AcslBinaryTermPredicate(
-        DUMMY_LOC, getTerm(args.get(0)), getTerm(args.get(1)), operator);
+        DUMMY_LOC, getTerm(args.getFirst()), getTerm(args.get(1)), operator);
   }
 
   private AcslPredicate makeBinaryPredicate(
       List<Formula> args, AcslBinaryPredicate.AcslBinaryPredicateOperator operator) {
     return new AcslBinaryPredicate(
-        DUMMY_LOC, getPredicate(args.get(0)), getPredicate(args.get(1)), operator);
+        DUMMY_LOC, getPredicate(args.getFirst()), getPredicate(args.get(1)), operator);
   }
 
   private AcslPredicate makeEqualsZero(Formula operand) {
