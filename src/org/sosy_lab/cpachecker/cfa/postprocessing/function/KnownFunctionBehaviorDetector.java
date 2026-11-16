@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -230,8 +231,7 @@ public final class KnownFunctionBehaviorDetector {
     if (!(parameters.get(0).getType().getCanonicalType() instanceof CPointerType)) {
       return Optional.of("its first parameter is not a pointer");
     }
-    if (!(parameters.get(1).getType().getCanonicalType() instanceof CSimpleType valueType)
-        || !valueType.getType().isIntegerType()) {
+    if (!CTypes.isIntegerType(parameters.get(1).getType())) {
       return Optional.of("its second parameter is not an integer");
     }
     if (!(parameters.get(2).getType().getCanonicalType() instanceof CSimpleType countType)
