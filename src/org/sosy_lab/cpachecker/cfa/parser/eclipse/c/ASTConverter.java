@@ -1424,12 +1424,14 @@ class ASTConverter {
         declaration = cFunctionDeclaration;
       }
 
-      if ((declaration == null)
-          && FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
+      if (FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
           && params.size() == 2) {
 
         // This is the GCC built-in function __builtin_expect(exp, c) that behaves like (exp).
         // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
+        // We also replace it if the program declares it (preprocessed programs may contain a
+        // prototype like "long __builtin_expect(long, long);"), because the program can not define
+        // its own function with this reserved name (C11 7.1.3).
         return params.getFirst();
       }
     }
