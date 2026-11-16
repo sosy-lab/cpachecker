@@ -402,6 +402,19 @@ public class TerminationWitnessValidator implements Algorithm {
    * Sets the scope and the well-foundedness checker for the given loop. The scope has the variables
    * in scope at the loop head, whose names without the function are distinct, also for variables
    * that CPAchecker renamed, e.g., to i__1, and the __PREV variables of the loop.
+   *
+   * <p>In the transition invariants of the loop, each expression e with a previous value \at(e,
+   * AnyPrev), e.g., x or *p, has a fresh variable for its value, e.g., __expression_0, and a fresh
+   * variable for its previous value, e.g., __expression_0__TransInv_PREV, see {@link
+   * ExpressionTreeLocationTransitionInvariant#getExpressionVariables()}.
+   *
+   * @param pMapPrevToCurrVars the variables for the previous values of the expressions in all
+   *     transition invariants of the loop, mapped to the variables for the values of these
+   *     expressions, e.g., __expression_0__TransInv_PREV to __expression_0
+   * @param pExpressionVariables the variables for the values of the expressions in all transition
+   *     invariants of the loop, mapped to these expressions, e.g., __expression_0 to x for \at(x,
+   *     AnyPrev) or to *p for \at(*p, AnyPrev). Its keys are the values of {@code
+   *     pMapPrevToCurrVars}.
    */
   private void useScopeOfLoop(
       Loop pLoop,
