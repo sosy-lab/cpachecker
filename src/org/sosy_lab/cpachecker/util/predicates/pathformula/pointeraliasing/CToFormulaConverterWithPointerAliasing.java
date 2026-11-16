@@ -1287,6 +1287,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           errorConditions);
     }
 
+    // For a function that is known to behave like memset, we additionally apply the effect of
+    // memset here, but the call edge still leads into the function, so its body is analyzed as
+    // before. This is necessary because the known behavior only describes what the function does
+    // when it returns normally: the body may contain more, e.g., checks of the arguments that stop
+    // the program, and these paths have to stay the same. Moreover, other analyses (e.g., value
+    // analysis) do not use the known behavior and only see the body, so skipping it would require
+    // to change the CFA for all analyses. The additional memset only adds the typed view of the
+    // bytes that the body writes (see handleCallOfKnownMemset).
     if (entryNode.getKnownBehavior().equals(Optional.of(KnownFunctionBehavior.MEMSET))) {
       handleCallOfKnownMemset(edge, callerFunction, ssa, pts, constraints, errorConditions);
     }
