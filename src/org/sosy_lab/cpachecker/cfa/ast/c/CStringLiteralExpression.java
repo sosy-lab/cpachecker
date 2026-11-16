@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verify;
 
 import java.io.Serial;
@@ -25,8 +26,37 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
 
   @Serial private static final long serialVersionUID = 2656216584704518185L;
 
+  /**
+   * Creates a string literal from its representation in C source code, i.e. with the surrounding
+   * quotes and with escape sequences (C11 6.4.4.4) for special characters, e.g. {@code "a\n"}.
+   */
   public CStringLiteralExpression(FileLocation pFileLocation, String pValue) {
     super(pFileLocation, computeType(pValue, pFileLocation), pValue);
+  }
+
+  /**
+   * Creates a string literal with the given content (without the null terminator), i.e. special
+   * characters of the content are escaped in the representation in C source code.
+   */
+  public static CStringLiteralExpression ofContent(FileLocation pFileLocation, String pContent) {
+    StringBuilder literal = new StringBuilder(pContent.length() + 2).append('"');
+    for (int i = 0; i < pContent.length(); i++) {
+      char c = pContent.charAt(i);
+      switch (c) {
+        case '\\' -> literal.append("\\\\");
+        case '"' -> literal.append("\\\"");
+        default -> {
+          if (c < 0x20 || c >= 0x7F) {
+            // Three octal digits, such that a following digit is not part of the escape sequence
+            checkArgument(c <= 0xFF, "Character %s can not be stored in a char", (int) c);
+            literal.append(String.format("\\%03o", (int) c));
+          } else {
+            literal.append(c);
+          }
+        }
+      }
+    }
+    return new CStringLiteralExpression(pFileLocation, literal.append('"').toString());
   }
 
   /** Returns the type as <code>char[]</code> including the correct length. */
@@ -80,18 +110,12 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    * one would use {@link #getContentWithNullTerminator()} instead, use this only in special cases.
    */
   public String getContentWithoutNullTerminator() {
-    String literal = getValue();
-    verify(literal.charAt(0) == '"');
-    verify(literal.charAt(literal.length() - 1) == '"');
-    return literal.substring(1, literal.length() - 1);
+    return getContent(getValue());
   }
 
   /** Returns the size in bytes of the represented string. */
   public int getSize() {
-    // without quotes but plus null terminator
-    int value = getValue().length() - 2 + 1;
-    assert value == getContentWithNullTerminator().length();
-    return value;
+    return getContentWithNullTerminator().length();
   }
 
   @Override
@@ -145,9 +169,92 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
   }
 
   private static CArrayType computeType(String astString, FileLocation pFileLocation) {
+    // The content plus the null terminator
     CExpression length =
         new CIntegerLiteralExpression(
-            pFileLocation, CNumericTypes.INT, BigInteger.valueOf(astString.length() - 2 + 1));
+            pFileLocation,
+            CNumericTypes.INT,
+            BigInteger.valueOf(getContent(astString).length() + 1));
     return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR, length);
+  }
+
+  /**
+   * Returns the characters that the given string literal in C source code denotes (without the null
+   * terminator), i.e. without the surrounding quotes and with the escape sequences replaced by the
+   * characters they denote.
+   */
+  private static String getContent(String pLiteral) {
+    verify(pLiteral.charAt(0) == '"');
+    verify(pLiteral.charAt(pLiteral.length() - 1) == '"');
+    return decodeEscapeSequences(pLiteral.substring(1, pLiteral.length() - 1));
+  }
+
+  /**
+   * Replaces the escape sequences (C11 6.4.4.4) in the given content of a string literal by the
+   * characters they denote. Besides the escape sequences of C, the GNU extension {@code \e} for the
+   * escape character is supported.
+   */
+  private static String decodeEscapeSequences(String pContent) {
+    StringBuilder result = new StringBuilder(pContent.length());
+    int i = 0;
+    while (i < pContent.length()) {
+      char c = pContent.charAt(i++);
+      if (c != '\\') {
+        result.append(c);
+        continue;
+      }
+      checkArgument(i < pContent.length(), "Incomplete escape sequence in \"%s\"", pContent);
+      char escaped = pContent.charAt(i++);
+      if (escaped == 'x') {
+        // Hexadecimal escape sequences consist of all following hexadecimal digits
+        int start = i;
+        while (i < pContent.length() && isHexDigit(pContent.charAt(i))) {
+          i++;
+        }
+        result.append(parseEscapedCharacter(pContent, start, i, 16));
+      } else if (escaped >= '0' && escaped <= '7') {
+        // Octal escape sequences consist of up to 3 octal digits
+        int start = i - 1;
+        while (i < pContent.length()
+            && i - start < 3
+            && pContent.charAt(i) >= '0'
+            && pContent.charAt(i) <= '7') {
+          i++;
+        }
+        result.append(parseEscapedCharacter(pContent, start, i, 8));
+      } else {
+        result.append(
+            switch (escaped) {
+              case '\'', '"', '?', '\\' -> escaped;
+              case 'a' -> (char) 7;
+              case 'b' -> '\b';
+              case 'e' -> (char) 27;
+              case 'f' -> '\f';
+              case 'n' -> '\n';
+              case 'r' -> '\r';
+              case 't' -> '\t';
+              case 'v' -> (char) 11;
+              default ->
+                  throw new IllegalArgumentException(
+                      "Unknown escape sequence \\" + escaped + " in \"" + pContent + "\"");
+            });
+      }
+    }
+    return result.toString();
+  }
+
+  private static boolean isHexDigit(char c) {
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+  }
+
+  /** Parses the digits of a numeric escape sequence into the character it denotes. */
+  private static char parseEscapedCharacter(String pContent, int pStart, int pEnd, int pRadix) {
+    checkArgument(pStart < pEnd, "Escape sequence without digits in \"%s\"", pContent);
+    BigInteger value = new BigInteger(pContent.substring(pStart, pEnd), pRadix);
+    checkArgument(
+        value.compareTo(BigInteger.valueOf(0xFF)) <= 0,
+        "Escape sequence out of range in \"%s\"",
+        pContent);
+    return (char) value.intValueExact();
   }
 }
