@@ -93,7 +93,7 @@ forbidden-apis:
 check-code-patterns:
   extends: .check-without-dependencies
   script: "build/check-code-patterns.sh"
-  image: ubuntu:22.04
+  image: ubuntu:24.04
 
 
 python-unit-tests:

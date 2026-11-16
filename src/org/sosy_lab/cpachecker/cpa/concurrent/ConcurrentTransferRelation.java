@@ -646,7 +646,7 @@ public class ConcurrentTransferRelation implements TransferRelation {
             i,
             new OverflowState(
                 ImmutableSet.copyOf(overflow.getAssumptions()),
-                null,
+                ImmutableSet.of(),
                 (OverflowState) overflow.getParent(),
                 false));
       }

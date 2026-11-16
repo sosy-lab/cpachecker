@@ -98,6 +98,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 
 @Options(prefix = "cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
@@ -1265,7 +1266,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                   new CFunctionDeclaration(
                       loc,
                       CFunctionType.functionTypeWithReturnType(CVoidType.VOID),
-                      "__VERIFIER_nondet_memory",
+                      VerifierNondetFunctions.getFunctionNameNondetMemory(),
                       ImmutableList.of(),
                       ImmutableSet.of());
               CExpression size =

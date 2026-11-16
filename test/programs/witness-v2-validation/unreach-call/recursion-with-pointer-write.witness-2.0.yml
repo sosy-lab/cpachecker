@@ -1,0 +1,34 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.0"
+    uuid: "3b7d2c4e-8a1f-4e6b-9c3d-5f2a1b0e7d64"
+    creation_time: "2026-11-13T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+      version: "1"
+    task:
+      input_files:
+        - "../../simple/witness_validation/recursion-with-pointer-write.c"
+      input_file_hashes:
+        "../../simple/witness_validation/recursion-with-pointer-write.c": "b9f53b755cd67537fbc5fe8d7eddf900e9b77a881e4edbbd03771cc1ded04f99"
+      specification: "G ! call(reach_error())"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "target"
+            action: "follow"
+            location:
+              file_name: "../../simple/witness_validation/recursion-with-pointer-write.c"
+              line: 24
+              column: 5
+              function: "main"

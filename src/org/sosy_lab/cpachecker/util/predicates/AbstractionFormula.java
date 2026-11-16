@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -140,9 +141,21 @@ public class AbstractionFormula implements Serializable {
         asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter, pMachineModel);
   }
 
-  public SvLibTerm asSvLibTerm(SvLibScope pScope) {
+  public SvLibTerm asSvLibTerm(SvLibScope pScope) throws InterruptedException {
+    // The abstraction can also describe the variables of other procedures, which the scope lacks
+    Predicate<BooleanFormula> inScope =
+        literal ->
+            fMgr.extractVariableNames(literal).stream()
+                .allMatch(
+                    name ->
+                        pScope.hasVariableForQualifiedName(
+                            FormulaToSvLibVisitor.nameWithoutSSA(name)));
+    BooleanFormula formulaInScope = asFormula();
+    if (!inScope.apply(formulaInScope)) {
+      formulaInScope = fMgr.filterLiterals(formulaInScope, inScope);
+    }
     FormulaToSvLibVisitor visitor = new FormulaToSvLibVisitor(fMgr, pScope);
-    return fMgr.visit(asFormula(), visitor);
+    return fMgr.visit(formulaInScope, visitor);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */

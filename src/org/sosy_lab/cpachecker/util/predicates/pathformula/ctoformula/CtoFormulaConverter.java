@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -1719,8 +1720,22 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       Constraints constraints,
       ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
+    if (options.abortOnPointerWrites() && isPointerTarget(exp)) {
+      throw new UnsupportedCodeException("write through pointer", edge, exp);
+    }
     return exp.accept(
         new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
+  }
+
+  /** Whether the expression refers to memory through a pointer, e.g., {@code p->f[i]}. */
+  private static boolean isPointerTarget(CExpression pExp) {
+    return switch (pExp) {
+      case CFieldReference f -> f.isPointerDereference() || isPointerTarget(f.getFieldOwner());
+      case CArraySubscriptExpression a ->
+          a.getArrayExpression().getExpressionType().getCanonicalType() instanceof CPointerType
+              || isPointerTarget(a.getArrayExpression());
+      default -> pExp instanceof CPointerExpression;
+    };
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verifyNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -373,6 +375,32 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
+  /**
+   * Returns the value of a bit field given the value of its declared type at its address.
+   *
+   * @param value The value of the declared type of the bit field at its address.
+   * @param bitFieldOffset The bit of this value at which the bit field starts.
+   * @param bitFieldType The type of the bit field.
+   * @return The value of the bit field.
+   */
+  Formula makeBitFieldValue(
+      final Formula value, final int bitFieldOffset, final CType bitFieldType) {
+    final CType declaredType = ((CBitFieldType) bitFieldType.getCanonicalType()).getType();
+    final long bitSize = typeHandler.getExactBitSizeof(bitFieldType);
+    checkArgument(
+        bitFieldOffset + bitSize <= typeHandler.getExactBitSizeof(declaredType),
+        "Bit field of type %s at bit %s does not fit into its declared type",
+        bitFieldType,
+        bitFieldOffset);
+    final BitvectorFormula bits =
+        verifyNotNull(makeValueReinterpretationToBitvector(declaredType, value));
+    final int lsb = bitFieldOffset;
+    final int msb = Math.toIntExact(lsb + bitSize - 1);
+    return verifyNotNull(
+        makeValueReinterpretationFromBitvector(
+            bitFieldType, fmgr.getBitvectorFormulaManager().extract(bits, msb, lsb)));
+  }
+
   Formula makeFormulaForTarget(final PointerTarget target) {
     return fmgr.makePlus(
         fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.base().formulaEncoding()),
@@ -505,7 +533,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
         if (!offset.isPresent()) {
-          continue; // TODO this loses values of bit fields
+          continue; // TODO this loses values of bit fields that do not fit into a cell
         }
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final PointerBase newBase =
@@ -513,6 +541,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (isRelevantField(compositeType, memberDeclaration)) {
           fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
+          if (memberType instanceof CBitFieldType) {
+            addBitFieldValueImportConstraint(
+                address,
+                offset.orElseThrow(),
+                newBase,
+                compositeType,
+                memberDeclaration,
+                newRegion,
+                ssa,
+                constraints);
+            continue;
+          }
           addValueImportConstraints(
               fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.orElseThrow())),
               newBase,
@@ -542,6 +582,40 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     // Delete SSA index to signal that baseName should not be used anymore.
     ssa.deleteVariable(base.name());
+  }
+
+  /**
+   * Adds the constraint for the value import of a bit field, which is imported into the value of
+   * its declared type at its address. This address is {@code address} plus {@code byteOffset}, the
+   * offset in bytes of the first byte of the bit field within its composite.
+   */
+  private void addBitFieldValueImportConstraint(
+      final Formula address,
+      final long byteOffset,
+      final PointerBase base,
+      final CCompositeType compositeType,
+      final CCompositeTypeMemberDeclaration member,
+      final MemoryRegion region,
+      final SSAMapBuilder ssa,
+      final Constraints constraints) {
+    final CType bitFieldType = typeHandler.getSimplifiedType(member);
+    if (!hasIndex(base.name(), bitFieldType, ssa)) {
+      return;
+    }
+    final int bitFieldOffset =
+        Math.toIntExact(
+            typeHandler.getBitOffset(compositeType, member)
+                - byteOffset * machineModel.getSizeofCharInBits());
+    final Formula value =
+        makeSafeDereference(
+            region.getType(),
+            fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, byteOffset)),
+            ssa,
+            region);
+    constraints.addConstraint(
+        fmgr.assignment(
+            makeBitFieldValue(value, bitFieldOffset, bitFieldType),
+            makeVariable(base.name(), bitFieldType, ssa)));
   }
 
   /**
@@ -577,14 +651,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CExpression rhs = assignment.getRightHandSide();
       if (rhs instanceof CStringLiteralExpression cStringLiteralExpression) {
         final CExpression lhs = assignment.getLeftHandSide();
-        final CType lhsType = lhs.getExpressionType();
+        final CType lhsType = lhs.getExpressionType().getCanonicalType();
         final CArrayType lhsArrayType;
         if (lhsType instanceof CArrayType cArrayType) {
           lhsArrayType = cArrayType;
-        } else if (lhsType instanceof CPointerType cPointerType) {
-          // TODO someone has to check if length must be fixed to string size here if yes replace
-          // with stringExp.tranformTypeToArrayType
-          lhsArrayType = new CArrayType(CTypeQualifiers.NONE, cPointerType.getType());
+        } else if (lhsType instanceof CPointerType) {
+          // A pointer gets the address of the literal, it does not point to a copy of it.
+          result.add(assignment);
+          continue;
         } else {
           throw new UnrecognizedCodeException("Assigning string literal to " + lhsType, assignment);
         }

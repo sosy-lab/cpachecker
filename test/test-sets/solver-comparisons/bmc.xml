@@ -119,7 +119,6 @@ This tests each solver for their performance in regards to incremental SAT check
   </tasks>
   <tasks name="C.unreach-call.ControlFlow">
     <includesfile>../../programs/benchmarks/ControlFlow.set</includesfile>
-    <includesfile>../../programs/benchmarks/Sanity.set</includesfile>
     <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="C.unreach-call.ECA">

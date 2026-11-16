@@ -99,6 +99,7 @@ public class SvLibCurrentScope extends SvLibScope {
   public void leaveProcedure() {
     // Clear the procedure declaration variables when exiting the function/procedure scope
     procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
+    procedureDeclarationVariablesQualifiedNames = PathCopyingPersistentTreeMap.of();
   }
 
   @Override

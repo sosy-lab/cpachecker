@@ -187,7 +187,6 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   </tasks>
   <tasks name="C.unreach-call.ControlFlow">
     <includesfile>../../programs/benchmarks/ControlFlow.set</includesfile>
-    <includesfile>../../programs/benchmarks/Sanity.set</includesfile>
     <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="C.unreach-call.ECA">
