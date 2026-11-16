@@ -97,6 +97,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           "Disables checks for fix-point with transition invariants and performs " + "plain BMC.")
   private boolean disableTransitionAbstractions = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Remove a state at a loop head if its path is infeasible, such that no unrollings are"
+              + " explored after it. This is sound only if the path formulas encode the program"
+              + " precisely or overapproximate it, e.g., not with integers for bitvectors.")
+  private boolean removeInfeasiblePaths = false;
+
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
       LogManager plogger,
@@ -169,8 +177,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       if (terminationState.getNumberOfIterationsAtLoopHead(programCounter) > 1) {
         boolean isOverapproximating = false;
         PathFormula prefixPathFormula = terminationState.getPathFormulasForPrefix().orElseThrow();
-        SSAMap largestIndices =
-            terminationState.getPathFormulasForIteration().get(programCounter).getSsa();
+        PathFormula lastIteration =
+            terminationState.getPathFormulasForIteration().get(programCounter);
+        if (removeInfeasiblePaths && isInfeasible(prefixPathFormula, lastIteration)) {
+          return Optional.empty();
+        }
+        SSAMap largestIndices = lastIteration.getSsa();
 
         // The concrete last iteration is used to search for a lasso and to compute the first
         // interpolant, the iteration with overapproximated nested loops for transition invariants
@@ -670,6 +682,16 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     newInterpolant = newInterpolant.withPrevVarsWrapped(EMPTY_PREFIX, PREV_KEYWORD);
     newInterpolant = newInterpolant.withCurrVarsWrapped(EMPTY_PREFIX, CURR_KEYWORD);
     return newInterpolant;
+  }
+
+  private boolean isInfeasible(PathFormula pPrefix, PathFormula pIteration)
+      throws InterruptedException {
+    try {
+      return solver.isUnsat(bfmgr.and(pPrefix.getFormula(), pIteration.getFormula()));
+    } catch (SolverException e) {
+      logger.logDebugException(e, "Could not check the feasibility of the path");
+      return false;
+    }
   }
 
   private boolean isSound(Formula pFormula) {

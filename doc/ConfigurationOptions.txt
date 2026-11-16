@@ -4239,6 +4239,12 @@ cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 # BMC.
 cpa.terminationviamemory.disableTransitionAbstractions = false
 
+# Remove a state at a loop head if its path is infeasible, such that no
+# unrollings are explored after it. This is sound only if the path formulas
+# encode the program precisely or overapproximate it, e.g., not with integers
+# for bitvectors.
+cpa.terminationviamemory.removeInfeasiblePaths = false
+
 # configuration of the analysis that checks whether the supporting invariants
 # of the witness are invariants of the program before they are used, see
 # useTransitionPredicatesFromWitness
