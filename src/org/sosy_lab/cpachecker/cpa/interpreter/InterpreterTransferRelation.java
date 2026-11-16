@@ -23,7 +23,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -277,13 +277,18 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
         && isAllocation(functionCall);
   }
 
+  /**
+   * Whether the given call allocates memory. The function is identified by its name and not by its
+   * declaration, like the SMG analysis does, so that a call of an undeclared function, e.g., {@code
+   * malloc} without including {@code stdlib.h}, is recognized as well.
+   */
   private boolean isAllocation(CFunctionCall pFunctionCall) {
     verifyNotNull(smgOptions);
-    CFunctionDeclaration declaration = pFunctionCall.getFunctionCallExpression().getDeclaration();
-    if (declaration == null) {
+    if (!(pFunctionCall.getFunctionCallExpression().getFunctionNameExpression()
+        instanceof CIdExpression functionName)) {
       return false;
     }
-    String name = declaration.getName();
+    String name = functionName.getName();
     return StandardFunctions.isMemoryAllocatingFunction(name)
         || StandardFunctions.isMemoryReallocatingFunction(name)
         || smgOptions.getMemoryAllocationFunctions().contains(name)
