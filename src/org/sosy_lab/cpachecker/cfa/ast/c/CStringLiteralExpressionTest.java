@@ -76,9 +76,9 @@ public class CStringLiteralExpressionTest {
 
   @Test
   public void testFromContent() {
-    String content = "a\"\\\n\0ÿ";
+    String content = "a\u0001\"\\\0ÿ";
     CStringLiteralExpression e = CStringLiteralExpression.fromContent(FileLocation.DUMMY, content);
-    assertThat(e.toASTString()).isEqualTo("\"a\\\"\\\\\\012\\000\\377\"");
+    assertThat(e.toASTString()).isEqualTo("\"a\\001\\\"\\\\\\000\\377\"");
     assertThat(e.getContentWithoutNullTerminator()).isEqualTo(content);
     assertThat(e.getSize()).isEqualTo(7);
     assertThat(literal(e.toASTString())).isEqualTo(e);
