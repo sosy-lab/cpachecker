@@ -6875,15 +6875,16 @@ public class SMGState
    * Tries to read global and local (current function) variables and return the concrete values of
    * them from the SMG (memory-model), as long as the types are known (might be lost in the SMG). If
    * the type is not available, or the object is invalid, the variable is skipped and nothing is
-   * returned for it. Only returns values for simple types (int, long etc.) or null for pointers
-   * currently.
+   * returned for it. Only returns values for simple types (int, long, float etc.) or null for
+   * pointers currently. Values of floating-point variables are floating-point numbers, all other
+   * values are {@link BigInteger}s.
    */
-  public Map<MemoryLocation, BigInteger> getVariablesWithConcreteValues(
+  public Map<MemoryLocation, Number> getVariablesWithConcreteValues(
       List<ValueAssignment> modelToUse) {
     Map<SymbolicIdentifier, Value> solverAssignments =
         extractSolverAssignmentsFromModel(modelToUse);
 
-    ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<MemoryLocation, Number> memLocAndValueBuilder = ImmutableMap.builder();
 
     Map<MemoryLocation, Entry<CType, SMGObject>> globalVars =
         memoryModel.getGlobalVariablesWithTypes();
@@ -6903,10 +6904,10 @@ public class SMGState
    * to numeric values in struct fields of depth 1 (due to how the concrete error path states and
    * {@link MemoryLocation} work).
    */
-  public Map<MemoryLocation, BigInteger> getConcreteValuesFor(
+  public Map<MemoryLocation, Number> getConcreteValuesFor(
       Map<MemoryLocation, Entry<CType, SMGObject>> variablesToRead,
       Map<SymbolicIdentifier, Value> solverAssignmentsToApply) {
-    ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<MemoryLocation, Number> memLocAndValueBuilder = ImmutableMap.builder();
 
     for (Entry<MemoryLocation, Entry<CType, SMGObject>> variableToRead :
         variablesToRead.entrySet()) {
@@ -6938,7 +6939,12 @@ public class SMGState
               if (baseMemoryLoc.isReference()) {
                 baseMemoryLoc = baseMemoryLoc.getReferenceStart();
               }
-              memLocAndValueBuilder.put(baseMemoryLoc, numValue.bigIntegerValue());
+              memLocAndValueBuilder.put(
+                  baseMemoryLoc,
+                  // A floating-point number would lose its value as integer, e.g., NaN would be 0
+                  simpleVariableType.getType().isFloatingPointType()
+                      ? numValue.getNumber()
+                      : numValue.bigIntegerValue());
             }
           }
 
