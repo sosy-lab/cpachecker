@@ -18,7 +18,6 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -30,13 +29,17 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
 
   @Serial private static final long serialVersionUID = 2656216584704518185L;
 
-  /** The decoded content without null terminator, null for literals with an encoding prefix. */
-  private final @Nullable String content;
+  /** The literal as written in C source code, i.e., with quotes and escape sequences. */
+  private final String sourceCode;
 
+  /**
+   * @param pContent the decoded content without null terminator, or the undecoded body for literals
+   *     with an encoding prefix
+   */
   private CStringLiteralExpression(
-      FileLocation pFileLocation, String pSourceCode, @Nullable String pContent) {
-    super(pFileLocation, computeType(pSourceCode, pContent, pFileLocation), pSourceCode);
-    content = pContent;
+      FileLocation pFileLocation, String pSourceCode, String pContent) {
+    super(pFileLocation, computeType(pSourceCode, pContent, pFileLocation), pContent);
+    sourceCode = pSourceCode;
   }
 
   /**
@@ -48,7 +51,14 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    */
   public static CStringLiteralExpression fromSourceCode(
       FileLocation pFileLocation, String pSourceCode) {
-    return new CStringLiteralExpression(pFileLocation, pSourceCode, decodeContent(pSourceCode));
+    checkArgument(
+        pSourceCode.length() >= 2 && pSourceCode.endsWith("\""),
+        "Invalid string literal %s",
+        pSourceCode);
+    String body = pSourceCode.substring(pSourceCode.indexOf('"') + 1, pSourceCode.length() - 1);
+    // literals with an encoding prefix like L"..." are not supported, so they are not decoded
+    String content = hasEncodingPrefix(pSourceCode) ? body : decodeEscapeSequences(body);
+    return new CStringLiteralExpression(pFileLocation, pSourceCode, content);
   }
 
   /**
@@ -85,7 +95,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
 
   @Override
   public String toASTString() {
-    return getValue();
+    return sourceCode;
   }
 
   /**
@@ -113,8 +123,11 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    * one would use {@link #getContentWithNullTerminator()} instead, use this only in special cases.
    */
   public String getContentWithoutNullTerminator() {
-    verify(content != null, "String literal with encoding prefix is not supported: %s", getValue());
-    return content;
+    verify(
+        !hasEncodingPrefix(sourceCode),
+        "String literal with encoding prefix is not supported: %s",
+        sourceCode);
+    return super.getValue();
   }
 
   /** Returns the size in bytes of the represented string. */
@@ -122,13 +135,8 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return getExpressionType().getLengthAsInt().orElseThrow();
   }
 
-  private static @Nullable String decodeContent(String literal) {
-    checkArgument(
-        literal.length() >= 2 && literal.endsWith("\""), "Invalid string literal %s", literal);
-    if (!literal.startsWith("\"")) {
-      return null;
-    }
-    return decodeEscapeSequences(literal.substring(1, literal.length() - 1));
+  private static boolean hasEncodingPrefix(String pSourceCode) {
+    return !pSourceCode.startsWith("\"");
   }
 
   /** Returns the C source code of a string literal with the given content. */
@@ -231,7 +239,9 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
       return true;
     }
 
-    return obj instanceof CStringLiteralExpression && super.equals(obj);
+    return obj instanceof CStringLiteralExpression other
+        && super.equals(obj)
+        && sourceCode.equals(other.sourceCode);
   }
 
   /**
@@ -271,9 +281,10 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
   }
 
   private static CArrayType computeType(
-      String astString, @Nullable String pContent, FileLocation pFileLocation) {
-    // literals with an encoding prefix like L"..." are not supported, keep their raw length
-    int size = pContent != null ? pContent.length() + 1 : astString.length() - 2 + 1;
+      String pSourceCode, String pContent, FileLocation pFileLocation) {
+    // literals with an encoding prefix keep their size from the source code
+    int size =
+        hasEncodingPrefix(pSourceCode) ? pSourceCode.length() - 2 + 1 : pContent.length() + 1;
     CExpression length =
         new CIntegerLiteralExpression(pFileLocation, CNumericTypes.INT, BigInteger.valueOf(size));
     return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR, length);

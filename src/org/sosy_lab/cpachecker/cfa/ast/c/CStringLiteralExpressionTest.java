@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.base.VerifyException;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -63,6 +64,14 @@ public class CStringLiteralExpressionTest {
   public void testLiteralWithoutQuotes() {
     assertThrows(IllegalArgumentException.class, () -> literal("abc"));
     assertThrows(IllegalArgumentException.class, () -> literal("\""));
+  }
+
+  @Test
+  public void testEncodingPrefix() {
+    CStringLiteralExpression e = literal("L\"a\\x1234\"");
+    assertThat(e.toASTString()).isEqualTo("L\"a\\x1234\"");
+    assertThat(e.getSize()).isEqualTo(9);
+    assertThrows(VerifyException.class, () -> e.getContentWithoutNullTerminator());
   }
 
   @Test
