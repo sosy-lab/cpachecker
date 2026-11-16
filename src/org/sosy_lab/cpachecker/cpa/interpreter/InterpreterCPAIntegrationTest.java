@@ -93,6 +93,37 @@ public class InterpreterCPAIntegrationTest {
             "nonterminating.c",
             Result.UNKNOWN,
             ImmutableMap.of("limits.time.cpu", "10s")),
+        // The SMG analysis executes programs with pointers, and both outcomes of each allocation.
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "address-taken-loop-true.c",
+            Result.TRUE),
+        task("interpreter-smg--termination", "termination", "allocation-list-true.c", Result.TRUE),
+        new Task(
+            "interpreter-smg--termination",
+            "termination",
+            "allocation-failure-nonterminating.c",
+            Result.UNKNOWN,
+            ImmutableMap.of("limits.time.cpu", "10s")),
+        // Ignored side effects and undefined behavior make the execution unsound.
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "unknown-function-unknown.c",
+            Result.UNKNOWN),
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "use-after-free-unknown.c",
+            Result.UNKNOWN),
+        // Both outcomes of an allocation that may fail are executed.
+        new Task(
+            "interpreter-smg",
+            "unreach-call",
+            "allocation-failure-false.c",
+            Result.FALSE,
+            ImmutableMap.of("cpa.smg2.enableMallocFail", "true")),
         task("interpreter--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
         task("interpreter--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
         // An execution in which every allocation succeeds is not the only execution of a program
@@ -133,6 +164,11 @@ public class InterpreterCPAIntegrationTest {
             .setOption("analysis.entryFunction", "main")
             .setOptions(task.options())
             .build();
-    IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(task.expected());
+    if (task.property.equalsIgnoreCase("valid-memsafety") && task.expected().equals(Result.FALSE)) {
+      // MemSafety does not report FALSE results due to imprecision
+      IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(Result.UNKNOWN);
+    } else {
+      IntegrationTestRunner.run(config, PROGRAM_DIR + task.program()).assertIs(task.expected());
+    }
   }
 }

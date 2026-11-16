@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
@@ -98,6 +99,16 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGCPAExpressionEvaluator {
+
+  /** Names of the global variables of the standard streams (C11 7.21.1). */
+  private static final ImmutableSet<String> STANDARD_STREAM_NAMES =
+      ImmutableSet.of("stdin", "stdout", "stderr");
+
+  /**
+   * Size of the objects of the standard streams if the type {@code FILE} is incomplete, see {@link
+   * #initializeStandardStream(SMGState, String, CPointerType, CFAEdge)}.
+   */
+  private static final int INCOMPLETE_FILE_SIZE_IN_BYTES = 4096;
 
   private final CType BIT_PRECISE_MEMORY_ADDRESS_TYPE;
   private final SMGCPAExportOptions exportSMGOptions;
@@ -2293,6 +2304,50 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
+   * Initializes the global variable of one of the standard streams {@code stdin}, {@code stdout},
+   * and {@code stderr} (C11 7.21.1, 7.21.3), which are declared as {@code extern FILE *} and point
+   * to {@code FILE} objects that the program never frees. We model each {@code FILE} object as an
+   * internal global object with unknown content, so it is valid to read and write and is not
+   * reported by memtrack. Its size is the size of {@code FILE}, or {@value
+   * #INCOMPLETE_FILE_SIZE_IN_BYTES} bytes if {@code FILE} is incomplete.
+   *
+   * @param pState current {@link SMGState} with the variable of the stream.
+   * @param pStreamName name of the variable of the stream.
+   * @param pStreamType type of the variable of the stream.
+   * @param pEdge current {@link CFAEdge}.
+   * @return the state with the variable pointing to the {@code FILE} object.
+   * @throws CPATransferException if the pointer can not be written.
+   */
+  private SMGState initializeStandardStream(
+      SMGState pState, String pStreamName, CPointerType pStreamType, CFAEdge pEdge)
+      throws CPATransferException {
+    String fileObjectName = "__CPAchecker_INTERNAL_" + pStreamName + "_FILE";
+    CType fileType = getCanonicalType(pStreamType.getType());
+    Value fileSizeInBits =
+        fileType.isIncomplete()
+            ? new NumericValue(
+                BigInteger.valueOf(INCOMPLETE_FILE_SIZE_IN_BYTES)
+                    .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits())))
+            : getBitSizeof(pState, fileType, pEdge);
+    SMGState currentState = pState;
+    if (!currentState.isGlobalVariablePresent(fileObjectName)) {
+      currentState =
+          currentState.copyAndAddGlobalVariable(fileSizeInBits, fileObjectName, fileType);
+    }
+    ValueAndSMGState fileAddressAndState =
+        createAddressForLocalOrGlobalVariable(fileObjectName, pStreamType, currentState);
+    return fileAddressAndState
+        .getState()
+        .writeToStackOrGlobalVariable(
+            pStreamName,
+            new NumericValue(BigInteger.ZERO),
+            new NumericValue(machineModel.getSizeofInBits(pStreamType)),
+            fileAddressAndState.getValue(),
+            pStreamType,
+            pEdge);
+  }
+
+  /**
    * This method expects that there is a variable (global or otherwise) existing under the name
    * entered with the corect size allocated. This also expects that the type is correct. This method
    * will write globals to 0 and handle futher initialization of variables if necessary.
@@ -2318,6 +2373,11 @@ public class SMGCPAExpressionEvaluator {
       if (pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
         if (options.isHandleIncompleteExternalVariableAsExternalAllocation()) {
           currentState = currentState.setExternallyAllocatedFlag(pVarName);
+        }
+        if (STANDARD_STREAM_NAMES.contains(pVarName)
+            && cType instanceof CPointerType streamPointerType
+            && currentState.isGlobalVariablePresent(pVarName)) {
+          currentState = initializeStandardStream(currentState, pVarName, streamPointerType, pEdge);
         }
       } else {
         // Global variables (but not extern) without initializer are nullified in C
@@ -2800,24 +2860,20 @@ public class SMGCPAExpressionEvaluator {
         }
         currentState = sourceObjectAndOffsetOrState.getSMGState();
 
+        // The struct may be only a part of the variable, e.g. a member initialized by an
+        // initializer list, so we copy only the size of the written type to its offset
         Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeLeftHandSideVariableObject =
-            getTargetObjectAndOffset(currentState, variableName);
+            getTargetObjectAndOffset(currentState, variableName, pOffsetInBits);
         if (maybeLeftHandSideVariableObject.isEmpty()) {
           throw new SMGException("Usage of undeclared variable: " + variableName + ".");
         }
-        SMGObject addressToWriteTo = maybeLeftHandSideVariableObject.orElseThrow().getSMGObject();
-        Value offsetToWriteTo = maybeLeftHandSideVariableObject.orElseThrow().getOffsetForObject();
-
-        // The .asNumericValue().orElseThrow().bigIntegerValue() might fail at some point, then we
-        // need to handle
-        // sizes symbolically as well
         resultStatesBuilder.add(
             currentState.copySMGObjectContentToSMGObject(
                 sourceObjectAndOffsetOrState.getSMGObject(),
                 sourceObjectAndOffsetOrState.getOffsetForObject(),
-                addressToWriteTo,
-                offsetToWriteTo,
-                subtractBitOffsetValues(addressToWriteTo.getSize(), offsetToWriteTo)));
+                maybeLeftHandSideVariableObject.orElseThrow().getSMGObject(),
+                maybeLeftHandSideVariableObject.orElseThrow().getOffsetForObject(),
+                sizeOfTypeLeft));
       }
 
     } else if (typeOfWrite instanceof CPointerType && typeOfValueToWrite instanceof CArrayType) {

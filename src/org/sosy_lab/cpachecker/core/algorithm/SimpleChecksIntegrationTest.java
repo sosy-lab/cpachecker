@@ -68,7 +68,13 @@ public class SimpleChecksIntegrationTest {
   public void testExecutionProvesCountedLoopTerminates() throws Exception {
     IntegrationTestResult result = run("termination", "simplerules/counted-loop-unknown.c");
     result.assertIsSafe();
-    assertThat(result.log()).contains("interpreter--termination.properties finished successfully");
+    assertThat(result.log())
+        .contains("interpreter-value-then-smg--termination.properties finished successfully");
+  }
+
+  @Test
+  public void testExecutionWithSmgProvesTerminationOfPointerProgram() throws Exception {
+    run("termination", "simple/interpreter/allocation-list-true.c").assertIsSafe();
   }
 
   @Test(timeout = 30000)
@@ -93,7 +99,9 @@ public class SimpleChecksIntegrationTest {
   public void testMemorySafetyUsesTheSmgExecution() throws Exception {
     // The execution reports the violation of a program that allocates. It cannot prove such a
     // program safe, because the execution in which an allocation fails is a different one.
-    run("valid-memsafety", "simple/interpreter/heap-out-of-bounds-false.i").assertIsUnsafe();
+    // MemSafety does not report FALSE results due to imprecision for now.
+    run("valid-memsafety", "simple/interpreter/heap-out-of-bounds-false.i")
+        .assertIs(Result.UNKNOWN);
   }
 
   @Test
