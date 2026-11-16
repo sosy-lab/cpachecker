@@ -2956,13 +2956,6 @@ cpa.predicate.handleFieldAccess = false
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
 
-# Handle a call to a function of the program that is known to behave like
-# memset (cf. cfa.detectKnownFunctionBehavior) additionally like a call to
-# memset, which sets the typed memory of the destination. The body of the
-# function is still analyzed. Independent of enableMemoryAssignmentFunctions.
-# Only has an effect if the detection is enabled.
-cpa.predicate.handleKnownFunctionBehavior = true
-
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true

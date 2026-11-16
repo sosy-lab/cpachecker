@@ -1287,8 +1287,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           errorConditions);
     }
 
-    if (options.handleKnownFunctionBehavior()
-        && entryNode.getKnownBehavior().equals(Optional.of(KnownFunctionBehavior.MEMSET))) {
+    if (entryNode.getKnownBehavior().equals(Optional.of(KnownFunctionBehavior.MEMSET))) {
       handleCallOfKnownMemset(edge, callerFunction, ssa, pts, constraints, errorConditions);
     }
 
