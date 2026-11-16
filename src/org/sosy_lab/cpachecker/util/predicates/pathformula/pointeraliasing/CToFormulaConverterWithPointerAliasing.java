@@ -1446,7 +1446,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         new CCastExpression(
             FileLocation.DUMMY,
             new CPointerType(CTypeQualifiers.NONE, destinationTarget.orElseThrow()),
-            new CIdExpression(FileLocation.DUMMY, parameters.get(0)));
+            new CIdExpression(FileLocation.DUMMY, parameters.getFirst()));
     CFunctionCallExpression memsetCall =
         new CFunctionCallExpression(
             call.getFileLocation(),

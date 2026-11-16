@@ -342,7 +342,7 @@ public final class KnownFunctionBehaviorDetector {
             return Optional.of("it returns something else than its first parameter: " + edge);
           }
         } else if (!isCheck(edge, checkVariables, true)
-            && !setUpVariables.stream().anyMatch(variable -> writesVariable(edge, variable))) {
+            && setUpVariables.stream().noneMatch(variable -> writesVariable(edge, variable))) {
           return Optional.of("it contains an operation besides its loop and checks: " + edge);
         }
       }
@@ -595,24 +595,23 @@ public final class KnownFunctionBehaviorDetector {
       return new WrapperCheck(null, "it is not a wrapper, because it contains a loop");
     }
     // Find the call of the memset implementation, i.e., the only call that is not a check.
-    CFAEdge call = null;
-    CFunctionCall callStatement = null;
+    CStatementEdge call = null;
     for (CFANode node : nodes) {
       for (CFAEdge edge : node.getLeavingEdges()) {
         if (edge instanceof CStatementEdge statementEdge
-            && statementEdge.getStatement() instanceof CFunctionCall functionCall
+            && statementEdge.getStatement() instanceof CFunctionCall
             && !isCheckingCall(edge)) {
           if (call != null) {
             return new WrapperCheck(null, "it is not a wrapper, because it calls more functions");
           }
-          call = edge;
-          callStatement = functionCall;
+          call = statementEdge;
         }
       }
     }
     if (call == null) {
       return new WrapperCheck(null, "it is not a wrapper, because it calls no function");
     }
+    CFunctionCall callStatement = (CFunctionCall) call.getStatement();
     @Nullable CSimpleDeclaration result = null;
     if (callStatement instanceof CFunctionCallAssignmentStatement assignment) {
       if (!(assignment.getLeftHandSide() instanceof CIdExpression resultVariable)
