@@ -203,6 +203,7 @@ public final class SupportingInvariantsChecker {
     try {
       status = invariantCheckingAlgorithm.run(reachedSet);
     } catch (RefinementFailedException e) {
+      pLogger.logDebugException(e, "The refinement in analysis checking safety invariants failed.");
       return InvariantCheckResult.UNKNOWN;
     }
     // An interrupted analysis may look as if it finished, so it must not be reported as valid
