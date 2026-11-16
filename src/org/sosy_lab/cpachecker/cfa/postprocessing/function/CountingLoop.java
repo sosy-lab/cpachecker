@@ -97,14 +97,6 @@ public record CountingLoop(
     }
   }
 
-  /** The comparisons that are supported as loop condition so far. */
-  private static final ImmutableSet<BinaryOperator> SUPPORTED_CONTINUE_OPERATORS =
-      ImmutableSet.of(
-          BinaryOperator.LESS_THAN,
-          BinaryOperator.LESS_EQUAL,
-          BinaryOperator.GREATER_THAN,
-          BinaryOperator.GREATER_EQUAL);
-
   /**
    * Analyzes whether the given loop is a counting loop.
    *
@@ -148,9 +140,11 @@ public record CountingLoop(
     LoopCondition condition = parsedCondition.orElseThrow();
     CVariableDeclaration counter = condition.counter();
     String counterName = counter.getQualifiedName();
-    if (!SUPPORTED_CONTINUE_OPERATORS.contains(condition.continueOperator())) {
+    // We currently only support <,<=,>=,>, which are exactly the relational operators (C11 § 6.5.8)
+    // TODO we could also support loops that stop when the loop counter is equal to something
+    if (!condition.continueOperator().isRelationalOperator()) {
       return notCounting(
-          pLoop, pLogger, "its condition is not an ordered comparison: " + stayInLoopEdge);
+          pLoop, pLogger, "its condition is not a relational comparison: " + stayInLoopEdge);
     }
 
     // Everything below reasons about the values of the counter and the bound, which only works if
