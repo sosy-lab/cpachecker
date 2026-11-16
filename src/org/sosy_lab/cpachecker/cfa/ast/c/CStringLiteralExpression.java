@@ -17,6 +17,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -28,8 +29,21 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
 
   @Serial private static final long serialVersionUID = 2656216584704518185L;
 
+  /** The decoded content without null terminator, null for literals with an encoding prefix. */
+  private final @Nullable String content;
+
+  /**
+   * @param pValue the literal as written in the source code, i.e., with quotes and escape sequences
+   * @throws IllegalArgumentException if the literal is invalid
+   */
   public CStringLiteralExpression(FileLocation pFileLocation, String pValue) {
-    super(pFileLocation, computeType(pValue, pFileLocation), pValue);
+    this(pFileLocation, pValue, decodeContent(pValue));
+  }
+
+  private CStringLiteralExpression(
+      FileLocation pFileLocation, String pValue, @Nullable String pContent) {
+    super(pFileLocation, computeType(pValue, pContent, pFileLocation), pValue);
+    content = pContent;
   }
 
   /** Returns the type as <code>char[]</code> including the correct length. */
@@ -83,17 +97,21 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    * one would use {@link #getContentWithNullTerminator()} instead, use this only in special cases.
    */
   public String getContentWithoutNullTerminator() {
-    return decodeContent(getValue());
+    verify(content != null, "String literal with encoding prefix is not supported: %s", getValue());
+    return content;
   }
 
   /** Returns the size in bytes of the represented string. */
   public int getSize() {
-    return getContentWithNullTerminator().length();
+    return getExpressionType().getLengthAsInt().orElseThrow();
   }
 
-  private static String decodeContent(String literal) {
-    verify(literal.charAt(0) == '"');
-    verify(literal.charAt(literal.length() - 1) == '"');
+  private static @Nullable String decodeContent(String literal) {
+    checkArgument(
+        literal.length() >= 2 && literal.endsWith("\""), "Invalid string literal %s", literal);
+    if (!literal.startsWith("\"")) {
+      return null;
+    }
     return decodeEscapeSequences(literal.substring(1, literal.length() - 1));
   }
 
@@ -219,12 +237,10 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return result;
   }
 
-  private static CArrayType computeType(String astString, FileLocation pFileLocation) {
+  private static CArrayType computeType(
+      String astString, @Nullable String pContent, FileLocation pFileLocation) {
     // literals with an encoding prefix like L"..." are not supported, keep their raw length
-    int size =
-        astString.startsWith("\"")
-            ? decodeContent(astString).length() + 1
-            : astString.length() - 2 + 1;
+    int size = pContent != null ? pContent.length() + 1 : astString.length() - 2 + 1;
     CExpression length =
         new CIntegerLiteralExpression(pFileLocation, CNumericTypes.INT, BigInteger.valueOf(size));
     return new CArrayType(CTypeQualifiers.NONE, CNumericTypes.CONST_CHAR, length);

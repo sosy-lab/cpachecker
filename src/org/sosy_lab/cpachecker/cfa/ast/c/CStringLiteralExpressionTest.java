@@ -58,4 +58,10 @@ public class CStringLiteralExpressionTest {
     assertThrows(IllegalArgumentException.class, () -> literal("\"\\x100\""));
     assertThrows(IllegalArgumentException.class, () -> literal("\"\\u12\""));
   }
+
+  @Test
+  public void testLiteralWithoutQuotes() {
+    assertThrows(IllegalArgumentException.class, () -> literal("abc"));
+    assertThrows(IllegalArgumentException.class, () -> literal("\""));
+  }
 }
