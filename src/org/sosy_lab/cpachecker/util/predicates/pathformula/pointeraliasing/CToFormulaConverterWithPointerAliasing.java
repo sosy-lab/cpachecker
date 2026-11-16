@@ -1287,18 +1287,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           errorConditions);
     }
 
-    // For a function that is known to behave like memset, we additionally apply the effect of
-    // memset here, but the call edge still leads into the function, so its body is analyzed as
-    // before. This is necessary because the known behavior only describes what the function does
-    // when it returns normally: the body may contain more, e.g., checks of the arguments that stop
-    // the program, and these paths have to stay the same. Moreover, other analyses (e.g., value
-    // analysis) do not use the known behavior and only see the body, so skipping it would require
-    // to change the CFA for all analyses. The additional memset only adds the typed view of the
-    // bytes that the body writes (see handleCallOfKnownMemset).
-    if (entryNode.getKnownBehavior().equals(Optional.of(KnownFunctionBehavior.MEMSET))) {
-      handleCallOfKnownMemset(edge, callerFunction, ssa, pts, constraints, errorConditions);
-    }
-
     BooleanFormula result =
         super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
@@ -1306,25 +1294,33 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Handles a call to a function of the program that is known to behave like {@code memset} (see
-   * {@link KnownFunctionBehavior#MEMSET}) additionally like a call to {@code memset} with the
-   * arguments of the caller. This sets the typed memory of the destination, which a byte-wise
-   * implementation in the body of the function only writes as {@code char}s. The body of the
-   * function is still analyzed as usual, so the additional {@code memset} only adds the typed view
-   * of the bytes that the body writes anyway:
+   * Handles the return from a function of the program that is known to behave like {@code memset}
+   * with guards (see {@link KnownFunctionBehavior#MEMSET_WITH_GUARDS}) additionally like a call to
+   * {@code memset}. This sets the typed memory of the destination, which a byte-wise implementation
+   * in the body of the function only writes as {@code char}s.
+   *
+   * <p>The call edge still leads into the function, so its body is analyzed as before. This is
+   * necessary because the known behavior only describes what the function does when it returns
+   * normally: its guards may stop the program, and these paths have to stay the same. Moreover,
+   * other analyses (e.g., value analysis) do not use the known behavior and only see the body, so
+   * skipping it would require to change the CFA for all analyses. The additional {@code memset}
+   * only adds the typed view of the bytes that the body has just written:
    *
    * <ul>
-   *   <li>It is applied at the call, before the body. This cannot be observed, because the function
-   *       does not read memory (guaranteed by the detection), and if the function does not return
-   *       (e.g., an {@code abort()} in the body), the path ends anyway.
-   *   <li>It writes exactly the bytes that the body writes: the value and the count are converted
-   *       to the types of the parameters, like C does at the call, and the count has to be a
-   *       constant that is a multiple of the size of the type of the destination. Otherwise nothing
-   *       is done, because the {@code memset} handling would round up to whole elements. The {@code
-   *       memset} handling converts the value to {@code unsigned char} like the body.
-   *   <li>If the destination is too small or invalid, the body writes out of bounds, and so does
-   *       the {@code memset} here, at the same addresses. An analysis of memory safety still finds
-   *       this in the body.
+   *   <li>It is applied at the return edge, i.e., only if the function returns normally. If a guard
+   *       stops the program (e.g., because the destination is {@code NULL}), it does not happen.
+   *   <li>It uses the values of the parameters {@code s} and {@code c}, which the function never
+   *       changes (guaranteed by the detection), so they are the values from the call, converted to
+   *       the types of the parameters like C does. Only the type that the destination points to is
+   *       taken from the argument of the caller.
+   *   <li>It writes exactly the bytes that the body writes: the count is the argument of the
+   *       caller, converted to the type of the parameter, and it has to be a constant that is a
+   *       multiple of the size of the type of the destination. Otherwise nothing is done, because
+   *       the {@code memset} handling would round up to whole elements. The {@code memset} handling
+   *       converts the value to {@code unsigned char} like the body.
+   *   <li>If the destination is too small, the body has already written out of bounds, and the
+   *       {@code memset} here writes at the same addresses. An analysis of memory safety finds this
+   *       in the body.
    *   <li>No arithmetic overflow can happen in the function itself: the detection only accepts a
    *       counter whose type can hold every value of the count.
    * </ul>
@@ -1333,22 +1329,21 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * that passes on its {@code void *} parameter), because then the body already writes it, and the
    * typed destination is only known at the outer call.
    */
-  private void handleCallOfKnownMemset(
-      final CFunctionCallEdge edge,
-      final String callerFunction,
+  private void handleReturnOfKnownMemset(
+      final CFunctionSummaryEdge summaryEdge,
       final SSAMapBuilder ssa,
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws InterruptedException {
-    CFunctionCallExpression call = edge.getFunctionCallExpression();
+    CFunctionEntryNode entryNode = summaryEdge.getFunctionEntry();
+    CFunctionCallExpression call = summaryEdge.getExpression().getFunctionCallExpression();
     List<CExpression> arguments = call.getParameterExpressions();
-    List<CParameterDeclaration> parameters = edge.getSuccessor().getFunctionParameters();
+    List<CParameterDeclaration> parameters = entryNode.getFunctionParameters();
     if (options.useByteArrayForHeap() || arguments.size() != 3 || parameters.size() != 3) {
       return;
     }
-    CExpression destination = arguments.getFirst();
-    Optional<CType> destinationTarget = typedDestinationTarget(destination);
+    Optional<CType> destinationTarget = typedDestinationTarget(arguments.getFirst());
     if (destinationTarget.isEmpty()
         || !destinationTarget.orElseThrow().hasKnownConstantSize()
         || !(parameters.get(2).getType().getCanonicalType() instanceof CSimpleType countType)) {
@@ -1366,12 +1361,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           Level.FINE,
           "%s: Call to %s is not handled like memset, because its count is not a constant multiple"
               + " of the size of %s",
-          edge.getFileLocation(),
-          edge.getSuccessor().getFunctionName(),
+          summaryEdge.getFileLocation(),
+          entryNode.getFunctionName(),
           destinationTarget.orElseThrow());
       return;
     }
 
+    // memset((T *) s, c, count) with the parameters s and c of the function
+    CExpression destination =
+        new CCastExpression(
+            FileLocation.DUMMY,
+            new CPointerType(CTypeQualifiers.NONE, destinationTarget.orElseThrow()),
+            new CIdExpression(FileLocation.DUMMY, parameters.get(0)));
     CFunctionCallExpression memsetCall =
         new CFunctionCallExpression(
             call.getFileLocation(),
@@ -1379,13 +1380,19 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             call.getFunctionNameExpression(),
             ImmutableList.of(
                 destination,
-                new CCastExpression(
-                    FileLocation.DUMMY, parameters.get(1).getType(), arguments.get(1)),
+                new CIdExpression(FileLocation.DUMMY, parameters.get(1)),
                 new CIntegerLiteralExpression(FileLocation.DUMMY, countType, count.orElseThrow())),
             call.getDeclaration());
     MemoryManipulationFunctionHandler memoryFunctionHandler =
         new MemoryManipulationFunctionHandler(
-            this, edge, callerFunction, ssa, pts, constraints, errorConditions, regionMgr);
+            this,
+            summaryEdge,
+            entryNode.getFunctionName(),
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr);
     try {
       memoryFunctionHandler.handleMemoryAssignmentFunction("memset", memsetCall);
     } catch (UnrecognizedCodeException e) {
@@ -1393,8 +1400,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       logger.logfOnce(
           Level.WARNING,
           "%s: Cannot handle call to %s like memset: %s",
-          edge.getFileLocation(),
-          edge.getSuccessor().getFunctionName(),
+          summaryEdge.getFileLocation(),
+          entryNode.getFunctionName(),
           e.getMessage());
     }
   }
@@ -1402,7 +1409,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /**
    * The type that the given destination of a memset points to, if it has a type besides bytes,
    * i.e., it is not (after removing a cast to {@code void *}) a pointer to {@code void} or to a
-   * character type.
+   * character type. For a pointer to an array, this is the type of its elements.
    */
   private static Optional<CType> typedDestinationTarget(CExpression pDestination) {
     CExpression destination = pDestination;
@@ -1416,6 +1423,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       return Optional.empty();
     }
     CType target = pointerType.getType().getCanonicalType();
+    while (target instanceof CArrayType arrayType) {
+      target = arrayType.getType().getCanonicalType();
+    }
     if (target instanceof CVoidType
         || (target instanceof CSimpleType simpleType && simpleType.getType() == CBasicType.CHAR)) {
       return Optional.empty();
@@ -1473,6 +1483,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
+
+    // The function returns normally, so if it is known to behave like memset, we can now also set
+    // the typed memory of the destination (before the result of the call is assigned, as in C).
+    if (summaryEdge
+        .getFunctionEntry()
+        .getKnownBehavior()
+        .equals(Optional.of(KnownFunctionBehavior.MEMSET_WITH_GUARDS))) {
+      handleReturnOfKnownMemset(summaryEdge, ssa, pts, constraints, errorConditions);
+    }
 
     final BooleanFormula result =
         super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);

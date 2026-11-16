@@ -17,10 +17,12 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -81,13 +84,15 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
  * KnownFunctionBehavior}, and stores this in their {@link CFunctionEntryNode}. This analyzes the
  * CFA of each single function without changing it, it has to run before the supergraph is built.
  *
- * <p>So far, it recognizes implementations of {@code memset} that set the bytes one by one in a
- * counting loop, and functions that only forward their parameters to such an implementation.
- * Everything else is rejected, so every recognized function really has the described behavior.
+ * <p>So far, it recognizes implementations of {@code memset} with guards ({@link
+ * KnownFunctionBehavior#MEMSET_WITH_GUARDS}) that set the bytes one by one in a counting loop, and
+ * functions that only forward their parameters to such an implementation. Besides that, they may
+ * only check conditions and stop the program if they do not hold. Everything else is rejected, so
+ * every recognized function really has the described behavior.
  */
 public final class KnownFunctionBehaviorDetector {
 
-  /** Functions without a body that may be called by a function without changing its behavior. */
+  /** Functions without a body that stop the program, which may be called in guards. */
   private static final ImmutableSet<String> TERMINATING_FUNCTIONS =
       ImmutableSet.of("abort", "exit", "_Exit", "__assert_fail", "__VERIFIER_assume");
 
@@ -136,7 +141,7 @@ public final class KnownFunctionBehaviorDetector {
       }
       Optional<String> loopProblem = whyNotByteLoopMemset(entry);
       if (loopProblem.isEmpty()) {
-        entry.setKnownBehavior(KnownFunctionBehavior.MEMSET);
+        entry.setKnownBehavior(KnownFunctionBehavior.MEMSET_WITH_GUARDS);
         detected++;
         logDetected(entry, "byte loop");
       } else {
@@ -160,7 +165,7 @@ public final class KnownFunctionBehaviorDetector {
         }
         WrapperCheck check = checkWrapper(entry);
         if (check.problem() == null) {
-          entry.setKnownBehavior(KnownFunctionBehavior.MEMSET);
+          entry.setKnownBehavior(KnownFunctionBehavior.MEMSET_WITH_GUARDS);
           detected++;
           logDetected(entry, "wrapper of " + check.callee());
           changed = true;
@@ -176,7 +181,7 @@ public final class KnownFunctionBehaviorDetector {
       if (knownBehaviorOf(rejection.getKey()).isEmpty()) {
         logger.logf(
             Level.FINE,
-            "Known function behavior: function %s is not recognized as MEMSET implementation"
+            "Known function behavior: function %s is not recognized as memset implementation"
                 + " because %s",
             rejection.getKey(),
             rejection.getValue());
@@ -195,7 +200,7 @@ public final class KnownFunctionBehaviorDetector {
   private void logDetected(CFunctionEntryNode pEntry, String pReason) {
     logger.logf(
         Level.INFO,
-        "Known function behavior: function %s (%s) is a MEMSET implementation (%s)",
+        "Known function behavior: function %s (%s) is a memset implementation with guards (%s)",
         pEntry.getFunctionName(),
         pEntry.getFileLocation(),
         pReason);
@@ -244,9 +249,10 @@ public final class KnownFunctionBehaviorDetector {
   /**
    * Checks whether the given function sets the bytes one by one: {@code for (i = 0; i < n; i++)
    * q[i] = c;}, where {@code q} is the pointer parameter {@code s} or a local variable that holds
-   * it, maybe cast to a pointer to {@code char}. Besides that, the function may only check
-   * conditions, write its own local variables, call functions that only check conditions or stop
-   * the program, and return {@code s} or nothing.
+   * it, maybe cast to a pointer to {@code char}. The loop must not contain anything else. Outside
+   * of the loop, the function may only set up the counter and {@code q}, check conditions and stop
+   * the program if they do not hold (directly or by calling a function that only does this), and
+   * return {@code s} or nothing.
    */
   private Optional<String> whyNotByteLoopMemset(CFunctionEntryNode pEntry) {
     String function = pEntry.getFunctionName();
@@ -277,44 +283,64 @@ public final class KnownFunctionBehaviorDetector {
       return Optional.of("the counter of its loop cannot hold every value of the count");
     }
 
-    // Every edge has to be harmless, except for the one that writes the bytes.
+    // The loop may only consist of its condition, the write of a byte, and the change of the
+    // counter.
+    ImmutableSet<CFAEdge> loopEdges = loop.getInnerLoopEdges();
     CFAEdge write = null;
-    for (CFANode node : nodes) {
-      for (CFAEdge edge : node.getLeavingEdges()) {
-        if (writesParameter(edge, parameters)) {
-          return Optional.of("it changes one of its parameters: " + edge);
+    for (CFAEdge edge : loopEdges) {
+      if (isMemoryWrite(edge)) {
+        if (write != null) {
+          return Optional.of("its loop writes memory more than once: " + edge);
         }
-        if (readsMemory(edge)) {
-          return Optional.of("it reads memory: " + edge);
-        }
-        if (isMemoryWrite(edge)) {
-          if (write != null) {
-            return Optional.of("it writes memory more than once: " + edge);
-          }
-          write = edge;
-        } else if (!isHarmless(edge) && !isLocalAssignment(edge) && !isCheckingCall(edge)) {
-          return Optional.of("it contains an operation that is not allowed: " + edge);
-        }
-        if (edge instanceof CReturnStatementEdge returnEdge
-            && !returnsNothingOrParameter(returnEdge, pointer)) {
-          return Optional.of("it returns something else than its first parameter: " + edge);
-        }
+        write = edge;
+      } else if (!(edge instanceof BlankEdge)
+          && !edge.equals(countingLoop.stayInLoopEdge())
+          && !edge.equals(countingLoop.modificationEdge())) {
+        return Optional.of("its loop contains another operation: " + edge);
       }
     }
     if (write == null) {
-      return Optional.of("it does not write memory");
+      return Optional.of("its loop does not write memory");
     }
-    if (!loop.getInnerLoopEdges().contains(write)) {
-      return Optional.of("it writes memory outside of its loop: " + write);
+    if (readsMemory(write)) {
+      return Optional.of("it reads memory: " + write);
     }
     Optional<String> writeProblem =
-        whyNotByteWrite(write, countingLoop, pointer, value, nodes, loop.getInnerLoopEdges());
+        whyNotByteWrite(write, countingLoop, pointer, value, nodes, loopEdges);
     if (writeProblem.isPresent()) {
       return writeProblem;
     }
     if (!isWrittenInEveryIterationBeforeTheCounter(loop, countingLoop, write)) {
       return Optional.of(
           "its loop does not write exactly once per iteration, before changing the counter");
+    }
+
+    // Outside of the loop, the function may only set up the counter and the pointer that it writes
+    // through, check conditions and stop the program, and return the pointer or nothing.
+    Set<CSimpleDeclaration> setUpVariables = new HashSet<>();
+    setUpVariables.add(countingLoop.counter());
+    baseVariableOf(write, countingLoop).ifPresent(setUpVariables::add);
+    Set<CSimpleDeclaration> checkVariables = checkVariables(nodes, setUpVariables, true);
+    for (CFANode node : nodes) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
+        if (loopEdges.contains(edge)) {
+          continue;
+        }
+        if (writesParameter(edge, parameters)) {
+          return Optional.of("it changes one of its parameters: " + edge);
+        }
+        if (readsMemory(edge)) {
+          return Optional.of("it reads memory: " + edge);
+        }
+        if (edge instanceof CReturnStatementEdge returnEdge) {
+          if (!returnsNothingOrParameter(returnEdge, pointer)) {
+            return Optional.of("it returns something else than its first parameter: " + edge);
+          }
+        } else if (!isCheck(edge, checkVariables, true)
+            && !setUpVariables.stream().anyMatch(variable -> writesVariable(edge, variable))) {
+          return Optional.of("it contains an operation besides its loop and checks: " + edge);
+        }
+      }
     }
     if (canReturnAvoiding(
         pEntry, edge -> loop.getIncomingEdges().contains(edge) || impliesZero(edge, count))) {
@@ -350,20 +376,7 @@ public final class KnownFunctionBehaviorDetector {
       return Optional.of("its memory write does not write the second parameter: " + pWrite);
     }
 
-    @Nullable CExpression base = null;
-    if (target instanceof CArraySubscriptExpression subscript
-        && isVariable(withoutCasts(subscript.getSubscriptExpression()), pLoop.counter())) {
-      base = withoutCasts(subscript.getArrayExpression());
-    } else if (target instanceof CPointerExpression dereference
-        && withoutCasts(dereference.getOperand()) instanceof CBinaryExpression sum
-        && sum.getOperator() == BinaryOperator.PLUS) {
-      if (isVariable(withoutCasts(sum.getOperand2()), pLoop.counter())) {
-        base = withoutCasts(sum.getOperand1());
-      } else if (isVariable(withoutCasts(sum.getOperand1()), pLoop.counter())) {
-        base = withoutCasts(sum.getOperand2());
-      }
-    }
-    if (!(base instanceof CIdExpression baseVariable)) {
+    if (!(baseOf(target, pLoop) instanceof CIdExpression baseVariable)) {
       return Optional.of("its memory write is not indexed by the counter: " + pWrite);
     }
     if (isVariable(baseVariable, pPointer)) {
@@ -392,6 +405,131 @@ public final class KnownFunctionBehaviorDetector {
               + pWrite);
     }
     return Optional.empty();
+  }
+
+  /**
+   * The pointer that the given target of a write is indexed from by the counter, i.e., {@code q}
+   * for {@code q[i]} or {@code *(q + i)}, or {@code null} for other targets.
+   */
+  private static @Nullable CExpression baseOf(CLeftHandSide pTarget, CountingLoop pLoop) {
+    if (pTarget instanceof CArraySubscriptExpression subscript
+        && isVariable(withoutCasts(subscript.getSubscriptExpression()), pLoop.counter())) {
+      return withoutCasts(subscript.getArrayExpression());
+    }
+    if (pTarget instanceof CPointerExpression dereference
+        && withoutCasts(dereference.getOperand()) instanceof CBinaryExpression sum
+        && sum.getOperator() == BinaryOperator.PLUS) {
+      if (isVariable(withoutCasts(sum.getOperand2()), pLoop.counter())) {
+        return withoutCasts(sum.getOperand1());
+      } else if (isVariable(withoutCasts(sum.getOperand1()), pLoop.counter())) {
+        return withoutCasts(sum.getOperand2());
+      }
+    }
+    return null;
+  }
+
+  /** The local variable that the given write of a byte writes through, if it is not a parameter. */
+  private static Optional<CSimpleDeclaration> baseVariableOf(CFAEdge pWrite, CountingLoop pLoop) {
+    if (pWrite instanceof CStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof CAssignment assignment
+        && baseOf(assignment.getLeftHandSide(), pLoop) instanceof CIdExpression baseVariable
+        && baseVariable.getDeclaration() instanceof CVariableDeclaration declaration) {
+      return Optional.of(declaration);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * The local variables of the function with the given nodes that are only used for checks, i.e.,
+   * they are only read in conditions, in arguments of calls to functions that only check conditions
+   * or stop the program, or in the values of other such variables. They are needed because the CFA
+   * evaluates a condition like {@code n == 0 || s} in an argument with branches that set a
+   * temporary variable.
+   *
+   * @param pNodes the nodes of the function
+   * @param pExcluded variables that have another purpose and are never check variables
+   * @param pAllowCheckingCalls whether the arguments of calls to functions that check conditions
+   *     count as checks (otherwise only arguments of calls to terminating functions)
+   */
+  private Set<CSimpleDeclaration> checkVariables(
+      Collection<CFANode> pNodes, Set<CSimpleDeclaration> pExcluded, boolean pAllowCheckingCalls) {
+    Set<CSimpleDeclaration> candidates = new HashSet<>();
+    for (CFANode node : pNodes) {
+      for (CFAEdge edge : node.getLeavingEdges()) {
+        if (edge instanceof CDeclarationEdge declarationEdge
+            && declarationEdge.getDeclaration() instanceof CVariableDeclaration variable
+            && isPlainLocal(variable)
+            && !pExcluded.contains(variable)) {
+          candidates.add(variable);
+        }
+      }
+    }
+    // Remove variables that are read elsewhere, until nothing changes.
+    boolean changed = true;
+    while (changed) {
+      changed = false;
+      for (CFANode node : pNodes) {
+        for (CFAEdge edge : node.getLeavingEdges()) {
+          boolean readOnlyForChecks =
+              edge instanceof CAssumeEdge
+                  || (pAllowCheckingCalls ? isCheckingCall(edge) : isTerminatingCall(edge))
+                  || (edge instanceof CStatementEdge statementEdge
+                      && statementEdge.getStatement() instanceof CAssignment assignment
+                      && !(assignment instanceof CFunctionCall)
+                      && assignment.getLeftHandSide() instanceof CIdExpression target
+                      && candidates.contains(target.getDeclaration()))
+                  || (edge instanceof CDeclarationEdge declarationEdge
+                      && candidates.contains(declarationEdge.getDeclaration()));
+          if (!readOnlyForChecks && candidates.removeAll(readVariables(edge))) {
+            changed = true;
+          }
+        }
+      }
+    }
+    return candidates;
+  }
+
+  /** The variables that the given edge reads (the target of an assignment is not read). */
+  private static Set<CSimpleDeclaration> readVariables(CFAEdge pEdge) {
+    Set<CSimpleDeclaration> result = new HashSet<>();
+    for (AAstNode node : readAstNodes(pEdge)) {
+      for (AAstNode subNode : CFAUtils.traverseRecursively(node)) {
+        if (subNode instanceof CIdExpression identifier) {
+          result.add(identifier.getDeclaration());
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Whether the given edge only checks a condition or stops the program: a condition, a call to a
+   * function that only checks conditions or stops the program (only if {@code pAllowCheckingCalls},
+   * otherwise only to a terminating function), a declaration, or an assignment to one of the given
+   * check variables. Edges without effect (blank edges, expression statements) are also allowed.
+   */
+  private boolean isCheck(
+      CFAEdge pEdge, Set<CSimpleDeclaration> pCheckVariables, boolean pAllowCheckingCalls) {
+    return switch (pEdge) {
+      case BlankEdge unused -> true;
+      case CAssumeEdge unused -> true;
+      case CDeclarationEdge declarationEdge ->
+          !(declarationEdge.getDeclaration() instanceof CVariableDeclaration variable)
+              || (!variable.isGlobal()
+                  && (variable.getInitializer() == null || pCheckVariables.contains(variable)));
+      case CStatementEdge statementEdge ->
+          switch (statementEdge.getStatement()) {
+            case CExpressionStatement unused -> true;
+            case CFunctionCallStatement unused ->
+                pAllowCheckingCalls ? isCheckingCall(pEdge) : isTerminatingCall(pEdge);
+            case CFunctionCallAssignmentStatement unused -> false;
+            case CExpressionAssignmentStatement assignment ->
+                assignment.getLeftHandSide() instanceof CIdExpression target
+                    && pCheckVariables.contains(target.getDeclaration());
+            default -> false;
+          };
+      default -> false;
+    };
   }
 
   /**
@@ -441,8 +579,7 @@ public final class KnownFunctionBehaviorDetector {
   /**
    * Checks whether the given function only calls a known memset implementation with its own
    * parameters {@code (s, c, n)} in this order, and returns its result, {@code s}, or nothing.
-   * Besides that, it may only check conditions, write its own local variables, and call functions
-   * that only check conditions or stop the program.
+   * Besides that, it may only check conditions and stop the program if they do not hold.
    */
   private WrapperCheck checkWrapper(CFunctionEntryNode pEntry) {
     String function = pEntry.getFunctionName();
@@ -452,48 +589,44 @@ public final class KnownFunctionBehaviorDetector {
     if (!loopStructure.getLoopsForFunction(function).isEmpty()) {
       return new WrapperCheck(null, "it is not a wrapper, because it contains a loop");
     }
+    // Find the call of the memset implementation, i.e., the only call that is not a check.
     CFAEdge call = null;
     CFunctionCall callStatement = null;
     for (CFANode node : nodes) {
       for (CFAEdge edge : node.getLeavingEdges()) {
-        if (writesParameter(edge, parameters)) {
-          return new WrapperCheck(null, "it changes one of its parameters: " + edge);
-        }
-        if (readsMemory(edge)) {
-          return new WrapperCheck(null, "it reads memory: " + edge);
-        }
-        if (isHarmless(edge) || isLocalAssignment(edge) || isCheckingCall(edge)) {
-          continue;
-        }
         if (edge instanceof CStatementEdge statementEdge
             && statementEdge.getStatement() instanceof CFunctionCall functionCall
-            && (functionCall instanceof CFunctionCallStatement
-                || (functionCall instanceof CFunctionCallAssignmentStatement assignment
-                    && isLocalVariable(assignment.getLeftHandSide())))) {
+            && !isCheckingCall(edge)) {
           if (call != null) {
             return new WrapperCheck(null, "it is not a wrapper, because it calls more functions");
           }
           call = edge;
           callStatement = functionCall;
-          continue;
         }
-        return new WrapperCheck(
-            null, "it is not a wrapper, because it contains another operation: " + edge);
       }
     }
     if (call == null) {
       return new WrapperCheck(null, "it is not a wrapper, because it calls no function");
     }
+    @Nullable CSimpleDeclaration result = null;
+    if (callStatement instanceof CFunctionCallAssignmentStatement assignment) {
+      if (!(assignment.getLeftHandSide() instanceof CIdExpression resultVariable)
+          || !(resultVariable.getDeclaration() instanceof CVariableDeclaration resultDeclaration)
+          || !isPlainLocal(resultDeclaration)) {
+        return new WrapperCheck(null, "it does not store the result in a local variable: " + call);
+      }
+      result = resultDeclaration;
+    }
 
     Optional<String> callee = CFAUtils.getFunctionCallName(call);
     if (callee.isEmpty()
         || !knownBehaviorOf(callee.orElseThrow())
-            .equals(Optional.of(KnownFunctionBehavior.MEMSET))) {
+            .equals(Optional.of(KnownFunctionBehavior.MEMSET_WITH_GUARDS))) {
       return new WrapperCheck(
           null,
           "it calls "
               + callee.orElse("a function pointer")
-              + ", which is not known to be a MEMSET implementation");
+              + ", which is not known to be a memset implementation");
     }
     List<CExpression> arguments =
         callStatement.getFunctionCallExpression().getParameterExpressions();
@@ -505,25 +638,37 @@ public final class KnownFunctionBehaviorDetector {
           null, "it does not pass its own parameters in the same order to " + callee.orElseThrow());
     }
 
-    @Nullable CSimpleDeclaration result =
-        callStatement instanceof CFunctionCallAssignmentStatement assignment
-                && assignment.getLeftHandSide() instanceof CIdExpression resultVariable
-            ? resultVariable.getDeclaration()
-            : null;
+    // Besides the call, the function may only check conditions and stop the program, and return
+    // the result of the call, the pointer, or nothing.
+    Set<CSimpleDeclaration> checkVariables =
+        checkVariables(nodes, result == null ? ImmutableSet.of() : ImmutableSet.of(result), true);
     for (CFANode node : nodes) {
       for (CFAEdge edge : node.getLeavingEdges()) {
-        if (result != null && !edge.equals(call) && assignsValue(edge, result)) {
-          return new WrapperCheck(null, "it changes the result of " + callee.orElseThrow());
+        if (edge.equals(call)) {
+          continue;
         }
-        if (edge instanceof CReturnStatementEdge returnEdge
-            && !returnsNothingOrParameter(returnEdge, parameters.get(0))
-            && !(result != null
-                && returnEdge.getExpression().isPresent()
-                && isVariable(withoutCasts(returnEdge.getExpression().orElseThrow()), result))) {
+        if (writesParameter(edge, parameters)) {
+          return new WrapperCheck(null, "it changes one of its parameters: " + edge);
+        }
+        if (readsMemory(edge)) {
+          return new WrapperCheck(null, "it reads memory: " + edge);
+        }
+        if (edge instanceof CReturnStatementEdge returnEdge) {
+          if (!returnsNothingOrParameter(returnEdge, parameters.get(0))
+              && !(result != null
+                  && returnEdge.getExpression().isPresent()
+                  && isVariable(withoutCasts(returnEdge.getExpression().orElseThrow()), result))) {
+            return new WrapperCheck(
+                null, "it returns something else than its first parameter or the result: " + edge);
+          }
+        } else if (!isCheck(edge, checkVariables, true)) {
           return new WrapperCheck(
-              null, "it returns something else than its first parameter or the result: " + edge);
+              null, "it contains an operation besides the call and checks: " + edge);
         }
       }
+    }
+    if (readsMemory(call)) {
+      return new WrapperCheck(null, "it reads memory: " + call);
     }
     final CFAEdge finalCall = call;
     if (canReturnAvoiding(pEntry, edge -> edge.equals(finalCall))) {
@@ -583,16 +728,11 @@ public final class KnownFunctionBehaviorDetector {
    * so only its value is checked. This is an over-approximation, e.g., {@code sizeof(*p)} also
    * counts as read.
    *
-   * <p>A function that is recognized must not read memory, because analyses may apply the effect of
-   * the well-known function before the body of the function (see {@link KnownFunctionBehavior}).
+   * <p>A function that is recognized must not read memory, so that its guards only depend on the
+   * values of its parameters (see {@link KnownFunctionBehavior#MEMSET_WITH_GUARDS}).
    */
   private static boolean readsMemory(CFAEdge pEdge) {
-    Iterable<? extends AAstNode> readNodes =
-        pEdge instanceof CStatementEdge statementEdge
-                && statementEdge.getStatement() instanceof CAssignment assignment
-            ? ImmutableList.of(assignment.getRightHandSide())
-            : CFAUtils.getAstNodesFromCfaEdge(pEdge);
-    for (AAstNode node : readNodes) {
+    for (AAstNode node : readAstNodes(pEdge)) {
       for (AAstNode subNode : CFAUtils.traverseRecursively(node)) {
         if (subNode instanceof CPointerExpression
             || subNode instanceof CArraySubscriptExpression
@@ -607,24 +747,15 @@ public final class KnownFunctionBehaviorDetector {
     return false;
   }
 
-  /** Edges that neither write memory nor variables nor call a function. */
-  private static boolean isHarmless(CFAEdge pEdge) {
-    return pEdge instanceof BlankEdge
-        || pEdge instanceof CAssumeEdge
-        || pEdge instanceof CReturnStatementEdge
-        || (pEdge instanceof CDeclarationEdge declarationEdge
-            && !(declarationEdge.getDeclaration() instanceof CVariableDeclaration variable
-                && variable.isGlobal()))
-        || (pEdge instanceof CStatementEdge statementEdge
-            && statementEdge.getStatement() instanceof CExpressionStatement);
-  }
-
-  /** An assignment of an expression to a local variable of the function. */
-  private static boolean isLocalAssignment(CFAEdge pEdge) {
+  /**
+   * The parts of the given edge that are evaluated, i.e., everything except the target of an
+   * assignment.
+   */
+  private static Iterable<? extends AAstNode> readAstNodes(CFAEdge pEdge) {
     return pEdge instanceof CStatementEdge statementEdge
-        && statementEdge.getStatement() instanceof CAssignment assignment
-        && !(assignment instanceof CFunctionCall)
-        && isLocalVariable(assignment.getLeftHandSide());
+            && statementEdge.getStatement() instanceof CAssignment assignment
+        ? ImmutableList.of(assignment.getRightHandSide())
+        : CFAUtils.getAstNodesFromCfaEdge(pEdge);
   }
 
   /** An assignment whose target is not a local variable of the function. */
@@ -635,42 +766,45 @@ public final class KnownFunctionBehaviorDetector {
   }
 
   /**
-   * A call without result to a function that only checks a condition or stops the program, such as
-   * {@code assume_abort_if_not(n == 0 || s)}.
+   * A call without result to a function that only checks conditions and stops the program if they
+   * do not hold, such as {@code assume_abort_if_not(n == 0 || s)}, or directly to a terminating
+   * function such as {@code abort()}. The checking function itself may only call terminating
+   * functions.
    */
   private boolean isCheckingCall(CFAEdge pEdge) {
+    if (isTerminatingCall(pEdge)) {
+      return true;
+    }
     if (!(pEdge instanceof CStatementEdge statementEdge)
         || !(statementEdge.getStatement() instanceof CFunctionCallStatement)) {
       return false;
     }
     Optional<String> callee = CFAUtils.getFunctionCallName(pEdge);
-    if (callee.isEmpty()) {
+    if (callee.isEmpty() || !cfa.getAllFunctionNames().contains(callee.orElseThrow())) {
       return false;
     }
-    if (isTerminatingFunction(callee.orElseThrow())) {
-      return true;
-    }
-    if (!cfa.getAllFunctionNames().contains(callee.orElseThrow())) {
-      return false;
-    }
-    // A function with a body, which may only check conditions and call terminating functions.
-    for (CFANode node : cfa.getFunctionNodes(callee.orElseThrow())) {
+    Collection<CFANode> calleeNodes = cfa.getFunctionNodes(callee.orElseThrow());
+    Set<CSimpleDeclaration> checkVariables = checkVariables(calleeNodes, ImmutableSet.of(), false);
+    for (CFANode node : calleeNodes) {
       for (CFAEdge edge : node.getLeavingEdges()) {
         boolean allowed =
             !readsMemory(edge)
-                && (isHarmless(edge)
-                    || isLocalAssignment(edge)
-                    || (edge instanceof CStatementEdge callEdge
-                        && callEdge.getStatement() instanceof CFunctionCallStatement
-                        && CFAUtils.getFunctionCallName(callEdge)
-                            .filter(KnownFunctionBehaviorDetector::isTerminatingFunction)
-                            .isPresent()));
+                && (edge instanceof CReturnStatementEdge || isCheck(edge, checkVariables, false));
         if (!allowed) {
           return false;
         }
       }
     }
     return true;
+  }
+
+  /** A call without result directly to a terminating function such as {@code abort()}. */
+  private static boolean isTerminatingCall(CFAEdge pEdge) {
+    return pEdge instanceof CStatementEdge statementEdge
+        && statementEdge.getStatement() instanceof CFunctionCallStatement
+        && CFAUtils.getFunctionCallName(pEdge)
+            .filter(KnownFunctionBehaviorDetector::isTerminatingFunction)
+            .isPresent();
   }
 
   private static boolean isTerminatingFunction(String pFunction) {

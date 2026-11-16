@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.sosy_lab.cpachecker.cfa.KnownFunctionBehavior.MEMSET;
+import static org.sosy_lab.cpachecker.cfa.KnownFunctionBehavior.MEMSET_WITH_GUARDS;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
@@ -53,23 +53,31 @@ public class KnownFunctionBehaviorDetectorTest {
 
   @Test
   public void awsImplementationAndWrapper() throws Exception {
-    assertThat(detect("memset-aws.c")).containsExactly("memset_impl", MEMSET, "my_memset", MEMSET);
+    assertThat(detect("memset-aws.c"))
+        .containsExactly("memset_impl", MEMSET_WITH_GUARDS, "my_memset", MEMSET_WITH_GUARDS);
   }
 
   @Test
   public void implementationWithoutGuard() throws Exception {
-    assertThat(detect("memset-without-guard.c")).containsExactly("fill_bytes", MEMSET);
+    assertThat(detect("memset-without-guard.c")).containsExactly("fill_bytes", MEMSET_WITH_GUARDS);
   }
 
   @Test
   public void implementationWithUnsignedCharAndWithoutResult() throws Exception {
-    assertThat(detect("memset-unsigned-char.c")).containsExactly("clear_memory", MEMSET);
+    assertThat(detect("memset-unsigned-char.c"))
+        .containsExactly("clear_memory", MEMSET_WITH_GUARDS);
   }
 
   @Test
   public void wrappersInTwoLevels() throws Exception {
     assertThat(detect("memset-wrapper-chain.c"))
-        .containsExactly("set_bytes", MEMSET, "set_bytes_checked", MEMSET, "set_memory", MEMSET);
+        .containsExactly(
+            "set_bytes",
+            MEMSET_WITH_GUARDS,
+            "set_bytes_checked",
+            MEMSET_WITH_GUARDS,
+            "set_memory",
+            MEMSET_WITH_GUARDS);
   }
 
   @Test
