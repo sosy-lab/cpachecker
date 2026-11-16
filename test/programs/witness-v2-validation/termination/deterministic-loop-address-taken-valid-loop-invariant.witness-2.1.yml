@@ -1,0 +1,33 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.1"
+    uuid: "ce6be137-8853-4d4f-809a-ff61686367ec"
+    creation_time: "2026-11-15T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/deterministic-loop-address-taken.c"
+      input_file_hashes:
+        "../../simple/witness_validation/deterministic-loop-address-taken.c": "88e3d3c99905f99a2a1ea9739dd0d7961391ca77118f8f4ba36056533090f26c"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "loop_invariant"
+        location:
+          file_name: "../../simple/witness_validation/deterministic-loop-address-taken.c"
+          line: 12
+          column: 3
+          function: "main"
+        value: "i <= 10"
+        format: "c_expression"

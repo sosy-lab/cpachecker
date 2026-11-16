@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 import com.google.common.collect.ImmutableMap;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
@@ -26,12 +27,17 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
  * @param entry the entry this invariant was parsed from
  * @param formula the parsed value of the entry
  * @param previousValueVariables for transition invariants, a mapping from the fresh variables
- *     holding the previous value of a variable to that variable, empty otherwise
+ *     holding the previous value of an expression to the variables in {@code expressionVariables}
+ *     for the value of that expression, empty otherwise
+ * @param expressionVariables for transition invariants, a mapping from the fresh variables for the
+ *     values of the expressions with previous values, e.g., x for \at(x, AnyPrev) or *p for \at(*p,
+ *     AnyPrev), to these expressions, empty otherwise
  */
 public record ParsedInvariant(
     InvariantEntry entry,
     ExpressionTree<AExpression> formula,
-    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables) {
+    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> previousValueVariables,
+    ImmutableMap<CSimpleDeclaration, CExpression> expressionVariables) {
 
   public InvariantRecordType type() {
     return InvariantRecordType.fromKeyword(entry.getType());

@@ -1,0 +1,33 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "invariant_set"
+  metadata:
+    format_version: "2.1"
+    uuid: "523d035c-deb4-530d-a606-1dc3c226dda6"
+    creation_time: "2026-11-05T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/heap-countdown.c"
+      input_file_hashes:
+        "../../simple/witness_validation/heap-countdown.c": "ff795a3c43efb98917af4a5a8fee3538c6ba58adfdb2fdcace836fbcb6243bf1"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - invariant:
+        type: "loop_transition_invariant"
+        location:
+          file_name: "../../simple/witness_validation/heap-countdown.c"
+          line: 14
+          column: 3
+          function: "main"
+        value: "(1*((__int128)\\at((*x), AnyPrev)) > 1*((__int128)(*x)))"
+        format: "ext_c_expression"

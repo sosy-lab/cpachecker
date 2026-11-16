@@ -52,6 +52,7 @@ import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardStringInp
 import static org.sosy_lab.cpachecker.util.StandardFunctions.isStandardWideCharInputFunction;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.util.Collection;
@@ -122,6 +123,35 @@ public class SMGCPABuiltins {
 
   /** Name of the internal global variable that models {@code errno}. */
   private static final String ERRNO_VARIABLE_NAME = "__CPAchecker_INTERNAL_errno";
+
+  /**
+   * Name of the internal global variable that models the strings of the environment returned by
+   * {@code getenv()}.
+   */
+  private static final String GETENV_STRING_VARIABLE_NAME = "__CPAchecker_INTERNAL_getenv_string";
+
+  /**
+   * Name of the internal global variable that models the option arguments that {@code getopt()}
+   * stores in {@code optarg}.
+   */
+  private static final String OPTARG_STRING_VARIABLE_NAME = "__CPAchecker_INTERNAL_optarg_string";
+
+  /**
+   * The functions converting strings to floating-point numbers (C11 7.22.1.3). They have 2
+   * parameters, while the functions converting strings to integers (C11 7.22.1.4, 7.8.2.3) have an
+   * additional parameter for the base.
+   */
+  private static final ImmutableSet<String> STRING_TO_FLOATING_FUNCTIONS =
+      ImmutableSet.of("strtof", "strtod", "strtold");
+
+  /** Name of the global variable {@code optarg} that is set by {@code getopt()} (POSIX). */
+  private static final String OPTARG_VARIABLE_NAME = "optarg";
+
+  /**
+   * Number of characters of the internal char arrays that model strings provided by the
+   * environment, see {@link #getPointerToEnvironmentString(String, SMGState, CFAEdge)}.
+   */
+  private static final int ENVIRONMENT_STRING_LENGTH = 4096;
 
   /**
    * Name of the internal global variable that models the character classification table of glibc
@@ -811,6 +841,22 @@ public class SMGCPABuiltins {
 
       case "__errno_location" -> evaluateErrnoLocation(funCallExpr, state);
 
+      case "getenv" -> evaluateGetenv(funCallExpr, state, cfaEdge);
+
+      case "strtol",
+          "strtoll",
+          "strtoul",
+          "strtoull",
+          "strtoimax",
+          "strtoumax",
+          "strtof",
+          "strtod",
+          "strtold" ->
+          evaluateStringToNumber(funCallExpr, functionName, state, cfaEdge);
+
+      case "getopt", "getopt_long", "getopt_long_only" ->
+          evaluateGetopt(funCallExpr, functionName, state, cfaEdge);
+
       case "__ctype_b_loc" -> evaluateCtypeBLoc(funCallExpr, state, cfaEdge);
 
       case "__ctype_tolower_loc" ->
@@ -1100,6 +1146,292 @@ public class SMGCPABuiltins {
     return ImmutableList.of(
         evaluator.createAddressForLocalOrGlobalVariable(
             ERRNO_VARIABLE_NAME, pFunctionCall.getExpressionType(), currentState));
+  }
+
+  /**
+   * Handles the function {@code char *getenv(const char *name)} (C11 7.22.4.6). It returns a
+   * pointer to the string of the environment variable with the given name, or a null pointer if
+   * there is no such variable. The program shall not modify the returned string.
+   *
+   * <p>We do not model the environment, so we return both a null pointer and a pointer to a string
+   * with unknown characters (see {@link #getPointerToEnvironmentString(String, SMGState,
+   * CFAEdge)}). All calls return the same string.
+   *
+   * @param pFunctionCall the {@link CFunctionCallExpression} of the call to {@code getenv}.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return a null pointer and a pointer to the string, or an unknown value and an error state if
+   *     the name is not a valid string.
+   * @throws CPATransferException if the name or the string can not be evaluated.
+   */
+  private List<ValueAndSMGState> evaluateGetenv(
+      CFunctionCallExpression pFunctionCall, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    if (pFunctionCall.getParameterExpressions().size() != 1) {
+      throw new UnrecognizedCodeException(
+          "The function getenv needs exactly 1 argument.", pCfaEdge, pFunctionCall);
+    }
+    // The name has to be a valid string, i.e. we read it like strlen
+    ValueAndSMGState nameLengthAndState =
+        evaluateStrlen(pFunctionCall.getParameterExpressions().getFirst(), pState, pCfaEdge);
+    SMGState currentState = nameLengthAndState.getState();
+    if (currentState.hasMemoryErrors()) {
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+    }
+    return ImmutableList.of(
+        ValueAndSMGState.of(new NumericValue(BigInteger.ZERO), currentState),
+        getPointerToEnvironmentString(GETENV_STRING_VARIABLE_NAME, currentState, pCfaEdge));
+  }
+
+  /**
+   * Handles the functions converting a string to a number, i.e. {@code strtof()}, {@code strtod()},
+   * {@code strtold()} (C11 7.22.1.3), {@code strtol()}, {@code strtoll()}, {@code strtoul()},
+   * {@code strtoull()} (C11 7.22.1.4), {@code strtoimax()}, and {@code strtoumax()} (C11 7.8.2.3).
+   * They convert the initial part of the string {@code nptr} and, if {@code endptr} is not a null
+   * pointer, store a pointer to the first character after the converted part in {@code *endptr},
+   * which is {@code nptr} itself if nothing was converted.
+   *
+   * <p>We check that {@code nptr} is a valid string, but do not parse it, so the result is unknown.
+   * The pointer stored in {@code *endptr} points into the memory of {@code nptr} with a symbolic
+   * offset, which is constrained to a character of this memory at or after {@code nptr}.
+   *
+   * <p>TODO: parse the string if all of its characters are concrete, and return the concrete result
+   * and pointer to the end of the converted part.
+   *
+   * @param pFunctionCall the {@link CFunctionCallExpression} of the call.
+   * @param pFunctionName name of the called function.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return an unknown value with the states after storing the end pointer, or an unknown value and
+   *     an error state if {@code nptr} or {@code endptr} is invalid.
+   * @throws CPATransferException if the arguments can not be evaluated.
+   */
+  private List<ValueAndSMGState> evaluateStringToNumber(
+      CFunctionCallExpression pFunctionCall,
+      String pFunctionName,
+      SMGState pState,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    List<CExpression> parameters = pFunctionCall.getParameterExpressions();
+    int expectedNumberOfParameters = STRING_TO_FLOATING_FUNCTIONS.contains(pFunctionName) ? 2 : 3;
+    if (parameters.size() != expectedNumberOfParameters) {
+      throw new UnrecognizedCodeException(
+          "The function "
+              + pFunctionName
+              + " needs exactly "
+              + expectedNumberOfParameters
+              + " arguments.",
+          pCfaEdge,
+          pFunctionCall);
+    }
+
+    SMGStateAndOptionalSMGObjectAndOffset stringAndState =
+        dereferenceCharPointer(parameters.getFirst(), pState, pCfaEdge);
+    if (!stringAndState.hasSMGObjectAndOffset()) {
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(stringAndState.getSMGState()));
+    }
+    SMGObject stringObj = stringAndState.getSMGObject();
+    BigInteger stringOffsetInBits =
+        ((NumericValue) stringAndState.getOffsetForObject()).bigIntegerValue();
+    // The string has to be valid, i.e. we read it like strlen
+    SMGState currentState =
+        evaluateStrlen(
+                stringAndState.getSMGState(), stringObj, stringOffsetInBits, Optional.empty())
+            .getState();
+    if (currentState.hasMemoryErrors()) {
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+    }
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    for (SMGState stateWithEndPointer :
+        writeEndPointer(parameters.get(1), stringObj, stringOffsetInBits, currentState, pCfaEdge)) {
+      resultBuilder.add(ValueAndSMGState.ofUnknownValue(stateWithEndPointer));
+    }
+    return resultBuilder.build();
+  }
+
+  /**
+   * Stores a pointer into the string in the given memory in {@code *endptr} for the functions
+   * converting strings to numbers, see {@link #evaluateStringToNumber(CFunctionCallExpression,
+   * String, SMGState, CFAEdge)}. Nothing is stored if {@code endptr} is a null pointer. The offset
+   * of the stored pointer is symbolic and constrained to a character of the memory at or after the
+   * beginning of the string.
+   *
+   * @param pEndptrExpr the argument {@code endptr} of type {@code char **}.
+   * @param pStringObj {@link SMGObject} holding the string.
+   * @param pStringOffsetInBits offset of the first character of the string in its object.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return the states after storing the pointer, which are error states if {@code *endptr} can not
+   *     be written.
+   * @throws CPATransferException if {@code endptr} can not be evaluated.
+   */
+  private List<SMGState> writeEndPointer(
+      CExpression pEndptrExpr,
+      SMGObject pStringObj,
+      BigInteger pStringOffsetInBits,
+      SMGState pState,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    CType charPointerType = new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR);
+    CExpression endPointerLocation =
+        new CPointerExpression(pEndptrExpr.getFileLocation(), charPointerType, pEndptrExpr);
+    BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+    BigInteger remainingSizeInBits =
+        ((NumericValue) pStringObj.getSize()).bigIntegerValue().subtract(pStringOffsetInBits);
+
+    ImmutableList.Builder<SMGState> resultBuilder = ImmutableList.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset locationAndState :
+        endPointerLocation.accept(new SMGCPAAddressVisitor(evaluator, pState, pCfaEdge, logger))) {
+      SMGState currentState = locationAndState.getSMGState();
+      if (!locationAndState.hasSMGObjectAndOffset()) {
+        // Unknown endptr, the state might already be an error state for invalid dereferences
+        resultBuilder.add(currentState);
+        continue;
+      }
+      SMGObject locationObj = locationAndState.getSMGObject();
+      if (locationObj.isZero()) {
+        // endptr is a null pointer, nothing is stored
+        resultBuilder.add(currentState);
+        continue;
+      }
+
+      // The end pointer points to the character with the symbolic index after the string start
+      Value charIndex =
+          ConstantSymbolicExpression.of(
+              SymbolicValueFactory.getInstance().newIdentifier(null),
+              CNumericTypes.UNSIGNED_LONG_INT);
+      Value charOffsetInBits = evaluator.multiplyBitOffsetValues(charIndex, sizeOfCharInBits);
+      ConstraintFactory constraintFactory =
+          ConstraintFactory.getInstance(
+              currentState, machineModel, logger, options, evaluator, pCfaEdge);
+      for (Constraint constraint :
+          constraintFactory.checkForConcreteMemoryAccessAssignmentWithSolver(
+              charOffsetInBits,
+              new NumericValue(sizeOfCharInBits),
+              new NumericValue(remainingSizeInBits),
+              evaluator.getCTypeForBitPreciseMemoryAddresses(),
+              currentState)) {
+        currentState = currentState.addConstraint(constraint);
+      }
+      Value endPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
+      currentState =
+          currentState.createAndAddPointer(
+              endPointer,
+              pStringObj,
+              evaluator.addBitOffsetValues(charOffsetInBits, pStringOffsetInBits),
+              charPointerType);
+
+      resultBuilder.add(
+          currentState.writeValueWithChecks(
+              locationObj,
+              locationAndState.getOffsetForObject(),
+              new NumericValue(machineModel.getSizeofInBits(charPointerType)),
+              endPointer,
+              charPointerType,
+              pCfaEdge));
+    }
+    return resultBuilder.build();
+  }
+
+  /**
+   * Handles the functions {@code getopt()} (POSIX) and its GNU extensions {@code getopt_long()} and
+   * {@code getopt_long_only()}. They parse the command-line arguments and return the next option
+   * character. If the option has an argument, they store a pointer to it in the global variable
+   * {@code optarg}, otherwise they may store a null pointer.
+   *
+   * <p>We do not model the parsing, so the return value is unknown, and {@code optarg} is set to a
+   * pointer to a string with unknown characters (see {@link #getPointerToEnvironmentString(String,
+   * SMGState, CFAEdge)}), if the program declares {@code optarg}. This misses dereferences of
+   * {@code optarg} after options without argument, for which glibc sets it to a null pointer. Other
+   * effects, e.g. on {@code optind}, are not modeled.
+   *
+   * <p>TODO: parse the option string and set {@code optarg} to a null pointer for options without
+   * argument and for absent optional arguments ("::"), also for the long options of {@code
+   * getopt_long()}.
+   *
+   * @param pFunctionCall the {@link CFunctionCallExpression} of the call.
+   * @param pFunctionName name of the called function.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return an unknown value with the state with the new value of {@code optarg}.
+   * @throws CPATransferException if the arguments or {@code optarg} can not be evaluated.
+   */
+  private List<ValueAndSMGState> evaluateGetopt(
+      CFunctionCallExpression pFunctionCall,
+      String pFunctionName,
+      SMGState pState,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    for (SMGState checkedState :
+        checkAllParametersForValidity(pState, pCfaEdge, pFunctionCall, pFunctionName)) {
+      if (checkedState.hasMemoryErrors()
+          || !checkedState.isGlobalVariablePresent(OPTARG_VARIABLE_NAME)) {
+        resultBuilder.add(ValueAndSMGState.ofUnknownValue(checkedState));
+        continue;
+      }
+      CType optargType = new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR);
+      Value optargSize = new NumericValue(machineModel.getSizeofInBits(optargType));
+      ValueAndSMGState stringPointerAndState =
+          getPointerToEnvironmentString(OPTARG_STRING_VARIABLE_NAME, checkedState, pCfaEdge);
+      resultBuilder.add(
+          ValueAndSMGState.ofUnknownValue(
+              stringPointerAndState
+                  .getState()
+                  .writeToStackOrGlobalVariable(
+                      OPTARG_VARIABLE_NAME,
+                      new NumericValue(BigInteger.ZERO),
+                      optargSize,
+                      stringPointerAndState.getValue(),
+                      optargType,
+                      pCfaEdge)));
+    }
+    return resultBuilder.build();
+  }
+
+  /**
+   * Returns a pointer to the first character of the internal global char array with the given name,
+   * which models strings provided by the environment, e.g. the results of {@code getenv()}. The
+   * array is created at the first call with {@value #ENVIRONMENT_STRING_LENGTH} characters, of
+   * which only the last one is known, the terminating \0, so that each string read from the array
+   * ends within it. The array is global, so it is valid to read and is not reported by memtrack,
+   * and freeing it is invalid.
+   *
+   * @param pVariableName name of the internal global char array.
+   * @param pState current {@link SMGState}.
+   * @param pCfaEdge current {@link CFAEdge} for debugging and error info.
+   * @return the pointer to the first character of the array and the state with the array.
+   * @throws CPATransferException if the terminating \0 can not be written.
+   */
+  private ValueAndSMGState getPointerToEnvironmentString(
+      String pVariableName, SMGState pState, CFAEdge pCfaEdge) throws CPATransferException {
+    SMGState currentState = pState;
+    if (!currentState.isGlobalVariablePresent(pVariableName)) {
+      BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
+      CType stringType =
+          new CArrayType(
+              CTypeQualifiers.NONE,
+              CNumericTypes.CHAR,
+              CIntegerLiteralExpression.createDummyLiteral(
+                  ENVIRONMENT_STRING_LENGTH, CNumericTypes.INT));
+      currentState =
+          currentState
+              .copyAndAddGlobalVariable(
+                  new NumericValue(
+                      sizeOfCharInBits.multiply(BigInteger.valueOf(ENVIRONMENT_STRING_LENGTH))),
+                  pVariableName,
+                  stringType)
+              .writeToStackOrGlobalVariable(
+                  pVariableName,
+                  new NumericValue(
+                      sizeOfCharInBits.multiply(BigInteger.valueOf(ENVIRONMENT_STRING_LENGTH - 1))),
+                  new NumericValue(sizeOfCharInBits),
+                  new NumericValue(BigInteger.ZERO),
+                  CNumericTypes.CHAR,
+                  pCfaEdge);
+    }
+    return evaluator.createAddressForLocalOrGlobalVariable(
+        pVariableName, new CPointerType(CTypeQualifiers.NONE, CNumericTypes.CHAR), currentState);
   }
 
   /**
