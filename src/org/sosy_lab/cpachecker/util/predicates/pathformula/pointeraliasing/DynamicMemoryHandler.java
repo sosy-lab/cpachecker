@@ -67,7 +67,7 @@ public final class DynamicMemoryHandler {
 
   private static final char MALLOC_INDEX_SEPARATOR = '#';
 
-  private static final String ZEROED_SIZE_PREFIX = "__ZEROED_SIZE_OF_";
+  private static final String SIZE_PREFIX = "__SIZE_OF_";
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
@@ -299,8 +299,7 @@ public final class DynamicMemoryHandler {
     // The variable is fresh and unique for the base, so it is unconstrained on paths without this
     // allocation even after they are merged with this one.
     final Formula sizeVariable =
-        conv.makeFreshVariable(
-            ZEROED_SIZE_PREFIX + base.name(), conv.machineModel.getSizeType(), ssa);
+        conv.makeFreshVariable(SIZE_PREFIX + base.name(), conv.machineModel.getSizeType(), ssa);
     constraints.addConstraint(conv.fmgr.assignment(sizeVariable, size));
     pts.setZeroedMemoryFacts(
         ZeroedMemoryFact.add(pts.getZeroedMemoryFacts(), address, sizeVariable));
