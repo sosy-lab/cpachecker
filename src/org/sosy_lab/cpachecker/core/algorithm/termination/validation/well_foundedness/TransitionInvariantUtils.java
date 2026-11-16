@@ -197,9 +197,14 @@ public class TransitionInvariantUtils {
       // The formula has the qualified name of the variable, e.g., main::i__1 if CPAchecker
       // renamed it, but the scope knows it only as main::i or i__1. The name without the
       // function is unique, since the scope has only the variables in scope at the loop.
+      CSimpleDeclaration declaration = scope.lookupVariable(removeFunctionFromVarsName(var));
+      if (declaration == null) {
+        // E.g., the heap of a heap access, which has no previous variable
+        continue;
+      }
       builder.setIndex(
           var,
-          scope.lookupVariable(removeFunctionFromVarsName(var)).getType(),
+          declaration.getType(),
           isPrevVariable(var, pMapPrevToCurrVars) ? prevIndex : currIndex);
     }
     return builder.build();

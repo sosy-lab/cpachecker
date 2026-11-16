@@ -1424,12 +1424,14 @@ class ASTConverter {
         declaration = cFunctionDeclaration;
       }
 
-      if ((declaration == null)
-          && FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
+      if (FUNC_EXPECT.equals(((CIdExpression) functionNameExpression).getName())
           && params.size() == 2) {
 
         // This is the GCC built-in function __builtin_expect(exp, c) that behaves like (exp).
         // http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-g_t_005f_005fbuiltin_005fexpect-3345
+        // We also replace it if the program declares it (preprocessed programs may contain a
+        // prototype like "long __builtin_expect(long, long);"), because the program can not define
+        // its own function with this reserved name (C11 7.1.3).
         return params.getFirst();
       }
     }
@@ -2551,6 +2553,7 @@ class ASTConverter {
       return new CArrayType(arrayType.getQualifiers(), arrayType.getType(), lengthExp);
 
     } else if (initializer instanceof CASTLiteralExpression literalExpression
+        && literalExpression.getKind() == IASTLiteralExpression.lk_string_literal
         && (arrayType.getType().equals(CNumericTypes.CHAR)
             || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
             || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
@@ -2559,10 +2562,12 @@ class ASTConverter {
       // Example: char a[] = "abc";
       // will be converted as char a[4] = "abc";
 
-      int length = literalExpression.getLength() - 1;
+      FileLocation loc = getLocation(initializer);
+      int length =
+          ((CStringLiteralExpression) literalConverter.convert(literalExpression, arrayType, loc))
+              .getSize();
       CExpression lengthExp =
-          new CIntegerLiteralExpression(
-              getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+          new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(length));
 
       return new CArrayType(arrayType.getQualifiers(), arrayType.getType(), lengthExp);
 

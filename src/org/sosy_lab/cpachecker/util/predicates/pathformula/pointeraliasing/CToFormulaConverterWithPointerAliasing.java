@@ -627,13 +627,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * from the contents, and the cost is bounded.
    */
   private boolean isShortRelevantStringInitializer(
-      CVariableDeclaration declaration, CArrayType arrayType, CStringLiteralExpression literal) {
+      CVariableDeclaration declaration, CArrayType arrayType) {
     OptionalInt length = arrayType.getLengthAsInt();
     return length.isPresent()
         && length.orElseThrow() <= options.maxPreciseStrFunctionSize() + 1
         && CTypes.isCharacterType(arrayType.getType())
-        // escape sequences are not decoded by CStringLiteralExpression#expandStringLiteral
-        && literal.getContentWithoutNullTerminator().indexOf('\\') < 0
         && isRelevantVariable(declaration);
   }
 
@@ -705,10 +703,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
     String content = literal.getContentWithoutNullTerminator();
     OptionalInt length = arrayType.getLengthAsInt();
-    // escape sequences are not decoded, so with them the position of the terminator is not known
-    if (content.indexOf('\\') >= 0
-        || length.isEmpty()
-        || content.length() >= length.orElseThrow()) {
+    if (length.isEmpty() || content.length() >= length.orElseThrow()) {
       return Optional.empty();
     }
     FileLocation location = array.getFileLocation();
@@ -1157,11 +1152,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final boolean expandStringLiteral;
     final boolean untrackedStringInitializer;
     if (initializer instanceof CInitializerExpression initializerExpression
-        && initializerExpression.getExpression() instanceof CStringLiteralExpression literal
+        && initializerExpression.getExpression() instanceof CStringLiteralExpression
         && lhsType instanceof CArrayType arrayType) {
       expandStringLiteral =
           options.handleStringLiteralInitializers()
-              || isShortRelevantStringInitializer(declaration, arrayType, literal);
+              || isShortRelevantStringInitializer(declaration, arrayType);
       untrackedStringInitializer = !expandStringLiteral;
     } else {
       expandStringLiteral = options.handleStringLiteralInitializers();
