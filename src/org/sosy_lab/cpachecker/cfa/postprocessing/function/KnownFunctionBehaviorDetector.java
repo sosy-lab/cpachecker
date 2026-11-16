@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -99,6 +100,12 @@ public final class KnownFunctionBehaviorDetector {
   private final LoopStructure loopStructure;
   private final MachineModel machineModel;
   private final LogManager logger;
+
+  /**
+   * Cache for {@link #onlyChecks}: whether the function with this name only checks conditions. The
+   * detection does not change the bodies of the functions, so the result never changes.
+   */
+  private final Map<String, Boolean> checkingFunctions = new HashMap<>();
 
   private KnownFunctionBehaviorDetector(
       MutableCFA pCfa, LoopStructure pLoopStructure, LogManager pLogger) {
@@ -781,9 +788,17 @@ public final class KnownFunctionBehaviorDetector {
     if (callee.isEmpty() || !cfa.getAllFunctionNames().contains(callee.orElseThrow())) {
       return false;
     }
-    Collection<CFANode> calleeNodes = cfa.getFunctionNodes(callee.orElseThrow());
-    Set<CSimpleDeclaration> checkVariables = checkVariables(calleeNodes, ImmutableSet.of(), false);
-    for (CFANode node : calleeNodes) {
+    return checkingFunctions.computeIfAbsent(callee.orElseThrow(), this::onlyChecks);
+  }
+
+  /**
+   * Whether the function with the given name only checks conditions and stops the program if they
+   * do not hold, and calls no other functions than terminating ones.
+   */
+  private boolean onlyChecks(String pFunction) {
+    Collection<CFANode> nodes = cfa.getFunctionNodes(pFunction);
+    Set<CSimpleDeclaration> checkVariables = checkVariables(nodes, ImmutableSet.of(), false);
+    for (CFANode node : nodes) {
       for (CFAEdge edge : node.getLeavingEdges()) {
         boolean allowed =
             !readsMemory(edge)
