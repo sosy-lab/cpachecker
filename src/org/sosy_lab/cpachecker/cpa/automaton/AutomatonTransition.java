@@ -248,6 +248,28 @@ class AutomatonTransition {
     }
   }
 
+  /**
+   * Returns a transition that takes pFirst and then pSecond on the same edge. It matches if both
+   * match, has the assertions and assumptions of both, executes the actions of both in order, and
+   * goes to the follow state of pSecond.
+   */
+  static AutomatonTransition sequence(AutomatonTransition pFirst, AutomatonTransition pSecond) {
+    return new Builder(
+            new AutomatonBoolExpr.And(pFirst.trigger, pSecond.trigger), pSecond.followStateName)
+        .withAssertions(ImmutableList.of(pFirst.assertion, pSecond.assertion))
+        .withAssumptions(
+            ImmutableList.<AExpression>builder()
+                .addAll(pFirst.assumptions)
+                .addAll(pSecond.assumptions)
+                .build())
+        .withActions(
+            ImmutableList.<AutomatonAction>builder()
+                .addAll(pFirst.actions)
+                .addAll(pSecond.actions)
+                .build())
+        .build();
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(
