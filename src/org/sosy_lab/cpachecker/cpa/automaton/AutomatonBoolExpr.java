@@ -268,20 +268,42 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  /** Checks if the current edge is contained within the ASTElement. */
+  /** The edges of the element that start at a node which no edge of the element leads to. */
+  private static ImmutableSet<CFAEdge> getIncomingFrontierEdges(ASTElement pElement) {
+    return FluentIterable.from(
+            Sets.difference(
+                transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
+                transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
+        .transformAndConcat(CFANode::getAllLeavingEdges)
+        .filter(edge -> pElement.edges().contains(edge))
+        .toSet();
+  }
+
+  /**
+   * Checks if the current edge is one of the first edges of the ASTElement, e.g., not an edge in
+   * the body of a loop.
+   */
   public static class CheckEntersElement implements AutomatonBoolExpr {
 
     private final ASTElement elementToEnter;
 
+    private final ImmutableSet<CFAEdge> firstEdges;
+
     public CheckEntersElement(ASTElement pElement) {
       elementToEnter = pElement;
+      // The predecessor of a return edge is in the called function
+      ImmutableSet<CFAEdge> frontierEdges =
+          FluentIterable.from(getIncomingFrontierEdges(pElement))
+              .filter(edge -> !(edge instanceof FunctionReturnEdge))
+              .toSet();
+      firstEdges = frontierEdges.isEmpty() ? pElement.edges() : frontierEdges;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (elementToEnter.edges().contains(edge.getOriginal())) {
+      if (firstEdges.contains(edge.getOriginal())) {
         return CONST_TRUE;
       }
       return CONST_FALSE;
@@ -316,14 +338,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     public CheckReachesElement(ASTElement pElement) {
       elementToEnter = pElement;
-      incomingFrontierEdges =
-          FluentIterable.from(
-                  Sets.difference(
-                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
-                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
-              .transformAndConcat(CFANode::getAllLeavingEdges)
-              .filter(edge -> pElement.edges().contains(edge))
-              .toSet();
+      incomingFrontierEdges = getIncomingFrontierEdges(pElement);
     }
 
     @Override

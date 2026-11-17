@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
@@ -183,16 +184,37 @@ public class TerminationToReachState implements Graphable, AbstractQueryableStat
    * @param pathIndex the position of the loop head in the path sequence
    * @param block the path formula from the previous visit of any loop head to this visit
    * @param transitionInvariants the transition invariants of the abstract state of this visit
+   * @param cycleAutomatonStates the states at this visit of the automata that contain a cycle,
+   *     e.g., of a non-termination witness
    */
   public record LoopHeadVisit(
       ProgramCounter loopHead,
       int pathIndex,
       PathFormula block,
-      ImmutableSet<PartitionedRelationFormula> transitionInvariants) {
+      ImmutableSet<PartitionedRelationFormula> transitionInvariants,
+      ImmutableList<AutomatonState> cycleAutomatonStates) {
 
     LoopHeadVisit withTransitionInvariants(
         ImmutableSet<PartitionedRelationFormula> pTransitionInvariants) {
-      return new LoopHeadVisit(loopHead, pathIndex, block, pTransitionInvariants);
+      return new LoopHeadVisit(
+          loopHead, pathIndex, block, pTransitionInvariants, cycleAutomatonStates);
+    }
+
+    /**
+     * Whether a path from the given earlier visit to this visit goes around the cycle of every
+     * automaton with a cycle, such that it can be repeated forever along the cycles.
+     */
+    boolean completesAutomatonCyclesSince(LoopHeadVisit pEarlier) {
+      for (int i = 0; i < cycleAutomatonStates.size(); i++) {
+        AutomatonState earlier = pEarlier.cycleAutomatonStates.get(i);
+        AutomatonState current = cycleAutomatonStates.get(i);
+        // The automaton returns to a state with more transitions only along its cycle
+        if (!earlier.getInternalStateName().equals(current.getInternalStateName())
+            || earlier.getMatches() >= current.getMatches()) {
+          return false;
+        }
+      }
+      return true;
     }
   }
 
