@@ -2544,10 +2544,15 @@ public class SMGCPAExpressionEvaluator {
       // TODO: this has to be checked with a test!!!!
       Value offset = pOffset;
       CType fieldType = null;
-      if (initializer instanceof CDesignatedInitializer designatedInittializer) {
-        List<CDesignator> designators = ((CDesignatedInitializer) initializer).getDesignators();
-        initializer = designatedInittializer.getRightHandSide();
-        checkArgument(designators.size() == 1);
+      if (initializer instanceof CDesignatedInitializer designatedInitializer) {
+        List<CDesignator> designators = designatedInitializer.getDesignators();
+        if (designators.size() != 1) {
+          throw new UnsupportedCodeException(
+              "Nested designators in initializer " + pNewInitializer.toASTString(),
+              pEdge,
+              designatedInitializer);
+        }
+        initializer = designatedInitializer.getRightHandSide();
         String fieldName = ((CFieldDesignator) designators.getFirst()).getFieldName();
 
         listCounter = 0;
