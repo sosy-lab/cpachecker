@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.java_smt.api.Formula;
 
-abstract class Expression {
-  abstract static class Location extends Expression {
+abstract sealed class Expression {
+  abstract static sealed class Location extends Expression {
     static final class AliasedLocation extends Location {
 
       static AliasedLocation ofAddress(final Formula address) {
@@ -195,7 +195,7 @@ abstract class Expression {
     abstract UnaliasedLocation asUnaliased();
   }
 
-  static class Value extends Expression {
+  static sealed class Value extends Expression {
 
     static Value ofValueOrNondet(@Nullable final Formula value) {
       return value == null ? nondetValue() : ofValue(value);
@@ -209,7 +209,7 @@ abstract class Expression {
       return Value.nondet;
     }
 
-    private static class Nondet extends Value {
+    private static final class Nondet extends Value {
       private Nondet() {
         super(null);
       }
