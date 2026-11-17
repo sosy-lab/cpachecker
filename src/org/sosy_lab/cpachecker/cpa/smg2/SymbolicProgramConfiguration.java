@@ -17,8 +17,6 @@ import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.delaye
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.leftListLonger;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGRecoverableFailure.rightListLonger;
 
-import com.google.common.base.Equivalence;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -66,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueToSMGValueMapping;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -153,8 +150,6 @@ public class SymbolicProgramConfiguration {
 
   // Needed for merging values (and creation of the symbolic values in the process)
   private final PersistentMap<SMGValue, CType> valueToTypeMap;
-
-  private static final ValueWrapper valueWrapper = new ValueWrapper();
 
   // Throws exception on reading this object (i.e. because we know we can't handle this)
   private Set<SMGObject> readBlacklist;
@@ -2816,12 +2811,12 @@ public class SymbolicProgramConfiguration {
         PersistentSet.of(SMGObject.nullInstance()),
         PathCopyingPersistentTreeMap.of(),
         ValueToSMGValueMapping.of()
-            .putAndCopy(valueWrapper.wrap(new NumericValue(0)), SMGValue.zeroValue())
+            .putAndCopy(new NumericValue(0), SMGValue.zeroValue())
             .putAndCopy(
-                valueWrapper.wrap(new NumericValue(FloatValue.zero(FloatValue.Format.Float32))),
+                new NumericValue(FloatValue.zero(FloatValue.Format.Float32)),
                 SMGValue.zeroFloatValue())
             .putAndCopy(
-                valueWrapper.wrap(new NumericValue(FloatValue.zero(FloatValue.Format.Float64))),
+                new NumericValue(FloatValue.zero(FloatValue.Format.Float64)),
                 SMGValue.zeroDoubleValue()),
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
@@ -3687,7 +3682,7 @@ public class SymbolicProgramConfiguration {
   }
 
   private boolean containsValueInMapping(Value value) {
-    return valueMapping.containsKey(valueWrapper.wrap(value));
+    return valueMapping.containsKey(value);
   }
 
   private boolean containsValueInMapping(SMGValue value) {
@@ -3704,8 +3699,8 @@ public class SymbolicProgramConfiguration {
 
     boolean found = false;
     Map<Value, SMGValue> valuesToUpdate = new HashMap<>();
-    for (Entry<Equivalence.Wrapper<Value>, SMGValue> mapping : valueMapping.entries()) {
-      Value mappedValue = mapping.getKey().get();
+    for (Entry<Value, SMGValue> mapping : valueMapping.entries()) {
+      Value mappedValue = mapping.getKey();
       if (mappedValue.equals(oldValue)) {
         valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
         found = true;
@@ -3741,10 +3736,10 @@ public class SymbolicProgramConfiguration {
     SymbolicProgramConfiguration newSPC = this;
     for (Entry<Value, SMGValue> valueMappingToUpdate : valuesToUpdate.entrySet()) {
       Value correctOldValue = valueMappingToUpdate.getKey();
-      if (!newSPC.valueMapping.containsKey(valueWrapper.wrap(newValue))) {
+      if (!newSPC.valueMapping.containsKey(newValue)) {
         // No mapping for the new value means we can just replace the mapping as it is not yet in
         // the SMG. We just have to remove the old mapping first.
-        if (!newSPC.valueMapping.containsKey(valueWrapper.wrap(correctOldValue))) {
+        if (!newSPC.valueMapping.containsKey(correctOldValue)) {
           // Not mapping is known at all
           SMGValue newSMGValue = SMGValue.of();
 
@@ -3797,17 +3792,17 @@ public class SymbolicProgramConfiguration {
   private boolean checkValueMappingConsistency() {
     Set<SMGValue> existingSMGValuesInMapping = new HashSet<>();
     Set<Value> existingValuesInMapping = new HashSet<>();
-    for (Entry<Wrapper<Value>, SMGValue> mappedValue : valueMapping.entries()) {
+    for (Entry<Value, SMGValue> mappedValue : valueMapping.entries()) {
       // Double entry check
       if (existingSMGValuesInMapping.contains(mappedValue.getValue())) {
         return false;
-      } else if (existingValuesInMapping.contains(mappedValue.getKey().get())) {
+      } else if (existingValuesInMapping.contains(mappedValue.getKey())) {
         return false;
       }
-      existingValuesInMapping.add(mappedValue.getKey().get());
+      existingValuesInMapping.add(mappedValue.getKey());
       existingSMGValuesInMapping.add(mappedValue.getValue());
     }
-    return smg.checkValueMappingConsistency(valueMapping, valueWrapper);
+    return smg.checkValueMappingConsistency(valueMapping);
   }
 
   /**
@@ -3823,7 +3818,7 @@ public class SymbolicProgramConfiguration {
    */
   public SymbolicProgramConfiguration copyAndPutValue(
       Value value, SMGValue smgValue, int nestingLevel, CType valueType) {
-    if (valueMapping.containsKey(valueWrapper.wrap(value))) {
+    if (valueMapping.containsKey(value)) {
       return of(
           smg.copyAndAddValue(smgValue, nestingLevel),
           globalVariableMapping,
@@ -3845,7 +3840,7 @@ public class SymbolicProgramConfiguration {
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
-        valueMapping.putAndCopy(valueWrapper.wrap(value), smgValue),
+        valueMapping.putAndCopy(value, smgValue),
         variableToTypeMap,
         mallocZeroMemory,
         readBlacklist,
@@ -3909,7 +3904,7 @@ public class SymbolicProgramConfiguration {
    *     exists, empty else.
    */
   public Optional<SMGValue> getSMGValueFromValue(Value cValue) {
-    SMGValue value = valueMapping.get(valueWrapper.wrap(cValue));
+    SMGValue value = valueMapping.get(cValue);
     if (value == null) {
       return Optional.empty();
     }
@@ -3926,11 +3921,7 @@ public class SymbolicProgramConfiguration {
    *     exists, empty else.
    */
   public Optional<Value> getValueFromSMGValue(SMGValue smgValue) {
-    Wrapper<Value> got = valueMapping.getKeyForValue(smgValue);
-    if (got == null) {
-      return Optional.empty();
-    }
-    return Optional.ofNullable(got.get());
+    return Optional.ofNullable(valueMapping.getKeyForValue(smgValue));
   }
 
   /**
@@ -4396,7 +4387,7 @@ public class SymbolicProgramConfiguration {
 
   /* This expects the Value to be a valid pointer! */
   SMGTargetSpecifier getPointerSpecifier(Value pointer) {
-    SMGValue smgValueAddress = valueMapping.get(valueWrapper.wrap(pointer));
+    SMGValue smgValueAddress = valueMapping.get(pointer);
     SMGPointsToEdge ptEdge = smg.getPTEdge(smgValueAddress).orElseThrow();
     checkNotNull(ptEdge);
     return ptEdge.targetSpecifier();
@@ -4411,8 +4402,8 @@ public class SymbolicProgramConfiguration {
    *     else.
    */
   public boolean isPointer(Value maybePointer) {
-    if (valueMapping.containsKey(valueWrapper.wrap(maybePointer))) {
-      return smg.isPointer(valueMapping.get(valueWrapper.wrap(maybePointer)));
+    if (valueMapping.containsKey(maybePointer)) {
+      return smg.isPointer(valueMapping.get(maybePointer));
     }
     return false;
   }
@@ -4553,7 +4544,7 @@ public class SymbolicProgramConfiguration {
         SMGValue smgValue = valueEdge.hasValue();
         BigInteger typeSize = valueEdge.getSizeInBits();
         checkArgument(valueMapping.containsValue(smgValue));
-        Value value = checkNotNull(valueMapping.getKeyForValue(smgValue).get());
+        Value value = checkNotNull(valueMapping.getKeyForValue(smgValue));
         ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
         map = map.putAndCopy(memLoc, valueAndValueSize);
       }
@@ -4570,7 +4561,7 @@ public class SymbolicProgramConfiguration {
           SMGValue smgValue = valueEdge.hasValue();
           BigInteger typeSize = valueEdge.getSizeInBits();
           checkArgument(valueMapping.containsValue(smgValue));
-          Value value = valueMapping.getKeyForValue(smgValue).get();
+          Value value = valueMapping.getKeyForValue(smgValue);
           checkNotNull(value);
           ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
           map = map.putAndCopy(memLoc, valueAndValueSize);
@@ -4590,7 +4581,7 @@ public class SymbolicProgramConfiguration {
           SMGValue smgValue = valueEdge.hasValue();
           BigInteger typeSize = valueEdge.getSizeInBits();
           checkArgument(valueMapping.containsValue(smgValue));
-          Value value = valueMapping.getKeyForValue(smgValue).get();
+          Value value = valueMapping.getKeyForValue(smgValue);
           checkNotNull(value);
           ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
           map = map.putAndCopy(memLoc, valueAndValueSize);
@@ -5025,7 +5016,7 @@ public class SymbolicProgramConfiguration {
               Comparator.comparing(SMGHasValueEdge::getOffset), smg.getEdges(memory))) {
         SMGValue smgValue = valueEdge.hasValue();
         checkArgument(valueMapping.containsValue(smgValue));
-        Value value = valueMapping.getKeyForValue(smgValue).get();
+        Value value = valueMapping.getKeyForValue(smgValue);
         checkNotNull(value);
         String pointerInfo = "";
         if (smg.isPointer(smgValue)) {
@@ -5075,7 +5066,7 @@ public class SymbolicProgramConfiguration {
                   funName + "::__retval__", valueEdge.getOffset().longValueExact());
           SMGValue smgValue = valueEdge.hasValue();
           checkArgument(valueMapping.containsValue(smgValue));
-          Value value = valueMapping.getKeyForValue(smgValue).get();
+          Value value = valueMapping.getKeyForValue(smgValue);
           checkNotNull(value);
 
           String pointerInfo = "";
@@ -5120,7 +5111,7 @@ public class SymbolicProgramConfiguration {
             ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), edges)) {
           SMGValue smgValue = valueEdge.hasValue();
           checkArgument(valueMapping.containsValue(smgValue));
-          Value value = valueMapping.getKeyForValue(smgValue).get();
+          Value value = valueMapping.getKeyForValue(smgValue);
           checkNotNull(value);
           String pointerInfo = "";
           if (smg.isPointer(smgValue)) {
@@ -5171,8 +5162,8 @@ public class SymbolicProgramConfiguration {
     builder.append("Value mappings:");
     builder.append("\n");
 
-    for (Entry<Wrapper<Value>, SMGValue> entry : valueMapping.entries()) {
-      builder.append(entry.getValue()).append(" <- ").append(entry.getKey().get());
+    for (Entry<Value, SMGValue> entry : valueMapping.entries()) {
+      builder.append(entry.getValue()).append(" <- ").append(entry.getKey());
       builder.append("\n");
     }
 

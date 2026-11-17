@@ -15,17 +15,22 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.Map;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
- * Persistent bijective mapping between (wrapped) {@link Value}s and {@link SMGValue}s. Adding or
+ * Persistent bijective mapping between {@link Value}s and {@link SMGValue}s. {@link Value}s are
+ * compared w.r.t. the equivalence {@link ValueWrapper}, not with {@code Value.equals()}. Adding or
  * removing a mapping costs O(log n), unlike copying an immutable map. Iteration follows the
  * insertion order.
  */
 public final class ValueToSMGValueMapping {
+
+  private static final ValueWrapper VALUE_EQUIVALENCE = new ValueWrapper();
 
   /*
    * Implementation: each mapping is stored once as a Mapping object, which is referenced from three
@@ -42,11 +47,11 @@ public final class ValueToSMGValueMapping {
 
   /**
    * Forward direction (lookup by {@link Value}). {@link Value} is not {@link Comparable}, and
-   * lookups must use the equivalence of the {@link Wrapper} (not {@link Value#equals(Object)}), so
-   * the values cannot be keys of a tree map directly. Instead, the tree map is keyed by the hash
-   * code of the wrapped value, and maps it to a bucket with all mappings of wrapped values with
-   * this hash code. A bucket is never empty and nearly always holds only one mapping; it holds more
-   * than one only for hash collisions of non-equivalent values (e.g., integer 0 and float 0.0).
+   * lookups must use the equivalence of the {@link Wrapper} (not {@code Value.equals()}), so the
+   * values cannot be keys of a tree map directly. Instead, the tree map is keyed by the hash code
+   * of the wrapped value, and maps it to a bucket with all mappings of wrapped values with this
+   * hash code. A bucket is never empty and nearly always holds only one mapping; it holds more than
+   * one only for hash collisions of non-equivalent values (e.g., integer 0 and float 0.0).
    */
   private final PersistentMap<Integer, ImmutableMap<Wrapper<Value>, Mapping>> byValue;
 
@@ -89,50 +94,66 @@ public final class ValueToSMGValueMapping {
     return bySMGValue.size();
   }
 
-  public boolean containsKey(Wrapper<Value> pValue) {
-    return get(pValue) != null;
+  /**
+   * Returns whether a {@link Value} equivalent to the given one (w.r.t. {@link ValueWrapper}) is
+   * mapped.
+   */
+  public boolean containsKey(Value pValue) {
+    return getMapping(VALUE_EQUIVALENCE.wrap(pValue)) != null;
   }
 
-  public SMGValue get(Wrapper<Value> pValue) {
-    ImmutableMap<Wrapper<Value>, Mapping> bucket = byValue.get(pValue.hashCode());
-    if (bucket == null) {
-      return null;
-    }
-    Mapping mapping = bucket.get(pValue);
+  /**
+   * Returns the {@link SMGValue} mapped to a {@link Value} equivalent to the given one (w.r.t.
+   * {@link ValueWrapper}), or null.
+   */
+  public @Nullable SMGValue get(Value pValue) {
+    Mapping mapping = getMapping(VALUE_EQUIVALENCE.wrap(pValue));
     return mapping == null ? null : mapping.smgValue();
+  }
+
+  private @Nullable Mapping getMapping(Wrapper<Value> pValue) {
+    ImmutableMap<Wrapper<Value>, Mapping> bucket = byValue.get(pValue.hashCode());
+    return bucket == null ? null : bucket.get(pValue);
   }
 
   public boolean containsValue(SMGValue pSMGValue) {
     return bySMGValue.containsKey(pSMGValue);
   }
 
-  /** Returns the wrapped value mapped to the given {@link SMGValue}, or null. */
-  public Wrapper<Value> getKeyForValue(SMGValue pSMGValue) {
+  /**
+   * Returns the {@link Value} mapped to the given {@link SMGValue} (as it was added with {@link
+   * #putAndCopy(Value, SMGValue)}), or null.
+   */
+  public @Nullable Value getKeyForValue(SMGValue pSMGValue) {
     Mapping mapping = bySMGValue.get(pSMGValue);
-    return mapping == null ? null : mapping.value();
+    return mapping == null ? null : mapping.value().get();
   }
 
   /** The mappings in insertion order. */
-  public Iterable<Map.Entry<Wrapper<Value>, SMGValue>> entries() {
+  public Iterable<Map.Entry<Value, SMGValue>> entries() {
     return () ->
         byPosition.values().stream()
-            .map(m -> Maps.immutableEntry(m.value(), m.smgValue()))
+            .map(m -> Maps.immutableEntry(m.value().get(), m.smgValue()))
             .iterator();
   }
 
-  /** Adds a mapping. Both sides must not be mapped yet (like an ImmutableBiMap). */
-  public ValueToSMGValueMapping putAndCopy(Wrapper<Value> pValue, SMGValue pSMGValue) {
-    checkArgument(!containsKey(pValue), "Multiple entries with same key: %s", pValue);
+  /**
+   * Adds a mapping. Neither a {@link Value} equivalent to the given one (w.r.t. {@link
+   * ValueWrapper}) nor the given {@link SMGValue} may be mapped yet (like for an ImmutableBiMap).
+   */
+  public ValueToSMGValueMapping putAndCopy(Value pValue, SMGValue pSMGValue) {
+    Wrapper<Value> wrappedValue = VALUE_EQUIVALENCE.wrap(pValue);
+    checkArgument(getMapping(wrappedValue) == null, "Multiple entries with same key: %s", pValue);
     checkArgument(!containsValue(pSMGValue), "Multiple entries with same value: %s", pSMGValue);
-    Mapping mapping = new Mapping(pValue, pSMGValue, nextPosition);
-    int hash = pValue.hashCode();
+    Mapping mapping = new Mapping(wrappedValue, pSMGValue, nextPosition);
+    int hash = wrappedValue.hashCode();
     ImmutableMap<Wrapper<Value>, Mapping> bucket = byValue.get(hash);
     ImmutableMap<Wrapper<Value>, Mapping> newBucket =
         bucket == null
-            ? ImmutableMap.of(pValue, mapping)
+            ? ImmutableMap.of(wrappedValue, mapping)
             : ImmutableMap.<Wrapper<Value>, Mapping>builder()
                 .putAll(bucket)
-                .put(pValue, mapping)
+                .put(wrappedValue, mapping)
                 .buildOrThrow();
     return new ValueToSMGValueMapping(
         byValue.putAndCopy(hash, newBucket),

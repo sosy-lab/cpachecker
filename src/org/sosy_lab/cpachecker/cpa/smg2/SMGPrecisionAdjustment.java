@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.
 import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.AbstractionErrorHandling.STOP_CPACHECKER;
 import static org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGAbstractionOptions.AbstractionErrorHandling.STOP_CURRENT;
 
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -451,8 +450,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       Set<SMGHasValueEdge> edgesToRemove = new HashSet<>();
       for (SMGHasValueEdge hve : objAndHVEs.getValue()) {
         SMGValue smgValue = hve.hasValue();
-        Wrapper<Value> wValue = mapping.getKeyForValue(smgValue);
-        if (wValue == null || wValue.get() instanceof NumericValue) {
+        Value value = mapping.getKeyForValue(smgValue);
+        if (value == null || value instanceof NumericValue) {
           edgesToRemove.add(hve);
         }
       }

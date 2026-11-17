@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.EQUAL;
 import static org.sosy_lab.cpachecker.util.smg.join.SMGMergeStatus.LEFT_ENTAILED_IN_RIGHT;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -1782,9 +1781,8 @@ public class SMGState
     }
 
     // First, get all SMGValues for possible identifier
-    for (Entry<Wrapper<Value>, SMGValue> mapping :
-        memoryModel.getValueToSMGValueMapping().entries()) {
-      Value value = mapping.getKey().get();
+    for (Entry<Value, SMGValue> mapping : memoryModel.getValueToSMGValueMapping().entries()) {
+      Value value = mapping.getKey();
       SMGValue smgValue = mapping.getValue();
       if (memoryModel.getSmg().getNumberOfSMGValueUsages(smgValue) > 0) {
         if (value instanceof SymbolicValue symValue) {

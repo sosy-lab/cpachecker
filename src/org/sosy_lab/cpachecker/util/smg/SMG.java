@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueToSMGValueMapping;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.datastructures.PersistentSet;
@@ -2721,9 +2720,7 @@ public class SMG {
     return true;
   }
 
-  @SuppressWarnings("unused")
-  public boolean checkValueMappingConsistency(
-      ValueToSMGValueMapping pExistingValueMapping, ValueWrapper pValueWrapper) {
+  public boolean checkValueMappingConsistency(ValueToSMGValueMapping pExistingValueMapping) {
     // Check that every value in the mapping is existing in some form.
     // The 0 values are exceptions and should not be counted, they always exist but are wrapped.
     // for (SMGValue valueInValuesSet : smgValuesAndNestingLvl.keySet()) {
@@ -2746,7 +2743,7 @@ public class SMG {
       // References to invalid objects might exist, as well as references to invalid objects sizes
       Value sizeOfObj = obj.getKey().getSize();
       if (!(sizeOfObj instanceof NumericValue)
-          && !pExistingValueMapping.containsKey(pValueWrapper.wrap(sizeOfObj))
+          && !pExistingValueMapping.containsKey(sizeOfObj)
           && obj.getValue()) {
         // If the size is in a valid object, we need a mapping!
         // TODO: not really, if its only put into the size, there is currently not a need for a
