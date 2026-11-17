@@ -26,6 +26,10 @@ Changes since CPAchecker 4.2.2
 * Ordering-consistency analysis (`--orderingConsistency`) and 
   abstraction-aware source-set partial-order-reduction (`--predicateAnalysis-POR`)
   have been added for concurrent C programs.
+* Better support for concurrent programs:
+  pthread barriers, `pthread_once`, recursive mutexes, and the result of `pthread_join`
+  are now modeled, data races through pointers are detected,
+  and the concurrency portfolio now also uses predicate analysis.
 * Many improvements in witness export and validation.
   * Violation witnesses in YAML format 2.2 for concurrent programs,
     including data races, can now be exported and validated.
@@ -38,10 +42,6 @@ Changes since CPAchecker 4.2.2
     `define-fun`, `define-procs-rec`, and `goto`.
   * Besides predicate analysis, SV-LIB scripts can now be analyzed
     with BMC, k-induction, IMC, and ISMC.
-* Better support for concurrent programs:
-  pthread barriers, `pthread_once`, recursive mutexes, and the result of `pthread_join`
-  are now modeled, data races through pointers are detected,
-  and the concurrency portfolio now also uses predicate analysis.
 * New configurations based on k-induction and symbolic execution
   for the property no-overflow, which are part of the overflow portfolio.
 * The new option `cfa.transformSetjmpLongjmp` models `setjmp` and `longjmp`
