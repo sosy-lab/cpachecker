@@ -184,6 +184,73 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
         inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
+  /** The assumption before an if statement does not consume the branch that follows it. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_assumption_before_branch() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "assumption-before-branch-nontermination.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH, "assumption-before-branch-nontermination.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The program repeats a state, but the branch in the cycle of the witness is taken once. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_cycle_not_repeated() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "assumption-before-branch-nontermination.c");
+    Path witnessFilePath =
+        Path.of(TERMINATION_TEST_DIR_PATH, "assumption-before-branch-wrong-cycle.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_nontermination_swap_loop() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "swap-loop-nontermination.c");
+    Path witnessFilePath =
+        Path.of(TERMINATION_TEST_DIR_PATH, "swap-loop-nontermination.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The assumption of the witness skips the loop, so the unrolled paths are infeasible. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_infeasible_cycle() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "swap-loop-nontermination.c");
+    Path witnessFilePath =
+        Path.of(TERMINATION_TEST_DIR_PATH, "swap-loop-skipped-loop.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_nontermination_in_second_call() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "nontermination-in-second-call.c");
+    Path witnessFilePath =
+        Path.of(TERMINATION_TEST_DIR_PATH, "nontermination-in-second-call.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The loop repeats in the second call only, but the cycle of the witness covers both calls. */
+  @Test(timeout = 9000)
+  public void validate_nontermination_cycle_in_first_call() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "nontermination-in-second-call.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH,
+            "nontermination-in-second-call-cycle-in-first-call.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
   @Test(timeout = 3000)
   public void validate_unreach_call_concurrency() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");

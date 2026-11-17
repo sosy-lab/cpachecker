@@ -1,0 +1,80 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.1"
+    uuid: "8c4b4022-57f1-4269-8a5f-2814a9e894e3"
+    creation_time: "2026-11-16T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/assumption-before-branch-nontermination.c"
+      input_file_hashes:
+        "../../simple/witness_validation/assumption-before-branch-nontermination.c": "2c3d057bc444ad5d085a7bd6b5ba0481c2c87c85d1dd6e679534d124501851d6"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/assumption-before-branch-nontermination.c"
+              line: 13
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "assumption"
+            action: "follow"
+            constraint:
+              value: "i == 6"
+              format: "c_expression"
+            location:
+              file_name: "../../simple/witness_validation/assumption-before-branch-nontermination.c"
+              line: 14
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/assumption-before-branch-nontermination.c"
+              line: 14
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/assumption-before-branch-nontermination.c"
+              line: 13
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "false"
+            location:
+              file_name: "../../simple/witness_validation/assumption-before-branch-nontermination.c"
+              line: 14
+              column: 5
+              function: "main"

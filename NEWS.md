@@ -13,30 +13,56 @@ Changes since CPAchecker 4.2.2
 * Due to system requirements from common SMT solvers,
   most configurations of CPAchecker
   now require Ubuntu 24.04 / Debian 13 or newer.
-* CPAchecker's predicate analysis now supports
-  the special function `void __VERIFIER_nondet_memory(void *dest, size_t size)`.
-  This function needs to be declared, but not defined,
-  and is interpreted by CPAchecker to havoc the byte region of size 'size'
-  that 'dest' points to.
-  See the C programs in directory `test/programs/simple/verifier-nondet-memory-sanity/`
-  for examples on how to use the method.
+* Many improvements and new additions made to predicate analysis:
+  * CPAchecker's predicate analysis now supports
+    the special function `void __VERIFIER_nondet_memory(void *dest, size_t size)`.
+    This function needs to be declared, but not defined,
+    and is interpreted by CPAchecker to havoc the byte region of size 'size'
+    that 'dest' points to.
+    See the C programs in directory `test/programs/simple/verifier-nondet-memory-sanity/`
+    for examples on how to use the method.
+  * Added support for new C math functions:
+    * sqrt functions (`sqrt`, `sqrtf`, `sqrtl`)
+    * abs functions (`abs`, `labs`, `llabs`, `imaxabs`)
+  * Added support for verifying programs with assignments to members of a union or a struct which have one or more array members.
+  * Added support for verifying programs with bitfields in unions and structs. 
+    Bitfields in packed structs remain unsupported, and bitfields are not exported to witnesses. 
 * `__atomic_*` builtin functions are now supported with sequential consistency ordering,
   the `_Atomic(T)` type specifier is now parsed, and
   `__thread`/`_Thread_local` storage is now recognized.
 * Ordering-consistency analysis (`--orderingConsistency`) and 
   abstraction-aware source-set partial-order-reduction (`--predicateAnalysis-POR`)
   have been added for concurrent C programs.
+* New interpolation-based termination analysis:
+  TerminationToSafety (`--terminationToSafety`) now computes transition invariants
+  with interpolation and thus can also prove termination.
+  It exports correctness witnesses with transition invariants
+  and non-termination witnesses.
+* The lasso-based termination analysis (`--lassoRankerAnalysis`) now supports
+  bitwise operations (with a linear approximation) and programs with heap memory.
 * Better support for concurrent programs:
   pthread barriers, `pthread_once`, recursive mutexes, and the result of `pthread_join`
   are now modeled, data races through pointers are detected,
   and the concurrency portfolio now also uses predicate analysis.
+* Sequentialization:
+  * Added violation witness export in YAML format 2.2 
+    by mapping back to the input program.
+  * Added support for:
+    `pthread_once`, `pthread_barrier_*`, `pthread_join` results via `return ...;`, 
+    pthread objects in pointers, arrays and structs.
+  * Correctly model out of scope and dangling pointers by resetting to `(void*)0`.
 * Many improvements in witness export and validation.
   * Violation witnesses in YAML format 2.2 for concurrent programs,
     including data races, can now be exported and validated.
-  * Witnesses for programs verified by sequentialization now refer to the input program.
   * Correctness witnesses contain only invariants over variables in scope,
     and new options select which kinds of invariants they contain.
   * Termination witnesses now contain the bounds of ranking functions.
+  * Termination contain only proven supporting invariants, and express heap cells in C.
+  * Validation supports transition invariants over heap cells.
+* The internal counterexample check has moved away from using witness 1.0 and instead supports 
+  2 new counterexample representations. Defaults to using the internal `AUTOMATON` 
+  representation. Additionally supports the `WITNESSV2` format, specified using 
+  ``counterexample.checker.counterexampleFormat``.
 * Extended support for SV-LIB.  
   * Scripts can now use bitvectors, floating-point numbers,
     `define-fun`, `define-procs-rec`, and `goto`.

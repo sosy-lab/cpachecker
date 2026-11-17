@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR2_KEYWORD;
 import static org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_foundedness.TransitionInvariantUtils.CURR_KEYWORD;
@@ -96,6 +97,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
           "Disables checks for fix-point with transition invariants and performs " + "plain BMC.")
   private boolean disableTransitionAbstractions = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Remove a state at a loop head if its path is infeasible, such that no unrollings are"
+              + " explored after it. This is sound only if the path formulas encode the program"
+              + " precisely or overapproximate it, e.g., not with integers for bitvectors.")
+  private boolean removeInfeasiblePaths = false;
+
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
       LogManager plogger,
@@ -168,8 +177,12 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       if (terminationState.getNumberOfIterationsAtLoopHead(programCounter) > 1) {
         boolean isOverapproximating = false;
         PathFormula prefixPathFormula = terminationState.getPathFormulasForPrefix().orElseThrow();
-        SSAMap largestIndices =
-            terminationState.getPathFormulasForIteration().get(programCounter).getSsa();
+        PathFormula lastIteration =
+            terminationState.getPathFormulasForIteration().get(programCounter);
+        if (removeInfeasiblePaths && isInfeasible(prefixPathFormula, lastIteration)) {
+          return Optional.empty();
+        }
+        SSAMap largestIndices = lastIteration.getSsa();
 
         // The concrete last iteration is used to search for a lasso and to compute the first
         // interpolant, the iteration with overapproximated nested loops for transition invariants
@@ -186,7 +199,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
                 terminationState.getStoredValues().get(programCounter),
                 terminationState.getPathFormulaFull().orElseThrow().getFormula(),
                 largestIndices,
-                terminationState.getNumberOfIterationsAtLoopHead(programCounter) - 1);
+                terminationState.getNumberOfIterationsAtLoopHead(programCounter) - 1,
+                from(terminationState.getLoopHeadVisits())
+                    .filter(visit -> visit.loopHead().equals(programCounter))
+                    .toList());
 
         // Compute all the transition predicates that hold for the current state
         ImmutableSet.Builder<PartitionedRelationFormula> builderTransitionPredicates =
@@ -668,6 +684,16 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     return newInterpolant;
   }
 
+  private boolean isInfeasible(PathFormula pPrefix, PathFormula pIteration)
+      throws InterruptedException {
+    try {
+      return solver.isUnsat(bfmgr.and(pPrefix.getFormula(), pIteration.getFormula()));
+    } catch (SolverException e) {
+      logger.logDebugException(e, "Could not check the feasibility of the path");
+      return false;
+    }
+  }
+
   private boolean isSound(Formula pFormula) {
     return !checkUFsInIntegerEncoding || !fmgr.hasUninterpretedFunction(pFormula);
   }
@@ -837,13 +863,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
    * current visit, also the memory that a variable moves to when its address is taken. A variable
    * without SSA index at an earlier visit has there the index 1 of uninitialized variables.
    *
+   * <p>A lasso has to go around the cycles of the automata, e.g., of a non-termination witness, so
+   * the formula is false for earlier visits from which the path does not.
+   *
    * @param pPath the path formula until the current visit
+   * @param pVisits the visits of the loop head on the path, the last one is the current visit
    */
   private ImmutableList<BooleanFormula> buildComparingFormulas(
       Map<Integer, SSAMap> storedValues,
       BooleanFormula pPath,
       SSAMap pLatestValues,
-      int pMaxIndex) {
+      int pMaxIndex,
+      ImmutableList<LoopHeadVisit> pVisits) {
     ImmutableSet.Builder<Formula> stateVariablesBuilder = ImmutableSet.builder();
     for (Entry<String, Formula> variable : fmgr.extractVariables(pPath).entrySet()) {
       if (pLatestValues.containsVariable(
@@ -856,6 +887,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     ImmutableList.Builder<BooleanFormula> comparingFormulas = ImmutableList.builder();
     for (Entry<Integer, SSAMap> savedIndices : storedValues.entrySet()) {
       if (savedIndices.getKey().intValue() >= pMaxIndex) {
+        continue;
+      }
+      if (!pVisits.getLast().completesAutomatonCyclesSince(pVisits.get(savedIndices.getKey()))) {
+        comparingFormulas.add(bfmgr.makeFalse());
         continue;
       }
       SSAMap indicesAtVisit = savedIndices.getValue().withDefault(1);
