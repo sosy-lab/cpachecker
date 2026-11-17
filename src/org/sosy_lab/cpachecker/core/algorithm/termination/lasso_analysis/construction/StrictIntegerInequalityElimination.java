@@ -22,8 +22,8 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 /**
  * Replaces strict inequalities over integers by non-strict ones, i.e., {@code a < b} by {@code a +
- * 1 <= b}. LassoRanker synthesizes termination arguments over the reals, where, e.g., {@code y <
- * 0} does not bound the decrease of {@code -y} away from zero.
+ * 1 <= b}. LassoRanker synthesizes termination arguments over the reals, where, e.g., {@code y < 0}
+ * does not bound the decrease of {@code -y} away from zero.
  */
 class StrictIntegerInequalityElimination extends BooleanFormulaTransformationVisitor {
 

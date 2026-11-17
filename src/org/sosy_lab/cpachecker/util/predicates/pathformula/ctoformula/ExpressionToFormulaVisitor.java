@@ -489,8 +489,8 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Encodes {@code ret = f1 >> k} for a constant {@code k} exactly as {@code 0 <= f1 - 2^k * ret
-   * <= 2^k - 1}, i.e., as division rounded down.
+   * Encodes {@code ret = f1 >> k} for a constant {@code k} exactly as {@code 0 <= f1 - 2^k * ret <=
+   * 2^k - 1}, i.e., as division rounded down.
    */
   private void addShiftRightConstraints(
       final CExpression pShiftAmount, final Formula f1, final boolean signed, final Formula ret) {
