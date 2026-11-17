@@ -25,10 +25,31 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /**
- * Persistent bijective mapping between {@link Value}s and {@link SMGValue}s. {@link Value}s are
- * compared w.r.t. the equivalence {@link ValueWrapper}, not with {@code Value.equals()}. Adding or
- * removing a mapping costs O(log n), unlike copying an immutable map. Iteration follows the
- * insertion order.
+ * Persistent bijective mapping between {@link Value}s and {@link SMGValue}s, used as the value
+ * mapping of {@link org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration}.
+ *
+ * <p>Instances are immutable: {@link #putAndCopy(Value, SMGValue)}, {@link
+ * #removeAndCopy(SMGValue)} and {@link #removeAllAndCopy(Collection)} return a new instance and
+ * leave the old one unchanged. The new instance shares nearly all of its internal structure with
+ * the old one.
+ *
+ * <p>{@link Value}s are compared w.r.t. the equivalence {@link ValueWrapper}, not with {@code
+ * Value.equals()}. For example, the integer values {@code 0} and {@code 0L} are equivalent, so at
+ * most one of them can be mapped, and a lookup with either one finds the mapping. {@link SMGValue}s
+ * are compared with {@link SMGValue#equals(Object)}. All arguments must be non-null.
+ *
+ * <p>The semantics match those of the {@link com.google.common.collect.ImmutableBiMap} that this
+ * class replaced: each {@link Value} and each {@link SMGValue} is mapped at most once, adding a
+ * mapping for an already mapped one throws an {@link IllegalArgumentException}, and iteration
+ * follows the insertion order.
+ *
+ * <p>Complexity (n is the number of mappings): adding or removing a mapping and all lookups cost
+ * O(log n), whereas the replaced {@link com.google.common.collect.ImmutableBiMap} had to be copied
+ * completely for each added mapping. {@link #size()} and starting an iteration over {@link
+ * #entries()} cost O(n) on each new instance, because the underlying tree maps compute their size
+ * lazily.
+ *
+ * <p>This class does not override {@link Object#equals(Object)} and {@link Object#hashCode()}.
  */
 public final class ValueToSMGValueMapping {
 
@@ -53,7 +74,8 @@ public final class ValueToSMGValueMapping {
    * values cannot be keys of a tree map directly. Instead, the tree map is keyed by the hash code
    * of the wrapped value, and maps it to a bucket with all mappings of wrapped values with this
    * hash code. A bucket is never empty and nearly always holds only one mapping; it holds more than
-   * one only for hash collisions of non-equivalent values (e.g., integer 0 and float 0.0).
+   * one only for hash collisions of non-equivalent values (e.g., {@code Integer} 1 and {@code Long}
+   * 1, or integer 0 and float 0.0).
    */
   private final PersistentMap<Integer, ImmutableMap<Wrapper<Value>, Mapping>> byValue;
 
@@ -84,6 +106,7 @@ public final class ValueToSMGValueMapping {
     nextPosition = pNextPosition;
   }
 
+  /** Returns an empty mapping. */
   public static ValueToSMGValueMapping of() {
     return new ValueToSMGValueMapping(
         PathCopyingPersistentTreeMap.of(),
@@ -92,6 +115,7 @@ public final class ValueToSMGValueMapping {
         0);
   }
 
+  /** Returns the number of mappings. This costs O(n) on the first call for each instance. */
   public int size() {
     return bySMGValue.size();
   }
@@ -118,6 +142,7 @@ public final class ValueToSMGValueMapping {
     return bucket == null ? null : bucket.get(pValue);
   }
 
+  /** Returns whether the given {@link SMGValue} is mapped. */
   public boolean containsValue(SMGValue pSMGValue) {
     return bySMGValue.containsKey(pSMGValue);
   }
@@ -131,7 +156,10 @@ public final class ValueToSMGValueMapping {
     return mapping == null ? null : mapping.value().get();
   }
 
-  /** The mappings in insertion order. */
+  /**
+   * Returns the mappings in insertion order. Each {@link Value} is returned as it was added with
+   * {@link #putAndCopy(Value, SMGValue)}.
+   */
   public Iterable<Map.Entry<Value, SMGValue>> entries() {
     return () ->
         byPosition.values().stream()
@@ -142,6 +170,11 @@ public final class ValueToSMGValueMapping {
   /**
    * Adds a mapping. Neither a {@link Value} equivalent to the given one (w.r.t. {@link
    * ValueWrapper}) nor the given {@link SMGValue} may be mapped yet (like for an ImmutableBiMap).
+   * The new mapping is the last one in iteration order.
+   *
+   * @return a new instance with the added mapping
+   * @throws IllegalArgumentException if a {@link Value} equivalent to the given one or the given
+   *     {@link SMGValue} is already mapped
    */
   public ValueToSMGValueMapping putAndCopy(Value pValue, SMGValue pSMGValue) {
     Wrapper<Value> wrappedValue = VALUE_EQUIVALENCE.wrap(pValue);
@@ -164,7 +197,12 @@ public final class ValueToSMGValueMapping {
         nextPosition + 1);
   }
 
-  /** Removes the mappings of the given {@link SMGValue}s. */
+  /**
+   * Removes the mappings of the given {@link SMGValue}s. {@link SMGValue}s that are not mapped (and
+   * duplicates) are ignored. The relative order of the remaining mappings is unchanged.
+   *
+   * @return a new instance without these mappings, or this instance if none of them is mapped
+   */
   public ValueToSMGValueMapping removeAllAndCopy(Collection<SMGValue> pSMGValues) {
     ValueToSMGValueMapping result = this;
     for (SMGValue smgValue : pSMGValues) {
@@ -173,7 +211,12 @@ public final class ValueToSMGValueMapping {
     return result;
   }
 
-  /** Removes the mapping of the given {@link SMGValue}, if it exists. */
+  /**
+   * Removes the mapping of the given {@link SMGValue}, if it exists. The relative order of the
+   * remaining mappings is unchanged.
+   *
+   * @return a new instance without this mapping, or this instance if it is not mapped
+   */
   public ValueToSMGValueMapping removeAndCopy(SMGValue pSMGValue) {
     Mapping mapping = bySMGValue.get(pSMGValue);
     if (mapping == null) {
