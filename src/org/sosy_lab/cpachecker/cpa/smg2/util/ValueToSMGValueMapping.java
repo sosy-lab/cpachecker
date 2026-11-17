@@ -67,7 +67,7 @@ public final class ValueToSMGValueMapping {
 
   /**
    * A single mapping. The position is the insertion counter at the time the mapping was added and
-   * is used as key in {@link #byPosition}.
+   * is used as key in {@link #insertionOrderMapping}.
    */
   private record ValueAndSMGValueMapping(Wrapper<Value> value, SMGValue smgValue, long position) {}
 
@@ -81,17 +81,17 @@ public final class ValueToSMGValueMapping {
    * 1, or integer 0 and float 0.0).
    */
   private final PersistentMap<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>>
-      byValue;
+      valueHashBucket;
 
   /** Reverse direction (lookup by {@link SMGValue}), which is {@link Comparable}. */
-  private final PersistentMap<SMGValue, ValueAndSMGValueMapping> bySMGValue;
+  private final PersistentMap<SMGValue, ValueAndSMGValueMapping> smgValueToValueMapping;
 
   /**
    * The mappings ordered by their insertion counter. This map exists only to iterate in insertion
    * order (like the {@link com.google.common.collect.ImmutableBiMap} this class replaced), because
    * the order of the other two maps depends on hash codes and {@link SMGValue} ids.
    */
-  private final PersistentMap<Long, ValueAndSMGValueMapping> byPosition;
+  private final PersistentMap<Long, ValueAndSMGValueMapping> insertionOrderMapping;
 
   /**
    * The position of the next added mapping. It is only ever incremented, so positions of removed
@@ -106,14 +106,15 @@ public final class ValueToSMGValueMapping {
   private final int size;
 
   private ValueToSMGValueMapping(
-      PersistentMap<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>> pByValue,
-      PersistentMap<SMGValue, ValueAndSMGValueMapping> pBySMGValue,
-      PersistentMap<Long, ValueAndSMGValueMapping> pByPosition,
+      PersistentMap<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>>
+          pValueHashBucket,
+      PersistentMap<SMGValue, ValueAndSMGValueMapping> pSMGValueToValueMapping,
+      PersistentMap<Long, ValueAndSMGValueMapping> pInsertionOrderMapping,
       long pNextPosition,
       int pSize) {
-    byValue = pByValue;
-    bySMGValue = pBySMGValue;
-    byPosition = pByPosition;
+    valueHashBucket = pValueHashBucket;
+    smgValueToValueMapping = pSMGValueToValueMapping;
+    insertionOrderMapping = pInsertionOrderMapping;
     nextPosition = pNextPosition;
     size = pSize;
   }
@@ -152,13 +153,14 @@ public final class ValueToSMGValueMapping {
   }
 
   private @Nullable ValueAndSMGValueMapping getValueAndSMGValueMappingFor(Wrapper<Value> pValue) {
-    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket = byValue.get(pValue.hashCode());
+    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket =
+        valueHashBucket.get(pValue.hashCode());
     return bucket == null ? null : bucket.get(pValue);
   }
 
   /** Returns whether the given {@link SMGValue} is mapped. */
   public boolean containsValueMappingFor(SMGValue pSMGValue) {
-    return bySMGValue.containsKey(checkNotNull(pSMGValue));
+    return smgValueToValueMapping.containsKey(checkNotNull(pSMGValue));
   }
 
   /**
@@ -166,7 +168,8 @@ public final class ValueToSMGValueMapping {
    * #putAndCopy(Value, SMGValue)}), or null.
    */
   public @Nullable Value getValueFor(SMGValue pSMGValue) {
-    ValueAndSMGValueMapping valueAndSMGValueMapping = bySMGValue.get(checkNotNull(pSMGValue));
+    ValueAndSMGValueMapping valueAndSMGValueMapping =
+        smgValueToValueMapping.get(checkNotNull(pSMGValue));
     return valueAndSMGValueMapping == null ? null : valueAndSMGValueMapping.value().get();
   }
 
@@ -175,10 +178,10 @@ public final class ValueToSMGValueMapping {
    * {@link #putAndCopy(Value, SMGValue)}.
    */
   public Iterable<Map.Entry<Value, SMGValue>> entries() {
-    // Not via stream(), because this would compute the size of byPosition (in O(n))
+    // Not via stream(), because this would compute the size of insertionOrderMapping (in O(n))
     return () ->
         Iterators.transform(
-            byPosition.values().iterator(),
+            insertionOrderMapping.values().iterator(),
             valueAndSMGValueMapping ->
                 Maps.immutableEntry(
                     valueAndSMGValueMapping.value().get(), valueAndSMGValueMapping.smgValue()));
@@ -205,7 +208,7 @@ public final class ValueToSMGValueMapping {
     ValueAndSMGValueMapping valueAndSMGValueMapping =
         new ValueAndSMGValueMapping(wrappedValue, pSMGValue, nextPosition);
     int hash = wrappedValue.hashCode();
-    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket = byValue.get(hash);
+    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket = valueHashBucket.get(hash);
     ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> newBucket =
         bucket == null
             ? ImmutableMap.of(wrappedValue, valueAndSMGValueMapping)
@@ -214,9 +217,9 @@ public final class ValueToSMGValueMapping {
                 .put(wrappedValue, valueAndSMGValueMapping)
                 .buildOrThrow();
     return new ValueToSMGValueMapping(
-        byValue.putAndCopy(hash, newBucket),
-        bySMGValue.putAndCopy(pSMGValue, valueAndSMGValueMapping),
-        byPosition.putAndCopy(nextPosition, valueAndSMGValueMapping),
+        valueHashBucket.putAndCopy(hash, newBucket),
+        smgValueToValueMapping.putAndCopy(pSMGValue, valueAndSMGValueMapping),
+        insertionOrderMapping.putAndCopy(nextPosition, valueAndSMGValueMapping),
         nextPosition + 1,
         size + 1);
   }
@@ -242,26 +245,28 @@ public final class ValueToSMGValueMapping {
    * @return a new instance without this mapping, or this instance if it is not mapped
    */
   public ValueToSMGValueMapping removeAndCopy(SMGValue pSMGValue) {
-    ValueAndSMGValueMapping valueAndSMGValueMapping = bySMGValue.get(checkNotNull(pSMGValue));
+    ValueAndSMGValueMapping valueAndSMGValueMapping =
+        smgValueToValueMapping.get(checkNotNull(pSMGValue));
     if (valueAndSMGValueMapping == null) {
       return this;
     }
     int hash = valueAndSMGValueMapping.value().hashCode();
-    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket = byValue.get(hash);
-    PersistentMap<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>> newByValue;
+    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket = valueHashBucket.get(hash);
+    PersistentMap<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>>
+        newValueHashBucket;
     if (bucket.size() == 1) {
-      newByValue = byValue.removeAndCopy(hash);
+      newValueHashBucket = valueHashBucket.removeAndCopy(hash);
     } else {
-      newByValue =
-          byValue.putAndCopy(
+      newValueHashBucket =
+          valueHashBucket.putAndCopy(
               hash,
               ImmutableMap.copyOf(
                   Maps.filterKeys(bucket, k -> k != valueAndSMGValueMapping.value())));
     }
     return new ValueToSMGValueMapping(
-        newByValue,
-        bySMGValue.removeAndCopy(pSMGValue),
-        byPosition.removeAndCopy(valueAndSMGValueMapping.position()),
+        newValueHashBucket,
+        smgValueToValueMapping.removeAndCopy(pSMGValue),
+        insertionOrderMapping.removeAndCopy(valueAndSMGValueMapping.position()),
         nextPosition,
         size - 1);
   }
@@ -281,11 +286,11 @@ public final class ValueToSMGValueMapping {
    */
   @VisibleForTesting
   void checkInvariants() {
-    checkState(bySMGValue.size() == size, "Wrong size");
-    checkState(byPosition.size() == size, "Wrong size");
+    checkState(smgValueToValueMapping.size() == size, "Wrong size");
+    checkState(insertionOrderMapping.size() == size, "Wrong size");
     int numberOfMappingsInBuckets = 0;
     for (Map.Entry<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>> bucket :
-        byValue.entrySet()) {
+        valueHashBucket.entrySet()) {
       checkState(!bucket.getValue().isEmpty(), "Empty bucket for hash %s", bucket.getKey());
       for (Map.Entry<Wrapper<Value>, ValueAndSMGValueMapping> entry :
           bucket.getValue().entrySet()) {
@@ -299,12 +304,14 @@ public final class ValueToSMGValueMapping {
             "Wrong bucket for %s",
             valueAndSMGValueMapping);
         checkState(
-            bySMGValue.get(valueAndSMGValueMapping.smgValue()) == valueAndSMGValueMapping,
-            "Not in bySMGValue: %s",
+            smgValueToValueMapping.get(valueAndSMGValueMapping.smgValue())
+                == valueAndSMGValueMapping,
+            "Not in smgValueToValueMapping: %s",
             valueAndSMGValueMapping);
         checkState(
-            byPosition.get(valueAndSMGValueMapping.position()) == valueAndSMGValueMapping,
-            "Not in byPosition: %s",
+            insertionOrderMapping.get(valueAndSMGValueMapping.position())
+                == valueAndSMGValueMapping,
+            "Not in insertionOrderMapping: %s",
             valueAndSMGValueMapping);
         checkState(
             valueAndSMGValueMapping.position() < nextPosition,
