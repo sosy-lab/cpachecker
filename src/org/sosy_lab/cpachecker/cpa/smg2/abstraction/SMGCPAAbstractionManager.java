@@ -894,7 +894,7 @@ public class SMGCPAAbstractionManager {
     if (allListCandidates.isEmpty()) {
       // Nothing to order. The traversal below visits every path through the heap, which is
       // expensive for large heaps, e.g., hash tables with many elements.
-      return ImmutableList.of();
+      return new ArrayList<>();
     }
 
     // Search by traversing the SMG starting from non-heap objs
