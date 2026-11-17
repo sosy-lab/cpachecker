@@ -741,7 +741,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(format, sign, exponent, significand);
+    // All NaNs of a format are equal (see equals()), so they need the same hash code
+    return isNan() ? format.hashCode() : Objects.hash(format, sign, exponent, significand);
   }
 
   /**

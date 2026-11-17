@@ -18,6 +18,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
+import com.google.common.testing.EqualsTester;
 import com.google.common.truth.Correspondence.BinaryPredicate;
 import com.google.common.truth.Expect;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -1408,6 +1409,21 @@ public class FloatValueTest {
     String r2 = reference.toString();
 
     assertThat(r1).isEqualTo(r2);
+  }
+
+  @Test
+  public void equalsAndHashCodeTest() {
+    Format format = floatTestOptions.format;
+    FloatValue nan = FloatValue.nan(format);
+    new EqualsTester()
+        // All NaNs are equal, regardless of their sign
+        .addEqualityGroup(nan, FloatValue.nan(format), nan.negate(), nan.negate().negate())
+        .addEqualityGroup(FloatValue.zero(format), FloatValue.zero(format))
+        .addEqualityGroup(FloatValue.zero(format).negate())
+        .addEqualityGroup(FloatValue.infinity(format))
+        .addEqualityGroup(FloatValue.infinity(format).negate())
+        .addEqualityGroup(FloatValue.one(format))
+        .testEquals();
   }
 
   @Test
