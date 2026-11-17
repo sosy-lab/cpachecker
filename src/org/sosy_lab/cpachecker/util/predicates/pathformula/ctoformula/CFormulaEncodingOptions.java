@@ -137,8 +137,9 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
   @Option(
       secure = true,
       description =
-          "Encode bitwise negation exactly with linear arithmetic, and add linear bounds for the"
-              + " results of bitwise and and or, e.g., x & y is in [0, x] if x is not negative."
+          "Encode bitwise negation and right shifts by constants exactly with linear arithmetic,"
+              + " and add linear bounds for the results of bitwise and and or, e.g., x & y is in"
+              + " [0, x] if x is not negative."
               + " This makes bitwise operations more precise if bitvectors are encoded as integers,"
               + " where they are uninterpreted functions.")
   private boolean approximateBitwiseOperationsLinearly = false;

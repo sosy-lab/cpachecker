@@ -105,6 +105,7 @@ public class LassoBuilder {
   private final IfThenElseElimination ifThenElseElimination;
   private final EqualElimination equalElimination;
   private final NotEqualAndNotInequalityElimination notEqualAndNotInequalityElimination;
+  private final StrictIntegerInequalityElimination strictIntegerInequalityElimination;
 
   private final FormulaTransformationVisitor formulaVisitor;
 
@@ -136,6 +137,7 @@ public class LassoBuilder {
     ifThenElseElimination = new IfThenElseElimination(fmgrView, fmgr);
     equalElimination = new EqualElimination(fmgrView);
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
+    strictIntegerInequalityElimination = new StrictIntegerInequalityElimination(fmgrView);
 
     formulaVisitor =
         new FormulaTransformationVisitor(fmgr) {
@@ -370,9 +372,11 @@ public class LassoBuilder {
     BooleanFormula notEqualEliminated =
         transformRecursively(notEqualAndNotInequalityElimination, nnf);
     BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
+    BooleanFormula nonStrict =
+        transformRecursively(strictIntegerInequalityElimination, equalEliminated);
     BooleanFormula dnf =
         DnfTransformation.transformToDnf(
-            equalEliminated, fmgrView, shutdownNotifier, proverEnvironmentSupplier);
+            nonStrict, fmgrView, shutdownNotifier, proverEnvironmentSupplier);
     ImmutableSet<BooleanFormula> clauses =
         ImmutableSet.copyOf(bfmrView.toDisjunctionArgs(dnf, true));
 
