@@ -26,6 +26,13 @@ Changes since CPAchecker 4.2.2
 * Ordering-consistency analysis (`--orderingConsistency`) and 
   abstraction-aware source-set partial-order-reduction (`--predicateAnalysis-POR`)
   have been added for concurrent C programs.
+* New interpolation-based termination analysis:
+  TerminationToSafety (`--terminationToSafety`) now computes transition invariants
+  with interpolation and thus can also prove termination.
+  It exports correctness witnesses with transition invariants
+  and non-termination witnesses.
+* The lasso-based termination analysis (`--lassoRankerAnalysis`) now supports
+  bitwise operations (with a linear approximation) and programs with heap memory.
 * Better support for concurrent programs:
   pthread barriers, `pthread_once`, recursive mutexes, and the result of `pthread_join`
   are now modeled, data races through pointers are detected,
@@ -37,6 +44,8 @@ Changes since CPAchecker 4.2.2
   * Correctness witnesses contain only invariants over variables in scope,
     and new options select which kinds of invariants they contain.
   * Termination witnesses now contain the bounds of ranking functions.
+  * Termination contain only proven supporting invariants, and express heap cells in C.
+  * Validation supports transition invariants over heap cells.
 * Extended support for SV-LIB.  
   * Scripts can now use bitvectors, floating-point numbers,
     `define-fun`, `define-procs-rec`, and `goto`.
