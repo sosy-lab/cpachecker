@@ -42,64 +42,66 @@ public class ValueToSMGValueMappingTest {
   private static final Value LONG_WITH_HASH_ZERO = new NumericValue((1L << 32) | 1L);
 
   private static ImmutableList<Map.Entry<Value, SMGValue>> entriesOf(
-      ValueToSMGValueMapping pMapping) {
-    return ImmutableList.copyOf(pMapping.entries());
+      ValueToSMGValueMapping pValueMapping) {
+    return ImmutableList.copyOf(pValueMapping.entries());
   }
 
-  /** Puts a mapping and checks the result and that the old version is unchanged. */
+  /** Puts a valueMapping and checks the newValueMapping and that the old version is unchanged. */
   private static ValueToSMGValueMapping put(
-      ValueToSMGValueMapping pMapping, Value pValue, SMGValue pSMGValue) {
-    ImmutableList<Map.Entry<Value, SMGValue>> oldEntries = entriesOf(pMapping);
+      ValueToSMGValueMapping pValueMapping, Value pValue, SMGValue pSMGValue) {
+    ImmutableList<Map.Entry<Value, SMGValue>> oldEntries = entriesOf(pValueMapping);
 
-    ValueToSMGValueMapping result = pMapping.putAndCopy(pValue, pSMGValue);
-    result.checkInvariants();
-    pMapping.checkInvariants();
+    ValueToSMGValueMapping newValueMapping = pValueMapping.putAndCopy(pValue, pSMGValue);
+    newValueMapping.checkInvariants();
+    pValueMapping.checkInvariants();
 
-    assertThat(entriesOf(pMapping)).isEqualTo(oldEntries);
-    assertThat(result.size()).isEqualTo(pMapping.size() + 1);
-    assertThat(result.get(pValue)).isEqualTo(pSMGValue);
-    assertThat(result.getKeyForValue(pSMGValue)).isSameInstanceAs(pValue);
-    assertThat(entriesOf(result))
+    assertThat(entriesOf(pValueMapping)).isEqualTo(oldEntries);
+    assertThat(newValueMapping.size()).isEqualTo(pValueMapping.size() + 1);
+    assertThat(newValueMapping.getSMGValueFor(pValue)).isEqualTo(pSMGValue);
+    assertThat(newValueMapping.getValueFor(pSMGValue)).isSameInstanceAs(pValue);
+    assertThat(entriesOf(newValueMapping))
         .isEqualTo(
             ImmutableList.builder()
                 .addAll(oldEntries)
                 .add(Maps.immutableEntry(pValue, pSMGValue))
                 .build());
-    return result;
+    return newValueMapping;
   }
 
-  /** Removes a mapping and checks the result and that the old version is unchanged. */
+  /**
+   * Removes a valueMapping and checks the newValueMapping and that the old version is unchanged.
+   */
   private static ValueToSMGValueMapping remove(
-      ValueToSMGValueMapping pMapping, SMGValue pSMGValue) {
-    ImmutableList<Map.Entry<Value, SMGValue>> oldEntries = entriesOf(pMapping);
+      ValueToSMGValueMapping pValueMapping, SMGValue pSMGValue) {
+    ImmutableList<Map.Entry<Value, SMGValue>> oldEntries = entriesOf(pValueMapping);
 
-    ValueToSMGValueMapping result = pMapping.removeAndCopy(pSMGValue);
-    result.checkInvariants();
-    pMapping.checkInvariants();
+    ValueToSMGValueMapping newValueMapping = pValueMapping.removeAndCopy(pSMGValue);
+    newValueMapping.checkInvariants();
+    pValueMapping.checkInvariants();
 
-    assertThat(entriesOf(pMapping)).isEqualTo(oldEntries);
-    assertThat(result.containsValue(pSMGValue)).isFalse();
-    assertThat(result.getKeyForValue(pSMGValue)).isNull();
-    assertThat(entriesOf(result))
+    assertThat(entriesOf(pValueMapping)).isEqualTo(oldEntries);
+    assertThat(newValueMapping.containsValueMappingFor(pSMGValue)).isFalse();
+    assertThat(newValueMapping.getValueFor(pSMGValue)).isNull();
+    assertThat(entriesOf(newValueMapping))
         .isEqualTo(
             oldEntries.stream()
                 .filter(entry -> !entry.getValue().equals(pSMGValue))
                 .collect(ImmutableList.toImmutableList()));
-    return result;
+    return newValueMapping;
   }
 
   @Test
   public void testEmpty() {
-    ValueToSMGValueMapping mapping = ValueToSMGValueMapping.of();
-    mapping.checkInvariants();
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
+    valueMapping.checkInvariants();
 
-    assertThat(mapping.size()).isEqualTo(0);
-    assertThat(mapping.entries()).isEmpty();
-    assertThat(mapping.containsKey(INT_ZERO)).isFalse();
-    assertThat(mapping.get(INT_ZERO)).isNull();
+    assertThat(valueMapping.size()).isEqualTo(0);
+    assertThat(valueMapping.entries()).isEmpty();
+    assertThat(valueMapping.containsSMGValueMappingFor(INT_ZERO)).isFalse();
+    assertThat(valueMapping.getSMGValueFor(INT_ZERO)).isNull();
     SMGValue smgValue = SMGValue.of();
-    assertThat(mapping.containsValue(smgValue)).isFalse();
-    assertThat(mapping.getKeyForValue(smgValue)).isNull();
+    assertThat(valueMapping.containsValueMappingFor(smgValue)).isFalse();
+    assertThat(valueMapping.getValueFor(smgValue)).isNull();
   }
 
   @Test
@@ -109,17 +111,17 @@ public class ValueToSMGValueMappingTest {
     SMGValue smgValue1 = SMGValue.of();
     SMGValue smgValue2 = SMGValue.of();
 
-    ValueToSMGValueMapping mapping = ValueToSMGValueMapping.of();
-    mapping = put(mapping, value1, smgValue1);
-    mapping = put(mapping, value2, smgValue2);
-    assertThat(mapping.containsKey(value1)).isTrue();
-    assertThat(mapping.containsValue(smgValue2)).isTrue();
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
+    valueMapping = put(valueMapping, value1, smgValue1);
+    valueMapping = put(valueMapping, value2, smgValue2);
+    assertThat(valueMapping.containsSMGValueMappingFor(value1)).isTrue();
+    assertThat(valueMapping.containsValueMappingFor(smgValue2)).isTrue();
 
-    mapping = remove(mapping, smgValue1);
-    assertThat(mapping.get(value1)).isNull();
-    assertThat(mapping.get(value2)).isEqualTo(smgValue2);
-    mapping = remove(mapping, smgValue2);
-    assertThat(mapping.size()).isEqualTo(0);
+    valueMapping = remove(valueMapping, smgValue1);
+    assertThat(valueMapping.getSMGValueFor(value1)).isNull();
+    assertThat(valueMapping.getSMGValueFor(value2)).isEqualTo(smgValue2);
+    valueMapping = remove(valueMapping, smgValue2);
+    assertThat(valueMapping.size()).isEqualTo(0);
   }
 
   @Test
@@ -129,14 +131,14 @@ public class ValueToSMGValueMappingTest {
     assertThat(INT_ZERO).isNotEqualTo(LONG_ZERO);
 
     SMGValue smgValue = SMGValue.of();
-    ValueToSMGValueMapping mapping = put(ValueToSMGValueMapping.of(), INT_ZERO, smgValue);
+    ValueToSMGValueMapping valueMapping = put(ValueToSMGValueMapping.of(), INT_ZERO, smgValue);
 
     // Lookups use the equivalence, not equals()
-    assertThat(mapping.containsKey(LONG_ZERO)).isTrue();
-    assertThat(mapping.get(LONG_ZERO)).isEqualTo(smgValue);
-    assertThat(mapping.get(BIG_INTEGER_ZERO)).isEqualTo(smgValue);
+    assertThat(valueMapping.containsSMGValueMappingFor(LONG_ZERO)).isTrue();
+    assertThat(valueMapping.getSMGValueFor(LONG_ZERO)).isEqualTo(smgValue);
+    assertThat(valueMapping.getSMGValueFor(BIG_INTEGER_ZERO)).isEqualTo(smgValue);
     // The originally added value is returned
-    assertThat(mapping.getKeyForValue(smgValue)).isSameInstanceAs(INT_ZERO);
+    assertThat(valueMapping.getValueFor(smgValue)).isSameInstanceAs(INT_ZERO);
   }
 
   @Test
@@ -150,56 +152,59 @@ public class ValueToSMGValueMappingTest {
     SMGValue smgValue1 = SMGValue.of();
     SMGValue smgValue2 = SMGValue.of();
     SMGValue smgValue3 = SMGValue.of();
-    ValueToSMGValueMapping mapping = ValueToSMGValueMapping.of();
-    mapping = put(mapping, INT_ZERO, smgValue1);
-    mapping = put(mapping, FLOAT_ZERO, smgValue2);
-    mapping = put(mapping, LONG_WITH_HASH_ZERO, smgValue3);
-    assertThat(mapping.get(INT_ZERO)).isEqualTo(smgValue1);
-    assertThat(mapping.get(FLOAT_ZERO)).isEqualTo(smgValue2);
-    assertThat(mapping.get(LONG_WITH_HASH_ZERO)).isEqualTo(smgValue3);
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
+    valueMapping = put(valueMapping, INT_ZERO, smgValue1);
+    valueMapping = put(valueMapping, FLOAT_ZERO, smgValue2);
+    valueMapping = put(valueMapping, LONG_WITH_HASH_ZERO, smgValue3);
+    assertThat(valueMapping.getSMGValueFor(INT_ZERO)).isEqualTo(smgValue1);
+    assertThat(valueMapping.getSMGValueFor(FLOAT_ZERO)).isEqualTo(smgValue2);
+    assertThat(valueMapping.getSMGValueFor(LONG_WITH_HASH_ZERO)).isEqualTo(smgValue3);
 
     // Remove from the middle of a bucket, then the rest until the bucket is gone
-    mapping = remove(mapping, smgValue2);
-    assertThat(mapping.get(FLOAT_ZERO)).isNull();
-    assertThat(mapping.get(INT_ZERO)).isEqualTo(smgValue1);
-    assertThat(mapping.get(LONG_WITH_HASH_ZERO)).isEqualTo(smgValue3);
-    mapping = remove(mapping, smgValue1);
-    assertThat(mapping.get(LONG_WITH_HASH_ZERO)).isEqualTo(smgValue3);
-    mapping = remove(mapping, smgValue3);
-    assertThat(mapping.size()).isEqualTo(0);
-    assertThat(mapping.containsKey(INT_ZERO)).isFalse();
+    valueMapping = remove(valueMapping, smgValue2);
+    assertThat(valueMapping.getSMGValueFor(FLOAT_ZERO)).isNull();
+    assertThat(valueMapping.getSMGValueFor(INT_ZERO)).isEqualTo(smgValue1);
+    assertThat(valueMapping.getSMGValueFor(LONG_WITH_HASH_ZERO)).isEqualTo(smgValue3);
+    valueMapping = remove(valueMapping, smgValue1);
+    assertThat(valueMapping.getSMGValueFor(LONG_WITH_HASH_ZERO)).isEqualTo(smgValue3);
+    valueMapping = remove(valueMapping, smgValue3);
+    assertThat(valueMapping.size()).isEqualTo(0);
+    assertThat(valueMapping.containsSMGValueMappingFor(INT_ZERO)).isFalse();
   }
 
   @Test
   public void testPutEquivalentValueTwiceFails() {
-    ValueToSMGValueMapping mapping = put(ValueToSMGValueMapping.of(), INT_ZERO, SMGValue.of());
+    ValueToSMGValueMapping valueMapping = put(ValueToSMGValueMapping.of(), INT_ZERO, SMGValue.of());
     SMGValue otherSMGValue = SMGValue.of();
 
-    assertThrows(IllegalArgumentException.class, () -> mapping.putAndCopy(INT_ZERO, otherSMGValue));
     assertThrows(
-        IllegalArgumentException.class, () -> mapping.putAndCopy(LONG_ZERO, otherSMGValue));
-    mapping.checkInvariants();
-    assertThat(mapping.size()).isEqualTo(1);
+        IllegalArgumentException.class, () -> valueMapping.putAndCopy(INT_ZERO, otherSMGValue));
+    assertThrows(
+        IllegalArgumentException.class, () -> valueMapping.putAndCopy(LONG_ZERO, otherSMGValue));
+    valueMapping.checkInvariants();
+    assertThat(valueMapping.size()).isEqualTo(1);
   }
 
   @Test
   public void testPutSMGValueTwiceFails() {
     SMGValue smgValue = SMGValue.of();
-    ValueToSMGValueMapping mapping = put(ValueToSMGValueMapping.of(), INT_ZERO, smgValue);
+    ValueToSMGValueMapping valueMapping = put(ValueToSMGValueMapping.of(), INT_ZERO, smgValue);
     Value otherValue = new NumericValue(1);
 
-    assertThrows(IllegalArgumentException.class, () -> mapping.putAndCopy(otherValue, smgValue));
-    mapping.checkInvariants();
-    assertThat(mapping.size()).isEqualTo(1);
+    assertThrows(
+        IllegalArgumentException.class, () -> valueMapping.putAndCopy(otherValue, smgValue));
+    valueMapping.checkInvariants();
+    assertThat(valueMapping.size()).isEqualTo(1);
   }
 
   @Test
   public void testRemoveMissingSMGValue() {
-    ValueToSMGValueMapping mapping = put(ValueToSMGValueMapping.of(), INT_ZERO, SMGValue.of());
+    ValueToSMGValueMapping valueMapping = put(ValueToSMGValueMapping.of(), INT_ZERO, SMGValue.of());
 
-    assertThat(mapping.removeAndCopy(SMGValue.of())).isSameInstanceAs(mapping);
-    assertThat(mapping.removeAllAndCopy(ImmutableList.of())).isSameInstanceAs(mapping);
-    assertThat(mapping.removeAllAndCopy(ImmutableList.of(SMGValue.of()))).isSameInstanceAs(mapping);
+    assertThat(valueMapping.removeAndCopy(SMGValue.of())).isSameInstanceAs(valueMapping);
+    assertThat(valueMapping.removeAllAndCopy(ImmutableList.of())).isSameInstanceAs(valueMapping);
+    assertThat(valueMapping.removeAllAndCopy(ImmutableList.of(SMGValue.of())))
+        .isSameInstanceAs(valueMapping);
   }
 
   @Test
@@ -207,18 +212,19 @@ public class ValueToSMGValueMappingTest {
     SMGValue smgValue1 = SMGValue.of();
     SMGValue smgValue2 = SMGValue.of();
     SMGValue smgValue3 = SMGValue.of();
-    ValueToSMGValueMapping mapping = ValueToSMGValueMapping.of();
-    mapping = put(mapping, new NumericValue(1), smgValue1);
-    mapping = put(mapping, new NumericValue(2), smgValue2);
-    mapping = put(mapping, new NumericValue(3), smgValue3);
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
+    valueMapping = put(valueMapping, new NumericValue(1), smgValue1);
+    valueMapping = put(valueMapping, new NumericValue(2), smgValue2);
+    valueMapping = put(valueMapping, new NumericValue(3), smgValue3);
 
     // Duplicates and missing SMGValues are allowed
-    ValueToSMGValueMapping result =
-        mapping.removeAllAndCopy(ImmutableList.of(smgValue1, SMGValue.of(), smgValue3, smgValue1));
-    result.checkInvariants();
-    assertThat(entriesOf(result))
+    ValueToSMGValueMapping newValueMapping =
+        valueMapping.removeAllAndCopy(
+            ImmutableList.of(smgValue1, SMGValue.of(), smgValue3, smgValue1));
+    newValueMapping.checkInvariants();
+    assertThat(entriesOf(newValueMapping))
         .containsExactly(Maps.immutableEntry(new NumericValue(2), smgValue2));
-    assertThat(mapping.size()).isEqualTo(3);
+    assertThat(valueMapping.size()).isEqualTo(3);
   }
 
   @Test
@@ -230,22 +236,22 @@ public class ValueToSMGValueMappingTest {
     SMGValue smgValue2 = SMGValue.of();
     SMGValue smgValue3 = SMGValue.of();
 
-    ValueToSMGValueMapping mapping = ValueToSMGValueMapping.of();
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
     // Insert in an order that differs from the order of hash codes and SMGValue ids
-    mapping = put(mapping, value3, smgValue2);
-    mapping = put(mapping, value1, smgValue3);
-    mapping = put(mapping, value2, smgValue1);
-    assertThat(entriesOf(mapping))
+    valueMapping = put(valueMapping, value3, smgValue2);
+    valueMapping = put(valueMapping, value1, smgValue3);
+    valueMapping = put(valueMapping, value2, smgValue1);
+    assertThat(entriesOf(valueMapping))
         .containsExactly(
             Maps.immutableEntry(value3, smgValue2),
             Maps.immutableEntry(value1, smgValue3),
             Maps.immutableEntry(value2, smgValue1))
         .inOrder();
 
-    // A removed and re-added mapping is moved to the end
-    mapping = remove(mapping, smgValue2);
-    mapping = put(mapping, value3, smgValue2);
-    assertThat(entriesOf(mapping))
+    // A removed and re-added valueMapping is moved to the end
+    valueMapping = remove(valueMapping, smgValue2);
+    valueMapping = put(valueMapping, value3, smgValue2);
+    assertThat(entriesOf(valueMapping))
         .containsExactly(
             Maps.immutableEntry(value1, smgValue3),
             Maps.immutableEntry(value2, smgValue1),
@@ -284,7 +290,7 @@ public class ValueToSMGValueMappingTest {
     }
 
     Random random = new Random(4815162342L);
-    ValueToSMGValueMapping mapping = ValueToSMGValueMapping.of();
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
     Map<Wrapper<Value>, SMGValue> expected = new LinkedHashMap<>();
     Map<SMGValue, Value> expectedInverse = new HashMap<>();
     List<ValueToSMGValueMapping> versions = new ArrayList<>();
@@ -297,16 +303,18 @@ public class ValueToSMGValueMappingTest {
         SMGValue smgValue = smgValuePool.get(random.nextInt(smgValuePool.size()));
         Wrapper<Value> wrappedValue = VALUE_WRAPPER.wrap(value);
         if (expected.containsKey(wrappedValue) || expectedInverse.containsKey(smgValue)) {
-          ValueToSMGValueMapping current = mapping;
-          assertThrows(IllegalArgumentException.class, () -> current.putAndCopy(value, smgValue));
+          ValueToSMGValueMapping currentValueMapping = valueMapping;
+          assertThrows(
+              IllegalArgumentException.class,
+              () -> currentValueMapping.putAndCopy(value, smgValue));
         } else {
-          mapping = mapping.putAndCopy(value, smgValue);
+          valueMapping = valueMapping.putAndCopy(value, smgValue);
           expected.put(wrappedValue, smgValue);
           expectedInverse.put(smgValue, value);
         }
       } else if (operation < 9) {
         SMGValue smgValue = smgValuePool.get(random.nextInt(smgValuePool.size()));
-        mapping = mapping.removeAndCopy(smgValue);
+        valueMapping = valueMapping.removeAndCopy(smgValue);
         Value removed = expectedInverse.remove(smgValue);
         if (removed != null) {
           expected.remove(VALUE_WRAPPER.wrap(removed));
@@ -317,7 +325,7 @@ public class ValueToSMGValueMappingTest {
         for (int i = 0; i < count; i++) {
           toRemove.add(smgValuePool.get(random.nextInt(smgValuePool.size())));
         }
-        mapping = mapping.removeAllAndCopy(toRemove);
+        valueMapping = valueMapping.removeAllAndCopy(toRemove);
         for (SMGValue smgValue : toRemove) {
           Value removed = expectedInverse.remove(smgValue);
           if (removed != null) {
@@ -326,30 +334,31 @@ public class ValueToSMGValueMappingTest {
         }
       }
 
-      mapping.checkInvariants();
+      valueMapping.checkInvariants();
       ImmutableList<Map.Entry<Value, SMGValue>> expectedEntries =
           expected.entrySet().stream()
               .map(entry -> Maps.immutableEntry(entry.getKey().get(), entry.getValue()))
               .collect(ImmutableList.toImmutableList());
       assertWithMessage("entries after step %s", step)
-          .that(entriesOf(mapping))
+          .that(entriesOf(valueMapping))
           .isEqualTo(expectedEntries);
-      assertThat(mapping.size()).isEqualTo(expected.size());
+      assertThat(valueMapping.size()).isEqualTo(expected.size());
       for (Value value : valuePool) {
         SMGValue expectedSMGValue = expected.get(VALUE_WRAPPER.wrap(value));
-        assertWithMessage("get(%s) after step %s", value, step)
-            .that(mapping.get(value))
+        assertWithMessage("getSMGValueFor(%s) after step %s", value, step)
+            .that(valueMapping.getSMGValueFor(value))
             .isEqualTo(expectedSMGValue);
-        assertThat(mapping.containsKey(value)).isEqualTo(expectedSMGValue != null);
+        assertThat(valueMapping.containsSMGValueMappingFor(value))
+            .isEqualTo(expectedSMGValue != null);
       }
       for (SMGValue smgValue : smgValuePool) {
         Value expectedValue = expectedInverse.get(smgValue);
-        assertWithMessage("getKeyForValue(%s) after step %s", smgValue, step)
-            .that(mapping.getKeyForValue(smgValue))
+        assertWithMessage("getValueFor(%s) after step %s", smgValue, step)
+            .that(valueMapping.getValueFor(smgValue))
             .isSameInstanceAs(expectedValue);
-        assertThat(mapping.containsValue(smgValue)).isEqualTo(expectedValue != null);
+        assertThat(valueMapping.containsValueMappingFor(smgValue)).isEqualTo(expectedValue != null);
       }
-      versions.add(mapping);
+      versions.add(valueMapping);
       versionEntries.add(expectedEntries);
     }
 

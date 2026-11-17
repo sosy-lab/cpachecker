@@ -2725,7 +2725,7 @@ public class SMG {
     // The 0 values are exceptions and should not be counted, they always exist but are wrapped.
     // for (SMGValue valueInValuesSet : smgValuesAndNestingLvl.keySet()) {
     // TODO: we clean the SMGValues more often than the mapping, fix in SPC first.
-    // if (!pExistingValueMapping.containsValue(valueInValuesSet)) {
+    // if (!pExistingValueMapping.containsValueMappingFor(valueInValuesSet)) {
     // return false;
     // }
     // }
@@ -2733,7 +2733,7 @@ public class SMG {
     for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objAndHves : hasValueEdges.entrySet()) {
       // SMGObject obj = objAndHves.getKey();
       for (SMGHasValueEdge hve : objAndHves.getValue()) {
-        if (!pExistingValueMapping.containsValue(hve.hasValue())) {
+        if (!pExistingValueMapping.containsValueMappingFor(hve.hasValue())) {
           return false;
         }
       }
@@ -2743,7 +2743,7 @@ public class SMG {
       // References to invalid objects might exist, as well as references to invalid objects sizes
       Value sizeOfObj = obj.getKey().getSize();
       if (!(sizeOfObj instanceof NumericValue)
-          && !pExistingValueMapping.containsKey(sizeOfObj)
+          && !pExistingValueMapping.containsSMGValueMappingFor(sizeOfObj)
           && obj.getValue()) {
         // If the size is in a valid object, we need a mapping!
         // TODO: not really, if its only put into the size, there is currently not a need for a

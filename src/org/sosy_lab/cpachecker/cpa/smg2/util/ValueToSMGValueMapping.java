@@ -56,17 +56,18 @@ public final class ValueToSMGValueMapping {
   private static final ValueWrapper VALUE_EQUIVALENCE = new ValueWrapper();
 
   /*
-   * Implementation: each mapping is stored once as a Mapping object, which is referenced from three
-   * persistent tree maps (one per kind of access). All three maps always contain the same Mapping
-   * objects. Adding or removing a mapping updates each of them in O(log n) by path copying, so a
-   * new instance shares nearly all of its structure with the old one.
+   * Implementation: each mapping is stored once as a ValueAndSMGValueMapping object, which is
+   * referenced from three persistent tree maps (one per kind of access). All three maps always
+   * contain the same ValueAndSMGValueMapping objects. Adding or removing a mapping updates each of
+   * them in O(log n) by path copying, so a new instance shares nearly all of its structure with the
+   * old one.
    */
 
   /**
    * A single mapping. The position is the insertion counter at the time the mapping was added and
    * is used as key in {@link #byPosition}.
    */
-  private record Mapping(Wrapper<Value> value, SMGValue smgValue, long position) {}
+  private record ValueAndSMGValueMapping(Wrapper<Value> value, SMGValue smgValue, long position) {}
 
   /**
    * Forward direction (lookup by {@link Value}). {@link Value} is not {@link Comparable}, and
@@ -77,17 +78,18 @@ public final class ValueToSMGValueMapping {
    * one only for hash collisions of non-equivalent values (e.g., {@code Integer} 1 and {@code Long}
    * 1, or integer 0 and float 0.0).
    */
-  private final PersistentMap<Integer, ImmutableMap<Wrapper<Value>, Mapping>> byValue;
+  private final PersistentMap<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>>
+      byValue;
 
   /** Reverse direction (lookup by {@link SMGValue}), which is {@link Comparable}. */
-  private final PersistentMap<SMGValue, Mapping> bySMGValue;
+  private final PersistentMap<SMGValue, ValueAndSMGValueMapping> bySMGValue;
 
   /**
    * The mappings ordered by their insertion counter. This map exists only to iterate in insertion
    * order (like the {@link com.google.common.collect.ImmutableBiMap} this class replaced), because
    * the order of the other two maps depends on hash codes and {@link SMGValue} ids.
    */
-  private final PersistentMap<Long, Mapping> byPosition;
+  private final PersistentMap<Long, ValueAndSMGValueMapping> byPosition;
 
   /**
    * The position of the next added mapping. It is only ever incremented, so positions of removed
@@ -102,9 +104,9 @@ public final class ValueToSMGValueMapping {
   private final int size;
 
   private ValueToSMGValueMapping(
-      PersistentMap<Integer, ImmutableMap<Wrapper<Value>, Mapping>> pByValue,
-      PersistentMap<SMGValue, Mapping> pBySMGValue,
-      PersistentMap<Long, Mapping> pByPosition,
+      PersistentMap<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>> pByValue,
+      PersistentMap<SMGValue, ValueAndSMGValueMapping> pBySMGValue,
+      PersistentMap<Long, ValueAndSMGValueMapping> pByPosition,
       long pNextPosition,
       int pSize) {
     byValue = pByValue;
@@ -133,26 +135,27 @@ public final class ValueToSMGValueMapping {
    * Returns whether a {@link Value} equivalent to the given one (w.r.t. {@link ValueWrapper}) is
    * mapped.
    */
-  public boolean containsKey(Value pValue) {
-    return getMapping(VALUE_EQUIVALENCE.wrap(pValue)) != null;
+  public boolean containsSMGValueMappingFor(Value pValue) {
+    return getValueAndSMGValueMappingFor(VALUE_EQUIVALENCE.wrap(pValue)) != null;
   }
 
   /**
    * Returns the {@link SMGValue} mapped to a {@link Value} equivalent to the given one (w.r.t.
    * {@link ValueWrapper}), or null.
    */
-  public @Nullable SMGValue get(Value pValue) {
-    Mapping mapping = getMapping(VALUE_EQUIVALENCE.wrap(pValue));
-    return mapping == null ? null : mapping.smgValue();
+  public @Nullable SMGValue getSMGValueFor(Value pValue) {
+    ValueAndSMGValueMapping valueAndSMGValueMapping =
+        getValueAndSMGValueMappingFor(VALUE_EQUIVALENCE.wrap(pValue));
+    return valueAndSMGValueMapping == null ? null : valueAndSMGValueMapping.smgValue();
   }
 
-  private @Nullable Mapping getMapping(Wrapper<Value> pValue) {
-    ImmutableMap<Wrapper<Value>, Mapping> bucket = byValue.get(pValue.hashCode());
+  private @Nullable ValueAndSMGValueMapping getValueAndSMGValueMappingFor(Wrapper<Value> pValue) {
+    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket = byValue.get(pValue.hashCode());
     return bucket == null ? null : bucket.get(pValue);
   }
 
   /** Returns whether the given {@link SMGValue} is mapped. */
-  public boolean containsValue(SMGValue pSMGValue) {
+  public boolean containsValueMappingFor(SMGValue pSMGValue) {
     return bySMGValue.containsKey(pSMGValue);
   }
 
@@ -160,9 +163,9 @@ public final class ValueToSMGValueMapping {
    * Returns the {@link Value} mapped to the given {@link SMGValue} (as it was added with {@link
    * #putAndCopy(Value, SMGValue)}), or null.
    */
-  public @Nullable Value getKeyForValue(SMGValue pSMGValue) {
-    Mapping mapping = bySMGValue.get(pSMGValue);
-    return mapping == null ? null : mapping.value().get();
+  public @Nullable Value getValueFor(SMGValue pSMGValue) {
+    ValueAndSMGValueMapping valueAndSMGValueMapping = bySMGValue.get(pSMGValue);
+    return valueAndSMGValueMapping == null ? null : valueAndSMGValueMapping.value().get();
   }
 
   /**
@@ -174,7 +177,9 @@ public final class ValueToSMGValueMapping {
     return () ->
         Iterators.transform(
             byPosition.values().iterator(),
-            m -> Maps.immutableEntry(m.value().get(), m.smgValue()));
+            valueAndSMGValueMapping ->
+                Maps.immutableEntry(
+                    valueAndSMGValueMapping.value().get(), valueAndSMGValueMapping.smgValue()));
   }
 
   /**
@@ -188,22 +193,27 @@ public final class ValueToSMGValueMapping {
    */
   public ValueToSMGValueMapping putAndCopy(Value pValue, SMGValue pSMGValue) {
     Wrapper<Value> wrappedValue = VALUE_EQUIVALENCE.wrap(pValue);
-    checkArgument(getMapping(wrappedValue) == null, "Multiple entries with same key: %s", pValue);
-    checkArgument(!containsValue(pSMGValue), "Multiple entries with same value: %s", pSMGValue);
-    Mapping mapping = new Mapping(wrappedValue, pSMGValue, nextPosition);
+    checkArgument(
+        getValueAndSMGValueMappingFor(wrappedValue) == null,
+        "Multiple entries with same key: %s",
+        pValue);
+    checkArgument(
+        !containsValueMappingFor(pSMGValue), "Multiple entries with same value: %s", pSMGValue);
+    ValueAndSMGValueMapping valueAndSMGValueMapping =
+        new ValueAndSMGValueMapping(wrappedValue, pSMGValue, nextPosition);
     int hash = wrappedValue.hashCode();
-    ImmutableMap<Wrapper<Value>, Mapping> bucket = byValue.get(hash);
-    ImmutableMap<Wrapper<Value>, Mapping> newBucket =
+    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket = byValue.get(hash);
+    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> newBucket =
         bucket == null
-            ? ImmutableMap.of(wrappedValue, mapping)
-            : ImmutableMap.<Wrapper<Value>, Mapping>builder()
+            ? ImmutableMap.of(wrappedValue, valueAndSMGValueMapping)
+            : ImmutableMap.<Wrapper<Value>, ValueAndSMGValueMapping>builder()
                 .putAll(bucket)
-                .put(wrappedValue, mapping)
+                .put(wrappedValue, valueAndSMGValueMapping)
                 .buildOrThrow();
     return new ValueToSMGValueMapping(
         byValue.putAndCopy(hash, newBucket),
-        bySMGValue.putAndCopy(pSMGValue, mapping),
-        byPosition.putAndCopy(nextPosition, mapping),
+        bySMGValue.putAndCopy(pSMGValue, valueAndSMGValueMapping),
+        byPosition.putAndCopy(nextPosition, valueAndSMGValueMapping),
         nextPosition + 1,
         size + 1);
   }
@@ -215,11 +225,11 @@ public final class ValueToSMGValueMapping {
    * @return a new instance without these mappings, or this instance if none of them is mapped
    */
   public ValueToSMGValueMapping removeAllAndCopy(Collection<SMGValue> pSMGValues) {
-    ValueToSMGValueMapping result = this;
+    ValueToSMGValueMapping newValueToSMGValueMapping = this;
     for (SMGValue smgValue : pSMGValues) {
-      result = result.removeAndCopy(smgValue);
+      newValueToSMGValueMapping = newValueToSMGValueMapping.removeAndCopy(smgValue);
     }
-    return result;
+    return newValueToSMGValueMapping;
   }
 
   /**
@@ -229,24 +239,26 @@ public final class ValueToSMGValueMapping {
    * @return a new instance without this mapping, or this instance if it is not mapped
    */
   public ValueToSMGValueMapping removeAndCopy(SMGValue pSMGValue) {
-    Mapping mapping = bySMGValue.get(pSMGValue);
-    if (mapping == null) {
+    ValueAndSMGValueMapping valueAndSMGValueMapping = bySMGValue.get(pSMGValue);
+    if (valueAndSMGValueMapping == null) {
       return this;
     }
-    int hash = mapping.value().hashCode();
-    ImmutableMap<Wrapper<Value>, Mapping> bucket = byValue.get(hash);
-    PersistentMap<Integer, ImmutableMap<Wrapper<Value>, Mapping>> newByValue;
+    int hash = valueAndSMGValueMapping.value().hashCode();
+    ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping> bucket = byValue.get(hash);
+    PersistentMap<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>> newByValue;
     if (bucket.size() == 1) {
       newByValue = byValue.removeAndCopy(hash);
     } else {
       newByValue =
           byValue.putAndCopy(
-              hash, ImmutableMap.copyOf(Maps.filterKeys(bucket, k -> !k.equals(mapping.value()))));
+              hash,
+              ImmutableMap.copyOf(
+                  Maps.filterKeys(bucket, k -> !k.equals(valueAndSMGValueMapping.value()))));
     }
     return new ValueToSMGValueMapping(
         newByValue,
         bySMGValue.removeAndCopy(pSMGValue),
-        byPosition.removeAndCopy(mapping.position()),
+        byPosition.removeAndCopy(valueAndSMGValueMapping.position()),
         nextPosition,
         size - 1);
   }
@@ -260,15 +272,32 @@ public final class ValueToSMGValueMapping {
     checkState(bySMGValue.size() == size, "Wrong size");
     checkState(byPosition.size() == size, "Wrong size");
     int numberOfMappingsInBuckets = 0;
-    for (Map.Entry<Integer, ImmutableMap<Wrapper<Value>, Mapping>> bucket : byValue.entrySet()) {
+    for (Map.Entry<Integer, ImmutableMap<Wrapper<Value>, ValueAndSMGValueMapping>> bucket :
+        byValue.entrySet()) {
       checkState(!bucket.getValue().isEmpty(), "Empty bucket for hash %s", bucket.getKey());
-      for (Map.Entry<Wrapper<Value>, Mapping> entry : bucket.getValue().entrySet()) {
-        Mapping mapping = entry.getValue();
-        checkState(entry.getKey() == mapping.value(), "Wrong key for %s", mapping);
-        checkState(entry.getKey().hashCode() == bucket.getKey(), "Wrong bucket for %s", mapping);
-        checkState(bySMGValue.get(mapping.smgValue()) == mapping, "Not in bySMGValue: %s", mapping);
-        checkState(byPosition.get(mapping.position()) == mapping, "Not in byPosition: %s", mapping);
-        checkState(mapping.position() < nextPosition, "Position too large: %s", mapping);
+      for (Map.Entry<Wrapper<Value>, ValueAndSMGValueMapping> entry :
+          bucket.getValue().entrySet()) {
+        ValueAndSMGValueMapping valueAndSMGValueMapping = entry.getValue();
+        checkState(
+            entry.getKey() == valueAndSMGValueMapping.value(),
+            "Wrong key for %s",
+            valueAndSMGValueMapping);
+        checkState(
+            entry.getKey().hashCode() == bucket.getKey(),
+            "Wrong bucket for %s",
+            valueAndSMGValueMapping);
+        checkState(
+            bySMGValue.get(valueAndSMGValueMapping.smgValue()) == valueAndSMGValueMapping,
+            "Not in bySMGValue: %s",
+            valueAndSMGValueMapping);
+        checkState(
+            byPosition.get(valueAndSMGValueMapping.position()) == valueAndSMGValueMapping,
+            "Not in byPosition: %s",
+            valueAndSMGValueMapping);
+        checkState(
+            valueAndSMGValueMapping.position() < nextPosition,
+            "Position too large: %s",
+            valueAndSMGValueMapping);
         numberOfMappingsInBuckets++;
       }
     }

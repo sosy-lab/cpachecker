@@ -3682,11 +3682,11 @@ public class SymbolicProgramConfiguration {
   }
 
   private boolean containsValueInMapping(Value value) {
-    return valueMapping.containsKey(value);
+    return valueMapping.containsSMGValueMappingFor(value);
   }
 
   private boolean containsValueInMapping(SMGValue value) {
-    return valueMapping.containsValue(value);
+    return valueMapping.containsValueMappingFor(value);
   }
 
   public SymbolicProgramConfiguration replaceValueWithAndCopy(Value oldValue, Value newValue)
@@ -3736,10 +3736,10 @@ public class SymbolicProgramConfiguration {
     SymbolicProgramConfiguration newSPC = this;
     for (Entry<Value, SMGValue> valueMappingToUpdate : valuesToUpdate.entrySet()) {
       Value correctOldValue = valueMappingToUpdate.getKey();
-      if (!newSPC.valueMapping.containsKey(newValue)) {
+      if (!newSPC.valueMapping.containsSMGValueMappingFor(newValue)) {
         // No mapping for the new value means we can just replace the mapping as it is not yet in
         // the SMG. We just have to remove the old mapping first.
-        if (!newSPC.valueMapping.containsKey(correctOldValue)) {
+        if (!newSPC.valueMapping.containsSMGValueMappingFor(correctOldValue)) {
           // Not mapping is known at all
           SMGValue newSMGValue = SMGValue.of();
 
@@ -3818,7 +3818,7 @@ public class SymbolicProgramConfiguration {
    */
   public SymbolicProgramConfiguration copyAndPutValue(
       Value value, SMGValue smgValue, int nestingLevel, CType valueType) {
-    if (valueMapping.containsKey(value)) {
+    if (valueMapping.containsSMGValueMappingFor(value)) {
       return of(
           smg.copyAndAddValue(smgValue, nestingLevel),
           globalVariableMapping,
@@ -3904,7 +3904,7 @@ public class SymbolicProgramConfiguration {
    *     exists, empty else.
    */
   public Optional<SMGValue> getSMGValueFromValue(Value cValue) {
-    SMGValue value = valueMapping.get(cValue);
+    SMGValue value = valueMapping.getSMGValueFor(cValue);
     if (value == null) {
       return Optional.empty();
     }
@@ -3921,7 +3921,7 @@ public class SymbolicProgramConfiguration {
    *     exists, empty else.
    */
   public Optional<Value> getValueFromSMGValue(SMGValue smgValue) {
-    return Optional.ofNullable(valueMapping.getKeyForValue(smgValue));
+    return Optional.ofNullable(valueMapping.getValueFor(smgValue));
   }
 
   /**
@@ -4387,7 +4387,7 @@ public class SymbolicProgramConfiguration {
 
   /* This expects the Value to be a valid pointer! */
   SMGTargetSpecifier getPointerSpecifier(Value pointer) {
-    SMGValue smgValueAddress = valueMapping.get(pointer);
+    SMGValue smgValueAddress = valueMapping.getSMGValueFor(pointer);
     SMGPointsToEdge ptEdge = smg.getPTEdge(smgValueAddress).orElseThrow();
     checkNotNull(ptEdge);
     return ptEdge.targetSpecifier();
@@ -4402,8 +4402,8 @@ public class SymbolicProgramConfiguration {
    *     else.
    */
   public boolean isPointer(Value maybePointer) {
-    if (valueMapping.containsKey(maybePointer)) {
-      return smg.isPointer(valueMapping.get(maybePointer));
+    if (valueMapping.containsSMGValueMappingFor(maybePointer)) {
+      return smg.isPointer(valueMapping.getSMGValueFor(maybePointer));
     }
     return false;
   }
@@ -4543,8 +4543,8 @@ public class SymbolicProgramConfiguration {
             MemoryLocation.fromQualifiedName(qualifiedName, valueEdge.getOffset().longValueExact());
         SMGValue smgValue = valueEdge.hasValue();
         BigInteger typeSize = valueEdge.getSizeInBits();
-        checkArgument(valueMapping.containsValue(smgValue));
-        Value value = checkNotNull(valueMapping.getKeyForValue(smgValue));
+        checkArgument(valueMapping.containsValueMappingFor(smgValue));
+        Value value = checkNotNull(valueMapping.getValueFor(smgValue));
         ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
         map = map.putAndCopy(memLoc, valueAndValueSize);
       }
@@ -4560,8 +4560,8 @@ public class SymbolicProgramConfiguration {
                   funName + "::__retval__", valueEdge.getOffset().longValueExact());
           SMGValue smgValue = valueEdge.hasValue();
           BigInteger typeSize = valueEdge.getSizeInBits();
-          checkArgument(valueMapping.containsValue(smgValue));
-          Value value = valueMapping.getKeyForValue(smgValue);
+          checkArgument(valueMapping.containsValueMappingFor(smgValue));
+          Value value = valueMapping.getValueFor(smgValue);
           checkNotNull(value);
           ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
           map = map.putAndCopy(memLoc, valueAndValueSize);
@@ -4580,8 +4580,8 @@ public class SymbolicProgramConfiguration {
                   qualifiedName, valueEdge.getOffset().longValueExact());
           SMGValue smgValue = valueEdge.hasValue();
           BigInteger typeSize = valueEdge.getSizeInBits();
-          checkArgument(valueMapping.containsValue(smgValue));
-          Value value = valueMapping.getKeyForValue(smgValue);
+          checkArgument(valueMapping.containsValueMappingFor(smgValue));
+          Value value = valueMapping.getValueFor(smgValue);
           checkNotNull(value);
           ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
           map = map.putAndCopy(memLoc, valueAndValueSize);
@@ -5015,8 +5015,8 @@ public class SymbolicProgramConfiguration {
           ImmutableList.sortedCopyOf(
               Comparator.comparing(SMGHasValueEdge::getOffset), smg.getEdges(memory))) {
         SMGValue smgValue = valueEdge.hasValue();
-        checkArgument(valueMapping.containsValue(smgValue));
-        Value value = valueMapping.getKeyForValue(smgValue);
+        checkArgument(valueMapping.containsValueMappingFor(smgValue));
+        Value value = valueMapping.getValueFor(smgValue);
         checkNotNull(value);
         String pointerInfo = "";
         if (smg.isPointer(smgValue)) {
@@ -5065,8 +5065,8 @@ public class SymbolicProgramConfiguration {
               MemoryLocation.fromQualifiedName(
                   funName + "::__retval__", valueEdge.getOffset().longValueExact());
           SMGValue smgValue = valueEdge.hasValue();
-          checkArgument(valueMapping.containsValue(smgValue));
-          Value value = valueMapping.getKeyForValue(smgValue);
+          checkArgument(valueMapping.containsValueMappingFor(smgValue));
+          Value value = valueMapping.getValueFor(smgValue);
           checkNotNull(value);
 
           String pointerInfo = "";
@@ -5110,8 +5110,8 @@ public class SymbolicProgramConfiguration {
         for (SMGHasValueEdge valueEdge :
             ImmutableList.sortedCopyOf(Comparator.comparing(SMGHasValueEdge::getOffset), edges)) {
           SMGValue smgValue = valueEdge.hasValue();
-          checkArgument(valueMapping.containsValue(smgValue));
-          Value value = valueMapping.getKeyForValue(smgValue);
+          checkArgument(valueMapping.containsValueMappingFor(smgValue));
+          Value value = valueMapping.getValueFor(smgValue);
           checkNotNull(value);
           String pointerInfo = "";
           if (smg.isPointer(smgValue)) {

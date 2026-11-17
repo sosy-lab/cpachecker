@@ -442,7 +442,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     // TODO: try to remove 0 only for a non pointer type
     SMGState currentState = state;
     // Gather all concrete values first and filter out all above the threshold
-    ValueToSMGValueMapping mapping = currentState.getMemoryModel().getValueToSMGValueMapping();
+    ValueToSMGValueMapping spcValueMapping =
+        currentState.getMemoryModel().getValueToSMGValueMapping();
     // remove all concrete values above the threshold (will be replaced by symbolics by reading)
     for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objAndHVEs :
         currentState.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges().entrySet()) {
@@ -450,7 +451,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       Set<SMGHasValueEdge> edgesToRemove = new HashSet<>();
       for (SMGHasValueEdge hve : objAndHVEs.getValue()) {
         SMGValue smgValue = hve.hasValue();
-        Value value = mapping.getKeyForValue(smgValue);
+        Value value = spcValueMapping.getValueFor(smgValue);
         if (value == null || value instanceof NumericValue) {
           edgesToRemove.add(hve);
         }
