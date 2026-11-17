@@ -18,13 +18,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
@@ -182,8 +187,161 @@ public class ValueToSMGValueMappingTest {
         IllegalArgumentException.class, () -> valueMapping.putAndCopy(INT_ZERO, otherSMGValue));
     assertThrows(
         IllegalArgumentException.class, () -> valueMapping.putAndCopy(LONG_ZERO, otherSMGValue));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> valueMapping.putAndCopy(BIG_INTEGER_ZERO, otherSMGValue));
     valueMapping.checkInvariants();
     assertThat(valueMapping.size()).isEqualTo(1);
+  }
+
+  /** The zeros of different floating-point types and signs are not equivalent to each other. */
+  @Test
+  public void testNonEquivalentZeros() {
+    ImmutableList<Value> zeros =
+        ImmutableList.of(
+            INT_ZERO,
+            FLOAT_ZERO,
+            new NumericValue(-0.0f),
+            new NumericValue(0.0),
+            new NumericValue(-0.0),
+            new NumericValue(FloatValue.zero(FloatValue.Format.Float32)),
+            new NumericValue(FloatValue.zero(FloatValue.Format.Float64)));
+    for (int i = 0; i < zeros.size(); i++) {
+      for (int j = i + 1; j < zeros.size(); j++) {
+        assertWithMessage("%s and %s", zeros.get(i), zeros.get(j))
+            .that(VALUE_WRAPPER.equivalent(zeros.get(i), zeros.get(j)))
+            .isFalse();
+      }
+    }
+
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
+    List<SMGValue> smgValues = new ArrayList<>();
+    for (Value zero : zeros) {
+      SMGValue smgValue = SMGValue.of();
+      smgValues.add(smgValue);
+      valueMapping = put(valueMapping, zero, smgValue);
+    }
+    for (int i = 0; i < zeros.size(); i++) {
+      assertThat(valueMapping.getSMGValueFor(zeros.get(i))).isEqualTo(smgValues.get(i));
+      assertThat(valueMapping.getValueFor(smgValues.get(i))).isSameInstanceAs(zeros.get(i));
+    }
+  }
+
+  /** Pointers are represented by {@link SymbolicIdentifier}s, which are compared by equals(). */
+  @Test
+  public void testSymbolicValues() {
+    SymbolicIdentifier pointer1 = SymbolicValueFactory.getInstance().newIdentifier(null);
+    SymbolicIdentifier pointer2 = SymbolicValueFactory.getInstance().newIdentifier(null);
+    SymbolicIdentifier pointer1Copy = new SymbolicIdentifier(pointer1.getId(), null);
+    Value symbolicExpression = new ConstantSymbolicExpression(pointer1, CNumericTypes.INT);
+    Value symbolicExpressionCopy = new ConstantSymbolicExpression(pointer1Copy, CNumericTypes.INT);
+    assertThat(pointer1Copy).isEqualTo(pointer1);
+    assertThat(pointer1Copy).isNotSameInstanceAs(pointer1);
+    assertThat(symbolicExpression).isNotEqualTo(pointer1);
+
+    SMGValue smgValue1 = SMGValue.of();
+    SMGValue smgValue2 = SMGValue.of();
+    SMGValue smgValue3 = SMGValue.of();
+    SMGValue smgValue4 = SMGValue.of();
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
+    valueMapping = put(valueMapping, pointer1, smgValue1);
+    valueMapping = put(valueMapping, INT_ZERO, smgValue2);
+    valueMapping = put(valueMapping, pointer2, smgValue3);
+    valueMapping = put(valueMapping, symbolicExpression, smgValue4);
+
+    // Lookups with equal, but different instances
+    assertThat(valueMapping.getSMGValueFor(pointer1Copy)).isEqualTo(smgValue1);
+    assertThat(valueMapping.getSMGValueFor(symbolicExpressionCopy)).isEqualTo(smgValue4);
+    assertThat(valueMapping.getSMGValueFor(pointer2)).isEqualTo(smgValue3);
+    assertThat(valueMapping.getValueFor(smgValue1)).isSameInstanceAs(pointer1);
+    assertThat(
+            valueMapping.containsSMGValueMappingFor(
+                SymbolicValueFactory.getInstance().newIdentifier(null)))
+        .isFalse();
+
+    ValueToSMGValueMapping finalValueMapping = valueMapping;
+    SMGValue otherSMGValue = SMGValue.of();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> finalValueMapping.putAndCopy(pointer1Copy, otherSMGValue));
+
+    valueMapping = remove(valueMapping, smgValue1);
+    assertThat(valueMapping.containsSMGValueMappingFor(pointer1)).isFalse();
+    assertThat(valueMapping.getSMGValueFor(symbolicExpression)).isEqualTo(smgValue4);
+  }
+
+  @Test
+  public void testNullSMGValueIsRejected() {
+    ValueToSMGValueMapping valueMapping = put(ValueToSMGValueMapping.of(), INT_ZERO, SMGValue.of());
+    Value otherValue = new NumericValue(1);
+    List<SMGValue> listWithNull = Collections.singletonList(null);
+
+    assertThrows(NullPointerException.class, () -> valueMapping.containsValueMappingFor(null));
+    assertThrows(NullPointerException.class, () -> valueMapping.getValueFor(null));
+    assertThrows(NullPointerException.class, () -> valueMapping.putAndCopy(otherValue, null));
+    assertThrows(NullPointerException.class, () -> valueMapping.removeAndCopy(null));
+    assertThrows(NullPointerException.class, () -> valueMapping.removeAllAndCopy(listWithNull));
+    valueMapping.checkInvariants();
+    assertThat(valueMapping.size()).isEqualTo(1);
+  }
+
+  /**
+   * Builds a large mapping, so that the trees are deep and path copying affects many levels, and
+   * checks it and some of its earlier versions. Uses putAndCopy() directly instead of put(),
+   * because put() compares all entries after each step.
+   */
+  @Test
+  public void testLargeMapping() {
+    int numberOfMappings = 20_000;
+    List<Value> values = new ArrayList<>();
+    List<SMGValue> smgValues = new ArrayList<>();
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
+    ValueToSMGValueMapping halfValueMapping = valueMapping;
+    for (int i = 0; i < numberOfMappings; i++) {
+      if (i == numberOfMappings / 2) {
+        halfValueMapping = valueMapping;
+      }
+      // Mix numeric values and pointers
+      Value value =
+          i % 3 == 0
+              ? SymbolicValueFactory.getInstance().newIdentifier(null)
+              : new NumericValue((long) i);
+      SMGValue smgValue = SMGValue.of();
+      values.add(value);
+      smgValues.add(smgValue);
+      valueMapping = valueMapping.putAndCopy(value, smgValue);
+    }
+    valueMapping.checkInvariants();
+    assertThat(valueMapping.size()).isEqualTo(numberOfMappings);
+    for (int i = 0; i < numberOfMappings; i++) {
+      assertThat(valueMapping.getSMGValueFor(values.get(i))).isEqualTo(smgValues.get(i));
+      assertThat(valueMapping.getValueFor(smgValues.get(i))).isSameInstanceAs(values.get(i));
+    }
+
+    // Remove every second mapping
+    List<SMGValue> toRemove = new ArrayList<>();
+    List<Map.Entry<Value, SMGValue>> expectedRemaining = new ArrayList<>();
+    for (int i = 0; i < numberOfMappings; i++) {
+      if (i % 2 == 0) {
+        toRemove.add(smgValues.get(i));
+      } else {
+        expectedRemaining.add(Maps.immutableEntry(values.get(i), smgValues.get(i)));
+      }
+    }
+    ValueToSMGValueMapping reducedValueMapping = valueMapping.removeAllAndCopy(toRemove);
+    reducedValueMapping.checkInvariants();
+    assertThat(reducedValueMapping.size()).isEqualTo(numberOfMappings / 2);
+    assertThat(entriesOf(reducedValueMapping)).isEqualTo(expectedRemaining);
+    assertThat(reducedValueMapping.containsSMGValueMappingFor(values.get(0))).isFalse();
+
+    // Earlier versions are unchanged
+    valueMapping.checkInvariants();
+    assertThat(valueMapping.size()).isEqualTo(numberOfMappings);
+    halfValueMapping.checkInvariants();
+    assertThat(entriesOf(halfValueMapping))
+        .isEqualTo(entriesOf(valueMapping).subList(0, numberOfMappings / 2));
+    assertThat(halfValueMapping.containsValueMappingFor(smgValues.get(numberOfMappings / 2)))
+        .isFalse();
   }
 
   @Test
@@ -284,8 +442,14 @@ public class ValueToSMGValueMappingTest {
    */
   @Test
   public void testRandomOperations() {
+    SymbolicIdentifier pointer1 = SymbolicValueFactory.getInstance().newIdentifier(null);
+    SymbolicIdentifier pointer2 = SymbolicValueFactory.getInstance().newIdentifier(null);
     ImmutableList<Value> valuePool =
         ImmutableList.of(
+            pointer1,
+            pointer2,
+            new SymbolicIdentifier(pointer1.getId(), null), // equal to pointer1
+            new ConstantSymbolicExpression(pointer2, CNumericTypes.INT),
             INT_ZERO,
             LONG_ZERO,
             BIG_INTEGER_ZERO,
