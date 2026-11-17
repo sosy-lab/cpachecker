@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.smg2.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -192,5 +194,28 @@ public final class ValueToSMGValueMapping {
         bySMGValue.removeAndCopy(pSMGValue),
         byPosition.removeAndCopy(mapping.position()),
         nextPosition);
+  }
+
+  /**
+   * Checks that the three internal maps are consistent, i.e., contain the same mappings under the
+   * correct keys, and that no bucket is empty.
+   */
+  @VisibleForTesting
+  void checkInvariants() {
+    checkState(byPosition.size() == bySMGValue.size(), "Maps have different sizes");
+    int numberOfMappingsInBuckets = 0;
+    for (Map.Entry<Integer, ImmutableMap<Wrapper<Value>, Mapping>> bucket : byValue.entrySet()) {
+      checkState(!bucket.getValue().isEmpty(), "Empty bucket for hash %s", bucket.getKey());
+      for (Map.Entry<Wrapper<Value>, Mapping> entry : bucket.getValue().entrySet()) {
+        Mapping mapping = entry.getValue();
+        checkState(entry.getKey() == mapping.value(), "Wrong key for %s", mapping);
+        checkState(entry.getKey().hashCode() == bucket.getKey(), "Wrong bucket for %s", mapping);
+        checkState(bySMGValue.get(mapping.smgValue()) == mapping, "Not in bySMGValue: %s", mapping);
+        checkState(byPosition.get(mapping.position()) == mapping, "Not in byPosition: %s", mapping);
+        checkState(mapping.position() < nextPosition, "Position too large: %s", mapping);
+        numberOfMappingsInBuckets++;
+      }
+    }
+    checkState(numberOfMappingsInBuckets == bySMGValue.size(), "Maps have different sizes");
   }
 }
