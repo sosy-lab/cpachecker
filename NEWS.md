@@ -37,6 +37,16 @@ Changes since CPAchecker 4.2.2
   * Correctness witnesses contain only invariants over variables in scope,
     and new options select which kinds of invariants they contain.
   * Termination witnesses now contain the bounds of ranking functions.
+* The counterexample check has moved away from using witness 1.0 and instead supports 
+  2 new counterexample representations. Defaults to using the internal `AUTOMATON` 
+  representation. Additionally supports the `WITNESSV2` format, specified using 
+  ``counterexample.checker.counterexampleFormat``.
+* Added support for new C math functions in predicate analysis:
+  * sqrt functions (`sqrt`, `sqrtf`, `sqrtl`)
+  * abs functions (`abs`, `labs`, `llabs`, `imaxabs`)
+* Added support for verifying programs with assignments to members of a union or a struct which have one or more array members.
+* Added support for verifying programs with bitfields in unions and structs. 
+  Bitfields in packed structs remain unsupported, and bitfields are not exported to witnesses. 
 * Extended support for SV-LIB.  
   * Scripts can now use bitvectors, floating-point numbers,
     `define-fun`, `define-procs-rec`, and `goto`.
