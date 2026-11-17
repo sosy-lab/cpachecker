@@ -111,7 +111,7 @@ public final class ValueToSMGValueMapping {
   }
 
   /** Removes the mappings of the given {@link SMGValue}s. */
-  public ValueToSMGValueMapping removeAndCopy(Collection<SMGValue> pSMGValues) {
+  public ValueToSMGValueMapping removeAllAndCopy(Collection<SMGValue> pSMGValues) {
     ValueToSMGValueMapping result = this;
     for (SMGValue smgValue : pSMGValues) {
       result = result.removeAndCopy(smgValue);
@@ -119,7 +119,8 @@ public final class ValueToSMGValueMapping {
     return result;
   }
 
-  private ValueToSMGValueMapping removeAndCopy(SMGValue pSMGValue) {
+  /** Removes the mapping of the given {@link SMGValue}, if it exists. */
+  public ValueToSMGValueMapping removeAndCopy(SMGValue pSMGValue) {
     Mapping mapping = bySMGValue.get(pSMGValue);
     if (mapping == null) {
       return this;

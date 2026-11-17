@@ -3751,9 +3751,7 @@ public class SymbolicProgramConfiguration {
           return newSPC.copyAndPutValue(newValue, newSMGValue, 0, getTypeForValue(correctOldValue));
         } else {
           SMGValue oldSMGValue = valueMappingToUpdate.getValue();
-          newSPC =
-              newSPC.withNewValueMappings(
-                  newSPC.valueMapping.removeAndCopy(ImmutableSet.of(oldSMGValue)));
+          newSPC = newSPC.withNewValueMappings(newSPC.valueMapping.removeAndCopy(oldSMGValue));
 
           return newSPC.copyAndPutValue(newValue, oldSMGValue, 0, getTypeForValue(correctOldValue));
         }
@@ -3768,7 +3766,7 @@ public class SymbolicProgramConfiguration {
               newSPC.smg.replaceValueWithAndCopy(correctOldValue, oldSMGValue, newSMGValue));
     }
     Collection<SMGValue> valueMappingsToRemove = valuesToUpdate.values();
-    newSPC = newSPC.withNewValueMappings(valueMapping.removeAndCopy(valueMappingsToRemove));
+    newSPC = newSPC.withNewValueMappings(valueMapping.removeAllAndCopy(valueMappingsToRemove));
     assert newSPC.checkValueMappingConsistency();
     return newSPC;
   }
@@ -5246,11 +5244,11 @@ public class SymbolicProgramConfiguration {
     }
     newSPC = newSPC.copyAndReplaceSMG(newSMG);
     ImmutableSet<SMGValue> valueMappingsToRemove = valueMappingsToRemoveBuilder.build();
-    return newSPC.withNewValueMappings(valueMapping.removeAndCopy(valueMappingsToRemove));
+    return newSPC.withNewValueMappings(valueMapping.removeAllAndCopy(valueMappingsToRemove));
   }
 
   public SymbolicProgramConfiguration removeValueMappings(Set<SMGValue> valueMappingsToRemove) {
-    return withNewValueMappings(valueMapping.removeAndCopy(valueMappingsToRemove));
+    return withNewValueMappings(valueMapping.removeAllAndCopy(valueMappingsToRemove));
   }
 
   public boolean checkSMGSanity() {
