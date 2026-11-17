@@ -271,10 +271,15 @@ public class ValueToSMGValueMappingTest {
   }
 
   @Test
-  public void testNullSMGValueIsRejected() {
+  public void testNullIsRejected() {
     ValueToSMGValueMapping valueMapping = put(ValueToSMGValueMapping.of(), INT_ZERO, SMGValue.of());
     Value otherValue = new NumericValue(1);
+    SMGValue otherSMGValue = SMGValue.of();
     List<SMGValue> listWithNull = Collections.singletonList(null);
+
+    assertThrows(NullPointerException.class, () -> valueMapping.containsSMGValueMappingFor(null));
+    assertThrows(NullPointerException.class, () -> valueMapping.getSMGValueFor(null));
+    assertThrows(NullPointerException.class, () -> valueMapping.putAndCopy(null, otherSMGValue));
 
     assertThrows(NullPointerException.class, () -> valueMapping.containsValueMappingFor(null));
     assertThrows(NullPointerException.class, () -> valueMapping.getValueFor(null));

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
  * <p>{@link Value}s are compared w.r.t. the equivalence {@link ValueWrapper}, not with {@code
  * Value.equals()}. For example, the integer values {@code 0} and {@code 0L} are equivalent, so at
  * most one of them can be mapped, and a lookup with either one finds the mapping. {@link SMGValue}s
- * are compared with {@link SMGValue#equals(Object)}. {@link SMGValue} arguments must not be null.
+ * are compared with {@link SMGValue#equals(Object)}. Arguments must not be null.
  *
  * <p>The semantics match those of the {@link com.google.common.collect.ImmutableBiMap} that this
  * class replaced: each {@link Value} and each {@link SMGValue} is mapped at most once, adding a
@@ -139,7 +139,7 @@ public final class ValueToSMGValueMapping {
    * mapped.
    */
   public boolean containsSMGValueMappingFor(Value pValue) {
-    return getValueAndSMGValueMappingFor(VALUE_EQUIVALENCE.wrap(pValue)) != null;
+    return getValueAndSMGValueMappingFor(VALUE_EQUIVALENCE.wrap(checkNotNull(pValue))) != null;
   }
 
   /**
@@ -148,7 +148,7 @@ public final class ValueToSMGValueMapping {
    */
   public @Nullable SMGValue getSMGValueFor(Value pValue) {
     ValueAndSMGValueMapping valueAndSMGValueMapping =
-        getValueAndSMGValueMappingFor(VALUE_EQUIVALENCE.wrap(pValue));
+        getValueAndSMGValueMappingFor(VALUE_EQUIVALENCE.wrap(checkNotNull(pValue)));
     return valueAndSMGValueMapping == null ? null : valueAndSMGValueMapping.smgValue();
   }
 
@@ -198,7 +198,7 @@ public final class ValueToSMGValueMapping {
    */
   public ValueToSMGValueMapping putAndCopy(Value pValue, SMGValue pSMGValue) {
     checkNotNull(pSMGValue);
-    Wrapper<Value> wrappedValue = VALUE_EQUIVALENCE.wrap(pValue);
+    Wrapper<Value> wrappedValue = VALUE_EQUIVALENCE.wrap(checkNotNull(pValue));
     checkArgument(
         getValueAndSMGValueMappingFor(wrappedValue) == null,
         "Multiple entries with same key: %s",
