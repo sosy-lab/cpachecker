@@ -44,8 +44,7 @@ Changes since CPAchecker 4.2.2
     with BMC, k-induction, IMC, and ISMC.
 * New configurations based on k-induction and symbolic execution
   for the property no-overflow, which are part of the overflow portfolio.
-* The new option `cfa.transformSetjmpLongjmp` models `setjmp` and `longjmp`
-  with a CFA transformation.
+* Support for some cases of `setjmp` and `longjmp` with a CFA transformation.
 
 
 Changes from CPAchecker 4.2.1 to CPAchecker 4.2.2
