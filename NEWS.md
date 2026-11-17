@@ -40,7 +40,6 @@ Changes since CPAchecker 4.2.2
 * Many improvements in witness export and validation.
   * Violation witnesses in YAML format 2.2 for concurrent programs,
     including data races, can now be exported and validated.
-  * Witnesses for programs verified by sequentialization now refer to the input program.
   * Correctness witnesses contain only invariants over variables in scope,
     and new options select which kinds of invariants they contain.
   * Termination witnesses now contain the bounds of ranking functions.
