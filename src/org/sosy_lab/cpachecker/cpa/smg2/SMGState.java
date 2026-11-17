@@ -1457,8 +1457,34 @@ public class SMGState
     // Get all (global and local) variables
     PersistentMap<MemoryLocation, ValueAndValueSize> thisAllMemLocAndValues =
         memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap();
+    PersistentMap<MemoryLocation, ValueAndValueSize> otherAllMemLocAndValues =
+        pOther.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap();
+
+    // Compare concrete numeric values first. They are cheap to compare and often differ for states
+    // at the same location (e.g., loop counters), while pointers are compared by the shape of the
+    // memory they point to, which can traverse large parts of the heap.
     for (Entry<MemoryLocation, ValueAndValueSize> otherMemLocAndValue :
-        pOther.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
+        otherAllMemLocAndValues.entrySet()) {
+      Value otherValue = otherMemLocAndValue.getValue().getValue();
+      ValueAndValueSize thisValueAndType = thisAllMemLocAndValues.get(otherMemLocAndValue.getKey());
+      if (otherValue instanceof NumericValue
+          && thisValueAndType != null
+          && thisValueAndType.getValue() instanceof NumericValue
+          && !areValuesEqual(
+              this,
+              thisValueAndType.getValue(),
+              pOther,
+              otherValue,
+              equalityCache,
+              objectCache,
+              treatSymbolicsAsEqualWEqualConstrains(pOther, otherMemLocAndValue.getKey()),
+              trueEqualityCheck)) {
+        return false;
+      }
+    }
+
+    for (Entry<MemoryLocation, ValueAndValueSize> otherMemLocAndValue :
+        otherAllMemLocAndValues.entrySet()) {
       MemoryLocation otherMemLoc = otherMemLocAndValue.getKey();
       Value otherValue = otherMemLocAndValue.getValue().getValue();
       ValueAndValueSize thisValueAndType = thisAllMemLocAndValues.get(otherMemLoc);
@@ -1621,13 +1647,6 @@ public class SMGState
       return false;
     }
 
-    // We may not forget any errors already found
-    // TODO: simplify/reduce complexity for cases in which we know that the result is equal to input
-    if (!copyAndPruneUnreachable()
-        .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
-      return false;
-    }
-
     // Cache value equalities and object (shape) equalities that we already found
     EqualityCache<Value> equalityCache = EqualityCache.of();
     EqualityCache<SMGObject> objectCache = EqualityCache.of();
@@ -1641,7 +1660,16 @@ public class SMGState
     // pointers is lessOrEqual)
     // Validity is checked while checking values and the shape!
     // There might linger some invalidated memory with no connection and that's fine.
-    return checkEqualityOfMemoryForTwoStates(pOther, equalityCache, objectCache, false);
+    if (!checkEqualityOfMemoryForTwoStates(pOther, equalityCache, objectCache, false)) {
+      return false;
+    }
+
+    // We may not forget any errors already found.
+    // This is checked last, as pruning traverses the whole memory of both states, while the checks
+    // above usually reject states early.
+    // TODO: simplify/reduce complexity for cases in which we know that the result is equal to input
+    return copyAndPruneUnreachable()
+        .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable());
   }
 
   /**
