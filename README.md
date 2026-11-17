@@ -92,6 +92,7 @@ Verifying a Program with CPAchecker
    you need to specify it in the environment variable JAVA.
    Example: `export JAVA=/usr/lib/jvm/java-21-openjdk-amd64/bin/java`
    for 64bit OpenJDK 21 on Ubuntu.
+   Cf. [INSTALL.md](INSTALL.md) for our policy on raising required dependency versions.
 
    Please note that not all analysis configurations are available for MacOS
    because we do not ship binaries for SMT solvers for this platform.
