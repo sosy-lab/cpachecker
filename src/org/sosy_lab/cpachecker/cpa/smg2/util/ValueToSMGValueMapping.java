@@ -27,12 +27,43 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
  */
 public final class ValueToSMGValueMapping {
 
+  /*
+   * Implementation: each mapping is stored once as a Mapping object, which is referenced from three
+   * persistent tree maps (one per kind of access). All three maps always contain the same Mapping
+   * objects. Adding or removing a mapping updates each of them in O(log n) by path copying, so a
+   * new instance shares nearly all of its structure with the old one.
+   */
+
+  /**
+   * A single mapping. The position is the insertion counter at the time the mapping was added and
+   * is used as key in {@link #byPosition}.
+   */
   private record Mapping(Wrapper<Value> value, SMGValue smgValue, long position) {}
 
-  // The hash buckets of the wrapped values. Buckets nearly always hold one entry.
+  /**
+   * Forward direction (lookup by {@link Value}). {@link Value} is not {@link Comparable}, and
+   * lookups must use the equivalence of the {@link Wrapper} (not {@link Value#equals(Object)}), so
+   * the values cannot be keys of a tree map directly. Instead, the tree map is keyed by the hash
+   * code of the wrapped value, and maps it to a bucket with all mappings of wrapped values with
+   * this hash code. A bucket is never empty and nearly always holds only one mapping; it holds more
+   * than one only for hash collisions of non-equivalent values (e.g., integer 0 and float 0.0).
+   */
   private final PersistentMap<Integer, ImmutableMap<Wrapper<Value>, Mapping>> byValue;
+
+  /** Reverse direction (lookup by {@link SMGValue}), which is {@link Comparable}. */
   private final PersistentMap<SMGValue, Mapping> bySMGValue;
+
+  /**
+   * The mappings ordered by their insertion counter. This map exists only to iterate in insertion
+   * order (like the {@link com.google.common.collect.ImmutableBiMap} this class replaced), because
+   * the order of the other two maps depends on hash codes and {@link SMGValue} ids.
+   */
   private final PersistentMap<Long, Mapping> byPosition;
+
+  /**
+   * The position of the next added mapping. It is only ever incremented, so positions of removed
+   * mappings are not reused and positions are not contiguous.
+   */
   private final long nextPosition;
 
   private ValueToSMGValueMapping(
