@@ -27,6 +27,8 @@ Changes since CPAchecker 4.2.2
   * Added support for verifying programs with assignments to members of a union or a struct which have one or more array members.
   * Added support for verifying programs with bitfields in unions and structs. 
     Bitfields in packed structs remain unsupported, and bitfields are not exported to witnesses. 
+  * More precise handling of strings,
+    e.g., for `strcpy`, `strcmp`, and string-literal initializers.
 * `__atomic_*` builtin functions are now supported with sequential consistency ordering,
   the `_Atomic(T)` type specifier is now parsed, and
   `__thread`/`_Thread_local` storage is now recognized.
@@ -70,6 +72,16 @@ Changes since CPAchecker 4.2.2
     with BMC, k-induction, IMC, and ISMC.
 * New configurations based on k-induction and symbolic execution
   for the property no-overflow, which are part of the overflow portfolio.
+* Faster unrolling for k-induction.
+* New analyses that solve easy tasks within seconds.  
+  The SV-COMP'27 configuration runs them next to its main analysis.
+  * Simple rules (`--simpleRules`) decide a property by only inspecting the CFA,
+    e.g., a program without loops and recursion terminates,
+    and a program that never allocates memory cannot leak memory.
+  * The new InterpreterCPA (`--interpreter`) executes programs without input
+    and reports whether their only execution violates the property.
+    It supports all SV-COMP properties except data races.
+  * `--simpleChecks` runs both analyses in parallel.
 * Support for some cases of `setjmp` and `longjmp` with a CFA transformation.
 
 
