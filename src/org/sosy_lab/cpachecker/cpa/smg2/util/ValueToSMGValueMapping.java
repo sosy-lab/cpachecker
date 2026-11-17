@@ -14,7 +14,7 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.Collection;
-import java.util.Map.Entry;
+import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -82,7 +82,7 @@ public final class ValueToSMGValueMapping {
   }
 
   /** The mappings in insertion order. */
-  public Iterable<Entry<Wrapper<Value>, SMGValue>> entries() {
+  public Iterable<Map.Entry<Wrapper<Value>, SMGValue>> entries() {
     return () ->
         byPosition.values().stream()
             .map(m -> Maps.immutableEntry(m.value(), m.smgValue()))
