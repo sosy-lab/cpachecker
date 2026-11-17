@@ -279,6 +279,26 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
   }
 
   @Test
+  public void testUnInstantiateKeepsBoundVariableWithIndex()
+      throws SolverException, InterruptedException {
+    requireQuantifiers();
+    requireIntegers();
+
+    IntegerFormula _i = imgrv.makeVariable("i");
+    IntegerFormula _i1 = imgrv.makeVariable("i", 1);
+    IntegerFormula _x1 = imgrv.makeVariable("x", 1);
+
+    QuantifiedFormulaManagerView qmv = mgrv.getQuantifiedFormulaManager();
+    BooleanFormula instantiated = qmv.forall(_x1, imgrv.lessOrEquals(_x1, _i1));
+    BooleanFormula uninstantiated = qmv.forall(_x1, imgrv.lessOrEquals(_x1, _i));
+
+    SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
+    ssaBuilder.setIndex("i", CNumericTypes.INT, 1);
+
+    testUnInstantiate(instantiated, uninstantiated, ssaBuilder);
+  }
+
+  @Test
   public void testUnInstantiate() throws SolverException, InterruptedException {
     IntegerFormula _0 = imgrv.makeNumber(0);
     IntegerFormula _1 = imgrv.makeNumber(1);

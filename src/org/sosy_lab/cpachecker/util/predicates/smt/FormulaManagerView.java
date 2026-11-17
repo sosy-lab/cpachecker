@@ -1337,16 +1337,20 @@ public class FormulaManagerView {
           @Override
           public Void visitQuantifier(
               BooleanFormula f, Quantifier quantifier, List<Formula> args, BooleanFormula body) {
-            BooleanFormula transformedBody = (BooleanFormula) pCache.get(body);
-
-            if (transformedBody != null) {
-              BooleanFormula newTt =
-                  getQuantifiedFormulaManager().mkQuantifier(quantifier, args, transformedBody);
-              pCache.put(f, newTt);
-
-            } else {
-              toProcess.push(body);
+            // Bound variables are not free and keep their names. The body gets its own cache,
+            // because the shared one may already rename the same symbols as free variables.
+            ImmutableSet.Builder<String> boundNamesBuilder = ImmutableSet.builder();
+            for (Formula boundVariable : args) {
+              boundNamesBuilder.addAll(manager.extractVariables(boundVariable).keySet());
             }
+            ImmutableSet<String> boundNames = boundNamesBuilder.build();
+            BooleanFormula transformedBody =
+                myFreeVariableNodeTransformer(
+                    body,
+                    new HashMap<>(),
+                    name -> boundNames.contains(name) ? name : pRenameFunction.apply(name));
+            pCache.put(
+                f, getQuantifiedFormulaManager().mkQuantifier(quantifier, args, transformedBody));
             return null;
           }
         };
