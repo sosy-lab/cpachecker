@@ -30,6 +30,13 @@ Changes since CPAchecker 4.2.2
   pthread barriers, `pthread_once`, recursive mutexes, and the result of `pthread_join`
   are now modeled, data races through pointers are detected,
   and the concurrency portfolio now also uses predicate analysis.
+* Sequentialization:
+  * Added violation witness export in YAML format 2.2 
+    by mapping back to the input program.
+  * Added support for:
+    `pthread_once`, `pthread_barrier_*`, `pthread_join` results via `return ...;`, 
+    pthread objects in pointers, arrays and structs.
+  * Correctly model out of scope and dangling pointers by resetting to `(void*)0`.
 * Many improvements in witness export and validation.
   * Violation witnesses in YAML format 2.2 for concurrent programs,
     including data races, can now be exported and validated.
