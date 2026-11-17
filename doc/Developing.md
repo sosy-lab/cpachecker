@@ -152,6 +152,42 @@ just run `bin/cpachecker --jvm-debug ...` and point your debugger to TCP port 50
 of the respective machine.
 
 
+Replacing SMT-Solver Versions
+------------------------------
+Sometimes it may be desirable to replace the SMT solver that CPAchecker uses
+with a newer or older version,
+for example in order to avoid dependency problems of newer solver binaries
+or test a newer version.
+This is easy if the respective target version is packaged by [JavaSMT](https://github.com/sosy-lab/java-smt):
+
+1. Check available solver versions in our Ivy repository, e.g., [here](https://www.sosy-lab.org/ivy/org.sosy_lab/javasmt-solver-mathsat/) for MathSAT.
+
+1. At the end of `lib/ivy.xml` before `</dependencies>` add an override of the version, for example like this:
+   ```
+   <override org="org.sosy_lab" module="javasmt-solver-mathsat" rev="5.6.11"/>
+   ```
+
+1. Run `ant`.
+
+However, there is no guarantee that different solver versions work with the used JavaSMT version.
+
+To try out solver binaries that are not in the Ivy repository,
+follow the instructions from the next section.
+
+
+Replacing Dependencies Locally
+------------------------------
+As described below under "Offline Development",
+it is possible to point the build process to a local Ivy repository,
+which can be used to try out dependency versions that are not yet public.
+
+Alternatively, by setting `ivy.disable = true`
+in a file called `build.properties` in the project root
+one can disable the dependency resolver completely
+and then put libraries into the directory in `lib/`
+without having them overwritten by the build process.
+
+
 JavaScript Development
 -----------------------
 The JS files can be found in the directory `src/org/sosy_lab/cpachecker/core/counterexample`. We use Node.js as environment for our files.
