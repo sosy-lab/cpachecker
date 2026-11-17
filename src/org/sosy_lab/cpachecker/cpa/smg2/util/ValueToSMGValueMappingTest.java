@@ -13,6 +13,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import java.math.BigInteger;
@@ -257,6 +258,22 @@ public class ValueToSMGValueMappingTest {
             Maps.immutableEntry(value2, smgValue1),
             Maps.immutableEntry(value3, smgValue2))
         .inOrder();
+  }
+
+  @Test
+  public void testToString() {
+    assertThat(ValueToSMGValueMapping.of().toString()).isEqualTo("{}");
+
+    Value value1 = new NumericValue(1);
+    Value value2 = new NumericValue(2);
+    SMGValue smgValue1 = SMGValue.of();
+    SMGValue smgValue2 = SMGValue.of();
+    ValueToSMGValueMapping valueMapping = ValueToSMGValueMapping.of();
+    valueMapping = put(valueMapping, value2, smgValue2);
+    valueMapping = put(valueMapping, value1, smgValue1);
+
+    assertThat(valueMapping.toString())
+        .isEqualTo(ImmutableBiMap.of(value2, smgValue2, value1, smgValue1).toString());
   }
 
   /**

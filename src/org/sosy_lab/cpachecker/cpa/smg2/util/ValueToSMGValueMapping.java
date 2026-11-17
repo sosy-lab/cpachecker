@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.smg2.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
@@ -37,7 +39,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
  * <p>{@link Value}s are compared w.r.t. the equivalence {@link ValueWrapper}, not with {@code
  * Value.equals()}. For example, the integer values {@code 0} and {@code 0L} are equivalent, so at
  * most one of them can be mapped, and a lookup with either one finds the mapping. {@link SMGValue}s
- * are compared with {@link SMGValue#equals(Object)}. All arguments must be non-null.
+ * are compared with {@link SMGValue#equals(Object)}. {@link SMGValue} arguments must not be null.
  *
  * <p>The semantics match those of the {@link com.google.common.collect.ImmutableBiMap} that this
  * class replaced: each {@link Value} and each {@link SMGValue} is mapped at most once, adding a
@@ -156,7 +158,7 @@ public final class ValueToSMGValueMapping {
 
   /** Returns whether the given {@link SMGValue} is mapped. */
   public boolean containsValueMappingFor(SMGValue pSMGValue) {
-    return bySMGValue.containsKey(pSMGValue);
+    return bySMGValue.containsKey(checkNotNull(pSMGValue));
   }
 
   /**
@@ -164,7 +166,7 @@ public final class ValueToSMGValueMapping {
    * #putAndCopy(Value, SMGValue)}), or null.
    */
   public @Nullable Value getValueFor(SMGValue pSMGValue) {
-    ValueAndSMGValueMapping valueAndSMGValueMapping = bySMGValue.get(pSMGValue);
+    ValueAndSMGValueMapping valueAndSMGValueMapping = bySMGValue.get(checkNotNull(pSMGValue));
     return valueAndSMGValueMapping == null ? null : valueAndSMGValueMapping.value().get();
   }
 
@@ -192,6 +194,7 @@ public final class ValueToSMGValueMapping {
    *     {@link SMGValue} is already mapped
    */
   public ValueToSMGValueMapping putAndCopy(Value pValue, SMGValue pSMGValue) {
+    checkNotNull(pSMGValue);
     Wrapper<Value> wrappedValue = VALUE_EQUIVALENCE.wrap(pValue);
     checkArgument(
         getValueAndSMGValueMappingFor(wrappedValue) == null,
@@ -239,7 +242,7 @@ public final class ValueToSMGValueMapping {
    * @return a new instance without this mapping, or this instance if it is not mapped
    */
   public ValueToSMGValueMapping removeAndCopy(SMGValue pSMGValue) {
-    ValueAndSMGValueMapping valueAndSMGValueMapping = bySMGValue.get(pSMGValue);
+    ValueAndSMGValueMapping valueAndSMGValueMapping = bySMGValue.get(checkNotNull(pSMGValue));
     if (valueAndSMGValueMapping == null) {
       return this;
     }
@@ -253,7 +256,7 @@ public final class ValueToSMGValueMapping {
           byValue.putAndCopy(
               hash,
               ImmutableMap.copyOf(
-                  Maps.filterKeys(bucket, k -> !k.equals(valueAndSMGValueMapping.value()))));
+                  Maps.filterKeys(bucket, k -> k != valueAndSMGValueMapping.value())));
     }
     return new ValueToSMGValueMapping(
         newByValue,
@@ -261,6 +264,15 @@ public final class ValueToSMGValueMapping {
         byPosition.removeAndCopy(valueAndSMGValueMapping.position()),
         nextPosition,
         size - 1);
+  }
+
+  /**
+   * Returns the mappings in insertion order, in the same format as {@link
+   * com.google.common.collect.ImmutableBiMap#toString()}.
+   */
+  @Override
+  public String toString() {
+    return "{" + Joiner.on(", ").withKeyValueSeparator("=").join(entries()) + "}";
   }
 
   /**
