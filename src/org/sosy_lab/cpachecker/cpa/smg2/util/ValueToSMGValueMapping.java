@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.Map;
@@ -45,9 +46,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
  *
  * <p>Complexity (n is the number of mappings): adding or removing a mapping and all lookups cost
  * O(log n), whereas the replaced {@link com.google.common.collect.ImmutableBiMap} had to be copied
- * completely for each added mapping. {@link #size()} and starting an iteration over {@link
- * #entries()} cost O(n) on each new instance, because the underlying tree maps compute their size
- * lazily.
+ * completely for each added mapping. {@link #size()} costs O(1), and iterating over {@link
+ * #entries()} costs O(n) in total.
  *
  * <p>This class does not override {@link Object#equals(Object)} and {@link Object#hashCode()}.
  */
@@ -95,15 +95,23 @@ public final class ValueToSMGValueMapping {
    */
   private final long nextPosition;
 
+  /**
+   * The number of mappings. It is stored explicitly because {@link PathCopyingPersistentTreeMap}
+   * computes its size lazily for each new instance, which costs O(n).
+   */
+  private final int size;
+
   private ValueToSMGValueMapping(
       PersistentMap<Integer, ImmutableMap<Wrapper<Value>, Mapping>> pByValue,
       PersistentMap<SMGValue, Mapping> pBySMGValue,
       PersistentMap<Long, Mapping> pByPosition,
-      long pNextPosition) {
+      long pNextPosition,
+      int pSize) {
     byValue = pByValue;
     bySMGValue = pBySMGValue;
     byPosition = pByPosition;
     nextPosition = pNextPosition;
+    size = pSize;
   }
 
   /** Returns an empty mapping. */
@@ -112,12 +120,13 @@ public final class ValueToSMGValueMapping {
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
         PathCopyingPersistentTreeMap.of(),
+        0,
         0);
   }
 
-  /** Returns the number of mappings. This costs O(n) on the first call for each instance. */
+  /** Returns the number of mappings. */
   public int size() {
-    return bySMGValue.size();
+    return size;
   }
 
   /**
@@ -161,10 +170,11 @@ public final class ValueToSMGValueMapping {
    * {@link #putAndCopy(Value, SMGValue)}.
    */
   public Iterable<Map.Entry<Value, SMGValue>> entries() {
+    // Not via stream(), because this would compute the size of byPosition (in O(n))
     return () ->
-        byPosition.values().stream()
-            .map(m -> Maps.immutableEntry(m.value().get(), m.smgValue()))
-            .iterator();
+        Iterators.transform(
+            byPosition.values().iterator(),
+            m -> Maps.immutableEntry(m.value().get(), m.smgValue()));
   }
 
   /**
@@ -194,7 +204,8 @@ public final class ValueToSMGValueMapping {
         byValue.putAndCopy(hash, newBucket),
         bySMGValue.putAndCopy(pSMGValue, mapping),
         byPosition.putAndCopy(nextPosition, mapping),
-        nextPosition + 1);
+        nextPosition + 1,
+        size + 1);
   }
 
   /**
@@ -236,7 +247,8 @@ public final class ValueToSMGValueMapping {
         newByValue,
         bySMGValue.removeAndCopy(pSMGValue),
         byPosition.removeAndCopy(mapping.position()),
-        nextPosition);
+        nextPosition,
+        size - 1);
   }
 
   /**
@@ -245,7 +257,8 @@ public final class ValueToSMGValueMapping {
    */
   @VisibleForTesting
   void checkInvariants() {
-    checkState(byPosition.size() == bySMGValue.size(), "Maps have different sizes");
+    checkState(bySMGValue.size() == size, "Wrong size");
+    checkState(byPosition.size() == size, "Wrong size");
     int numberOfMappingsInBuckets = 0;
     for (Map.Entry<Integer, ImmutableMap<Wrapper<Value>, Mapping>> bucket : byValue.entrySet()) {
       checkState(!bucket.getValue().isEmpty(), "Empty bucket for hash %s", bucket.getKey());
@@ -259,6 +272,6 @@ public final class ValueToSMGValueMapping {
         numberOfMappingsInBuckets++;
       }
     }
-    checkState(numberOfMappingsInBuckets == bySMGValue.size(), "Maps have different sizes");
+    checkState(numberOfMappingsInBuckets == size, "Wrong size");
   }
 }
