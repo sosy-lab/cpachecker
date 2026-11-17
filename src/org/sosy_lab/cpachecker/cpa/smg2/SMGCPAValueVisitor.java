@@ -460,9 +460,11 @@ public class SMGCPAValueVisitor
           || returnType instanceof CFunctionType) {
 
         if (!(additionalOffset instanceof NumericValue numAdditionalOffset)) {
-          throw new RuntimeException(
-              "Missing case in SMGCPAValueVisitor. Report to CPAchecker issue tracker for SMG2"
-                  + " analysis.");
+          throw new UnsupportedCodeException(
+              "Symbolic offset in read of a composite, array, or function type from a stack or"
+                  + " global variable",
+              cfaEdge,
+              exprThatCalledThis);
         }
 
         return ImmutableList.of(
