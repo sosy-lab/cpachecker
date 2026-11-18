@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
@@ -1906,8 +1907,16 @@ public class SMGState
       if (equalityCache.isEqualityKnown(thisValue, otherValue)) {
         return true;
       } else if (thisAlreadyCheckedPointers.contains(thisValue)) {
-        equalityCache.addEquality(thisValue, otherValue);
-        return true;
+        if (thisState == otherState
+            || !pointsToConcreteObject(thisState, thisValue)
+            || !pointsToConcreteObject(otherState, otherValue)) {
+          equalityCache.addEquality(thisValue, otherValue);
+          return true;
+        }
+        // When comparing two states, the pointer may now be paired with another pointer than at its
+        // first visit. So its memory is compared again below, where the mapping of objects between
+        // the states ensures that both partners point to the same object. This terminates for
+        // cycles, because objects are mapped before their values are compared.
       } else {
         // Pointers can be cyclic! We remember already checked values.
         thisAlreadyCheckedPointers.add(thisValue);
@@ -2118,6 +2127,12 @@ public class SMGState
 
       if (objectCache.isEqualityKnown(thisObj, otherObj)) {
         return true;
+      } else if (thisState != otherState
+          && objectCache.hasOtherPartner(
+              thisObj, otherObj, obj -> !(obj instanceof SMGSinglyLinkedListSegment))) {
+        // When comparing two states, each concrete object has to correspond to exactly one concrete
+        // object of the other state. Otherwise, pointers alias in one state but not in the other.
+        return false;
       } else {
         // Assume them to be equal from here on, this way we don't check them multiple times
         // This also means we need to remove it if it's found to be not equal!
@@ -2141,6 +2156,13 @@ public class SMGState
       objectCache.removeEquality(thisObj, otherObj);
     }
     return false;
+  }
+
+  private static boolean pointsToConcreteObject(SMGState pState, Value pPointer) {
+    Optional<SMGStateAndOptionalSMGObjectAndOffset> target =
+        pState.dereferencePointerWithoutMaterilization(pPointer);
+    return target.isPresent()
+        && !(target.orElseThrow().getSMGObject() instanceof SMGSinglyLinkedListSegment);
   }
 
   /*
@@ -2757,6 +2779,33 @@ public class SMGState
             return false;
           }
         }
+      }
+    }
+
+    // Compare concrete numeric values first. They are cheap to compare, while pointers are compared
+    // by the shape of the memory they point to, which can traverse large parts of the heap.
+    for (Entry<BigInteger, SMGHasValueEdge> otherHVEAndOffset : otherOffsetToHVEdgeMap.entrySet()) {
+      SMGHasValueEdge otherHVE = otherHVEAndOffset.getValue();
+      SMGHasValueEdge thisHVE = thisOffsetToHVEdgeMap.get(otherHVEAndOffset.getKey());
+      if (thisHVE != null
+          && thisHVE.getSizeInBits().compareTo(otherHVE.getSizeInBits()) == 0
+          && otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).orElseThrow()
+              instanceof NumericValue otherNum
+          && thisState.memoryModel.getValueFromSMGValue(thisHVE.hasValue()).orElseThrow()
+              instanceof NumericValue thisNum
+          && !areValuesEqual(
+              thisState,
+              thisNum,
+              otherState,
+              otherNum,
+              exemptOffsetsPerObject,
+              equalityCache,
+              objectCache,
+              thisPointerValuesAlreadyVisited,
+              treatSymbolicsAsEqualWEqualConstrains,
+              allowAbstractedSelfPointers,
+              trueEqualityCheck)) {
+        return false;
       }
     }
 
@@ -8334,9 +8383,13 @@ public class SMGState
   // This is mutable on purpose!
   public static class EqualityCache<V> {
     private final SetMultimap<V, V> primitiveCache;
+    // The inverse of primitiveCache, to find the values known to be equal to a value of the other
+    // side
+    private final SetMultimap<V, V> inverseCache;
 
     private EqualityCache() {
       primitiveCache = HashMultimap.create();
+      inverseCache = HashMultimap.create();
     }
 
     public boolean isEmpty() {
@@ -8345,6 +8398,7 @@ public class SMGState
 
     private EqualityCache(SetMultimap<V, V> newPrimitiveCache) {
       primitiveCache = newPrimitiveCache;
+      inverseCache = Multimaps.invertFrom(newPrimitiveCache, HashMultimap.create());
     }
 
     public static <V> EqualityCache<V> of() {
@@ -8353,6 +8407,26 @@ public class SMGState
 
     public void addEquality(V thisEqual, V otherEqual) {
       primitiveCache.put(thisEqual, otherEqual);
+      inverseCache.put(otherEqual, thisEqual);
+    }
+
+    /**
+     * Returns true if thisEqual is known to be equal to a value other than otherEqual, or
+     * otherEqual is known to be equal to a value other than thisEqual. Only partners matching
+     * pRelevant are considered.
+     */
+    boolean hasOtherPartner(V thisEqual, V otherEqual, Predicate<? super V> pRelevant) {
+      for (V partner : primitiveCache.get(thisEqual)) {
+        if (!partner.equals(otherEqual) && pRelevant.test(partner)) {
+          return true;
+        }
+      }
+      for (V partner : inverseCache.get(otherEqual)) {
+        if (!partner.equals(thisEqual) && pRelevant.test(partner)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     /*
@@ -8386,6 +8460,7 @@ public class SMGState
     public void removeEquality(V pThisObj, V pOtherObj) {
       if (knownKey(pThisObj)) {
         primitiveCache.remove(pThisObj, pOtherObj);
+        inverseCache.remove(pOtherObj, pThisObj);
       }
     }
   }
