@@ -108,12 +108,30 @@ public final class AstCfaRelation {
    *     none, e.g., for a location outside of functions
    */
   public Optional<FileLocation> getTightestEnclosingStatement(FileLocation pLocation) {
+    return getTightestStatementContaining(pLocation, false);
+  }
+
+  /**
+   * Returns the location of the innermost statement that contains the given location. In contrast
+   * to {@link #getTightestEnclosingStatement}, this can also be a statement that starts at the
+   * given location, e.g., the statement of an expression.
+   *
+   * @param pLocation the location to search the statement for
+   * @return the location of the innermost statement, or an empty Optional if there is none, e.g.,
+   *     for a location outside of functions
+   */
+  public Optional<FileLocation> getTightestStatementContaining(FileLocation pLocation) {
+    return getTightestStatementContaining(pLocation, true);
+  }
+
+  private Optional<FileLocation> getTightestStatementContaining(
+      FileLocation pLocation, boolean pIncludeStatementAtLocation) {
     int end = pLocation.getNodeOffset() + pLocation.getNodeLength();
     // Statements nested in an enclosing statement start after it, so the first enclosing
     // statement found backwards from the location is the innermost one
     for (FileLocation statement :
         statementOffsetsToLocations
-            .headMap(pLocation.getNodeOffset(), false)
+            .headMap(pLocation.getNodeOffset(), pIncludeStatementAtLocation)
             .descendingMap()
             .values()) {
       if (statement.getNodeOffset() + statement.getNodeLength() >= end) {
@@ -121,6 +139,29 @@ public final class AstCfaRelation {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Decides whether another statement inside the enclosing statement ends on the line on which the
+   * given statement starts, e.g., the then branch of an if statement in '} else if (x) {'.
+   *
+   * @param pStatement the location of a statement
+   * @param pEnclosingStatement the location of the statement that encloses pStatement
+   * @return whether a statement that is in pEnclosingStatement before pStatement ends on the
+   *     starting line of pStatement
+   */
+  public boolean startsOnLineOfPreviousStatement(
+      FileLocation pStatement, FileLocation pEnclosingStatement) {
+    for (FileLocation statement :
+        statementOffsetsToLocations
+            .subMap(pEnclosingStatement.getNodeOffset(), false, pStatement.getNodeOffset(), false)
+            .values()) {
+      if (statement.getNodeOffset() + statement.getNodeLength() <= pStatement.getNodeOffset()
+          && statement.getEndingLineNumber() == pStatement.getStartingLineNumber()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void initializeMapFromConditionEdgesToIfStructures() {

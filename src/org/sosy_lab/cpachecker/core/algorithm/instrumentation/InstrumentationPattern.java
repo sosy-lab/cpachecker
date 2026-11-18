@@ -81,6 +81,12 @@ public class InstrumentationPattern {
           case "declar" -> patternType.DECLAR;
           // Returns local variables whose lifetime ends at the end of their block
           case "scope_end" -> patternType.SCOPE_END;
+          // Returns local variables declared in a loop, which get a new lifetime in every
+          // iteration (see SequentializationOperatorAlgorithm for which of them are matched)
+          case "loop_declar" -> patternType.LOOP_DECLAR;
+          // Matches every edge, the variables from loop_declar that the edge uses are computed by
+          // SequentializationOperatorAlgorithm
+          case "loop_var_use" -> patternType.LOOP_VAR_USE;
           case "ADD" -> patternType.ADD;
           case "SUB" -> patternType.SUB;
           case "NEG" -> patternType.NEG;
@@ -123,7 +129,8 @@ public class InstrumentationPattern {
       case VARS_BIN_ASSIGN -> getTwoVariablesFromAssignment(pCFAEdge);
       case VARS_UN_ASSIGN -> getOneVariableFromAssignment(pCFAEdge);
       case DECLAR -> getTheOperandsFromDeclaration(pCFAEdge);
-      case SCOPE_END -> getTheOperandsFromLocalDeclaration(pCFAEdge);
+      case SCOPE_END, LOOP_DECLAR -> getTheOperandsFromLocalDeclaration(pCFAEdge);
+      case LOOP_VAR_USE -> ImmutableList.of();
       case ADD ->
           getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap, pMachineModel);
       case SUB ->
@@ -482,7 +489,7 @@ public class InstrumentationPattern {
    * Returns the name of the declared variable and the line of its declaration, which together
    * identify the declaration, e.g., to name the table entry of a variable in memory safety.
    */
-  private static ImmutableList<String> getNameAndLine(CVariableDeclaration pDeclaration) {
+  static ImmutableList<String> getNameAndLine(CVariableDeclaration pDeclaration) {
     return ImmutableList.of(
         pDeclaration.getName(),
         Integer.toString(pDeclaration.getFileLocation().getStartingLineInOrigin()));
@@ -672,6 +679,8 @@ public class InstrumentationPattern {
     VARS_UN_ASSIGN,
     DECLAR,
     SCOPE_END,
+    LOOP_DECLAR,
+    LOOP_VAR_USE,
     ADD,
     SUB,
     NEG,

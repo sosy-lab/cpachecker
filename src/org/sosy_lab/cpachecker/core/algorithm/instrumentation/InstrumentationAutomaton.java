@@ -289,6 +289,16 @@ public class InstrumentationAutomaton {
     return initialState;
   }
 
+  /** Decides whether some transition of the automaton has the given pattern. */
+  public boolean hasTransitionWithPattern(String pPattern) {
+    for (InstrumentationTransition transition : instrumentationTransitions) {
+      if (transition.getPattern().toString().equals(pPattern)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public Set<InstrumentationTransition> getTransitions(InstrumentationState pState) {
     Set<InstrumentationTransition> transitions = new HashSet<>();
     for (InstrumentationTransition transition : instrumentationTransitions) {
