@@ -15,7 +15,7 @@ Predicate Abstraction (with refinement based on ABEl) test-set that uses each av
 This tests each solver for their performance in regards to incremental SAT checking in multiple theories/logics, as well as model retrieval.
 Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment below.
 -->
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
 
   <option name="--heap">10000M</option>
