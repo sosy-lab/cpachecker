@@ -184,7 +184,7 @@ build-docker:release:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":4.2.2"
+    IMAGE: ":4.3"
   script:
     - !reference [.build-docker-hub, script]
     # also push image to :latest
