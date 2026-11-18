@@ -107,6 +107,14 @@ public class PredicateCPA
   @Option(secure = true, description = "Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
+  @Option(
+      secure = true,
+      name = "injectAcslInvariants",
+      description =
+          "Retrieve ACSL invariants from AcslState and inject them as local predicates "
+              + "into the predicate precision.")
+  private boolean injectAcslInvariants = false;
+
   protected final Configuration config;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -228,7 +236,8 @@ public class PredicateCPA
             predAbsManager,
             invariantsManager,
             predicateProvider,
-            cfa.getMachineModel());
+            cfa.getMachineModel(),
+            injectAcslInvariants);
     stop =
         switch (stopType) {
           case "SEP" -> new PredicateStopOperator(domain);

@@ -2837,6 +2837,10 @@ cpa.predicate.ignoreStateAssumptions = false
 # Only relevant if enableMemoryAssignmentFunctions is set to true.
 cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false
 
+# Retrieve ACSL invariants from AcslState and inject them as local predicates
+# into the predicate precision.
+cpa.predicate.injectAcslInvariants = false
+
 # Add computed invariants to the precision. Invariants do not need to be
 # generated with the PredicateCPA they can also be given from outside.
 cpa.predicate.invariants.addToPrecision = false

@@ -62,6 +62,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
   private final MachineModel machineModel;
+  private final boolean injectAcslInvariants;
 
   private final PredicateCPAInvariantsManager invariants;
   private final PredicateProvider predicateProvider;
@@ -82,7 +83,8 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider,
-      MachineModel pModel) {
+      MachineModel pModel,
+      boolean pInjectAcslInvariants) {
     logger = pLogger;
     fmgr = pFmgr;
     pathFormulaManager = pPfmgr;
@@ -92,6 +94,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     invariants = pInvariantSupplier;
     predicateProvider = pPredicateProvider;
     machineModel = pModel;
+    injectAcslInvariants = pInjectAcslInvariants;
   }
 
   @Override
@@ -113,25 +116,26 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       final Collection<CFANode> locations =
           ImmutableList.copyOf(AbstractStates.extractLocations(fullState));
 
-      // add additional predicates from the AcslState to the precision
-      // TODO maybe introduce a config option so this is skipped unless we really want to use it
-      LanguageToSmtConverter<? extends Type> converter = pathFormulaManager.getConverter();
-      if (converter instanceof CToFormulaConverterWithPointerAliasing cConverter) {
-        PointerTargetSet pts =
-            ((PredicateAbstractState) pElement).getPathFormula().getPointerTargetSet();
-        AcslPredicateToFormulaVisitor acslToFormula =
-            new AcslPredicateToFormulaVisitor(
-                fmgr,
-                SSAMap.emptySSAMap().builder(),
-                cConverter,
-                machineModel,
-                cConverter.createPointerTargetSetBuilder(pts),
-                new Constraints(fmgr.getBooleanFormulaManager()));
-        PredicatePrecision newPrecision =
-            addAcslInvariants(precision, fullState, locations, acslToFormula);
+      if (injectAcslInvariants) {
+        // add additional predicates from the AcslState to the precision
+        LanguageToSmtConverter<? extends Type> converter = pathFormulaManager.getConverter();
+        if (converter instanceof CToFormulaConverterWithPointerAliasing cConverter) {
+          PointerTargetSet pts =
+              ((PredicateAbstractState) pElement).getPathFormula().getPointerTargetSet();
+          AcslPredicateToFormulaVisitor acslToFormula =
+              new AcslPredicateToFormulaVisitor(
+                  fmgr,
+                  SSAMap.emptySSAMap().builder(),
+                  cConverter,
+                  machineModel,
+                  cConverter.createPointerTargetSetBuilder(pts),
+                  new Constraints(fmgr.getBooleanFormulaManager()));
+          PredicatePrecision newPrecision =
+              addAcslInvariants(precision, fullState, locations, acslToFormula);
 
-        if (!precision.equals(newPrecision)) {
-          precision = newPrecision;
+          if (!precision.equals(newPrecision)) {
+            precision = newPrecision;
+          }
         }
       }
 
