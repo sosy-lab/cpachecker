@@ -8,15 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
-import com.google.common.collect.ImmutableMap;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.StateAnnotation;
 
 public class InstrumentationState {
-  private String name;
-  private StateAnnotation stateAnnotation;
-  private InstrumentationAutomaton automatonOfTheState;
+  private final String name;
+  private final StateAnnotation stateAnnotation;
+  // Null only for the dummy state
+  private final @Nullable InstrumentationAutomaton automatonOfTheState;
 
   public InstrumentationState(
       String pName,
@@ -27,17 +29,26 @@ public class InstrumentationState {
     this.automatonOfTheState = pInstrumentationAutomaton;
   }
 
-  // Create a dummy state for the instrumentation operator, when no IA needs to be used.
-  public InstrumentationState() {
-    this.name = "DUMMY";
-    this.stateAnnotation = StateAnnotation.TRUE;
-    this.automatonOfTheState =
-        new InstrumentationAutomaton(
-            InstrumentationProperty.TERMINATION, ImmutableMap.of(), ImmutableMap.of(), 0);
+  private InstrumentationState() {
+    name = "DUMMY";
+    stateAnnotation = StateAnnotation.TRUE;
+    automatonOfTheState = null;
+  }
+
+  /**
+   * Creates a dummy state, which does not belong to any automaton. It is used for the CFA nodes at
+   * which no automaton has been started yet.
+   */
+  public static InstrumentationState createDummyState() {
+    return new InstrumentationState();
+  }
+
+  public boolean isDummy() {
+    return automatonOfTheState == null;
   }
 
   public InstrumentationAutomaton getAutomatonOfTheState() {
-    return automatonOfTheState;
+    return checkNotNull(automatonOfTheState);
   }
 
   public boolean isInitialAnnotation() {
@@ -59,7 +70,7 @@ public class InstrumentationState {
       return false;
     }
     return ((stateAnnotation == StateAnnotation.INIT || stateAnnotation == StateAnnotation.TRUE)
-            && !name.equals("DUMMY"))
+            && !isDummy())
         || ((stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart())
             || (stateAnnotation == StateAnnotation.FUNCTIONHEADFORLOOP && pCFANode.isLoopStart()));
   }

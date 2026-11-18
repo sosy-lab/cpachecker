@@ -16,12 +16,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -77,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationProperty;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -89,12 +90,38 @@ import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
- * automaton.
- *
- * <p>Currently supported transformations are only no-overflow and termination to reachability.
+ * automaton. The automaton is given by TransVer, which parses it from a YAML file, and the
+ * operations of its transitions are written together with the lines at which they have to be
+ * inserted into the file given by the option instrumentation.newEdgesFile.
  */
 @Options(prefix = "instrumentation")
 public class SequentializationOperatorAlgorithm implements Algorithm {
+
+  /** The properties that are transformed, some of them need specific handling. */
+  enum InstrumentationProperty {
+    TERMINATION,
+    TERMINATIONWITHCOUNTERS,
+    TERMINATIONWITHABORTS,
+    ONESTEPREACHABILITY,
+    NOOVERFLOW,
+    DATA_RACE,
+    MEMCLEANUP,
+    VALID_DEREF,
+    VALID_FREE,
+    MEMTRACK,
+    MEMSAFETY;
+
+    /** Whether an automaton is constructed for every loop instead of one for the program. */
+    boolean isInstrumentedForEveryLoop() {
+      return switch (this) {
+        case TERMINATION, TERMINATIONWITHCOUNTERS, TERMINATIONWITHABORTS, ONESTEPREACHABILITY ->
+            true;
+        case NOOVERFLOW, DATA_RACE, MEMCLEANUP, VALID_DEREF, VALID_FREE, MEMTRACK, MEMSAFETY ->
+            false;
+      };
+    }
+  }
+
   private final CFA cfa;
   private final LogManager logger;
   private final CProgramScope cProgramScope;
@@ -113,17 +140,15 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   @Option(
       secure = true,
       description =
-          """
-          toggle the strategy to determine the hardcoded instrumentation automaton to be used
-          """)
+          "the property that is transformed, it determines the property-specific parts of the"
+              + " instrumentation, e.g., whether the instrumentation automaton is constructed for"
+              + " every loop or once for the whole program")
   private InstrumentationProperty instrumentationProperty = InstrumentationProperty.TERMINATION;
 
   @Option(
       secure = true,
       description =
-          """
-          parsed instrumentation automaton from yaml file provided by TransVer's UI part
-          """)
+          "the instrumentation automaton, which TransVer parses from a YAML file (required)")
   private String parsedInstrumentationAutomaton = "";
 
   @Option(secure = true, description = "Where to write machine readable new edges.")
@@ -133,6 +158,11 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   public SequentializationOperatorAlgorithm(CFA pCfa, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    if (parsedInstrumentationAutomaton.isBlank()) {
+      throw new InvalidConfigurationException(
+          "The instrumentation automaton has to be given by the option"
+              + " instrumentation.parsedInstrumentationAutomaton.");
+    }
     cfa = pCfa;
     logger = pLogger;
     cProgramScope = new CProgramScope(pCfa, pLogger);
@@ -148,50 +178,29 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
     Map<CFANode, Integer> mapNodesToLineNumbers;
 
-    if (instrumentationProperty == InstrumentationProperty.TERMINATION
-        || instrumentationProperty == InstrumentationProperty.TERMINATIONWITHABORTS
-        || instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS
-        || instrumentationProperty == InstrumentationProperty.ONESTEPREACHABILITY) {
-      int index = 0;
+    if (instrumentationProperty.isInstrumentedForEveryLoop()) {
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       // TODO: Fix the recursion instrumentation
       if (!LoopStructure.getRecursions(cfa).isEmpty()) {
         throw new CPAException("Instrumentation of this type does not support recursion for now.");
       }
-      // We have to track what variables have already been defined
-      Map<String, String> alreadyDefinedVariables = new HashMap<>();
-      for (NormalLoopInfo info :
+      ImmutableList<NormalLoopInfo> loopInfos =
           LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
                   LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope))
               .stream()
               .sorted((info1, info2) -> Integer.compare(info1.loopLocation(), info2.loopLocation()))
-              .collect(ImmutableSet.toImmutableSet())) {
-        try {
-          if (!parsedInstrumentationAutomaton.isBlank()) {
-            mapAutomataToLocations.put(
-                info.loopLocation(),
-                new InstrumentationAutomaton(
-                    parsedInstrumentationAutomaton,
-                    info.liveVariablesAndTypes(),
-                    substractDeclaredVariables(
-                        info.liveVariablesAndTypes(), alreadyDefinedVariables),
-                    index));
-          } else {
-            mapAutomataToLocations.put(
-                info.loopLocation(),
-                new InstrumentationAutomaton(
-                    instrumentationProperty,
-                    info.liveVariablesAndTypes(),
-                    substractDeclaredVariables(
-                        info.liveVariablesAndTypes(), alreadyDefinedVariables),
-                    index));
-          }
-        } catch (IllegalArgumentException e) {
-          logger.log(Level.SEVERE, "Unrecognized property to instrument.");
-        }
-        if (instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS) {
-          alreadyDefinedVariables.putAll(info.liveVariablesAndTypes());
-        }
+              .collect(ImmutableList.toImmutableList());
+      ImmutableMap<String, ImmutableMap<String, String>> liveVariablesOfFunctions =
+          getLiveVariablesOfFunctions(loopInfos);
+      int index = 0;
+      for (NormalLoopInfo info : loopInfos) {
+        mapAutomataToLocations.put(
+            info.loopLocation(),
+            new InstrumentationAutomaton(
+                parsedInstrumentationAutomaton,
+                info.liveVariablesAndTypes(),
+                liveVariablesOfFunctions.get(getFunctionOfLoop(info)),
+                index));
         index += 1;
       }
     } else {
@@ -204,17 +213,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
           instrumentationProperty == InstrumentationProperty.DATA_RACE
               ? getVariablesWithTypesFromFullCFA()
               : ImmutableMap.of();
-      if (!parsedInstrumentationAutomaton.isBlank()) {
-        mapAutomataToLocations.put(
-            0,
-            new InstrumentationAutomaton(
-                parsedInstrumentationAutomaton, variablesWithTypes, ImmutableMap.of(), 0));
-      } else {
-        mapAutomataToLocations.put(
-            0,
-            new InstrumentationAutomaton(
-                instrumentationProperty, variablesWithTypes, ImmutableMap.of(), 0));
-      }
+      mapAutomataToLocations.put(
+          0,
+          new InstrumentationAutomaton(
+              parsedInstrumentationAutomaton, variablesWithTypes, variablesWithTypes, 0));
       if (mapAutomataToLocations.get(0).hasTransitionWithPattern("loop_declar")) {
         initializeVariablesRegisteredInUses();
       }
@@ -224,7 +226,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     List<Pair<CFANode, InstrumentationState>> waitlist = new ArrayList<>();
     Set<Pair<CFANode, InstrumentationState>> reachlist = new HashSet<>();
     Map<CFANode, String> mapDecomposedOperationsCondition = new HashMap<>();
-    waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
+    waitlist.add(
+        Pair.of(cfa.getMetadata().getMainFunctionEntry(), InstrumentationState.createDummyState()));
 
     while (!waitlist.isEmpty()) {
       Pair<CFANode, InstrumentationState> currentPair = waitlist.removeLast();
@@ -243,8 +246,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       if (!currentState.stateMatchesCfaNode(currentNode)) {
         // If the current state was dummy, we have to look for an automaton that matches the
         // CFANode
-        if (currentState.toString().equals("DUMMY")
-            && mapNodesToLineNumbers.containsKey(currentNode)) {
+        if (currentState.isDummy() && mapNodesToLineNumbers.containsKey(currentNode)) {
           isThePairNew(
               currentNode,
               mapAutomataToLocations.get(mapNodesToLineNumbers.get(currentNode)).getInitialState(),
@@ -1209,14 +1211,25 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     return successors;
   }
 
-  private ImmutableMap<String, String> substractDeclaredVariables(
-      ImmutableMap<String, String> pLiveVariables, Map<String, String> pAlreadyDefinedVariables) {
-    Map<String, String> difference = new HashMap<>();
-    for (Map.Entry<String, String> entry : pLiveVariables.entrySet()) {
-      if (!pAlreadyDefinedVariables.containsKey(entry.getKey())) {
-        difference.put(entry.getKey(), pLiveVariables.get(entry.getKey()));
-      }
+  /*
+   * Computes for every function the live variables of all its loops in the order of the loops. The
+   * ghost variables that are shared by all loops of a function are declared for these variables,
+   * so that every loop declares the same ghost variables and they are declared only once.
+   */
+  private ImmutableMap<String, ImmutableMap<String, String>> getLiveVariablesOfFunctions(
+      List<NormalLoopInfo> pLoopInfos) {
+    Map<String, Map<String, String>> liveVariablesOfFunctions = new HashMap<>();
+    for (NormalLoopInfo info : pLoopInfos) {
+      Map<String, String> liveVariablesOfFunction =
+          liveVariablesOfFunctions.computeIfAbsent(
+              getFunctionOfLoop(info), function -> new LinkedHashMap<>());
+      info.liveVariablesAndTypes().forEach(liveVariablesOfFunction::putIfAbsent);
     }
-    return ImmutableMap.copyOf(difference);
+    return ImmutableMap.copyOf(
+        Maps.transformValues(liveVariablesOfFunctions, ImmutableMap::copyOf));
+  }
+
+  private String getFunctionOfLoop(NormalLoopInfo pLoopInfo) {
+    return pLoopInfo.loop().getLoopHeads().iterator().next().getFunctionName();
   }
 }

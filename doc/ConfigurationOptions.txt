@@ -4891,8 +4891,9 @@ imc.removeUnreachableStopStates = false
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
-# toggle the strategy to determine the hardcoded instrumentation automaton to
-# be used
+# the property that is transformed, it determines the property-specific parts
+# of the instrumentation, e.g., whether the instrumentation automaton is
+# constructed for every loop or once for the whole program
 instrumentation.instrumentationProperty = TERMINATION
   enum:     [TERMINATION, TERMINATIONWITHCOUNTERS, TERMINATIONWITHABORTS,
              ONESTEPREACHABILITY, NOOVERFLOW, DATA_RACE, MEMCLEANUP, VALID_DEREF,
@@ -4901,8 +4902,8 @@ instrumentation.instrumentationProperty = TERMINATION
 # Where to write machine readable new edges.
 instrumentation.newEdgesFile = "newEdgesInfo.txt"
 
-# parsed instrumentation automaton from yaml file provided by TransVer's UI
-# part
+# the instrumentation automaton, which TransVer parses from a YAML file
+# (required)
 instrumentation.parsedInstrumentationAutomaton = ""
 
 # Configuration file for the K-Induction algorithm for checking candidates on

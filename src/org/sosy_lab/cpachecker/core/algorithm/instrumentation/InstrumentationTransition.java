@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAutomaton.InstrumentationOrder;
 
 public class InstrumentationTransition {
-  private InstrumentationState source;
-  private InstrumentationState destination;
-  private InstrumentationPattern pattern;
-  private InstrumentationOperation operation;
-  private InstrumentationOrder order;
+  private final InstrumentationState source;
+  private final InstrumentationState destination;
+  private final InstrumentationPattern pattern;
+  private final InstrumentationOperation operation;
+  private final InstrumentationOrder order;
 
   public InstrumentationTransition(
       InstrumentationState pSource,

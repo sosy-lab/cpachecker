@@ -20,7 +20,7 @@ import com.google.common.collect.Iterables;
  * from InstrumentationPattern.
  */
 public class InstrumentationOperation {
-  private String operation;
+  private final String operation;
 
   public InstrumentationOperation(String pOperation) {
     operation = pOperation;
