@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -185,11 +186,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         throw new CPAException("Instrumentation of this type does not support recursion for now.");
       }
       ImmutableList<NormalLoopInfo> loopInfos =
-          LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
-                  LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope))
-              .stream()
-              .sorted((info1, info2) -> Integer.compare(info1.loopLocation(), info2.loopLocation()))
-              .collect(ImmutableList.toImmutableList());
+          ImmutableList.sortedCopyOf(
+              Comparator.comparingInt(NormalLoopInfo::loopLocation),
+              LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
+                  LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope)));
       ImmutableMap<String, ImmutableMap<String, String>> liveVariablesOfFunctions =
           getLiveVariablesOfFunctions(loopInfos);
       int index = 0;

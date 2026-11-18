@@ -132,7 +132,7 @@ public final class AstCfaRelation {
     for (FileLocation statement :
         statementOffsetsToLocations
             .headMap(pLocation.getNodeOffset(), pIncludeStatementAtLocation)
-            .descendingMap()
+            .reversed()
             .values()) {
       if (statement.getNodeOffset() + statement.getNodeLength() >= end) {
         return Optional.of(statement);
