@@ -20,6 +20,15 @@ So some configurations or features might not work on other platforms.
 In particular the SMT solver used by CPAchecker in most configurations
 requires running on at least Ubuntu 24.04, Debian 13,
 or a similarly recent Linux distribution.
+We try to keep CPAchecker executable on supported Ubuntu LTS and Debian versions,
+but sometimes SMT solvers have stricter requirements and require newer versions.
+
+We plan on raising the minimum required Java version roughly every two years,
+at the end of even years,
+and then require the Java LTS release that was released one year before.
+For example, in November 2026 we will raise the minimum required Java version
+to Java 25, which was released in September 2025.
+
 As an alternative our container images are available.
 
 
