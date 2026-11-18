@@ -663,32 +663,35 @@ public class SMGCPAAbstractionManager {
 
     if (!looping
         && state.areTwoObjectsPartOfList(
-            potentialNextObj, prevObj, maybeNfo, nextPointerTargetOffset)
-        && state.nestedMemoryHasEqualOutsidePointers(prevObj, potentialNextObj, maybeNfo, maybePfo)
-        && !state.listElementsHaveOutsidePointerInBetween(
-            prevObj,
-            potentialNextObj,
-            maybeNfo,
-            nextPointerTargetOffset,
-            maybePfo,
-            maybePrevPointerTargetOffset)) {
+            potentialNextObj, prevObj, maybeNfo, nextPointerTargetOffset)) {
       // We check the next pointer in areTwoObjectsPartOfList and the prev below to filter it later
       ImmutableList<BigInteger> exemptOffsetsOfList = ImmutableList.of(maybeNfo);
       if (maybePfo.isPresent()) {
         exemptOffsetsOfList = ImmutableList.of(maybeNfo, maybePfo.orElseThrow());
       }
 
+      // The value check usually rejects non-list objects early, while the outside-pointer checks
+      // traverse all memory reachable from the objects.
       if (state.checkEqualValuesForTwoStatesWithExemptions(
-          prevObj,
-          potentialNextObj,
-          ImmutableMap.of(prevObj, exemptOffsetsOfList, potentialNextObj, exemptOffsetsOfList),
-          state,
-          state,
-          equalityCache,
-          objectCache,
-          true,
-          true,
-          true)) {
+              prevObj,
+              potentialNextObj,
+              ImmutableMap.of(prevObj, exemptOffsetsOfList, potentialNextObj, exemptOffsetsOfList),
+              state,
+              state,
+              equalityCache,
+              objectCache,
+              true,
+              true,
+              true)
+          && state.nestedMemoryHasEqualOutsidePointers(
+              prevObj, potentialNextObj, maybeNfo, maybePfo)
+          && !state.listElementsHaveOutsidePointerInBetween(
+              prevObj,
+              potentialNextObj,
+              maybeNfo,
+              nextPointerTargetOffset,
+              maybePfo,
+              maybePrevPointerTargetOffset)) {
 
         // filter out DLLs where we accidentally used the pfo as nfo and are at the "end"
         if (maybeNfo.subtract(smg.getSizeOfPointer()).compareTo(BigInteger.ZERO) >= 0) {
