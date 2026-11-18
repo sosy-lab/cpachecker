@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.instrumentation.LocateLoopAndLiveVariableAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.SequentializationOperatorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -441,14 +440,10 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.instrumentation.locateLoopAndLiveVariable",
-      description = "Export location of loops and variables inside the loops.")
-  private boolean useLocateLoopAndLiveVariableAlgorithm = false;
-
-  @Option(
-      secure = true,
       name = "algorithm.instrumentation.instrumentationOperator",
-      description = "Export location of loops and variables inside the loops.")
+      description =
+          "Use the instrumentation operator, which computes where TransVer inserts the operations"
+              + " of an instrumentation automaton into the program.")
   private boolean useInstrumentationOperator = false;
 
   @Option(
@@ -641,9 +636,6 @@ public class CoreComponentsFactory {
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
-
-    } else if (useLocateLoopAndLiveVariableAlgorithm) {
-      algorithm = new LocateLoopAndLiveVariableAlgorithm(cfa, logger);
 
     } else if (useInstrumentationOperator) {
       algorithm = new SequentializationOperatorAlgorithm(cfa, config, logger);

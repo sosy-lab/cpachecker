@@ -559,8 +559,7 @@ public class ConfigurationFileChecks {
               Path.of("sequentialization-concurrency.properties"),
               // The instrumentation operator requires an instrumentation automaton,
               // which is given by TransVer
-              Path.of("instrumentation-operator.properties"),
-              Path.of("specificationInstrumentationAlgorithm.properties"));
+              Path.of("instrumentation-operator.properties"));
     }
 
     CPAcheckerResult result;

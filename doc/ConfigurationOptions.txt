@@ -508,9 +508,9 @@ analysis.algorithm.impact = false
 # Import faults stored in a JSON format.
 analysis.algorithm.importFaults = false
 
-# Export location of loops and variables inside the loops.
+# Use the instrumentation operator, which computes where TransVer inserts the
+# operations of an instrumentation automaton into the program.
 analysis.algorithm.instrumentation.instrumentationOperator = false
-analysis.algorithm.instrumentation.locateLoopAndLiveVariable = false
 
 # use nontermination witness validator to check a violation witness for
 # termination
