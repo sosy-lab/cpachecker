@@ -13,6 +13,32 @@ Changes since CPAchecker 4.2.2
 * Due to system requirements from common SMT solvers,
   most configurations of CPAchecker
   now require Ubuntu 24.04 / Debian 13 or newer.
+* Significantly improved support for concurrent programs:
+  * Two completely new analyses are available:
+    Ordering-consistency analysis (`--orderingConsistency`) and
+    abstraction-aware source-set partial-order-reduction (`--predicateAnalysis-POR`)
+  * Improvements in previously existing concurrency analysis:
+    pthread barriers, `pthread_once`, recursive mutexes, and the result of `pthread_join`
+    are now modeled, data races through pointers are detected,
+    and the concurrency portfolio now also uses predicate analysis.
+  * Improvements to the sequentialization of concurrent programs that was added in CPAchecker 4.2:
+    * Added violation witness export in YAML format 2.2
+      by mapping back to the input program.
+    * Added support for:
+      `pthread_once`, `pthread_barrier_*`, `pthread_join` results via `return ...;`,
+      pthread objects in pointers, arrays and structs.
+    * Correctly model out of scope and dangling pointers by resetting to `(void*)0`.
+  * `__atomic_*` builtin functions are now supported with sequential consistency ordering,
+    the `_Atomic(T)` type specifier is now parsed, and
+    `__thread`/`_Thread_local` storage is now recognized.
+* Improvements for verifying termination of programs:
+  * New interpolation-based termination analysis:
+    TerminationToSafety (`--terminationToSafety`) now computes transition invariants
+    with interpolation and thus can also prove termination.
+    It exports correctness witnesses with transition invariants
+    and non-termination witnesses.
+  * The lasso-based termination analysis (`--lassoRankerAnalysis`) now supports
+    bitwise operations (with a linear approximation) and programs with heap memory.
 * Many improvements and new additions made to predicate analysis:
   * CPAchecker's predicate analysis now supports
     the special function `void __VERIFIER_nondet_memory(void *dest, size_t size)`.
@@ -29,31 +55,7 @@ Changes since CPAchecker 4.2.2
     Bitfields in packed structs remain unsupported, and bitfields are not exported to witnesses. 
   * More precise handling of strings,
     e.g., for `strcpy`, `strcmp`, and string-literal initializers.
-* `__atomic_*` builtin functions are now supported with sequential consistency ordering,
-  the `_Atomic(T)` type specifier is now parsed, and
-  `__thread`/`_Thread_local` storage is now recognized.
-* Ordering-consistency analysis (`--orderingConsistency`) and 
-  abstraction-aware source-set partial-order-reduction (`--predicateAnalysis-POR`)
-  have been added for concurrent C programs.
-* New interpolation-based termination analysis:
-  TerminationToSafety (`--terminationToSafety`) now computes transition invariants
-  with interpolation and thus can also prove termination.
-  It exports correctness witnesses with transition invariants
-  and non-termination witnesses.
-* The lasso-based termination analysis (`--lassoRankerAnalysis`) now supports
-  bitwise operations (with a linear approximation) and programs with heap memory.
-* Better support for concurrent programs:
-  pthread barriers, `pthread_once`, recursive mutexes, and the result of `pthread_join`
-  are now modeled, data races through pointers are detected,
-  and the concurrency portfolio now also uses predicate analysis.
-* Sequentialization:
-  * Added violation witness export in YAML format 2.2 
-    by mapping back to the input program.
-  * Added support for:
-    `pthread_once`, `pthread_barrier_*`, `pthread_join` results via `return ...;`, 
-    pthread objects in pointers, arrays and structs.
-  * Correctly model out of scope and dangling pointers by resetting to `(void*)0`.
-* Many improvements in witness export and validation.
+* Many improvements in witness export and validation:
   * Violation witnesses in YAML format 2.2 for concurrent programs,
     including data races, can now be exported and validated.
   * Correctness witnesses contain only invariants over variables in scope,
@@ -65,7 +67,7 @@ Changes since CPAchecker 4.2.2
   2 new counterexample representations. Defaults to using the internal `AUTOMATON` 
   representation. Additionally supports the `WITNESSV2` format, specified using 
   ``counterexample.checker.counterexampleFormat``.
-* Extended support for SV-LIB.  
+* Extended support for SV-LIB:
   * Scripts can now use bitvectors, floating-point numbers,
     `define-fun`, `define-procs-rec`, and `goto`.
   * Besides predicate analysis, SV-LIB scripts can now be analyzed
@@ -74,11 +76,11 @@ Changes since CPAchecker 4.2.2
   for the property no-overflow, which are part of the overflow portfolio.
 * Faster unrolling for k-induction.
 * New analyses that solve easy tasks within seconds.  
-  The SV-COMP'27 configuration runs them next to its main analysis.
+  The default portfolio and SV-COMP'27 configuration runs them next to its main analysis.
   * Simple rules (`--simpleRules`) decide a property by only inspecting the CFA,
     e.g., a program without loops and recursion terminates,
     and a program that never allocates memory cannot leak memory.
-  * The new InterpreterCPA (`--interpreter`) executes programs without input
+  * The new InterpreterCPA (`--interpreter`) executes programs
     and reports whether their only execution violates the property.
     It supports all SV-COMP properties except data races.
   * `--simpleChecks` runs both analyses in parallel.
