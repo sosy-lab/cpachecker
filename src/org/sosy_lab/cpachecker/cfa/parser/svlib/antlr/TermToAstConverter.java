@@ -409,10 +409,8 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
     // Match Integer Arithmetic logic
     if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic)
         && FluentIterable.from(pArguments)
-            .allMatch(
-                term ->
-                    SvLibType.canBeCastTo(
-                        term.getExpressionType(), SvLibSmtLibPredefinedType.INT))) {
+            .allMatch(term ->
+                SvLibType.canBeCastTo(term.getExpressionType(), SvLibSmtLibPredefinedType.INT))) {
       switch (pSymbol) {
         case "=" -> {
           Verify.verify(pArguments.size() == 2);
@@ -489,10 +487,9 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         // in their respective theory below.
         if (pArguments.size() == 2
             && FluentIterable.from(pArguments)
-                .allMatch(
-                    term ->
-                        SvLibType.canBeCastTo(
-                            term.getExpressionType(), SvLibSmtLibPredefinedType.BOOL))) {
+                .allMatch(term ->
+                    SvLibType.canBeCastTo(
+                        term.getExpressionType(), SvLibSmtLibPredefinedType.BOOL))) {
           return SmtLibTheoryDeclarations.BOOL_EQUALITY;
         }
       }

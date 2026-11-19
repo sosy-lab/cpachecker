@@ -419,10 +419,9 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
       return booleanFormulaManager.makeTrue();
     }
     int bitsize = getLength(pBits.getFirst());
-    pBits.forEach(
-        bit ->
-            Preconditions.checkArgument(
-                bitsize == getLength(bit), "Expect operators to have the same size"));
+    pBits.forEach(bit ->
+        Preconditions.checkArgument(
+            bitsize == getLength(bit), "Expect operators to have the same size"));
     return numericFormulaManager.distinct(Lists.transform(pBits, this::unwrap));
   }
 }

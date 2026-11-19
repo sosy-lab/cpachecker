@@ -301,19 +301,17 @@ final class OrderingConsistencyCounterexampleExtractor {
     while (true) {
       List<ARGState> children = liveChildren(current);
       if (children.size() > 1) {
-        children.removeIf(
-            child ->
-                !Boolean.TRUE.equals(
-                    pModel.evaluate(
-                        AbstractStates.extractStateByType(child, OrderingConsistencyState.class)
-                            .getGuard())));
+        children.removeIf(child ->
+            !Boolean.TRUE.equals(
+                pModel.evaluate(
+                    AbstractStates.extractStateByType(child, OrderingConsistencyState.class)
+                        .getGuard())));
       }
       if (children.size() > 1) {
         ARGState parent = current;
-        children.removeIf(
-            child ->
-                indexOfIdentical(parent.getEdgesToChild(child), pTarget) < 0
-                    && !reaches(child, pTarget));
+        children.removeIf(child ->
+            indexOfIdentical(parent.getEdgesToChild(child), pTarget) < 0
+                && !reaches(child, pTarget));
       }
       if (children.size() != 1) {
         return Optional.empty();

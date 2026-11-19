@@ -94,16 +94,15 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
     nodes.forEach(n -> renamed.put(n.getId(), ImmutableSet.of("ORIGINAL_" + n.getId())));
     nodes =
         nodes.stream()
-            .map(
-                n ->
-                    new BlockNode(
-                        "ORIGINAL_" + n.getId(),
-                        n.getInitialLocation(),
-                        n.getFinalLocation(),
-                        n.getNodes(),
-                        n.getEdges(),
-                        replace(n.getPredecessorIds(), renamed),
-                        replace(n.getSuccessorIds(), renamed)))
+            .map(n ->
+                new BlockNode(
+                    "ORIGINAL_" + n.getId(),
+                    n.getInitialLocation(),
+                    n.getFinalLocation(),
+                    n.getNodes(),
+                    n.getEdges(),
+                    replace(n.getPredecessorIds(), renamed),
+                    replace(n.getSuccessorIds(), renamed)))
             .toList();
     HorizontalMergeDecomposition horizontal =
         new HorizontalMergeDecomposition(child, 2, -1, null, true);
@@ -194,16 +193,15 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
       }
     }
     return result.stream()
-        .map(
-            n ->
-                new BlockNode(
-                    n.getId(),
-                    n.getInitialLocation(),
-                    n.getFinalLocation(),
-                    n.getNodes(),
-                    n.getEdges(),
-                    replace(n.getPredecessorIds(), replacements),
-                    replace(n.getSuccessorIds(), replacements)))
+        .map(n ->
+            new BlockNode(
+                n.getId(),
+                n.getInitialLocation(),
+                n.getFinalLocation(),
+                n.getNodes(),
+                n.getEdges(),
+                replace(n.getPredecessorIds(), replacements),
+                replace(n.getSuccessorIds(), replacements)))
         .toList();
   }
 

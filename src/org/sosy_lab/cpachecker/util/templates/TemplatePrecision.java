@@ -277,26 +277,25 @@ public class TemplatePrecision implements Precision {
     return product.stream()
         .map(HashSet::new)
         .distinct() // Eliminate duplicates, and ensure that all combinations are unique.
-        .flatMap(
-            variables -> {
-              // For of every variable: instantiate with every coefficient.
-              List<List<LinearExpression<CIdExpression>>> out =
-                  Collections3.transformedImmutableListCopy(
-                      variables,
-                      x ->
-                          Collections3.transformedImmutableListCopy(
-                              allowedCoefficients, coeff -> LinearExpression.monomial(x, coeff)));
+        .flatMap(variables -> {
+          // For of every variable: instantiate with every coefficient.
+          List<List<LinearExpression<CIdExpression>>> out =
+              Collections3.transformedImmutableListCopy(
+                  variables,
+                  x ->
+                      Collections3.transformedImmutableListCopy(
+                          allowedCoefficients, coeff -> LinearExpression.monomial(x, coeff)));
 
-              // Convert to a list of all possible linear expressions.
-              Stream<LinearExpression<CIdExpression>> linearExpressions =
-                  Lists.cartesianProduct(out).stream()
-                      .map(l -> l.stream().reduce(LinearExpression.empty(), LinearExpression::add));
+          // Convert to a list of all possible linear expressions.
+          Stream<LinearExpression<CIdExpression>> linearExpressions =
+              Lists.cartesianProduct(out).stream()
+                  .map(l -> l.stream().reduce(LinearExpression.empty(), LinearExpression::add));
 
-              return filterRedundantExpressions(linearExpressions)
-                  .filter(this::hasSameType)
-                  .filter(t -> !t.isEmpty())
-                  .map(Template::of);
-            });
+          return filterRedundantExpressions(linearExpressions)
+              .filter(this::hasSameType)
+              .filter(t -> !t.isEmpty())
+              .map(Template::of);
+        });
   }
 
   private Stream<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
@@ -320,10 +319,9 @@ public class TemplatePrecision implements Precision {
     Set<LinearExpression<CIdExpression>> linearExpressions =
         pLinearExpressions.collect(toImmutableSet());
     return linearExpressions.stream()
-        .filter(
-            l ->
-                linearExpressions.stream()
-                    .noneMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
+        .filter(l ->
+            linearExpressions.stream()
+                .noneMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
   }
 
   private static final Equivalence<CIdExpression> BASIC_TYPE_EQUIVALENCE =
@@ -376,11 +374,10 @@ public class TemplatePrecision implements Precision {
         // Add template and its negation.
         template
             .filter(t -> !t.isEmpty())
-            .ifPresent(
-                t -> {
-                  templates.add(Template.of(t));
-                  templates.add(Template.of(t.negate()));
-                });
+            .ifPresent(t -> {
+              templates.add(Template.of(t));
+              templates.add(Template.of(t.negate()));
+            });
       }
     }
     return templates;

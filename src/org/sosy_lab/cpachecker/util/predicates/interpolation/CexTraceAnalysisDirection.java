@@ -251,12 +251,11 @@ enum CexTraceAnalysisDirection {
 
     Set<String> varNames =
         from(fmgr.extractVariableNames(formula))
-            .transform(
-                variable -> {
-                  Pair<String, OptionalInt> name = FormulaManagerView.parseName(variable);
-                  // we want only variables in our set, and ignore everything without SSA index
-                  return name.getSecond().isPresent() ? name.getFirst() : null;
-                })
+            .transform(variable -> {
+              Pair<String, OptionalInt> name = FormulaManagerView.parseName(variable);
+              // we want only variables in our set, and ignore everything without SSA index
+              return name.getSecond().isPresent() ? name.getFirst() : null;
+            })
             .filter(Predicates.notNull())
             .toSet();
 

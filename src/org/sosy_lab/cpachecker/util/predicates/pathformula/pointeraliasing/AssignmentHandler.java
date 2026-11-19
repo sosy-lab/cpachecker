@@ -116,9 +116,8 @@ class AssignmentHandler {
     private boolean isRelevant(CToFormulaConverterWithPointerAliasing pConv) {
       // if relevancyLhs is empty in some assignment, treat it as relevant
       return relevancyLhs
-          .map(
-              presentRelevancyLhs ->
-                  pConv.isRelevantLeftHandSide(presentRelevancyLhs, rhs.map(SliceExpression::base)))
+          .map(presentRelevancyLhs ->
+              pConv.isRelevantLeftHandSide(presentRelevancyLhs, rhs.map(SliceExpression::base)))
           .orElse(true);
     }
   }

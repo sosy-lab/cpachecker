@@ -31,11 +31,10 @@ public class MinimalLineDistanceScoring implements FaultScoring {
   public RankInfo scoreFault(Fault fault) {
     int min =
         fault.stream()
-            .mapToInt(
-                fc ->
-                    Math.abs(
-                        fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()
-                            - errorLocation))
+            .mapToInt(fc ->
+                Math.abs(
+                    fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()
+                        - errorLocation))
             .min()
             .orElse(0);
 

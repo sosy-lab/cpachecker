@@ -900,12 +900,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         result == null
             ? null
             : getJoinResultTarget(((AFunctionCall) statement).getFunctionCallExpression())
-                .map(
-                    target ->
-                        makeStatementEdge(
-                            cfaEdge,
-                            makeAssignment(
-                                target, new CIdExpression(cfaEdge.getFileLocation(), result))))
+                .map(target ->
+                    makeStatementEdge(
+                        cfaEdge,
+                        makeAssignment(
+                            target, new CIdExpression(cfaEdge.getFileLocation(), result))))
                 .orElse(null);
     return transform(
         results, ts -> ts.removeThreadResultAndCopy(threadId).withResultEdge(resultEdge));
@@ -1131,12 +1130,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     ImmutableSet<String> waiting =
         FluentIterable.from(threadingState.getThreadIds())
-            .filter(
-                id ->
-                    !id.equals(activeThread)
-                        && !barrier.released().contains(id)
-                        && !threadingState.isWaitingForOnce(id)
-                        && waitsAtBarrier(threadingState, id, barrierId))
+            .filter(id ->
+                !id.equals(activeThread)
+                    && !barrier.released().contains(id)
+                    && !threadingState.isWaitingForOnce(id)
+                    && waitsAtBarrier(threadingState, id, barrierId))
             .toSet();
     if (waiting.size() < barrier.capacity() - 1) {
       return ImmutableSet.of();
@@ -1183,10 +1181,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static String extractGlobalObjectId(AExpression pArgument, CFAEdge cfaEdge)
       throws UnsupportedCodeException {
     return getGlobalObjectId(pArgument)
-        .orElseThrow(
-            () ->
-                new UnsupportedCodeException(
-                    "synchronization object that is not a global variable", cfaEdge));
+        .orElseThrow(() ->
+            new UnsupportedCodeException(
+                "synchronization object that is not a global variable", cfaEdge));
   }
 
   /**
@@ -1259,28 +1256,27 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   public static Optional<CFunctionCallExpression> createNondetMemoryCallModellingJoin(
       AFunctionCallExpression pCall, MachineModel pMachineModel) {
     return getJoinResultTarget(pCall)
-        .map(
-            target -> {
-              FileLocation loc = target.getFileLocation();
-              CFunctionDeclaration nondetMemory =
-                  new CFunctionDeclaration(
-                      loc,
-                      CFunctionType.functionTypeWithReturnType(CVoidType.VOID),
-                      VerifierNondetFunctions.getFunctionNameNondetMemory(),
-                      ImmutableList.of(),
-                      ImmutableSet.of());
-              CExpression size =
-                  new CIntegerLiteralExpression(
-                      loc,
-                      pMachineModel.getSizeType(),
-                      pMachineModel.getSizeof(target.getExpressionType()));
-              return new CFunctionCallExpression(
+        .map(target -> {
+          FileLocation loc = target.getFileLocation();
+          CFunctionDeclaration nondetMemory =
+              new CFunctionDeclaration(
                   loc,
-                  CVoidType.VOID,
-                  new CIdExpression(loc, nondetMemory),
-                  ImmutableList.of(target.getOperand(), size),
-                  nondetMemory);
-            });
+                  CFunctionType.functionTypeWithReturnType(CVoidType.VOID),
+                  VerifierNondetFunctions.getFunctionNameNondetMemory(),
+                  ImmutableList.of(),
+                  ImmutableSet.of());
+          CExpression size =
+              new CIntegerLiteralExpression(
+                  loc,
+                  pMachineModel.getSizeType(),
+                  pMachineModel.getSizeof(target.getExpressionType()));
+          return new CFunctionCallExpression(
+              loc,
+              CVoidType.VOID,
+              new CIdExpression(loc, nondetMemory),
+              ImmutableList.of(target.getOperand(), size),
+              nondetMemory);
+        });
   }
 
   private static boolean isPointerToObject(CExpression pExpression) {

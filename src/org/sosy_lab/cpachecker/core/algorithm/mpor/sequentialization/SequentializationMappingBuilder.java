@@ -143,10 +143,9 @@ public class SequentializationMappingBuilder {
     for (MPORThread thread : pFields.threads) {
       thread
           .startRoutineCall()
-          .ifPresent(
-              threadEdge -> {
-                rCreationEdges.put(threadEdge, thread.id());
-              });
+          .ifPresent(threadEdge -> {
+            rCreationEdges.put(threadEdge, thread.id());
+          });
     }
     return rCreationEdges.buildOrThrow();
   }

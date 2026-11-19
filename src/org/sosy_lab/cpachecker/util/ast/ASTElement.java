@@ -57,12 +57,10 @@ public final class ASTElement {
         // The predecessor of a return edge is in the called function
         .filter(edge -> !(edge instanceof FunctionReturnEdge))
         .transform(CFAEdge::getPredecessor)
-        .filter(
-            node ->
-                node.getEnteringEdges()
-                    .anyMatch(
-                        edge ->
-                            !elementEdges.contains(edge) && !(edge instanceof FunctionReturnEdge)))
+        .filter(node ->
+            node.getEnteringEdges()
+                .anyMatch(
+                    edge -> !elementEdges.contains(edge) && !(edge instanceof FunctionReturnEdge)))
         .toSet();
   }
 

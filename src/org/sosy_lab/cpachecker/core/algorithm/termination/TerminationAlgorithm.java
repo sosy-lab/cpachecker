@@ -210,10 +210,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     LoopStructure loopStructure =
         cfa.getLoopStructure()
-            .orElseThrow(
-                () ->
-                    new InvalidConfigurationException(
-                        "Loop structure is not present, but required for termination analysis."));
+            .orElseThrow(() ->
+                new InvalidConfigurationException(
+                    "Loop structure is not present, but required for termination analysis."));
 
     statistics =
         new TerminationStatistics(

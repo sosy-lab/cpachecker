@@ -82,13 +82,12 @@ public class FinalAssumeClusterPostConditionComposer implements PostConditionCom
           "Cannot extract post-condition from counterexample: " + pCounterexample);
     }
     postConditionEdges = postConditionEdges.reversed();
-    postConditionEdges.forEach(
-        edge ->
-            context
-                .getLogger()
-                .log(
-                    Level.FINEST,
-                    "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
+    postConditionEdges.forEach(edge ->
+        context
+            .getLogger()
+            .log(
+                Level.FINEST,
+                "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
     return new PostCondition(
         postConditionEdges,
         irrelevant.reversed(),

@@ -268,20 +268,17 @@ public class DssBlockAnalysisPrecisionTest {
       assertThat(messages).isNotEmpty();
       assertThat(
               messages.stream()
-                  .flatMap(
-                      m -> {
-                        try {
-                          return h.analysis().deserialize(m).stream();
-                        } catch (Exception e) {
-                          throw new AssertionError(e);
-                        }
-                      })
-                  .anyMatch(
-                      sap ->
-                          Precisions.extractPrecisionByType(
-                                  sap.precision(), PredicatePrecision.class)
-                              .getPredicates(h.analysis().getBlock().getFinalLocation(), 1)
-                              .contains(h.predicate())))
+                  .flatMap(m -> {
+                    try {
+                      return h.analysis().deserialize(m).stream();
+                    } catch (Exception e) {
+                      throw new AssertionError(e);
+                    }
+                  })
+                  .anyMatch(sap ->
+                      Precisions.extractPrecisionByType(sap.precision(), PredicatePrecision.class)
+                          .getPredicates(h.analysis().getBlock().getFinalLocation(), 1)
+                          .contains(h.predicate())))
           .isTrue();
     }
   }

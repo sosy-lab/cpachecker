@@ -253,13 +253,12 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
 
     String actualName =
         canonicalNameOfBitvectorOperator(pKind)
-            .orElseGet(
-                () ->
-                    pName
-                        // Remove type suffixes from overloaded operators, like '_int'
-                        .replace("_int", "")
-                        .replace("_rat", "")
-                        .replaceAll("_T" + Pattern.quote("(") + "[0-9]+" + Pattern.quote(")"), ""));
+            .orElseGet(() ->
+                pName
+                    // Remove type suffixes from overloaded operators, like '_int'
+                    .replace("_int", "")
+                    .replace("_rat", "")
+                    .replaceAll("_T" + Pattern.quote("(") + "[0-9]+" + Pattern.quote(")"), ""));
 
     if (pKind == FunctionDeclarationKind.BV_SCASTTO_FP
         || pKind == FunctionDeclarationKind.BV_UCASTTO_FP

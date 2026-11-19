@@ -93,13 +93,12 @@ public class FinalAssumeEdgesOnSameLinePostConditionComposer implements PostCond
     }
     postConditionEdges = postConditionEdges.reversed();
     if (context.getLogger().wouldBeLogged(Level.FINEST)) {
-      postConditionEdges.forEach(
-          edge ->
-              context
-                  .getLogger()
-                  .log(
-                      Level.FINEST,
-                      "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
+      postConditionEdges.forEach(edge ->
+          context
+              .getLogger()
+              .log(
+                  Level.FINEST,
+                  "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
     }
     return new PostCondition(
         postConditionEdges,

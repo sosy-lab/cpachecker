@@ -301,12 +301,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         "tfresult=",
         FluentIterable.from(abstractTrace)
             .filter(tr -> !(tr instanceof Interval))
-            .transform(
-                fc ->
-                    ((TraceAtom) fc)
-                        .correspondingEdge()
-                        .getFileLocation()
-                        .getStartingLineInOrigin()));
+            .transform(fc ->
+                ((TraceAtom) fc).correspondingEdge().getFileLocation().getStartingLineInOrigin()));
 
     FluentIterable.from(faults)
         .filter(Interval.class)
