@@ -126,6 +126,8 @@ public class InterpreterCPAIntegrationTest {
             ImmutableMap.of("cpa.smg2.enableMallocFail", "true")),
         task("interpreter--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
         task("interpreter--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
+        task("interpreter-smg--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
+        task("interpreter-smg--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
         // Both outcomes of each allocation are executed, so a program that allocates can be proven
         // safe.
         task("interpreter--memorysafety", "valid-memsafety", "heap-recursion-true.i", Result.TRUE),
