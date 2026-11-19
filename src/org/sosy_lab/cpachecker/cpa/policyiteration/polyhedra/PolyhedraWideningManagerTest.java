@@ -50,7 +50,7 @@ public class PolyhedraWideningManagerTest {
     }
   }
 
-  @Ignore
+  @Ignore("Apron library fails to load")
   @Test
   public void test_polyhedra() throws ApronException {
     // FIXME Tests should not rely on a user manually checking log message
@@ -98,6 +98,14 @@ public class PolyhedraWideningManagerTest {
     return new CIdExpression(
         FileLocation.DUMMY,
         new CVariableDeclaration(
-            FileLocation.DUMMY, false, CStorageClass.AUTO, type, varName, varName, varName, null));
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            type,
+            varName,
+            varName,
+            varName,
+            null,
+            /* pHasThreadLocalStorage= */ false));
   }
 }

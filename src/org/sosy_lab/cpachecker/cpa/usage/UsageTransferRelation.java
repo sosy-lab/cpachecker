@@ -115,9 +115,8 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
         ImmutableMap.builder();
 
     from(binderFunctions)
-        .forEach(
-            name ->
-                binderFunctionInfoBuilder.put(name, new BinderFunctionInfo(name, config, logger)));
+        .forEach(name ->
+            binderFunctionInfoBuilder.put(name, new BinderFunctionInfo(name, config, logger)));
 
     BinderFunctionInfo dummy = new BinderFunctionInfo();
     from(writeAccessFunctions).forEach(name -> binderFunctionInfoBuilder.put(name, dummy));
@@ -196,7 +195,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       if (skippedfunctions.contains(functionName)) {
         CFAEdge newEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
         Preconditions.checkNotNull(
-            newEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
+            newEdge, "Cannot find summary edge for %s as skipped function", pCfaEdge);
         logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
         callstackTransfer.enableRecursiveContext();
         return newEdge;

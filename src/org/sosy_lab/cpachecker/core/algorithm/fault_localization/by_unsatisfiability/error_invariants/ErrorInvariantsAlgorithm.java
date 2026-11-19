@@ -112,7 +112,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
             Optional.empty(),
             config,
             shutdownNotifier,
-            logger);
+            logger,
+            /* pEnableCounterexampleAnalysis= */ false);
 
     List<BooleanFormula> allFormulas = new ArrayList<>();
     allFormulas.add(errorTrace.getPrecondition().getPrecondition());
@@ -300,12 +301,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         "tfresult=",
         FluentIterable.from(abstractTrace)
             .filter(tr -> !(tr instanceof Interval))
-            .transform(
-                fc ->
-                    ((TraceAtom) fc)
-                        .correspondingEdge()
-                        .getFileLocation()
-                        .getStartingLineInOrigin()));
+            .transform(fc ->
+                ((TraceAtom) fc).correspondingEdge().getFileLocation().getStartingLineInOrigin()));
 
     FluentIterable.from(faults)
         .filter(Interval.class)
@@ -365,9 +362,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     // shift the interpolant to the correct time stamp
     SSAMap shift =
         SSAMap.merge(
-            maps.get(slicePosition),
-            maps.getFirst(),
-            MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
+            maps.get(slicePosition), maps.getFirst(), MapsDifference.ignoreMapsDifference());
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
     TraceInterpreter interpreter =

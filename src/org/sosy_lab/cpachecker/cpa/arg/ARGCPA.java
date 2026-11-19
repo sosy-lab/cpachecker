@@ -98,17 +98,18 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   private final ARGStatistics stats;
 
   private ARGCPA(
-      ConfigurableProgramAnalysis cpa,
-      Configuration config,
-      LogManager logger,
+      ConfigurableProgramAnalysis pCpa,
+      Configuration pConfig,
+      LogManager pLogger,
       Specification pSpecification,
-      CFA cfa)
+      CFA pCfa)
       throws InvalidConfigurationException {
-    super(cpa);
-    config.inject(this);
-    this.logger = logger;
-    mergeOptions = new ARGMergeJoin.MergeOptions(config);
-    stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
+
+    super(pCpa);
+    pConfig.inject(this);
+    logger = pLogger;
+    mergeOptions = new ARGMergeJoin.MergeOptions(pConfig);
+    stats = new ARGStatistics(pConfig, pLogger, this, pSpecification, pCfa);
   }
 
   @Override

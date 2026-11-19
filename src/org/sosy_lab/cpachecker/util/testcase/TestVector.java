@@ -82,9 +82,7 @@ public class TestVector {
     checkState(
         inputValues.size()
             == inputVariableValues.size()
-                + inputFunctionValues.values().stream()
-                    .map(ImmutableList::size)
-                    .reduce(0, (x, y) -> x + y));
+                + inputFunctionValues.values().stream().mapToInt(ImmutableList::size).sum());
     return inputValues;
   }
 
@@ -162,13 +160,12 @@ public class TestVector {
   }
 
   private static final Ordering<AParameterDeclaration> PARAMETER_ORDERING =
-      Ordering.from(
-          (pA, pB) ->
-              ComparisonChain.start()
-                  .compare(pA.getQualifiedName(), pB.getQualifiedName())
-                  .compare(pA.getType(), pB.getType(), Ordering.usingToString())
-                  .compare(pA.getFileLocation(), pB.getFileLocation())
-                  .result());
+      Ordering.from((pA, pB) ->
+          ComparisonChain.start()
+              .compare(pA.getQualifiedName(), pB.getQualifiedName())
+              .compare(pA.getType(), pB.getType(), Ordering.usingToString())
+              .compare(pA.getFileLocation(), pB.getFileLocation())
+              .result());
 
   private static class ComparableFunctionDeclaration
       implements Comparable<ComparableFunctionDeclaration> {

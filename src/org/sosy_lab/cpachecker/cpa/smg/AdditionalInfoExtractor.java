@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg2.AdditionalInfoExtractor.SMGConvertingTags;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /** This class collects additional information about possible memory errors in an ARGPath. */

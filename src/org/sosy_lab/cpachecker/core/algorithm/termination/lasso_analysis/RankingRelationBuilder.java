@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_AND;
-import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_AND;
+import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BITWISE_OR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.MULTIPLY;
@@ -31,7 +31,6 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
-import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.Serial;
@@ -162,7 +161,7 @@ public class RankingRelationBuilder {
       RankingRelation rankingRelation = fromRankingFunction(pRelevantVariables, component);
       CExpression cExpressionComponent = rankingRelation.asCExpression();
       cExpression =
-          cExpressionBuilder.buildBinaryExpression(cExpression, cExpressionComponent, BINARY_OR);
+          cExpressionBuilder.buildBinaryExpression(cExpression, cExpressionComponent, BITWISE_OR);
       formulas.add(rankingRelation.asFormula());
     }
 
@@ -186,7 +185,7 @@ public class RankingRelationBuilder {
 
       CBinaryExpression componentExpression =
           cExpressionBuilder.buildBinaryExpression(
-              phaseConditionExpression, componentRelation.asCExpression(), BINARY_AND);
+              phaseConditionExpression, componentRelation.asCExpression(), BITWISE_AND);
       componentExpressions.add(componentExpression);
       BooleanFormula componentFormula =
           fmgr.makeAnd(phaseConditionFormula, componentRelation.asFormula());
@@ -205,15 +204,14 @@ public class RankingRelationBuilder {
               rankingRelationComponents.getUnprimedExpression().orElse(ZERO), ZERO, LESS_THAN);
       phaseConditionExpression =
           cExpressionBuilder.buildBinaryExpression(
-              phaseConditionExpression, unprimedLessThanZeroExpression, BINARY_AND);
+              phaseConditionExpression, unprimedLessThanZeroExpression, BITWISE_AND);
     }
 
     BooleanFormula formula = fmgr.getBooleanFormulaManager().or(componentFormulas);
     CExpression expression =
         componentExpressions.stream()
-            .reduce(
-                (op1, op2) ->
-                    cExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BINARY_OR))
+            .reduce((op1, op2) ->
+                cExpressionBuilder.buildBinaryExpressionUnchecked(op1, op2, BITWISE_OR))
             .orElseThrow();
 
     return new RankingRelation(expression, formula, cExpressionBuilder, fmgr);
@@ -246,7 +244,7 @@ public class RankingRelationBuilder {
 
       CBinaryExpression rankingRelation =
           cExpressionBuilder.buildBinaryExpression(
-              unprimedGreatorThanZero, primedLessThanUnprimed, BINARY_AND);
+              unprimedGreatorThanZero, primedLessThanUnprimed, BITWISE_AND);
       return Optional.of(rankingRelation);
 
     } else {
@@ -364,12 +362,9 @@ public class RankingRelationBuilder {
       CIdExpression variable = new CIdExpression(DUMMY, variableDecl.orElseThrow());
       return Pair.of(primedVariable, variable);
 
-    } else if (pRankVar.getTerm() instanceof ApplicationTerm uf
-        && !uf.getFunction().isInterpreted()
-        && uf.getFunction().getParameterSorts().length == 1
-        && uf.getFunction().getName().startsWith("*")) { // dereference
+    } else if (RankVar.getDereferencedPointer(pRankVar.getTerm()).isPresent()) {
 
-      Term innerVariableTerm = uf.getParameters()[0];
+      Term innerVariableTerm = RankVar.getDereferencedPointer(pRankVar.getTerm()).orElseThrow();
       String innerVariableName = CharMatcher.is('|').trimFrom(innerVariableTerm.toStringDirect());
       RankVar innerDummyRankVar =
           new RankVar(innerVariableName, pRankVar.isGlobal(), innerVariableTerm);

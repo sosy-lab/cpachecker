@@ -12,31 +12,33 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.io.ByteStreams;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedSummarySynthesisTest {
 
   private static final String CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH =
       "config/generateBlockGraph.properties";
-  private static final Language language = Language.C;
+  private static final String CONFIGURATION_FILE_DSS = "config/dss.properties";
+  private static final String SPECIFICATION_REACHABILITY =
+      "config/specification/sv-comp-reachability.spc";
   private static final String PROGRAM = "doc/examples/example.c";
-  private static final String BLOCKS_JSON_PATH = "block_analysis/blocks.json";
+  private static final String PROGRAM_UNSAFE_CYCLE =
+      "test/programs/simple/block_analysis/inlined_mutex_cycle_unsafe.c";
+  private static final String BLOCKS_JSON_PATH = "output/block_analysis/blocks.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -47,12 +49,17 @@ public class DistributedSummarySynthesisTest {
 
   @Test
   public void testBlockDecompositionExportsJson() throws Exception {
-    Configuration config = getConfig(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH);
-    File expectedBlocksJson = tempFolder.getRoot().toPath().resolve(BLOCKS_JSON_PATH).toFile();
+    Path tempFolderPath = tempFolder.getRoot().toPath();
+    Configuration config =
+        TestUtils.configurationForTestWithOutput(tempFolder)
+            .loadFromFile(CONFIGURATION_FILE_GENERATE_BLOCK_GRAPH)
+            .setOption("language", Language.C.name())
+            .build();
+    File expectedBlocksJson = tempFolderPath.resolve(BLOCKS_JSON_PATH).toFile();
 
-    TestResults result = CPATestRunner.run(config, PROGRAM);
-    result.getCheckerResult().printStatistics(statisticsStream);
-    result.getCheckerResult().writeOutputFiles();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, PROGRAM);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
 
     result.assertIs(Result.DONE);
     assertWithMessage(
@@ -64,20 +71,25 @@ public class DistributedSummarySynthesisTest {
         .isNotEmpty();
   }
 
-  private Configuration getConfig(String configFile)
-      throws InvalidConfigurationException, IOException {
-    // Do not use TestDataTools.configurationForTest() because we want output files
-    Configuration configForFiles =
-        Configuration.builder()
-            .setOption("output.path", tempFolder.getRoot().getAbsolutePath())
+  /**
+   * Batching violation updates used to terminate this unsafe loop with TRUE; every update must get
+   * its own exploration. The sequential executor and the unmerged decomposition make the message
+   * order reproducible.
+   */
+  @Test
+  public void violationUpdatesAreExploredBeforeReplacement() throws Exception {
+    Configuration config =
+        TestUtils.configurationForTest()
+            .loadFromFile(CONFIGURATION_FILE_DSS)
+            .setOption("analysis.machineModel", MachineModel.LINUX64.name())
+            .setOption("specification", SPECIFICATION_REACHABILITY)
+            .setOption("distributedSummaries.executorType", "SEQUENTIAL")
+            .setOption("distributedSummaries.decomposition.mergeBranchBoundaries", "false")
+            .setOption("distributedSummaries.decomposition.largestHorizontalMerge", "1")
+            // fail instead of hanging if the analysis stops converging
+            .setOption("limits.time.wall", "60s")
             .build();
-    FileTypeConverter fileTypeConverter = FileTypeConverter.create(configForFiles);
-    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
-    ConfigurationBuilder configBuilder = Configuration.builder();
-    configBuilder
-        .loadFromFile(configFile)
-        .setOption("language", language.name())
-        .addConverter(FileOption.class, fileTypeConverter);
-    return configBuilder.build();
+
+    IntegrationTestRunner.run(config, PROGRAM_UNSAFE_CYCLE).assertIsUnsafe();
   }
 }

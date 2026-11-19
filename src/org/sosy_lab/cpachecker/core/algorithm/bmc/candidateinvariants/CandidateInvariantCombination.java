@@ -118,7 +118,7 @@ public class CandidateInvariantCombination {
       }
       return pOther instanceof GenericCombination other
           && conjunction == other.conjunction
-          && operands.equals(((GenericCombination) pOther).operands);
+          && operands.equals(other.operands);
     }
 
     @Override
@@ -146,11 +146,10 @@ public class CandidateInvariantCombination {
     @Override
     public Iterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates) {
       return FluentIterable.from(pStates)
-          .filter(
-              s ->
-                  operands.stream()
-                      .anyMatch(
-                          op -> !Iterables.isEmpty(op.filterApplicable(Collections.singleton(s)))));
+          .filter(s ->
+              operands.stream()
+                  .anyMatch(
+                      op -> !Iterables.isEmpty(op.filterApplicable(Collections.singleton(s)))));
     }
   }
 
@@ -253,16 +252,15 @@ public class CandidateInvariantCombination {
   private static Iterable<CandidateInvariant> flatten(
       Iterable<? extends CandidateInvariant> pOperands) {
     return FluentIterable.from(pOperands)
-        .transformAndConcat(
-            operand -> {
-              if (operand instanceof Combination combination) {
-                return flatten(combination.getOperands());
-              }
-              return Collections.singleton(operand);
-            });
+        .transformAndConcat(operand -> {
+          if (operand instanceof Combination combination) {
+            return flatten(combination.getOperands());
+          }
+          return Collections.singleton(operand);
+        });
   }
 
-  public static Iterable<CandidateInvariant> getConjunctiveParts(
+  public static Set<CandidateInvariant> getConjunctiveParts(
       CandidateInvariant pCandidateInvariant) {
     if (pCandidateInvariant instanceof Combination combination && combination.isConjunction()) {
       return combination.getOperands();

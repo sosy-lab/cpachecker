@@ -62,11 +62,10 @@ public class SequenceGenUtils {
     }
     endlessLoopHeads =
         loopHeads.stream()
-            .filter(
-                l ->
-                    l.getNumLeavingEdges() == 1
-                        && l.getLeavingEdge(0) instanceof BlankEdge blank
-                        && blank.getRawStatement().equals("1"))
+            .filter(l ->
+                l.getNumLeavingEdges() == 1
+                    && l.getLeavingEdge(0) instanceof BlankEdge blank
+                    && blank.getRawStatement().equals("1"))
             .collect(ImmutableSet.toImmutableSet());
     //    endlessLoopHeads =
     // CFAUtils.getEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()).stream().collect(ImmutableSet.toImmutableSet());
@@ -241,12 +240,11 @@ public class SequenceGenUtils {
         String.join(
             DELIMITER,
             pInputs.stream()
-                .map(
-                    pair -> {
-                      assert pair.getSecond() != null;
-                      assert pair.getFirst() != null;
-                      return pair.getSecond().toString() + "," + pair.getFirst();
-                    })
+                .map(pair -> {
+                  assert pair.getSecond() != null;
+                  assert pair.getFirst() != null;
+                  return pair.getSecond().toString() + "," + pair.getFirst();
+                })
                 .collect(ImmutableList.toImmutableList())));
     IO.writeFile(testcaseName, Charset.defaultCharset(), Joiner.on("\n").join(content));
   }

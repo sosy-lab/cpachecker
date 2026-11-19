@@ -1,0 +1,35 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+
+#include <assert.h>
+
+
+extern unsigned long __VERIFIER_nondet_ulong(void);
+
+
+// LP64 version
+int main() {
+  unsigned long ulong_var = __VERIFIER_nondet_ulong();
+
+  if (ulong_var >= 18000000000000000000uLL) {  // Prevents overflow and restricts ulong_var from 0 to (18000000000000000000 - 1)
+    return 0;
+  }
+
+  ulong_var++;
+
+  if (ulong_var <= 16000000000000000000uLL) {
+    return 0;
+  }
+
+  assert(ulong_var != 18000000000000000001uLL); // Safe
+
+  assert(ulong_var != 18000000000000000000uLL); // Fails -> ulong_var == 18000000000000000000
+
+  return 0;
+}

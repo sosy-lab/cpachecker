@@ -9,41 +9,1171 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-.worker {
-    font-family: Arial, Helvetica, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-.worker td, .worker th {
-    border: 1px solid #ddd;
-    padding: 8px;
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #f5f5f5;
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
 }
 
-.worker tr:nth-child(even) {
-    background-color: #f2f2f2;
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
 }
 
-.worker tr:hover {
-    background-color: #ddd;
+.hidden {
+    display: none !important;
 }
 
-.worker th {
-    padding-top: 12px;
-    padding-bottom: 12px;
-    text-align: left;
-    background-color: #04AA6D;
+/* ---------------------------------------------------------------- header */
+
+.header {
+    background: #2c3e50;
+    color: white;
+    padding: 24px 40px;
+    text-align: center;
+    border-bottom: 3px solid #34495e;
+}
+
+.header h1 {
+    font-size: 1.7em;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 0.95em;
+    opacity: 0.9;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* ------------------------------------------------------------ exceptions */
+
+.exception-panel {
+    margin: 0;
+    padding: 16px 40px;
+    background: #fdecea;
+    border-bottom: 2px solid #e74c3c;
+}
+
+.exception-panel h2 {
+    font-size: 1.1em;
+    color: #c0392b;
+    margin-bottom: 8px;
+}
+
+.exception-item {
+    margin-top: 6px;
+    font-size: 0.85em;
+}
+
+.exception-item summary {
+    cursor: pointer;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: #922b21;
+}
+
+.exception-item pre {
+    margin-top: 6px;
+    padding: 10px;
+    background: white;
+    border: 1px solid #e6b0aa;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.9em;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+/* -------------------------------------------------------------- controls */
+
+.controls {
+    padding: 20px 40px;
+    background: #fafafa;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.control-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 8px;
+    background: white;
+    padding: 4px;
+    border-radius: 6px;
+    border: 1px solid #d0d0d0;
+}
+
+.btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-view {
+    background: transparent;
+    color: #555;
+}
+
+.btn-view:hover {
+    background: #f0f0f0;
+}
+
+.btn-view.active {
+    background: #3498db;
     color: white;
 }
 
-.precondition {
-    background: rgb(255, 249, 182);
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
 }
 
-.postcondition {
-    background: rgb(255, 204, 210);
+.btn-secondary:hover {
+    background: #7f8c8d;
 }
 
-.normal {
-    background: rgb(224, 255, 204);
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    color: #555;
+    cursor: pointer;
+    user-select: none;
+}
+
+.filter-panel {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 260px;
+}
+
+.filter-section label {
+    font-weight: 500;
+    color: #555;
+    font-size: 0.85em;
+}
+
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-btn {
+    padding: 6px 12px;
+    border: 1px solid #d0d0d0;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.filter-btn.active {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.filter-btn:hover {
+    border-color: #3498db;
+}
+
+.filter-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.filter-input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.filter-input-group input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.btn-clear {
+    padding: 8px 12px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-clear:hover {
+    background: #c0392b;
+}
+
+/* ----------------------------------------------------------- stats panel */
+
+.stats-panel {
+    display: flex;
+    gap: 16px;
+    padding: 20px 40px 12px;
+    background: #fafafa;
+    flex-wrap: wrap;
+}
+
+.stat-card {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-label {
+    font-size: 0.75em;
+    color: #777;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.stat-value {
+    font-size: 1.4em;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.breakdown {
+    padding: 0 40px 20px;
+    background: #fafafa;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.breakdown summary {
+    cursor: pointer;
+    font-size: 0.85em;
+    color: #3498db;
+    font-weight: 500;
+    padding: 6px 0;
+}
+
+.breakdown-table {
+    border-collapse: collapse;
+    font-size: 0.8em;
+    background: white;
+    margin-top: 8px;
+}
+
+.breakdown-table th,
+.breakdown-table td {
+    border: 1px solid #e0e0e0;
+    padding: 5px 10px;
+    text-align: right;
+}
+
+.breakdown-table thead th,
+.breakdown-table tbody th {
+    background: #f0f2f4;
+    text-align: left;
+    font-weight: 600;
+}
+
+.breakdown-table .total-row th,
+.breakdown-table .total-row td {
+    background: #eef4fa;
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------ table view */
+
+.view-container {
+    padding: 20px;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.worker-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85em;
+}
+
+/*
+ * The child combinators matter throughout this block: every message card
+ * contains tables of its own, which must not inherit the layout of the
+ * surrounding worker table.
+ */
+.worker-table > thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.worker-table > thead > tr > th {
+    background: #34495e;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: 500;
+    border: 1px solid #2c3e50;
+    white-space: nowrap;
+}
+
+.worker-table > tbody > tr > td {
+    padding: 8px;
+    border: 1px solid #e0e0e0;
+    vertical-align: top;
+    max-width: 340px;
+}
+
+.time-cell {
+    font-weight: 500;
+    color: #555;
+    white-space: nowrap;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.empty-cell,
+.message-cell.filtered-out {
+    background: #f9f9f9;
+}
+
+.message-cell {
+    min-width: 220px;
+}
+
+/*
+ * A collapsed cell stays narrow so that all block columns fit next to each
+ * other; a cell whose content is expanded is allowed to take the room it needs.
+ * The full-width viewer (see .card-expand) is the alternative for wide content.
+ */
+.worker-table > tbody > tr > td:has(.message-content[open]) {
+    max-width: none;
+    min-width: 620px;
+}
+
+/* --------------------------------------------------------- timeline view */
+
+.timeline-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.timeline-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.timeline-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 10px;
+    background: #fafafa;
+    border-radius: 6px;
+    border-left: 3px solid #3498db;
+}
+
+.timeline-time {
+    min-width: 110px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.85em;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.timeline-messages {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* ------------------------------------------------------------ graph view */
+
+.graph-layout {
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+}
+
+.graph-pane {
+    flex: 1 1 55%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.graph-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 0.8em;
+    color: #555;
+}
+
+.graph-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.legend-swatch {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    border: 2px solid #7f8c8d;
+    background: white;
+}
+
+.legend-swatch.root {
+    border-color: #2c3e50;
+}
+
+.legend-swatch.busy {
+    background: #7fb8e0;
+    border-color: #7f8c8d;
+}
+
+.legend-swatch.failed {
+    border-color: #c0392b;
+}
+
+.legend-note {
+    color: #999;
+    margin-left: 6px;
+}
+
+.graph-note {
+    font-size: 0.8em;
+    color: #b9770e;
+    background: #fef9e7;
+    border: 1px solid #f5d78e;
+    border-radius: 4px;
+    padding: 6px 10px;
+}
+
+.graph-canvas {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fcfcfc;
+    overflow: auto;
+    max-height: 68vh;
+    padding: 10px;
+}
+
+.block-graph {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.graph-missing {
+    padding: 30px;
+    text-align: center;
+    color: #c0392b;
+}
+
+/* Graphviz draws a node as a polygon or, for rounded boxes, as a path. */
+.block-graph .node {
+    cursor: pointer;
+}
+
+.block-graph .node > polygon,
+.block-graph .node > path,
+.block-graph .node > ellipse {
+    transition: stroke 0.15s ease, stroke-width 0.15s ease;
+}
+
+.block-graph .node:hover > polygon,
+.block-graph .node:hover > path,
+.block-graph .node:hover > ellipse {
+    stroke: #3498db;
+    stroke-width: 2;
+}
+
+.block-graph .node.idle {
+    opacity: 0.45;
+}
+
+.block-graph .node.sel > polygon,
+.block-graph .node.sel > path {
+    stroke: #2980b9;
+    stroke-width: 3;
+}
+
+.block-graph .node.pred > polygon,
+.block-graph .node.pred > path {
+    stroke: #d68910;
+    stroke-width: 2.5;
+}
+
+.block-graph .node.succ > polygon,
+.block-graph .node.succ > path {
+    stroke: #1e8449;
+    stroke-width: 2.5;
+}
+
+.block-graph .node.active > polygon,
+.block-graph .node.active > path {
+    fill: #fdf0d5;
+}
+
+.block-graph .node.flow > polygon,
+.block-graph .node.flow > path {
+    fill: #e8f6ef;
+}
+
+.block-graph .edge.sel path {
+    stroke: #2980b9;
+    stroke-width: 2;
+}
+
+.block-graph .edge.flow path {
+    stroke: #e67e22;
+    stroke-width: 3;
+}
+
+.block-graph .edge.flow polygon {
+    fill: #e67e22;
+    stroke: #e67e22;
+}
+
+.graph-scrubber {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+}
+
+.btn-step {
+    padding: 4px 10px;
+    background: white;
+    border: 1px solid #d0d0d0;
+    color: #2c3e50;
+}
+
+.btn-step:hover {
+    background: #3498db;
+    border-color: #3498db;
+    color: white;
+}
+
+.graph-scrubber input[type='range'] {
+    flex: 1;
+    min-width: 80px;
+}
+
+.graph-position {
+    font-size: 0.78em;
+    color: #555;
+    font-family: 'Consolas', 'Monaco', monospace;
+    white-space: nowrap;
+}
+
+.graph-detail {
+    flex: 1 1 45%;
+    min-width: 0;
+    max-height: 82vh;
+    overflow: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 14px;
+    background: white;
+}
+
+.graph-hint {
+    color: #888;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.graph-detail-title {
+    font-size: 1.15em;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.graph-section-title {
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #777;
+    margin: 16px 0 6px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+.graph-section summary {
+    cursor: pointer;
+    color: #3498db;
+    font-size: 0.85em;
+    margin-top: 10px;
+}
+
+.graph-code {
+    margin-top: 6px;
+    padding: 8px;
+    background: #f7f7f7;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-family: 'Consolas', 'Monaco', monospace;
+    white-space: pre-wrap;
+    max-height: 220px;
+    overflow: auto;
+}
+
+.graph-message-list {
+    list-style: none;
+    font-size: 0.78em;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.graph-message-list li {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 3px 6px;
+    border-left: 3px solid #d0d0d0;
+    cursor: pointer;
+    border-radius: 0 3px 3px 0;
+}
+
+.graph-message-list li:hover {
+    background: #eef4fa;
+}
+
+.graph-message-list li.current {
+    background: #fdf0d5;
+    font-weight: 600;
+}
+
+.graph-message-list li.post-condition {
+    border-left-color: #f39c12;
+}
+
+.graph-message-list li.violation-condition {
+    border-left-color: #e74c3c;
+}
+
+.graph-message-list li.result {
+    border-left-color: #27ae60;
+}
+
+.graph-message-list li.exception {
+    border-left-color: #c0392b;
+}
+
+.graph-message-list .msg-time {
+    min-width: 74px;
+    color: #666;
+}
+
+.graph-message-list .msg-id {
+    min-width: 44px;
+    color: #999;
+}
+
+.graph-message-list .msg-repeat {
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* -------------------------------------------------------- message cards */
+
+.message-card,
+.timeline-message-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #e0e0e0;
+    border-left-width: 4px;
+    background: white;
+}
+
+.timeline-message-card {
+    min-width: 320px;
+    max-width: 480px;
+    flex: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.message-card + .message-card {
+    margin-top: 8px;
+}
+
+.message-card.post-condition,
+.timeline-message-card.post-condition {
+    border-left-color: #f39c12;
+    background: #fffbf0;
+}
+
+.message-card.violation-condition,
+.timeline-message-card.violation-condition {
+    border-left-color: #e74c3c;
+    background: #fff5f5;
+}
+
+.message-card.result,
+.timeline-message-card.result {
+    border-left-color: #27ae60;
+    background: #f0fff4;
+}
+
+.message-card.witness,
+.timeline-message-card.witness {
+    border-left-color: #8e44ad;
+    background: #faf5ff;
+}
+
+.message-card.exception,
+.timeline-message-card.exception {
+    border-left-color: #c0392b;
+    background: #fdecea;
+}
+
+.card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.card-arrow {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #555;
+}
+
+.card-sender {
+    flex: 1;
+    font-size: 0.95em;
+    color: #2c3e50;
+}
+
+.card-id {
+    font-size: 0.75em;
+    color: #888;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.card-expand {
+    border: 1px solid #d0d0d0;
+    background: white;
+    color: #3498db;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85em;
+    line-height: 1;
+    padding: 2px 5px;
+}
+
+.card-expand:hover {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.type-badge,
+.repeat-badge,
+.count-badge {
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 0.68em;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    color: white;
+}
+
+.type-badge {
+    background: #34495e;
+}
+
+.type-badge.post-condition {
+    background: #d68910;
+}
+
+.type-badge.violation-condition {
+    background: #c0392b;
+}
+
+.type-badge.result {
+    background: #1e8449;
+}
+
+.type-badge.witness {
+    background: #7d3c98;
+}
+
+.type-badge.exception {
+    background: #922b21;
+}
+
+.repeat-badge {
+    background: #7f8c8d;
+}
+
+.count-badge {
+    background: white;
+    color: #555;
+    border: 1px solid #d0d0d0;
+}
+
+.card-flow {
+    font-size: 0.8em;
+    color: #555;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: baseline;
+}
+
+.card-flow .label {
+    color: #999;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.4px;
+}
+
+.card-flow .value {
+    color: #2c3e50;
+    font-weight: 500;
+    margin-right: 6px;
+}
+
+/* ------------------------------------------------------- message content */
+
+.message-content summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: #3498db;
+    font-size: 0.8em;
+    padding: 3px 0;
+    user-select: none;
+}
+
+.message-content summary:hover {
+    color: #2980b9;
+}
+
+.content-body {
+    margin-top: 6px;
+    max-height: 420px;
+    overflow: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    background: #fbfbfb;
+    padding: 8px;
+}
+
+.kv-table,
+.state-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.72em;
+    font-family: 'Consolas', 'Monaco', monospace;
+    table-layout: fixed;
+}
+
+.kv-table th,
+.kv-table td,
+.state-table td {
+    border: 1px solid #ececec;
+    padding: 3px 6px;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.kv-table th {
+    background: #f2f4f6;
+    width: 30%;
+    font-weight: 600;
+}
+
+.state-block {
+    margin-top: 8px;
+}
+
+.state-title {
+    font-size: 0.75em;
+    font-weight: 600;
+    color: #2c3e50;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 3px;
+}
+
+.state-table .cpa {
+    width: 22%;
+    background: #f2f4f6;
+    font-weight: 600;
+}
+
+.state-table .field {
+    width: 18%;
+    color: #666;
+}
+
+.state-table .decoded td {
+    background: #eef7ff;
+    color: #1b4f72;
+}
+
+.changed-keys {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #d0d0d0;
+}
+
+.changed-keys .state-table thead td {
+    background: #f2f4f6;
+    font-weight: 600;
+}
+
+.changed-keys .value.old {
+    background: #fdf3f2;
+    color: #922b21;
+}
+
+.changed-keys .value.new {
+    background: #f2faf4;
+    color: #196f3d;
+}
+
+/* ------------------------------------------------------- graph modal */
+
+.floating-graph-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #3498db;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    font-size: 1.5em;
+    z-index: 100;
+    transition: all 0.3s ease;
+}
+
+.floating-graph-btn:hover {
+    background: #2980b9;
+    transform: scale(1.08);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+}
+
+.modal-content {
+    position: relative;
+    background: white;
+    border-radius: 6px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+}
+
+/* The message viewer needs all the room it can get. */
+.modal-content.wide {
+    width: 90vw;
+}
+
+.modal-content.wide .modal-body {
+    background: white;
+}
+
+.modal-content.wide .content-body {
+    max-height: none;
+    border: none;
+    background: white;
+    padding: 0;
+}
+
+.modal-content.wide .kv-table,
+.modal-content.wide .state-table {
+    font-size: 0.85em;
+}
+
+.modal-content.wide .kv-table th {
+    width: 16%;
+}
+
+.modal-content.wide .state-table .cpa {
+    width: 14%;
+}
+
+.modal-content.wide .state-table .field {
+    width: 10%;
+}
+
+.modal-content h2 {
+    padding: 14px 24px;
+    background: #2c3e50;
+    color: white;
+    font-size: 1.2em;
+    font-weight: 500;
+}
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    font-size: 1.7em;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    z-index: 1002;
+    line-height: 1;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow: auto;
+    max-height: calc(90vh - 60px);
+    background: #fafafa;
+}
+
+.modal-body img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+/* ------------------------------------------------------------ responsive */
+
+@media (max-width: 768px) {
+    body {
+        padding: 0;
+    }
+
+    .container {
+        border-radius: 0;
+    }
+
+    .header h1 {
+        font-size: 1.3em;
+    }
+
+    .controls,
+    .stats-panel,
+    .breakdown,
+    .exception-panel {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .control-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .timeline-row {
+        flex-direction: column;
+    }
+
+    .timeline-time {
+        min-width: 100%;
+        text-align: left;
+    }
+
+    .timeline-message-card {
+        min-width: 100%;
+    }
+
+    .floating-graph-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 48px;
+        height: 48px;
+    }
 }

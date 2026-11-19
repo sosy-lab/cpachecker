@@ -328,17 +328,41 @@ public class CustomInstructionApplications {
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
-                  FileLocation.DUMMY, true, CStorageClass.AUTO, type, "r", "r", "r", null));
+                  FileLocation.DUMMY,
+                  true,
+                  CStorageClass.AUTO,
+                  type,
+                  "r",
+                  "r",
+                  "r",
+                  null,
+                  /* pHasThreadLocalStorage= */ false));
       CIdExpression x =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
-                  FileLocation.DUMMY, true, CStorageClass.AUTO, type, "x", "x", "x", null));
+                  FileLocation.DUMMY,
+                  true,
+                  CStorageClass.AUTO,
+                  type,
+                  "x",
+                  "x",
+                  "x",
+                  null,
+                  /* pHasThreadLocalStorage= */ false));
       CIdExpression y =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
-                  FileLocation.DUMMY, true, CStorageClass.AUTO, type, "y", "y", "y", null));
+                  FileLocation.DUMMY,
+                  true,
+                  CStorageClass.AUTO,
+                  type,
+                  "y",
+                  "y",
+                  "y",
+                  null,
+                  /* pHasThreadLocalStorage= */ false));
       // create statement
       CExpressionAssignmentStatement stmt =
           new CExpressionAssignmentStatement(

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
@@ -17,7 +18,6 @@ import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.PLUS;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,8 +28,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @RunWith(Parameterized.class)
@@ -56,9 +58,9 @@ public class CBinaryExpressionBuilderTest {
   private static final CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT.getCanonicalType();
   private static final CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
 
-  private static final List<CSimpleType> smallTypes =
+  private static final ImmutableList<CSimpleType> smallTypes =
       ImmutableList.of(S_CHAR, U_CHAR, S_SHORT_INT, U_SHORT_INT, S_INT);
-  private static final List<CSimpleType> bigTypes =
+  private static final ImmutableList<CSimpleType> bigTypes =
       ImmutableList.of(U_INT, S_LONG_INT, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT);
 
   private LogManager logger;
@@ -84,6 +86,20 @@ public class CBinaryExpressionBuilderTest {
     checkRelationalTypes(EQUALS);
     checkRelationalTypes(LESS_THAN);
     checkRelationalTypes(GREATER_EQUAL);
+  }
+
+  @Test
+  public void multiplicationWithPointerIsUnrecognized() {
+    CPointerType pointer = new CPointerType(CTypeQualifiers.NONE, S_INT);
+    assertThrows(
+        UnrecognizedCodeException.class,
+        () ->
+            c.getCalculationTypeForBinaryOperation(
+                S_INT,
+                pointer,
+                MULTIPLY,
+                CIntegerLiteralExpression.ZERO,
+                CIntegerLiteralExpression.ZERO));
   }
 
   private void checkArithmeticTypes(BinaryOperator op) throws UnrecognizedCodeException {

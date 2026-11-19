@@ -68,9 +68,9 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
 
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     return switch (binaryOperator) {
-      case BINARY_AND -> rmgr.makeAnd(l, r);
-      case BINARY_OR -> rmgr.makeOr(l, r);
-      case BINARY_XOR, NOT_EQUALS -> rmgr.makeUnequal(l, r);
+      case BITWISE_AND -> rmgr.makeAnd(l, r);
+      case BITWISE_OR -> rmgr.makeOr(l, r);
+      case BITWISE_XOR, NOT_EQUALS -> rmgr.makeUnequal(l, r);
       case EQUALS -> rmgr.makeEqual(l, r);
       default -> throw new AssertionError("unhandled binary operator");
     };

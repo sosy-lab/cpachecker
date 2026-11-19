@@ -86,9 +86,10 @@ public final class StackFrame {
     variableArguments = Optional.ofNullable(pVariableArguments);
   }
 
+  /** Dummy Stackframe for tests */
   private StackFrame() {
     stackVariables = PathCopyingPersistentTreeMap.of();
-    stackFunction = null;
+    stackFunction = CFunctionDeclaration.DUMMY;
     // use a plain int as return type for void functions
     returnValueObject = Optional.empty();
     variableArguments = Optional.empty();

@@ -1194,10 +1194,6 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *     not belong to this SDG builder
      */
     void insertActualSummaryEdges(N pFormalInNode, N pFormalOutNode) {
-
-      Objects.requireNonNull(pFormalInNode, "pFormalInNode must not be null");
-      Objects.requireNonNull(pFormalInNode, "pFormalOutNode must not be null");
-
       Preconditions.checkArgument(
           pFormalInNode.getType() == NodeType.FORMAL_IN,
           "pFormalInNode does not have type FORMAL_IN");
@@ -1649,20 +1645,11 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @see SystemDependenceGraph#createVisitOnceVisitor(ForwardsVisitor)
    * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
    */
-  public static final class ForwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
+  private static final class ForwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
       extends VisitOnceVisitor<N> implements ForwardsVisitor<N> {
 
     ForwardsVisitOnceVisitor(ForwardsVisitor<N> pDelegateVisitor, int pNodeCount) {
       super(true, pDelegateVisitor, pNodeCount);
-    }
-
-    /**
-     * Causes this visit-once-visitor to forget all previously visited nodes.
-     *
-     * <p>This can, but doesn't have to, be called between different SDG traversals of the same SDG.
-     */
-    public void reset() {
-      super.reset();
     }
 
     @Override

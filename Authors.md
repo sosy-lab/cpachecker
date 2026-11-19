@@ -16,21 +16,26 @@ SPDX-License-Identifier: Apache-2.0
 - Keremoglu, Erkan (2008 - 2011); SFU, Canada
 
 # Developers/Contributors
+- Ádám, Zsófia (since 2026); Budapest University of Technology and Economics, Hungary
 - Baier, Daniel (since 2021); LMU Munich, Germany
 - Bajczi, Levente (since 2024); Budapest University of Technology and Economics, Hungary
+- Brocke, Michael (since 2025); LMU Munich, Germany
 - Chien, Po-Chun (since 2021); LMU Munich, Germany
 - Ewerling, Sarah (since 2025); LMU Munich, Germany
 - Friedberger, Karlheinz (since 2011); LMU Munich, Germany
 - Jakobs, Marie-Christine (since 2012); LMU Munich, Germany
 - Jankola, Marek (since 2023); LMU Munich, Germany
 - Kettl, Matthias (since 2019); LMU Munich, Germany
+- Koch, Sarah (since 2025); LMU Munich, Germany
+- König, Noah (since 2024); LMU Munich, Germany
 - Lee, Nian-Ze (since 2020); LMU Munich, Germany
 - Lemberger, Thomas (since 2014); LMU Munich, Germany
 - Lingsch-Rosenfeld, Marian (since 2020); LMU Munich, Germany
+- Pietsch, Manuel (since 2026); LMU Munich, Germany
 - Raffler, Daniel (since 2024); LMU Munich, Germany
-- Ruckstuhl, Sara (since 2024); LMU Munich, Germany
-- Salgado, Diego (since 2024); LMU Munich, Germany
-- Wachowitz, Henrik (since 2022); LMU Munich, Germany
+- Schlüßlhuber, Johannes (since 2025); LMU Munich, Germany
+- Telbisz, Csanád (since 2026); Budapest University of Technology and Economics, Hungary
+- Warrier, Akshay (since 2026); LMU Munich, Germany
 
 # Former Developers/Contributors
 - Ali, Schindar (2020); LMU Munich, Germany
@@ -72,6 +77,7 @@ SPDX-License-Identifier: Apache-2.0
 - Hailer, Maximilian (2022); LMU Munich, Germany
 - Haltermann, Jan (2019 - 2023); University of Oldenburg, Germany
 - Häring, Peter (2011 - 2014); University of Passau, Germany
+- Hartmann, Jens (2025); LMU Munich, Germany
 - Heydebrand, Julian (2015); University of Passau, Germany
 - Hoffmann, Sascha (2022 - 2023); TU Darmstadt, Germany
 - Holzer, Andreas (2008 - 2015); TU Darmstadt, Germany / TU Vienna, Austria
@@ -83,6 +89,7 @@ SPDX-License-Identifier: Apache-2.0
 - Käufl, Michael (2011); University of Passau, Germany
 - Kieffer, Steven (2011 - 2012); SFU, Canada
 - Knaut, Johannes (2018); LMU Munich, Germany
+- Koeniger, Matthias (2025); LMU Munich, Germany 
 - Kolesnykov, Vladyslav (2020); LMU Munich, Germany
 - Koos, Alexander (2017 - 2018); LMU Munich, Germany
 - Korth, Philipp (2012); University of Paderborn, Germany
@@ -114,7 +121,9 @@ SPDX-License-Identifier: Apache-2.0
 - Rankl, Roman (2025); LMU Munich, Germany
 - Ratke, Sabine (2020); LMU Munich, Germany
 - Rhein, Alexander von (2010); University of Passau, Germany
+- Ruckstuhl, Sara (2024); LMU Munich, Germany
 - Rust, Henry (2021); TU Darmstadt, Germany
+- Salgado, Diego (2024 - 2025); LMU Munich, Germany
 - Scheffel, Sebastian (2014 - 2015); University of Passau, Germany
 - Schönberger, Frederic (2021); LMU Munich, Germany
 - Schremmer, Alexander (2012 - 2013); University of Paderborn, Germany
@@ -138,6 +147,7 @@ SPDX-License-Identifier: Apache-2.0
 - Umbricht, Sven (2020 - 2024); LMU Munich, Germany
 - Vasilyev, Anton (2015 - 2022); ISP RAS, Russia
 - Volkov, Anton (2015 - 2018); ISP RAS, Russia
+- Wachowitz, Henrik (2022 - 2024); LMU Munich, Germany
 - Weise, Nico (2019 - 2021); LMU Munich, Germany
 - Wiesholler, Max (2018 - 2019); LMU Munich, Germany
 - Winter, Katharina (2018 - 2019); LMU Munich, Germany

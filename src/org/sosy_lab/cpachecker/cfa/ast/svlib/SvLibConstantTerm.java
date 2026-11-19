@@ -1,0 +1,86 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.ast.svlib;
+
+import java.math.BigInteger;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
+
+public sealed interface SvLibConstantTerm extends SvLibTerm
+    permits SvLibArrayConstantTerm,
+        SvLibBitVectorConstantTerm,
+        SvLibBooleanConstantTerm,
+        SvLibFloatingPointConstantTerm,
+        SvLibIntegerConstantTerm,
+        SvLibRealConstantTerm,
+        SvLibRoundingModeConstantTerm {
+
+  Object getValue();
+
+  static SvLibConstantTerm of(Object pValue, SvLibType pType) {
+    if (pType instanceof SvLibSmtLibPredefinedType pSvLibSmtLibPredefinedType) {
+      return switch (pSvLibSmtLibPredefinedType) {
+        case BOOL -> {
+          if (pValue instanceof Boolean b) {
+            yield new SvLibBooleanConstantTerm(b, FileLocation.DUMMY);
+          } else {
+            throw new IllegalArgumentException(
+                "Expected Boolean value for SvLibSmtLibPredefinedType.BOOL, but got: " + pValue);
+          }
+        }
+        case INT -> {
+          BigInteger i;
+          if (pValue instanceof Integer val) {
+            i = BigInteger.valueOf(val);
+          } else if (pValue instanceof BigInteger bigInt) {
+            i = bigInt;
+          } else {
+            throw new IllegalArgumentException(
+                "Expected Integer value for SvLibSmtLibPredefinedType.INT, but got: " + pValue);
+          }
+          yield new SvLibIntegerConstantTerm(i, FileLocation.DUMMY);
+        }
+        default ->
+            throw new UnsupportedOperationException(
+                "Cannot create constant expression for type: " + pSvLibSmtLibPredefinedType);
+      };
+    }
+
+    if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      BigInteger value;
+      if (pValue instanceof BigInteger bigInt) {
+        value = bigInt;
+      } else if (pValue instanceof Integer val) {
+        value = BigInteger.valueOf(val);
+      } else if (pValue instanceof Long val) {
+        value = BigInteger.valueOf(val);
+      } else {
+        throw new IllegalArgumentException(
+            "Expected numeric value for bitvector type, but got: " + pValue);
+      }
+      if (value.signum() < 0) {
+        // Normalize values of a signed interpretation into [0, 2^size)
+        value = value.add(BigInteger.ONE.shiftLeft(bitVectorType.getSize()));
+      }
+      return new SvLibBitVectorConstantTerm(value, bitVectorType.getSize(), FileLocation.DUMMY);
+    }
+
+    if (pType instanceof SvLibSmtLibFloatingPointType
+        && pValue instanceof FloatingPointNumber floatingPointNumber) {
+      return new SvLibFloatingPointConstantTerm(floatingPointNumber, FileLocation.DUMMY);
+    }
+
+    throw new UnsupportedOperationException(
+        "Cannot create constant expression for type " + pType + " from value " + pValue);
+  }
+}

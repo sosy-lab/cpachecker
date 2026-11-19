@@ -14,6 +14,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -33,6 +35,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -123,27 +126,37 @@ public final class ValueAnalysisState
 
   private final AtomicInteger counterForRandomInputValuesUsed;
 
+  /** The variables whose value 1 stands for any nonzero value (cf. optimizeBooleanVariables). */
+  private final ImmutableSet<String> booleanVariables;
+
   public ValueAnalysisState(MachineModel pMachineModel) {
-    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of());
+    this(pMachineModel, ImmutableSet.of());
+  }
+
+  public ValueAnalysisState(MachineModel pMachineModel, ImmutableSet<String> pBooleanVariables) {
+    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of(), pBooleanVariables);
   }
 
   public ValueAnalysisState(
       Optional<MachineModel> pMachineModel,
       PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
-    this(pMachineModel.orElse(null), pConstantsMap);
+    this(pMachineModel.orElse(null), pConstantsMap, ImmutableSet.of());
   }
 
   private ValueAnalysisState(
       @Nullable MachineModel pMachineModel,
-      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
+      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap,
+      ImmutableSet<String> pBooleanVariables) {
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
+    booleanVariables = checkNotNull(pBooleanVariables);
     hashCode = constantsMap.hashCode();
     counterForRandomInputValuesUsed = new AtomicInteger(0);
   }
 
   private ValueAnalysisState(ValueAnalysisState state) {
     machineModel = state.machineModel;
+    booleanVariables = state.booleanVariables;
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
@@ -318,8 +331,8 @@ public final class ValueAnalysisState
    * This method returns the value for the given variable.
    *
    * @param memLoc the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
+   * @throws NullPointerException - if no value is present in this state for the given variable
    */
   public Value getValueFor(MemoryLocation memLoc) {
     return checkNotNull(getValueAndTypeFor(memLoc).getValue());
@@ -329,9 +342,9 @@ public final class ValueAnalysisState
    * This method returns the type for the given memory location.
    *
    * @param memLoc the memory location for which to get the type
+   * @return the type associated with the given memory location
    * @throws NullPointerException - if no type is present in this state for the given memory
    *     location
-   * @return the type associated with the given memory location
    */
   public @Nullable Type getTypeForMemoryLocation(MemoryLocation memLoc) {
     return getValueAndTypeFor(memLoc).getType();
@@ -341,8 +354,8 @@ public final class ValueAnalysisState
    * This method returns the value and type for the given variable.
    *
    * @param memLoc the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value and type associated with the given variable
+   * @throws NullPointerException - if no value is present in this state for the given variable
    */
   public ValueAndType getValueAndTypeFor(MemoryLocation memLoc) {
     return checkNotNull(constantsMap.get(memLoc));
@@ -408,7 +421,7 @@ public final class ValueAnalysisState
     if (newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
     } else {
-      return new ValueAnalysisState(machineModel, newConstantsMap);
+      return new ValueAnalysisState(machineModel, newConstantsMap, booleanVariables);
     }
   }
 
@@ -833,7 +846,8 @@ public final class ValueAnalysisState
     return counterForRandomInputValuesUsed;
   }
 
-  private Optional<CExpression> buildConstraint(CExpression pVar, CType pCType, NumericValue pNum) {
+  private Optional<CExpression> buildConstraint(
+      CExpression pVar, CType pCType, NumericValue pNum, boolean pIsBooleanVariable) {
     // TODO: Refactor the whole code to also handle JExpressions i.e. change CExpression to
     //  AExpression
     // TODO: Get real logger
@@ -844,12 +858,23 @@ public final class ValueAnalysisState
     if (pCType instanceof CSimpleType simpleType) {
       if (simpleType.getType().isIntegerType()) {
         BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
+        if (pIsBooleanVariable && value.signum() != 0) {
+          return Optional.of(
+              builder.buildBinaryExpressionUnchecked(
+                  pVar,
+                  new CIntegerLiteralExpression(loc, simpleType, BigInteger.ZERO),
+                  BinaryOperator.NOT_EQUALS));
+        }
         val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
         FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, simpleType);
-        val =
-            new CFloatLiteralExpression(
-                loc, machineModel, simpleType, pNum.floatingPointValue(precision));
+        FloatValue floatValue = pNum.floatingPointValue(precision);
+        if (floatValue.isNan()) {
+          // NaN is not equal to itself, so `x == NaN` would never hold
+          return Optional.of(
+              builder.buildBinaryExpressionUnchecked(pVar, pVar, BinaryOperator.NOT_EQUALS));
+        }
+        val = new CFloatLiteralExpression(loc, machineModel, simpleType, floatValue);
       } else {
         throw new AssertionError("Unexpected type: " + simpleType);
       }
@@ -931,9 +956,15 @@ public final class ValueAnalysisState
                     newVariableName,
                     newVariableName,
                     memoryLocation.getExtendedQualifiedName(),
-                    null);
+                    null,
+                    /* pHasThreadLocalStorage= */ false);
             CExpression var = new CIdExpression(loc, decl);
-            Optional<CExpression> constraint = buildConstraint(var, cType, num);
+            Optional<CExpression> constraint =
+                buildConstraint(
+                    var,
+                    cType,
+                    num,
+                    booleanVariables.contains(memoryLocation.getExtendedQualifiedName()));
             if (constraint.isPresent()) {
               result.add(LeafExpression.of(constraint.orElseThrow()));
             }
@@ -946,7 +977,7 @@ public final class ValueAnalysisState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      FunctionEntryNode pFunctionScope, CFANode pLocation)
+      FunctionEntryNode pFunctionScope, CFANode pLocation, MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
     return getFormulaApproximation(
         pFunctionScope,
@@ -962,10 +993,13 @@ public final class ValueAnalysisState
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
+    FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+        ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
 
     return getFormulaApproximation(
         pFunctionScope,
@@ -973,17 +1007,19 @@ public final class ValueAnalysisState
         varName ->
             (pFunctionScope.getReturnVariable().isEmpty()
                     || !varName.equals(pFunctionScope.getReturnVariable().get().getName()))
-                && pAstCfaRelation
-                    .getVariablesAndParametersInScope(pLocation)
-                    .orElseThrow()
-                    .anyMatch(v -> v.getName().equals(varName))
+                && variablesInScope.anyMatch(v -> v.getName().equals(varName))
                 && !varName.contains("__CPAchecker_"),
-        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
+        varName -> {
+          String name = pAstCfaRelation.getNameInInputProgram(pLocation, varName);
+          return useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name;
+        });
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
     if (machineModel == null) {
       throw new TranslationToExpressionTreeFailedException("MachineModel is not available.");
@@ -1015,7 +1051,12 @@ public final class ValueAnalysisState
           if (pFunctionScope.getReturnVariable().isPresent()
               && id.equals(pFunctionScope.getReturnVariable().orElseThrow().getName())
               && pFunctionReturnVariable instanceof CIdExpression var) {
-            Optional<CExpression> constraint = buildConstraint(var, cType, num);
+            Optional<CExpression> constraint =
+                buildConstraint(
+                    var,
+                    cType,
+                    num,
+                    booleanVariables.contains(memoryLocation.getExtendedQualifiedName()));
             if (constraint.isPresent()) {
               result = LeafExpression.of(constraint.orElseThrow());
               break;

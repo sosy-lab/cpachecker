@@ -169,8 +169,19 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           if ((v1 instanceof NamedFunctionTarget && v2 instanceof NamedFunctionTarget)
               || v1 instanceof NullTarget
               || v2 instanceof NullTarget) {
-            boolean result = (op == BinaryOperator.EQUALS) ? v1.equals(v2) : !v1.equals(v2);
-            if (result != a.getTruthAssumption()) {
+            if (!a.getTruthAssumption()) {
+              // in the else branch, invert the operator
+              op =
+                  (op == BinaryOperator.EQUALS) ? BinaryOperator.NOT_EQUALS : BinaryOperator.EQUALS;
+            }
+            boolean result;
+            // check whether the operator can hold for the two function pointer targets
+            if (op == BinaryOperator.EQUALS) {
+              result = FunctionPointerTarget.maybeEqual(v1, v2);
+            } else {
+              result = FunctionPointerTarget.maybeUnequal(v1, v2);
+            }
+            if (!result) {
               logger.log(Level.FINE, "Should not go by the edge", a);
               return false; // should not go by this edge
             } else {
@@ -272,24 +283,20 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       nameExp = ((CCastExpression) nameExp).getOperand();
     }
 
-    if (nameExp instanceof CIdExpression) {
-      // a = f(b) or a = (*f)(b)
-      return ((CIdExpression) nameExp).getDeclaration().getQualifiedName();
-    } else if (nameExp instanceof CFieldReference) {
-      // TODO This is a function pointer call "(s->f)()" or "(s.f)()"
-      return null;
-    } else if (nameExp instanceof CArraySubscriptExpression) {
-      // TODO This is a function pointer call (*a[i])()
-      return null;
-    } else if (nameExp instanceof CPointerExpression) {
-      // TODO double dereference (**f)()
-      return null;
-    } else {
-      throw new UnrecognizedCodeException(
-          "unknown function call expression of type " + nameExp.getClass().getSimpleName(),
-          pCfaEdge,
-          nameExp);
-    }
+    return switch (nameExp) {
+      case CIdExpression idExp ->
+          idExp.getDeclaration().getQualifiedName(); // a = f(b) or a = (*f)(b)
+      case CFieldReference unused ->
+          null; // TODO This is a function pointer call "(s->f)()" or "(s.f)()"
+      case CArraySubscriptExpression unused ->
+          null; // TODO This is a function pointer call (*a[i])()
+      case CPointerExpression unused -> null; // TODO double dereference (**f)()
+      default ->
+          throw new UnrecognizedCodeException(
+              "unknown function call expression of type " + nameExp.getClass().getSimpleName(),
+              pCfaEdge,
+              nameExp);
+    };
   }
 
   /**
@@ -516,30 +523,33 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
   private String getLeftHandSide(CExpression lhsExpression, CFAEdge edge)
       throws UnrecognizedCodeException {
 
-    if (lhsExpression instanceof CIdExpression cIdExpression) {
-      // a = ...
-      return cIdExpression.getDeclaration().getQualifiedName();
-
-    } else if (lhsExpression instanceof CPointerExpression) {
-      // *a = ...
-      // TODO: Support this statement.
-
-    } else if (lhsExpression instanceof CFieldReference) {
-
-      // String functionName = pCfaEdge.getPredecessor().getFunctionName();
-      // handleAssignmentToVariable(op1.getRawSignature(), op2, v);
-
-      // TODO: Support this statement.
-
-    } else if (lhsExpression instanceof CArraySubscriptExpression arrayExp) {
-      if (arrayExp.getArrayExpression() instanceof CIdExpression
-          && arrayExp.getSubscriptExpression() instanceof CIntegerLiteralExpression) {
-        return arrayElementVariable(arrayExp);
+    switch (lhsExpression) {
+      case CIdExpression cIdExpression -> {
+        // a = ...
+        return cIdExpression.getDeclaration().getQualifiedName();
       }
+      case CPointerExpression unused -> {
+        // *a = ...
+        // TODO: Support this statement.
 
-    } else {
-      throw new UnrecognizedCodeException(
-          "left operand of assignment has to be a variable", edge, lhsExpression);
+      }
+      case CFieldReference unused -> {
+
+        // String functionName = pCfaEdge.getPredecessor().getFunctionName();
+        // handleAssignmentToVariable(op1.getRawSignature(), op2, v);
+
+        // TODO: Support this statement.
+
+      }
+      case CArraySubscriptExpression arrayExp -> {
+        if (arrayExp.getArrayExpression() instanceof CIdExpression
+            && arrayExp.getSubscriptExpression() instanceof CIntegerLiteralExpression) {
+          return arrayElementVariable(arrayExp);
+        }
+      }
+      default ->
+          throw new UnrecognizedCodeException(
+              "left operand of assignment has to be a variable", edge, lhsExpression);
     }
     return null;
   }

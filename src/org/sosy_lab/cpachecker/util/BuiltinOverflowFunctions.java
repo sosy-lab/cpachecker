@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -87,13 +88,11 @@ public class BuiltinOverflowFunctions {
     }
 
     private static String getOperatorName(BinaryOperator pOperator) {
-      if (pOperator == BinaryOperator.PLUS) {
-        return "add";
-      } else if (pOperator == BinaryOperator.MINUS) {
-        return "sub";
-      } else {
-        return "mul";
-      }
+      return switch (pOperator) {
+        case PLUS -> "add";
+        case MINUS -> "sub";
+        default -> "mul";
+      };
     }
 
     private static String getDataTypePrefix(@Nullable CSimpleType pType) {
@@ -233,18 +232,51 @@ public class BuiltinOverflowFunctions {
     }
 
     CType targetType = thirdArgument.getExpressionType().getCanonicalType();
-    if (targetType instanceof CPointerType) {
-      targetType = ((CPointerType) targetType).getType();
+    if (targetType instanceof CPointerType pointerType) {
+      targetType = pointerType.getType().getCanonicalType();
+    } else if (targetType instanceof CArrayType arrayType) {
+      targetType = arrayType.getType().getCanonicalType();
     }
     return (CSimpleType) targetType;
   }
 
-  /*
-   * Calcualtes the result of a builtin overflow function (e.g. for value analysis). The arguments are converted to respective
-   * types (if necessary), the result of the operation is computed with infinite precision, and the
-   * overflow is determined by casting to the type of the third parameter.
+  /**
+   * The outcome of a call to a builtin overflow function.
+   *
+   * @param result the result of the arithmetic operation, converted to the type of the third
+   *     parameter (wrapped around in case of an overflow). Functions with side effects store this
+   *     value in the object pointed to by their third argument.
+   * @param overflow the return value of the function: 1 if the operation overflowed, 0 otherwise
+   */
+  public record OverflowFunctionResult(Value result, Value overflow) {
+    private static final OverflowFunctionResult UNKNOWN =
+        new OverflowFunctionResult(
+            Value.UnknownValue.getInstance(), Value.UnknownValue.getInstance());
+  }
+
+  /**
+   * Calculates the return value of a builtin overflow function (e.g. for value analysis).
+   *
+   * @see #evaluateFunctionCallWithResult(CFunctionCallExpression, AbstractExpressionValueVisitor,
+   *     MachineModel, LogManagerWithoutDuplicates)
    */
   public static Value evaluateFunctionCall(
+      CFunctionCallExpression functionCallExpression,
+      AbstractExpressionValueVisitor evv,
+      MachineModel machineModel,
+      LogManagerWithoutDuplicates logger)
+      throws UnrecognizedCodeException {
+    return evaluateFunctionCallWithResult(functionCallExpression, evv, machineModel, logger)
+        .overflow();
+  }
+
+  /**
+   * Calculates the result of a builtin overflow function (e.g. for value analysis). The arguments
+   * are converted to respective types (if necessary), the result of the operation is computed with
+   * infinite precision, and the overflow is determined by casting to the type of the third
+   * parameter. Both values are unknown if an argument is not a known numeric value.
+   */
+  public static OverflowFunctionResult evaluateFunctionCallWithResult(
       CFunctionCallExpression functionCallExpression,
       AbstractExpressionValueVisitor evv,
       MachineModel machineModel,
@@ -263,8 +295,8 @@ public class BuiltinOverflowFunctions {
           CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));
 
           if (resultType.getType().isIntegerType()
-              && firstParameterValue.isExplicitlyKnown()
-              && secondParameterValue.isExplicitlyKnown()) {
+              && firstParameterValue instanceof NumericValue
+              && secondParameterValue instanceof NumericValue) {
             // cast arguments to matching values
             if (!isFunctionWithArbitraryArgumentTypes(nameOfCalledFunc)) {
               firstParameterValue =
@@ -273,11 +305,12 @@ public class BuiltinOverflowFunctions {
               secondParameterValue =
                   AbstractExpressionValueVisitor.castCValue(
                       secondParameterValue, resultType, machineModel, logger);
+              // Expected to return NumericValue, as we give it a NumericValue
             }
 
             // perform operation with infinite precision
-            BigInteger p1 = firstParameterValue.asNumericValue().bigIntegerValue();
-            BigInteger p2 = secondParameterValue.asNumericValue().bigIntegerValue();
+            BigInteger p1 = ((NumericValue) firstParameterValue).bigIntegerValue();
+            BigInteger p2 = ((NumericValue) secondParameterValue).bigIntegerValue();
 
             BigInteger resultOfComputation;
             BinaryOperator operator = getOperator(nameOfCalledFunc);
@@ -291,22 +324,22 @@ public class BuiltinOverflowFunctions {
                           "Can not determine operator of function " + nameOfCalledFunc, null, null);
                 };
 
-            // cast result type of third parameter
-            Value resultValue = new NumericValue(resultOfComputation);
-            resultValue =
+            // cast result type of third parameter (expected to return NumericValue, as we give it a
+            // NumericValue)
+            Value resultValue =
                 AbstractExpressionValueVisitor.castCValue(
-                    resultValue, resultType, machineModel, logger);
+                    new NumericValue(resultOfComputation), resultType, machineModel, logger);
 
-            if (resultValue.asNumericValue().bigIntegerValue().equals(resultOfComputation)) {
-              return new NumericValue(0);
+            if (((NumericValue) resultValue).bigIntegerValue().equals(resultOfComputation)) {
+              return new OverflowFunctionResult(resultValue, new NumericValue(0));
             } else {
-              return new NumericValue(1);
+              return new OverflowFunctionResult(resultValue, new NumericValue(1));
             }
           }
         }
       }
     }
 
-    return Value.UnknownValue.getInstance();
+    return OverflowFunctionResult.UNKNOWN;
   }
 }

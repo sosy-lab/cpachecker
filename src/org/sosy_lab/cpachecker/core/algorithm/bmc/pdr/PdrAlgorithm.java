@@ -670,14 +670,12 @@ public class PdrAlgorithm implements Algorithm {
       DetectingLiftingAbstractionFailureStrategy pLafsForCheck,
       InductionResult<? extends CandidateInvariant> pCheckResult) {
     return pCheckResult.getBadStateBlockingClauses().stream()
-        .map(
-            badStateBlockingClause ->
-                pOldObligation.causeProofObligation(
-                    badStateBlockingClause,
-                    pLafsForCheck.getBlockedConcreteCtiForSpuriousAbstraction(
-                        badStateBlockingClause),
-                    pOldObligation.getNSpuriousTransitions(),
-                    pCheckResult.getK()));
+        .map(badStateBlockingClause ->
+            pOldObligation.causeProofObligation(
+                badStateBlockingClause,
+                pLafsForCheck.getBlockedConcreteCtiForSpuriousAbstraction(badStateBlockingClause),
+                pOldObligation.getNSpuriousTransitions(),
+                pCheckResult.getK()));
   }
 
   private boolean mustRefineOnConsecutionAbstractionFailure(ProofObligation obligation) {
@@ -1275,19 +1273,15 @@ public class PdrAlgorithm implements Algorithm {
       return liftingAbstractionFailureThreshold;
     }
 
-    public LiftingStrategyFactories getLiftingStrategy() {
+    private LiftingStrategyFactories getLiftingStrategy() {
       return liftingStrategy;
-    }
-
-    public AbstractionStrategyFactories getAbstractionStrategyFactory() {
-      return abstractionStrategyFactory;
     }
 
     public InvariantStrengtheningStrategies getInvariantRefinementStrategy() {
       return invariantRefinementStrategy;
     }
 
-    public ConditionAdjustmentCriterion getConditionAdjustmentCriterion() {
+    private ConditionAdjustmentCriterion getConditionAdjustmentCriterion() {
       return conditionAdjustmentCriterion;
     }
   }

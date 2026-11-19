@@ -56,6 +56,14 @@ public class CallstackCPA extends AbstractCPA
     return new CallstackState(null, pNode.getFunctionName(), pNode);
   }
 
+  protected final CallstackOptions getCallstackOptions() {
+    return options;
+  }
+
+  protected final LogManager getLogger() {
+    return logger;
+  }
+
   @Override
   public boolean areAbstractSuccessors(
       AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)

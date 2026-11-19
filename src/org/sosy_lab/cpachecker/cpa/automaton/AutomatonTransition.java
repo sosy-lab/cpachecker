@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
@@ -77,6 +78,8 @@ class AutomatonTransition {
 
   private final ExpressionTree<AExpression> candidateInvariants;
 
+  private final ExpressionTree<AExpression> candidateTransitionInvariants;
+
   private final boolean areDefaultCandidateInvariants;
 
   /** The actions are applied after the assertion are checked successfully. */
@@ -101,6 +104,7 @@ class AutomatonTransition {
     private String followStateName;
     private @Nullable AutomatonInternalState followState;
     private ExpressionTree<AExpression> candidateInvariants;
+    private ExpressionTree<AExpression> candidateTransitionInvariants;
     private boolean areDefaultCandidateInvariants;
     private @Nullable StringExpression targetInformation;
 
@@ -111,6 +115,7 @@ class AutomatonTransition {
       actions = ImmutableList.of();
       followStateName = pFollowStateName;
       candidateInvariants = ExpressionTrees.getTrue();
+      candidateTransitionInvariants = ExpressionTrees.getTrue();
       areDefaultCandidateInvariants = true;
     }
 
@@ -150,6 +155,13 @@ class AutomatonTransition {
     }
 
     @CanIgnoreReturnValue
+    Builder withCandidateTransitionInvariants(
+        ExpressionTree<AExpression> pCandidateTransitionInvariants) {
+      candidateTransitionInvariants = pCandidateTransitionInvariants;
+      return this;
+    }
+
+    @CanIgnoreReturnValue
     Builder withNonDefaultCandidateInvariants() {
       areDefaultCandidateInvariants = false;
       return this;
@@ -167,6 +179,7 @@ class AutomatonTransition {
           assertions,
           assumptions,
           candidateInvariants,
+          candidateTransitionInvariants,
           areDefaultCandidateInvariants,
           actions,
           followStateName,
@@ -181,6 +194,7 @@ class AutomatonTransition {
         b.assertions,
         b.assumptions,
         b.candidateInvariants,
+        b.candidateTransitionInvariants,
         b.areDefaultCandidateInvariants,
         b.actions,
         b.followStateName,
@@ -193,6 +207,7 @@ class AutomatonTransition {
       List<AutomatonBoolExpr> pAssertions,
       List<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
+      ExpressionTree<AExpression> pCandidateTransitionInvariants,
       boolean pAreDefaultCandidateInvariants,
       List<AutomatonAction> pActions,
       String pFollowStateName,
@@ -208,6 +223,7 @@ class AutomatonTransition {
     }
 
     candidateInvariants = checkNotNull(pCandidateInvariants);
+    candidateTransitionInvariants = checkNotNull(pCandidateTransitionInvariants);
     areDefaultCandidateInvariants = pAreDefaultCandidateInvariants;
 
     actions = ImmutableList.copyOf(pActions);
@@ -230,6 +246,28 @@ class AutomatonTransition {
       }
       assertion = lAssertion;
     }
+  }
+
+  /**
+   * Returns a transition that takes pFirst and then pSecond on the same edge. It matches if both
+   * match, has the assertions and assumptions of both, executes the actions of both in order, and
+   * goes to the follow state of pSecond.
+   */
+  static AutomatonTransition sequence(AutomatonTransition pFirst, AutomatonTransition pSecond) {
+    return new Builder(
+            new AutomatonBoolExpr.And(pFirst.trigger, pSecond.trigger), pSecond.followStateName)
+        .withAssertions(ImmutableList.of(pFirst.assertion, pSecond.assertion))
+        .withAssumptions(
+            ImmutableList.<AExpression>builder()
+                .addAll(pFirst.assumptions)
+                .addAll(pSecond.assumptions)
+                .build())
+        .withActions(
+            ImmutableList.<AutomatonAction>builder()
+                .addAll(pFirst.actions)
+                .addAll(pSecond.actions)
+                .build())
+        .build();
   }
 
   @Override
@@ -412,15 +450,23 @@ class AutomatonTransition {
               return pExpression;
             }
             String functionName = CProgramScope.getFunctionNameOfArtificialReturnVar(idExpression);
-            if (pEdge instanceof AStatementEdge aStatementEdge) {
-              AStatement statement = aStatementEdge.getStatement();
-              if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
-                AExpression functionNameExpression =
-                    functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
-                if (functionNameExpression instanceof AIdExpression aIdExpression
-                    && aIdExpression.getName().equals(functionName)) {
-                  return (CExpression) functionCallAssignment.getLeftHandSide();
-                }
+            // a call of a defined function returns via a function-return edge
+            AStatement statement =
+                switch (pEdge) {
+                  case AStatementEdge aStatementEdge -> aStatementEdge.getStatement();
+                  case FunctionReturnEdge returnEdge -> returnEdge.getFunctionCall();
+                  default -> null;
+                };
+            if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
+              AExpression functionNameExpression =
+                  functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
+              // a per-thread clone of the CFA renames the called function, but keeps its
+              // original name in the declaration
+              if (functionNameExpression instanceof AIdExpression aIdExpression
+                  && (aIdExpression.getName().equals(functionName)
+                      || (aIdExpression.getDeclaration() != null
+                          && aIdExpression.getDeclaration().getOrigName().equals(functionName)))) {
+                return (CExpression) functionCallAssignment.getLeftHandSide();
               }
             }
             throw new ExpressionSubstitution.SubstitutionException(
@@ -441,6 +487,10 @@ class AutomatonTransition {
 
   public ExpressionTree<AExpression> getCandidateInvariants() {
     return candidateInvariants;
+  }
+
+  public ExpressionTree<AExpression> getCandidateTransitionInvariants() {
+    return candidateTransitionInvariants;
   }
 
   public boolean hasDefaultCandidateInvariants() {

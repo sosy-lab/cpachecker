@@ -132,6 +132,14 @@ public class RandomSamplingAlgorithm implements Algorithm {
       // run the algorithm
       status = algorithm.run(reachedSet);
 
+      if (reachedSet.getLastState() == null) {
+        logger.log(
+            Level.WARNING,
+            "The last state of the reached set is null after running the random sampling"
+                + " algorithm. Skipping trace export.");
+        continue;
+      }
+
       // export the resulting trace
       boolean traceIsCex = AbstractStates.isTargetState(reachedSet.getLastState());
       exportReachedSet(reachedSet, traceIsCex);
@@ -167,6 +175,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
     if (optionalPath.isEmpty()) {
       return;
     }
+
     Path exportPath = optionalPath.orElseThrow();
     ARGPath trace =
         Iterables.getOnlyElement(
@@ -174,6 +183,12 @@ public class RandomSamplingAlgorithm implements Algorithm {
     CounterexampleInfo traceInfo =
         pathChecker.handleFeasibleCounterexample(
             CounterexampleTraceInfo.feasible(ImmutableList.of(), trace), trace);
+
+    if (!traceInfo.isPreciseCounterExample()) {
+      logger.log(Level.INFO, "Skipping export of imprecise counterexample.");
+      return;
+    }
+
     try {
       IO.writeFile(exportPath, Charset.defaultCharset(), traceInfo);
     } catch (IOException e) {

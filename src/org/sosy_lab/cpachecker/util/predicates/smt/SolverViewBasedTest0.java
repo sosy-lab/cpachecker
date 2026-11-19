@@ -31,7 +31,7 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
   protected IntegerFormulaManagerView imgrv;
 
   @Override
-  protected ConfigurationBuilder createTestConfigBuilder() {
+  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
     ConfigurationBuilder newConfig = super.createTestConfigBuilder();
 
     // Automatically choose theories that are supported by the solver.
@@ -82,6 +82,19 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
     mgrv = solver.getFormulaManager();
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();
+  }
+
+  /**
+   * Skips the test unless bitvectors are also encoded as bitvectors. Another encoding replaces the
+   * operations that need the bit-precise semantics by approximations, even if the solver itself
+   * supports the theory of bitvectors.
+   */
+  protected final void requireBitvectorEncoding() {
+    requireBitvectors();
+    assume()
+        .withMessage("Solver %s does not use the bitvector encoding", solverToUse())
+        .that(mgrv.getFormulaWrappingHandler().useBitvectors())
+        .isTrue();
   }
 
   @After

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import java.util.logging.Level;
@@ -20,6 +21,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
@@ -56,8 +59,11 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
+import org.sosy_lab.cpachecker.core.algorithm.oc.OrderingConsistencyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -73,9 +79,14 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.simplerules.SimpleRulesAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -88,6 +99,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToSafetyUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
@@ -158,6 +170,14 @@ public class CoreComponentsFactory {
           "use a BMC like algorithm that checks for satisfiability "
               + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.OrderingConsistency",
+      description =
+          "use the ordering-consistency algorithm for concurrent programs, "
+              + "works only with the OrderingConsistencyCPA")
+  private boolean useOrderingConsistency = false;
 
   @Option(
       secure = true,
@@ -247,6 +267,15 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.terminationToSafety",
+      description =
+          "Use termination-to-safety algorithm to prove (non-)termination. This needs the"
+              + " TerminationToReachCPA,PredicateCPA, LocationCPA and CallStackCPA in the"
+              + " CompositeCPA.")
+  private boolean useTerminationToSafetyAlgorithm = false;
+
+  @Option(
+      secure = true,
       name = "useArrayAbstraction",
       description = "Use array abstraction by program transformation.")
   private boolean useArrayAbstraction = false;
@@ -333,9 +362,25 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.terminationWitnessCheck",
+      description =
+          "use termination witness validator to check a correctness witness for termination")
+  private boolean useTerminationWitnessValidation = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.undefinedFunctionCollector",
       description = "collect undefined functions")
   private boolean useUndefinedFunctionCollector = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.simpleRules",
+      description =
+          "decide the specification with simple rules, i.e., with arguments that need no reasoning"
+              + " about what the program computes. This replaces the analysis that would otherwise"
+              + " run, so use a portfolio to combine the rules with another analysis.")
+  private boolean useSimpleRules = false;
 
   @Option(
       secure = true,
@@ -358,6 +403,30 @@ public class CoreComponentsFactory {
           "stop the analysis with the result unknown if the program does not satisfies certain"
               + " restrictions.")
   private boolean unknownIfUnrestrictedProgram = false;
+
+  @Option(
+      secure = true,
+      name = "preprocessing.MPOR",
+      description =
+          "Use Modular Partial Order Reduction (MPOR) algorithm to sequentialize a concurrent C"
+              + " program. This algorithm transforms the input program into a sequential program"
+              + " that preserves the properties of the original concurrent program.\n"
+              + "If the sequentialized program should be analyzed inside CPAchecker"
+              + " directly, set 'algorithm.MPOR.preprocessing.runAnalysis=true' too.")
+  private boolean useMporPreprocessing = false;
+
+  @Option(
+      secure = true,
+      name = "preprocessing.preferOriginalCfaOverSequentialized",
+      description =
+          "In case the CFA was modified in a pre-processing step (e.g., by sequentialization), if"
+              + " this option is set to true the original CFA is used instead of the modified one"
+              + " for the analysis. This is useful when the pre-processing should be done for"
+              + " multiple algorithms in a parallel portfolio, but some of them should analyze the"
+              + " original CFA. For example, when using some analyses which support concurrency"
+              + " natively alongside analyses which need sequentialization in a parallel portfolio"
+              + " we want the analyses which natively support concurrency to use the original CFA.")
+  private boolean preferOriginalCfaOverSequentialized = false;
 
   @Option(
       secure = true,
@@ -415,6 +484,28 @@ public class CoreComponentsFactory {
               + "a configuration")
   private boolean useSamplingAlgorithm = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.copyCFA",
+      description =
+          "Everything constructed in the CoreComponentsFactory is done on a copy of the original"
+              + " CFA, if the option is set to true. One of the possible use-cases are"
+              + " modifications of the CFA by the algorithm. For example, if we run algorithms in"
+              + " parallel or in sequence, they are expected to get the CFA corresponding to the"
+              + " original program. Hence, to prevent these modifications from influencing other"
+              + " algorithms, each algorithm can claim  a copy of the original CFA to modify.")
+  private boolean copyCFA = false;
+
+  @Option(
+      secure = true,
+      name = "reparseSpecification",
+      description =
+          "Parse the specification again with the options of this analysis instead of using the"
+              + " automata of the enclosing analysis. A nested analysis needs this if it sets"
+              + " options of the specification automata, e.g.,"
+              + " witness.checkInvariantsHoldForEveryPath.")
+  private boolean reparseSpecification = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -435,12 +526,18 @@ public class CoreComponentsFactory {
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfa;
+  private CFA cfa;
+  private final CFA oldCfa;
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
   private final AggregatedReachedSets aggregatedReachedSets;
   private final @Nullable AggregatedReachedSetManager aggregatedReachedSetManager;
+
+  /** The last specification given to this factory and its result of {@link #specificationFor}. */
+  private @Nullable Specification givenSpecification = null;
+
+  private @Nullable Specification parsedSpecification = null;
 
   public CoreComponentsFactory(
       Configuration pConfig,
@@ -451,9 +548,15 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
-    cfa = pCFA;
 
     config.inject(this);
+    oldCfa = checkNotNull(pCFA);
+
+    if (copyCFA) {
+      cfa = ImmutableCFA.copyOf(checkNotNull(pCFA), pConfig, logger);
+    } else {
+      cfa = checkNotNull(pCFA);
+    }
 
     if (analysisNeedsShutdownManager()) {
       shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
@@ -461,6 +564,20 @@ public class CoreComponentsFactory {
     } else {
       shutdownManager = null;
       shutdownNotifier = pShutdownNotifier;
+    }
+
+    // Allow for deactivating pre-processing steps like the sequentialization in inner analyses
+    // which do not need it.
+    // Whenever we want to use the original CFA instead of a pre-processed one, we retrieve it here.
+    // This is necessary to pre-process the CFA only once, e.g., by sequentialization, but still
+    // allow analyses which do not need the pre-processed CFA to use the original one. For example,
+    // when using some analyses which support concurrency natively alongside analyses which need
+    // sequentialization in a parallel portfolio we want the analyses which natively support
+    // concurrency to use the original CFA.
+    if (preferOriginalCfaOverSequentialized
+        && cfa.getMetadata().getTransformation()
+            instanceof MporSequentialization sequentialization) {
+      cfa = sequentialization.originalCfa();
     }
 
     if (useTerminationAlgorithm) {
@@ -492,10 +609,25 @@ public class CoreComponentsFactory {
         && (useBMC || useIMC || useDAR);
   }
 
+  private boolean analysisSequentializesCfa() {
+    return useMporPreprocessing && !preferOriginalCfaOverSequentialized;
+  }
+
+  /**
+   * This method can be used in case the factory constructs a new copy of cfa on which it operates.
+   * This way, caller algorithms can get hold of this copy.
+   *
+   * @return cfa used in this instance of the factory
+   */
+  public CFA getCfa() {
+    return cfa;
+  }
+
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final Specification specification)
+      final ConfigurableProgramAnalysis cpa, final Specification pSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
+    final Specification specification = specificationFor(pSpecification);
 
     if (disableAnalysis) {
       return NoopAlgorithm.INSTANCE;
@@ -506,6 +638,22 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (useSimpleRules) {
+      logger.log(Level.INFO, "Using the simple rules");
+      algorithm = new SimpleRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+    } else if (analysisSequentializesCfa()) {
+      // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
+      // Only in case the CFA is not already sequentialized, since in that case we are somewhere
+      // inside a nested algorithm inside of the `MporPreprocessingAlgorithm`.
+      // In such a case we want to continue creating the algorithm with the already sequentialized
+      // CFA.
+      //
+      // This is usefull in order to be able to write `analysis.preprocessing.MPOR=true` in the
+      // existing configuration and have all (sub-)analyses automatically operate on the
+      // sequentialized CFA no matter how deep they are nested. In particular this works for
+      // parallel compositions, sequential compositions, and restart algorithm.
+      algorithm =
+          new MporPreprocessingAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
@@ -569,6 +717,10 @@ public class CoreComponentsFactory {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
+      if (useTerminationToSafetyAlgorithm) {
+        TerminationToSafetyUtils.shareTheSolverBetweenCPAs(cpa);
+      }
+
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (testGoalConverter) {
@@ -654,6 +806,12 @@ public class CoreComponentsFactory {
                 aggregatedReachedSets);
       }
 
+      if (useOrderingConsistency) {
+        algorithm =
+            new OrderingConsistencyAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa, specification);
+      }
+
       if (useIMC) {
         verifyNotNull(shutdownManager);
         algorithm =
@@ -691,10 +849,23 @@ public class CoreComponentsFactory {
                 logger,
                 shutdownNotifier,
                 cfa,
+                oldCfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
                 algorithm,
                 cpa);
+      }
+
+      if (useTerminationWitnessValidation) {
+        logger.log(Level.INFO, "Using validator for correctness witnesses for termination");
+        algorithm =
+            new TerminationWitnessValidator(
+                cfa,
+                cpa,
+                config,
+                logger,
+                shutdownNotifier,
+                specification.getPathToSpecificationAutomata().keySet());
       }
 
       if (checkCounterexamples) {
@@ -733,7 +904,9 @@ public class CoreComponentsFactory {
       }
 
       if (splitProgram) {
-        algorithm = new ProgramSplitAlgorithm(algorithm, cpa, config, logger, shutdownNotifier);
+        algorithm =
+            new ProgramSplitAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa.getMachineModel());
       }
 
       if (usePropertyCheckingAlgorithm) {
@@ -781,7 +954,8 @@ public class CoreComponentsFactory {
                 logger,
                 cfa,
                 ShutdownManager.createWithParent(shutdownNotifier),
-                specification);
+                specification,
+                cpa);
       }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
@@ -804,7 +978,9 @@ public class CoreComponentsFactory {
   }
 
   /**
-   * Creates an instance of a {@link ReachedSet}.
+   * Creates an instance of a {@link ReachedSet}. The better way to construct reached set is to use
+   * createInitializedReachedSet ! If this method needs to be used, use initializeReachedSet
+   * afterward to initialize it.
    *
    * @param cpa The CPA whose abstract states will be stored in this reached set.
    */
@@ -834,6 +1010,43 @@ public class CoreComponentsFactory {
     return reached;
   }
 
+  /**
+   * Initializes the {@link ReachedSet} with the initial states from the current CFA. The better way
+   * to construct and initialize a reached set is to use createInitializedReachedSet !
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public void initializeReachedSet(
+      ReachedSet pReachedSet, CFANode pInitialNode, ConfigurableProgramAnalysis cpa)
+      throws InterruptedException, CPAException {
+    if (copyCFA) {
+      if (!oldCfa.getMainFunction().equals(pInitialNode)) {
+        throw new CPAException(
+            "If the copying of CFA is set, the analysis can only start from the initial state of"
+                + " the CFA");
+      }
+      pInitialNode = cfa.getMainFunction();
+    }
+    AbstractState initialState =
+        cpa.getInitialState(pInitialNode, StateSpacePartition.getDefaultPartition());
+    Precision initialPrecision =
+        cpa.getInitialPrecision(pInitialNode, StateSpacePartition.getDefaultPartition());
+    pReachedSet.add(initialState, initialPrecision);
+  }
+
+  /**
+   * Initializes the {@link ReachedSet} with the initial states from the current CFA.
+   *
+   * @param cpa The CPA whose abstract states will be stored in this reached set.
+   */
+  public ReachedSet createInitializedReachedSet(
+      ConfigurableProgramAnalysis cpa, CFANode pInitialNode)
+      throws InterruptedException, CPAException {
+    ReachedSet reachedSet = createReachedSet(cpa);
+    initializeReachedSet(reachedSet, pInitialNode, cpa);
+    return reachedSet;
+  }
+
   public ConfigurableProgramAnalysis createCPA(final Specification pSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating CPAs");
@@ -848,14 +1061,43 @@ public class CoreComponentsFactory {
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
+        || useSimpleRules
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
-        || useRandomTestCaseGeneratorAlgorithm) {
+        || useRandomTestCaseGeneratorAlgorithm
+        || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
 
-    return cpaFactory.buildCPAs(cfa, pSpecification, aggregatedReachedSets);
+    if (useOrderingConsistency) {
+      // The ordering-consistency analysis does its own, built-in target detection (it reads the
+      // property from the specification directly, see OrderingConsistencyAlgorithm). It has no
+      // CompositeCPA to hold a specification automaton, so the automata that a property file would
+      // otherwise contribute must not be inserted into its CPA; build it from the property-free
+      // specification, and let the algorithm interpret the property.
+      // keep the properties: the CPA gets no automaton from them, but the witness export
+      // needs them, e.g. to emit both racing accesses of a data race
+      return cpaFactory.buildCPAs(
+          cfa,
+          Specification.alwaysSatisfied().withAdditionalProperties(pSpecification.getProperties()),
+          aggregatedReachedSets);
+    }
+
+    return cpaFactory.buildCPAs(cfa, specificationFor(pSpecification), aggregatedReachedSets);
+  }
+
+  /** The given specification, parsed again if {@link #reparseSpecification} is set. */
+  private Specification specificationFor(Specification pSpecification)
+      throws InvalidConfigurationException, InterruptedException {
+    if (!reparseSpecification) {
+      return pSpecification;
+    }
+    if (givenSpecification != pSpecification) {
+      parsedSpecification = pSpecification.parsedAgain(cfa, config, logger, shutdownNotifier);
+      givenSpecification = pSpecification;
+    }
+    return checkNotNull(parsedSpecification);
   }
 }

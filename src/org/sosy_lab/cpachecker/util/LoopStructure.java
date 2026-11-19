@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableCollection;
@@ -42,26 +43,44 @@ import java.util.SequencedSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Class collecting and containing information about all loops in a CFA. */
@@ -107,10 +126,18 @@ public final class LoopStructure {
 
     private ImmutableSortedSet<CFANode> nodes;
 
-    // the following sets are computed lazily by calling {@link #computeSets()}
-    private ImmutableSet<CFAEdge> innerLoopEdges;
-    private ImmutableSet<CFAEdge> incomingEdges;
-    private ImmutableSet<CFAEdge> outgoingEdges;
+    private record EdgeSets(
+        ImmutableSet<CFAEdge> innerLoopEdges,
+        ImmutableSet<CFAEdge> incomingEdges,
+        ImmutableSet<CFAEdge> outgoingEdges) {}
+
+    // Computed lazily, because the CFA is still modified after the loops are found
+    // (CFASecondPassBuilder replaces function calls). The memoizing supplier is thread-safe,
+    // because several analyses may share the CFA in parallel.
+    private Supplier<EdgeSets> edgeSets = Suppliers.memoize(this::computeSets);
+
+    // computed lazily by calling {@link #getModifiedVariables()}
+    private @Nullable ImmutableSet<CVariableDeclaration> modifiedVariables;
 
     private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.copyOf(pLoopHeads);
@@ -125,13 +152,7 @@ public final class LoopStructure {
       return new Loop(pLoopHeads, pNodes);
     }
 
-    private void computeSets() {
-      if (innerLoopEdges != null) {
-        assert incomingEdges != null;
-        assert outgoingEdges != null;
-        return;
-      }
-
+    private EdgeSets computeSets() {
       SequencedSet<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
       SequencedSet<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
@@ -140,7 +161,8 @@ public final class LoopStructure {
         n.getLeavingEdges().copyInto(newOutgoingEdges);
       }
 
-      innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
+      ImmutableSet<CFAEdge> innerLoopEdges =
+          Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
       newIncomingEdges.removeAll(innerLoopEdges);
       newIncomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
       newOutgoingEdges.removeAll(innerLoopEdges);
@@ -148,16 +170,17 @@ public final class LoopStructure {
 
       assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
 
-      incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
-      outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
+      return new EdgeSets(
+          innerLoopEdges,
+          ImmutableSet.copyOf(newIncomingEdges),
+          ImmutableSet.copyOf(newOutgoingEdges));
     }
 
     private void addNodes(Loop l) {
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(nodes).addAll(l.nodes).build();
 
-      innerLoopEdges = null;
-      incomingEdges = null;
-      outgoingEdges = null;
+      edgeSets = Suppliers.memoize(this::computeSets);
+      modifiedVariables = null;
     }
 
     private void mergeWith(Loop l) {
@@ -174,11 +197,8 @@ public final class LoopStructure {
      * {@link Loop}).
      */
     public boolean isOuterLoopOf(Loop other) {
-      computeSets();
-      other.computeSets();
-
-      return innerLoopEdges.containsAll(other.incomingEdges)
-          && innerLoopEdges.containsAll(other.outgoingEdges);
+      return getInnerLoopEdges().containsAll(other.getIncomingEdges())
+          && getInnerLoopEdges().containsAll(other.getOutgoingEdges());
     }
 
     /**
@@ -198,8 +218,102 @@ public final class LoopStructure {
      * @return a non-empty set of CFA edges
      */
     public ImmutableSet<CFAEdge> getInnerLoopEdges() {
-      computeSets();
-      return innerLoopEdges;
+      return edgeSets.get().innerLoopEdges();
+    }
+
+    /**
+     * Get the variables that an iteration of this loop may assign, including in the functions that
+     * it calls. Memory that is written through pointers, including array elements, is not
+     * represented.
+     */
+    public ImmutableSet<CVariableDeclaration> getModifiedVariables() {
+      if (modifiedVariables == null) {
+        modifiedVariables = computeModifiedVariables();
+      }
+      return modifiedVariables;
+    }
+
+    private ImmutableSet<CVariableDeclaration> computeModifiedVariables() {
+      ImmutableSet.Builder<CVariableDeclaration> variables = ImmutableSet.builder();
+      for (CFAEdge edge : getEdgesWithCalledFunctions()) {
+        switch (edge) {
+          case CDeclarationEdge e
+              when e.getDeclaration() instanceof CVariableDeclaration variable ->
+              variables.add(variable);
+          case CStatementEdge e when e.getStatement() instanceof CAssignment assignment ->
+              getAssignedVariable(assignment.getLeftHandSide()).ifPresent(variables::add);
+          case CReturnStatementEdge e ->
+              e.asAssignment()
+                  .flatMap(assignment -> getAssignedVariable(assignment.getLeftHandSide()))
+                  .ifPresent(variables::add);
+          case CFunctionCallEdge e -> {
+            for (CParameterDeclaration parameter : e.getSuccessor().getFunctionParameters()) {
+              variables.add(parameter.asVariableDeclaration());
+            }
+          }
+          case CFunctionReturnEdge e when e.getFunctionCall() instanceof CAssignment assignment ->
+              getAssignedVariable(assignment.getLeftHandSide()).ifPresent(variables::add);
+          case BlankEdge e -> {}
+          case CAssumeEdge e -> {}
+          case CDeclarationEdge e -> {}
+          case CStatementEdge e -> {}
+          case CFunctionReturnEdge e -> {}
+          // The effects of a call are on its function-call and function-return edges
+          case CFunctionSummaryEdge e -> {}
+          default -> throw new AssertionError("unexpected edge: " + edge);
+        }
+      }
+      return variables.build();
+    }
+
+    /** Returns nothing if the expression is in memory that is written through a pointer. */
+    private static Optional<CVariableDeclaration> getAssignedVariable(CLeftHandSide pLeftHandSide) {
+      return switch (pLeftHandSide) {
+        case CIdExpression id when id.getDeclaration() instanceof CVariableDeclaration variable ->
+            Optional.of(variable);
+        case CIdExpression id when id.getDeclaration() instanceof CParameterDeclaration parameter ->
+            Optional.of(parameter.asVariableDeclaration());
+        case CIdExpression id -> throw new AssertionError("unexpected assignment to " + id);
+        case CFieldReference field when !field.isPointerDereference() ->
+            getAssignedVariable((CLeftHandSide) field.getFieldOwner());
+        case CFieldReference field -> Optional.empty();
+        // TODO: return the variable for arrays that are not parameters once #297 is resolved
+        case CArraySubscriptExpression subscript -> Optional.empty();
+        case CComplexCastExpression cast -> getAssignedVariable((CLeftHandSide) cast.getOperand());
+        case CPointerExpression pointer -> Optional.empty();
+      };
+    }
+
+    /**
+     * Get the set of all CFA edges that an iteration of this loop may take, i.e., the inner loop
+     * edges and all edges of the functions called from the loop, including the function-call and
+     * function-return edges.
+     */
+    private ImmutableSet<CFAEdge> getEdgesWithCalledFunctions() {
+      ImmutableSet.Builder<CFAEdge> edges = ImmutableSet.builder();
+      edges.addAll(getInnerLoopEdges());
+      // Return edges are not followed, because they may lead to other callers.
+      // A caller continues via the summary edge of its call.
+      CFAVisitor visitor =
+          new NodeCollectingCFAVisitor(
+              new DefaultCFAVisitor() {
+                @Override
+                public TraversalProcess visitEdge(CFAEdge pEdge) {
+                  edges.add(pEdge);
+                  return pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+                      ? TraversalProcess.SKIP
+                      : TraversalProcess.CONTINUE;
+                }
+              });
+      for (CFANode node : nodes) {
+        for (CFAEdge edge : node.getLeavingEdges()) {
+          if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+            edges.add(edge);
+            CFATraversal.dfs().traverse(edge.getSuccessor(), visitor);
+          }
+        }
+      }
+      return edges.build();
     }
 
     /**
@@ -231,8 +345,7 @@ public final class LoopStructure {
      * @return a non-empty set of CFA edges
      */
     public ImmutableSet<CFAEdge> getIncomingEdges() {
-      computeSets();
-      return incomingEdges;
+      return edgeSets.get().incomingEdges();
     }
 
     /**
@@ -243,21 +356,19 @@ public final class LoopStructure {
      * @return a possibly empty (if the loop does never terminate) set of CFA edges
      */
     public ImmutableSet<CFAEdge> getOutgoingEdges() {
-      computeSets();
-      return outgoingEdges;
+      return edgeSets.get().outgoingEdges();
     }
 
     @Override
     public String toString() {
-      computeSets();
       return "Loop with heads "
           + loopHeads
           + "\n"
           + "  incoming: "
-          + incomingEdges
+          + getIncomingEdges()
           + "\n"
           + "  outgoing: "
-          + outgoingEdges
+          + getOutgoingEdges()
           + "\n"
           + "  nodes:    "
           + nodes
@@ -276,7 +387,7 @@ public final class LoopStructure {
 
     @Override
     public int hashCode() {
-      return Objects.hash(loopHeads);
+      return Objects.hashCode(loopHeads);
     }
 
     @Override

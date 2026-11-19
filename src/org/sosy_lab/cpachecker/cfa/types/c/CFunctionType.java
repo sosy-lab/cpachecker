@@ -44,6 +44,7 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
     return (CType) super.getReturnType();
   }
 
+  @Nullable
   public String getName() {
     return name;
   }
@@ -55,8 +56,8 @@ public sealed class CFunctionType extends AbstractFunctionType implements CType
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<CType> getParameters() {
-    return (List<CType>) super.getParameters();
+  public ImmutableList<CType> getParameters() {
+    return (ImmutableList<CType>) super.getParameters();
   }
 
   @Override

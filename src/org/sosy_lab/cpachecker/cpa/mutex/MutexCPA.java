@@ -1,0 +1,109 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.mutex;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+
+/**
+ * CPA that tracks the state of mutexes in concurrent C programs, supporting both POSIX pthread
+ * mutexes and C11 threading mutexes.
+ *
+ * <p>This CPA maintains a {@link MutexState} that records which mutexes have been initialized and
+ * which are currently locked (and by which thread). It communicates with the POR CPA via the {@code
+ * strengthen} operator to learn the executing thread's PID.
+ */
+public class MutexCPA extends AbstractCPA {
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(MutexCPA.class);
+  }
+
+  public MutexCPA(CFA pCFA) {
+    super("sep", "sep", new MutexTransferRelation(collectMutexHandleCandidates(pCFA)));
+  }
+
+  private static ImmutableMap<MutexHandle, MutexHandle> collectMutexHandleCandidates(CFA pCFA) {
+    Set<CVariableDeclaration> variableDeclarations = new HashSet<>();
+    Map<CVariableDeclaration, Integer> assignmentCounts = new HashMap<>();
+    Map<MutexHandle, MutexHandle> aliases = new HashMap<>();
+
+    for (CFAEdge edge : pCFA.edges()) {
+      if (edge instanceof CDeclarationEdge declarationEdge) {
+        CDeclaration declaration = declarationEdge.getDeclaration();
+        // instanceof CVariableDeclaration already excludes CParameterDeclaration (a distinct
+        // AST type), but the intent is spelled out explicitly since that was a requirement.
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
+          variableDeclarations.add(variableDeclaration);
+          if (variableDeclaration.getInitializer() != null) {
+            assignmentCounts.merge(variableDeclaration, 1, Integer::sum);
+          } else {
+            assignmentCounts.merge(variableDeclaration, 0, Integer::sum);
+          }
+        }
+      } else if (edge instanceof CStatementEdge statementEdge) {
+        CStatement statement = statementEdge.getStatement();
+        if (statement instanceof CAssignment assignment) {
+          CLeftHandSide lhs = assignment.getLeftHandSide();
+          if (lhs instanceof CIdExpression idExpression
+              && idExpression.getDeclaration() instanceof CVariableDeclaration decl) {
+            CRightHandSide rhs = assignment.getRightHandSide();
+            if (rhs instanceof CUnaryExpression unaryRhs
+                && UnaryOperator.AMPER.equals(unaryRhs.getOperator())
+                && unaryRhs.getOperand() instanceof CIdExpression aliased
+                && aliased.getDeclaration() instanceof CVariableDeclaration aliasedDeclaration) {
+              assignmentCounts.merge(decl, 1, Integer::sum);
+              aliases.put(new MutexHandle(decl), new MutexHandle(aliasedDeclaration));
+            } else {
+              // unsupported candidate
+              assignmentCounts.put(decl, 2);
+            }
+          }
+        }
+      }
+    }
+
+    ImmutableMap.Builder<MutexHandle, MutexHandle> candidates = ImmutableMap.builder();
+    for (CVariableDeclaration declaration : variableDeclarations) {
+      int count = assignmentCounts.getOrDefault(declaration, -1);
+      if (0 <= count && count <= 1) {
+        MutexHandle handle = new MutexHandle(declaration);
+        candidates.put(handle, aliases.getOrDefault(handle, handle));
+      }
+    }
+    return candidates.buildOrThrow();
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
+    return MutexState.EMPTY;
+  }
+}

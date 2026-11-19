@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.SequencedMap;
 import java.util.Set;
@@ -62,17 +63,19 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CFAUtils.FunctionAndVariableName;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CFormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DynamicMemoryHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerBase;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class AssignmentToPathAllocator {
 
-  private static final int IS_NOT_GLOBAL = 2;
   private static final int NAME_AND_FUNCTION = 0;
   private static final int IS_FIELD_REFERENCE = 1;
 
@@ -93,7 +96,7 @@ public class AssignmentToPathAllocator {
     machineModel = pMachineModel;
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
-            pLogger, pMachineModel, new FormulaEncodingWithPointerAliasingOptions(pConfig));
+            pLogger, pMachineModel, new CFormulaEncodingWithPointerAliasingOptions(pConfig));
     memoryName = exp -> typeHandler.getPointerAccessNameForType(typeHandler.getSimplifiedType(exp));
   }
 
@@ -169,7 +172,9 @@ public class AssignmentToPathAllocator {
       pathIt.advance();
     }
 
-    return new ConcreteStatePath(pathWithAssignments.build());
+    return new ConcreteStatePath(
+        pathWithAssignments.build(),
+        FluentIterable.from(pModel).filter(ValueAssignment::isFunction).toList());
   }
 
   private ConcreteExpressionEvaluator createPredicateAnalysisEvaluator(
@@ -208,28 +213,30 @@ public class AssignmentToPathAllocator {
 
       String typeName = getTypeString(pCExp.getExpressionType());
 
-      return switch (pCExp) {
-        case CBinaryExpression binExp -> {
-          String opString = binExp.getOperator().getOperator();
-          switch (binExp.getOperator()) {
-            case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
-            default -> {
-              // default
-            }
+      if (pCExp instanceof CBinaryExpression binExp) {
+
+        String opString = binExp.getOperator().getOperator();
+
+        switch (binExp.getOperator()) {
+          case MULTIPLY, REMAINDER, DIVIDE -> opString = "_" + opString;
+          default -> {
+            // default
           }
-          yield typeName + "_" + opString + "_";
         }
-        case CUnaryExpression unExp -> {
-          String op = unExp.getOperator().getOperator();
-          yield typeName + "_" + op + "_";
-        }
-        case CCastExpression castExp -> {
-          CType type2 = castExp.getOperand().getExpressionType();
-          String typeName2 = getTypeString(type2);
-          yield "__cast_" + typeName2 + "_to_" + typeName + "__";
-        }
-        default -> "";
-      };
+
+        return typeName + "_" + opString + "_";
+
+      } else if (pCExp instanceof CUnaryExpression unExp) {
+        String op = unExp.getOperator().getOperator();
+
+        return typeName + "_" + op + "_";
+      } else if (pCExp instanceof CCastExpression castExp) {
+        CType type2 = castExp.getOperand().getExpressionType();
+        String typeName2 = getTypeString(type2);
+        return "__cast_" + typeName2 + "_to_" + typeName + "__";
+      }
+
+      return "";
     }
 
     private String getTypeString(CType pExpressionType) {
@@ -299,7 +306,7 @@ public class AssignmentToPathAllocator {
     @Override
     public Value evaluate(AUnaryExpression pUnaryExpression, Value pOperand) {
 
-      if (!pOperand.isNumericValue()) {
+      if (!(pOperand instanceof NumericValue)) {
         return UnknownValue.getInstance();
       }
 
@@ -319,7 +326,7 @@ public class AssignmentToPathAllocator {
     @Override
     public Value evaluate(ACastExpression pCastExpression, Value pOperand) {
 
-      if (!pOperand.isNumericValue()) {
+      if (!(pOperand instanceof NumericValue)) {
         return UnknownValue.getInstance();
       }
 
@@ -337,27 +344,22 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private LeftHandSide createLeftHandSide(String pTermName) {
+  /** The variable that a formula names with the given name, without its SSA index. */
+  public static LeftHandSide createLeftHandSide(String pTermName) {
 
     // TODO ugly, refactor (no splitting)
 
     List<String> references = ImmutableList.copyOf(Splitter.on('$').split(pTermName));
     String nameAndFunctionAsString = references.get(NAME_AND_FUNCTION);
 
-    List<String> nameAndFunction =
-        ImmutableList.copyOf(Splitter.on("::").split(nameAndFunctionAsString));
+    // Only the first separator separates the function, a name of SV-LIB can contain it too
+    FunctionAndVariableName nameAndFunction =
+        CFAUtils.getFunctionAndVariableNameFromQualifiedVariableName(nameAndFunctionAsString);
 
-    String name;
-    String function = null;
-    boolean isNotGlobal = nameAndFunction.size() == IS_NOT_GLOBAL;
+    final String name = nameAndFunction.variableName();
+    final String function = nameAndFunction.functionName().orElse(null);
+    boolean isNotGlobal = function != null;
     boolean isReference = references.size() > IS_FIELD_REFERENCE;
-
-    if (isNotGlobal) {
-      function = nameAndFunction.getFirst();
-      name = nameAndFunction.get(1);
-    } else {
-      name = nameAndFunction.getFirst();
-    }
 
     if (isReference) {
       List<String> fieldNames = new ArrayList<>(references.size() - 1);
@@ -470,8 +472,15 @@ public class AssignmentToPathAllocator {
       memory.put(heapName, heap);
     }
 
-    Address address =
-        Address.valueOf(Iterables.getOnlyElement(pFunctionAssignment.getArgumentsInterpretation()));
+    ImmutableList<Object> indices = pFunctionAssignment.getArgumentsInterpretation();
+    Address address;
+    if (indices.size() == 1) {
+      address = Address.valueOf(Iterables.getOnlyElement(indices));
+    } else {
+      // A select on a nested array (e.g. a matrix) has one index per dimension. Such a composite
+      // index has no single concrete address, so we represent the full index vector symbolically.
+      address = Address.valueOf(indices);
+    }
 
     Object value = pFunctionAssignment.getValue();
     heap.put(address, value);
@@ -484,14 +493,14 @@ public class AssignmentToPathAllocator {
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
       String name = FormulaManagerView.parseName(constant.getName()).getFirst();
-      if (PointerTargetSet.isBaseName(name)) {
+      Optional<PointerBase> potentialBase = PointerBase.fromFormulaEncoding(name);
+      if (potentialBase.isPresent()) {
         assert FormulaManagerView.parseName(constant.getName()).getSecond().isEmpty();
-        if (!PointerTargetSet.isMallocBase(name)) {
+        if (!DynamicMemoryHandler.isAllocBase(potentialBase.orElseThrow())) {
           Address address = Address.valueOf(constant.getValue());
 
           // TODO ugly, refactor?
-          String constantName = PointerTargetSet.getBase(name);
-          LeftHandSide leftHandSide = createLeftHandSide(constantName);
+          LeftHandSide leftHandSide = createLeftHandSide(potentialBase.orElseThrow().name());
           addressOfVariables.put(leftHandSide, address);
         }
       }

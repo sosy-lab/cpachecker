@@ -1,0 +1,101 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.2"
+    uuid: "88c99467-d9d8-46e1-91df-cf1fa69154ff"
+    creation_time: "2026-11-11T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c"
+      input_file_hashes:
+        "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c": "addec7a53e3aec18bb2f9a13e022baa3f22fe4d96d50e3b6eae959a4caf850f9"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c"
+              line: 14
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c"
+              line: 15
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c"
+              line: 15
+              column: 21
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c"
+              line: 15
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c"
+              line: 15
+              column: 21
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c"
+              line: 15
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "false"
+            location:
+              file_name: "../../simple/witness_validation/loop-and-branch-on-one-line-nontermination.c"
+              line: 15
+              column: 21
+              function: "main"

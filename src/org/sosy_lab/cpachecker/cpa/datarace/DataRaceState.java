@@ -8,63 +8,84 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class DataRaceState implements AbstractQueryableState {
+public class DataRaceState implements AbstractQueryableState, AbstractStateWithAssumptions {
 
   private static final String PROPERTY_DATA_RACE = "data-race";
 
   private final ImmutableSet<MemoryAccess> memoryAccesses;
-  private final ImmutableSet<MemoryAccess> accessesWithSubsequentWrites;
   private final ImmutableMap<String, ThreadInfo> threadInfo;
   private final ImmutableSet<ThreadSynchronization> threadSynchronizations;
   private final ImmutableSetMultimap<String, String> heldLocks;
   private final ImmutableSet<LockRelease> lastReleases;
   private final boolean hasDataRace;
+  // Conditions on the addresses of accesses through pointers under which this state is reached
+  private final ImmutableList<CExpression> assumptions;
 
   DataRaceState(Map<String, ThreadInfo> pThreadInfo, boolean pHasDataRace) {
     this(
-        ImmutableSet.of(),
         ImmutableSet.of(),
         pThreadInfo,
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSet.of(),
-        pHasDataRace);
+        pHasDataRace,
+        ImmutableList.of());
   }
 
   DataRaceState(
       Set<MemoryAccess> pMemoryAccesses,
-      Set<MemoryAccess> pAccessesWithSubsequentWrites,
       Map<String, ThreadInfo> pThreadInfo,
       Set<ThreadSynchronization> pThreadSynchronizations,
       SetMultimap<String, String> pHeldLocks,
       Set<LockRelease> pLastReleases,
-      boolean pHasDataRace) {
+      boolean pHasDataRace,
+      List<CExpression> pAssumptions) {
     memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
-    accessesWithSubsequentWrites = ImmutableSet.copyOf(pAccessesWithSubsequentWrites);
     threadInfo = ImmutableMap.copyOf(pThreadInfo);
     threadSynchronizations = ImmutableSet.copyOf(pThreadSynchronizations);
     heldLocks = ImmutableSetMultimap.copyOf(pHeldLocks);
     lastReleases = ImmutableSet.copyOf(pLastReleases);
     hasDataRace = pHasDataRace;
+    assumptions = ImmutableList.copyOf(pAssumptions);
+  }
+
+  /** Returns this state without assumptions, which only hold for the edge that created them. */
+  DataRaceState withoutAssumptions() {
+    if (assumptions.isEmpty()) {
+      return this;
+    }
+    return new DataRaceState(
+        memoryAccesses,
+        threadInfo,
+        threadSynchronizations,
+        heldLocks,
+        lastReleases,
+        hasDataRace,
+        ImmutableList.of());
+  }
+
+  @Override
+  public List<CExpression> getAssumptions() {
+    return assumptions;
   }
 
   ImmutableSet<MemoryAccess> getMemoryAccesses() {
     return memoryAccesses;
-  }
-
-  Set<MemoryAccess> getAccessesWithSubsequentWrites() {
-    return accessesWithSubsequentWrites;
   }
 
   Map<String, ThreadInfo> getThreadInfo() {
@@ -132,22 +153,22 @@ public class DataRaceState implements AbstractQueryableState {
     return pO instanceof DataRaceState that
         && hasDataRace == that.hasDataRace
         && memoryAccesses.equals(that.memoryAccesses)
-        && accessesWithSubsequentWrites.equals(that.accessesWithSubsequentWrites)
         && threadInfo.equals(that.threadInfo)
         && threadSynchronizations.equals(that.threadSynchronizations)
         && heldLocks.equals(that.heldLocks)
-        && lastReleases.equals(that.lastReleases);
+        && lastReleases.equals(that.lastReleases)
+        && assumptions.equals(that.assumptions);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
         memoryAccesses,
-        accessesWithSubsequentWrites,
         threadInfo,
         threadSynchronizations,
         heldLocks,
         lastReleases,
-        hasDataRace);
+        hasDataRace,
+        assumptions);
   }
 }

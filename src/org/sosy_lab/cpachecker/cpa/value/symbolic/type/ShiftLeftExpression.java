@@ -44,6 +44,16 @@ public final class ShiftLeftExpression extends BinarySymbolicExpression {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pAbstractState);
   }
 
+  public static SymbolicExpression of(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pType,
+      Type pCalculationType) {
+
+    return new ShiftLeftExpression(
+        pOperand1, pOperand2, getCanonicalType(pType), getCanonicalType(pCalculationType));
+  }
+
   @Override
   public ShiftLeftExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
     return new ShiftLeftExpression(

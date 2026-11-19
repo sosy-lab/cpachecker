@@ -128,9 +128,8 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
   @Override
   public String toString() {
     return this.loopHeadsVisited.entrySet().stream()
-        .map(
-            e ->
-                String.format("Loop: %s -> %s", e.getKey().getLoopHeads().toString(), e.getValue()))
+        .map(e ->
+            String.format("Loop: %s -> %s", e.getKey().getLoopHeads().toString(), e.getValue()))
         .collect(Collectors.joining());
   }
 
@@ -149,10 +148,8 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
   @Override
   public String toDOTLabel() {
     return this.loopHeadsVisited.entrySet().stream()
-            .map(
-                e ->
-                    String.format(
-                        "Loop: %s -> %s", e.getKey().getLoopHeads().toString(), e.getValue()))
+            .map(e ->
+                String.format("Loop: %s -> %s", e.getKey().getLoopHeads().toString(), e.getValue()))
             .collect(Collectors.joining())
         + System.lineSeparator()
         + "Stack:"

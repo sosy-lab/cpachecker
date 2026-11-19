@@ -271,11 +271,10 @@ class CFABuilder {
 
       en.getExitNode()
           .filter(exitNode -> exitNode.getNumEnteringEdges() == 0)
-          .ifPresent(
-              unreachableExitNode -> {
-                cfaNodes.remove(funcName, unreachableExitNode);
-                en.removeExitNode();
-              });
+          .ifPresent(unreachableExitNode -> {
+            cfaNodes.remove(funcName, unreachableExitNode);
+            en.removeExitNode();
+          });
 
       functions.put(funcName, en);
 
@@ -1026,7 +1025,7 @@ class CFABuilder {
           case UDiv, SDiv, FDiv ->
               BinaryOperator.DIVIDE; // TODO: Respect unsigned and signed divide
           case URem, SRem, FRem ->
-              BinaryOperator.MODULO; // TODO: Respect unsigned and signed modulo
+              BinaryOperator.REMAINDER; // TODO: Respect unsigned and signed modulo
           case Shl -> BinaryOperator.SHIFT_LEFT;
           case LShr, AShr -> {
             // Logical shift right
@@ -1064,9 +1063,9 @@ class CFABuilder {
             internalExpressionType = machineModel.applyIntegerPromotion(op1type);
             yield BinaryOperator.SHIFT_RIGHT;
           }
-          case And -> BinaryOperator.BINARY_AND;
-          case Or -> BinaryOperator.BINARY_OR;
-          case Xor -> BinaryOperator.BINARY_XOR;
+          case And -> BinaryOperator.BITWISE_AND;
+          case Or -> BinaryOperator.BITWISE_OR;
+          case Xor -> BinaryOperator.BITWISE_XOR;
           default -> throw new AssertionError("Unhandled operation " + pOpCode);
         };
 
@@ -1151,7 +1150,8 @@ class CFABuilder {
               undefName,
               undefName,
               undefName,
-              null);
+              null,
+              /* pHasThreadLocalStorage= */ false);
       CExpression undefExpression = new CIdExpression(location, undefDecl);
       return undefExpression;
 
@@ -1384,7 +1384,8 @@ class CFABuilder {
               assignedVar,
               assignedVar,
               getQualifiedName(assignedVar, pFunctionName),
-              pInitializer);
+              pInitializer,
+              /* pHasThreadLocalStorage= */ false);
       assert !variableDeclarations.containsKey(itemId);
       variableDeclarations.put(itemId, newDecl);
     }
@@ -1597,7 +1598,8 @@ class CFABuilder {
         RETURN_VAR_NAME,
         RETURN_VAR_NAME,
         getQualifiedName(RETURN_VAR_NAME, pFunctionName),
-        null /* no initializer */);
+        null /* no initializer */,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   private CType getPointerOfType(final CType type) {
@@ -1654,7 +1656,7 @@ class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      return new CStringLiteralExpression(fileLocation, '"' + constant + '"');
+      return CStringLiteralExpression.fromContent(fileLocation, constant);
     }
 
     CType currentType = typeConverter.getCType(startPointer);

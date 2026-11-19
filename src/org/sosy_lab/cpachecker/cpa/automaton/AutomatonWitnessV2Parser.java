@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -20,8 +18,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
+/**
+ * Parser for witnesses in one of the YAML witness format versions 2.0, 2.1 or 2.2.
+ *
+ * <p>This class only dispatches: it reads the entries, determines whether they describe a
+ * correctness or a violation witness and which format version they use, and hands them to {@link
+ * AutomatonWitnessCorrectnessV2Parser} or {@link AutomatonWitnessViolationV2Parser} respectively.
+ */
 public class AutomatonWitnessV2Parser {
 
   private final LogManager logger;
@@ -48,31 +54,38 @@ public class AutomatonWitnessV2Parser {
    */
   public Automaton parseAutomatonFile(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pInputFile), this::parseAutomatonFile, WitnessParseException::new);
+    List<AbstractEntry> entries;
+    try {
+      entries = AutomatonWitnessV2ParserUtils.parseYAML(pInputFile);
+    } catch (IOException e) {
+      throw new WitnessParseException(e);
+    }
+    return parseAutomaton(entries);
   }
 
   /**
-   * Parses a specification from an InputStream and returns the Automata found in the file.
+   * Parses a specification from the entries of a witness and returns the Automaton representing the
+   * witness.
    *
-   * @param pInputStream the input stream to parse the witness from.
+   * @param pEntries the entries of the witness.
+   * @return the automaton representing the witness.
    * @throws InvalidConfigurationException if the configuration is invalid.
-   * @throws IOException if there occurs an IOException while reading from the stream.
-   * @return the automata representing the witnesses found in the stream.
+   * @throws InterruptedException if the parsing is interrupted.
    */
-  private Automaton parseAutomatonFile(InputStream pInputStream)
-      throws InvalidConfigurationException, IOException, InterruptedException {
-    List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pInputStream);
-    if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(entries)
+  public Automaton parseAutomaton(List<AbstractEntry> pEntries)
+      throws InvalidConfigurationException, InterruptedException {
+    YAMLWitnessVersion witnessVersion =
+        AutomatonWitnessV2ParserUtils.getWitnessVersion(pEntries).orElseThrow();
+    if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(pEntries)
         .orElseThrow()
         .equals(WitnessType.CORRECTNESS_WITNESS)) {
-      AutomatonWitnessV2ParserCorrectness parser =
-          new AutomatonWitnessV2ParserCorrectness(config, logger, shutdownNotifier, cfa);
-      return parser.createCorrectnessAutomatonFromEntries(entries);
+      return new AutomatonWitnessCorrectnessV2Parser(
+              config, logger, shutdownNotifier, cfa, witnessVersion)
+          .createCorrectnessAutomatonFromEntries(pEntries);
     } else {
-      AutomatonWitnessViolationV2Parser parser =
-          new AutomatonWitnessViolationV2Parser(config, logger, shutdownNotifier, cfa);
-      return parser.createViolationAutomatonFromEntries(entries);
+      return new AutomatonWitnessViolationV2Parser(
+              config, logger, shutdownNotifier, cfa, witnessVersion)
+          .createViolationAutomatonFromEntries(pEntries);
     }
   }
 }

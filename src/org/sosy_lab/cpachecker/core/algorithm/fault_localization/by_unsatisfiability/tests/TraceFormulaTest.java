@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class TraceFormulaTest {
 
@@ -62,10 +62,10 @@ public class TraceFormulaTest {
     }
   }
 
-  private TestResults runFaultLocalization(
+  private IntegrationTestResult runFaultLocalization(
       String name, FLAlgorithm algorithm, Map<String, String> additionalOptions) throws Exception {
     final Configuration config =
-        TestDataTools.configurationForTest()
+        TestUtils.configurationForTest()
             .loadFromResource(
                 TraceFormulaTest.class, "predicateAnalysisWithFaultLocalization.properties")
             .setOption("faultLocalization.by_traceformula.type", algorithm.name())
@@ -75,31 +75,30 @@ public class TraceFormulaTest {
     String test_dir = "test/programs/fault_localization/";
     Path program = Path.of(test_dir, name);
 
-    return CPATestRunner.run(config, program.toString(), logLevel);
+    return IntegrationTestRunner.run(config, program.toString(), logLevel);
   }
 
   private Multimap<LogKeys, Object> findFLPatterns(String log, Set<LogKeys> keywords) {
     Multimap<LogKeys, Object> entries = ArrayListMultimap.create();
     Splitter.on("\n")
         .split(log)
-        .forEach(
-            line -> {
-              List<String> result = Splitter.on("=").limit(2).splitToList(line);
-              if (result.size() == 2 && LogKeys.containsKey(result.getFirst())) {
-                LogKeys key = LogKeys.valueOf(Ascii.toUpperCase(result.getFirst()));
-                String value = result.get(1).replaceAll("\\(.*, " + logLevel + "\\)", "").trim();
-                if (keywords.contains(key)) {
-                  if (key == LogKeys.TFPRECONDITION) {
-                    entries.put(key, value);
-                  } else {
-                    value = CharMatcher.anyOf("[]").removeFrom(value);
-                    Splitter.on(", ")
-                        .splitToList(value)
-                        .forEach(loc -> entries.put(key, Integer.parseInt(loc)));
-                  }
-                }
+        .forEach(line -> {
+          List<String> result = Splitter.on("=").limit(2).splitToList(line);
+          if (result.size() == 2 && LogKeys.containsKey(result.getFirst())) {
+            LogKeys key = LogKeys.valueOf(Ascii.toUpperCase(result.getFirst()));
+            String value = result.get(1).replaceAll("\\(.*, " + logLevel + "\\)", "").trim();
+            if (keywords.contains(key)) {
+              if (key == LogKeys.TFPRECONDITION) {
+                entries.put(key, value);
+              } else {
+                value = CharMatcher.anyOf("[]").removeFrom(value);
+                Splitter.on(", ")
+                    .splitToList(value)
+                    .forEach(loc -> entries.put(key, Integer.parseInt(loc)));
               }
-            });
+            }
+          }
+        });
     return entries;
   }
 
@@ -110,17 +109,17 @@ public class TraceFormulaTest {
       Map<LogKeys, Object> expected)
       throws Exception {
 
-    TestResults test = runFaultLocalization(program, algorithm, options);
+    IntegrationTestResult test = runFaultLocalization(program, algorithm, options);
     FaultLocalizationInfoWithTraceFormula faultInfo =
         (FaultLocalizationInfoWithTraceFormula)
-            AbstractStates.getTargetStates(test.getCheckerResult().getReached()).stream()
+            AbstractStates.getTargetStates(test.cpaCheckerResult().getReached()).stream()
                 .filter(state -> ((ARGState) state).getCounterexampleInformation().isPresent())
                 .map(state -> ((ARGState) state).getCounterexampleInformation().orElseThrow())
                 .filter(FaultLocalizationInfoWithTraceFormula.class::isInstance)
                 .findFirst()
                 .orElseThrow();
 
-    Multimap<LogKeys, Object> found = findFLPatterns(test.getLog(), expected.keySet());
+    Multimap<LogKeys, Object> found = findFLPatterns(test.log(), expected.keySet());
 
     List<Integer> lines = new ArrayList<>();
     for (Fault fault : faultInfo.getRankedList()) {
@@ -141,35 +140,34 @@ public class TraceFormulaTest {
       }
     }
 
-    expected.forEach(
-        (key, value) -> {
-          switch (key) {
-            case TFRESULT -> {
-              @SuppressWarnings("unchecked")
-              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-              ImmutableList<Integer> foundLinesLog =
-                  transformedImmutableListCopy(found.get(key), val -> (Integer) val);
-              assertThat(lines).containsExactlyElementsIn(expectedLines);
-              assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
-            }
-            case TFPOSTCONDITION -> {
-              @SuppressWarnings("unchecked")
-              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-              ImmutableList<Integer> foundLines =
-                  transformedImmutableListCopy(found.get(key), val -> (Integer) val);
-              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
-            }
-            case TFPRECONDITION -> {
-              @SuppressWarnings("unchecked")
-              ImmutableList<String> expectedValues = (ImmutableList<String>) value;
-              ImmutableList<String> variableValues =
-                  found.get(key).stream()
-                      .map(Object::toString)
-                      .collect(ImmutableList.toImmutableList());
-              assertThat(variableValues).containsExactlyElementsIn(expectedValues);
-            }
-          }
-        });
+    expected.forEach((key, value) -> {
+      switch (key) {
+        case TFRESULT -> {
+          @SuppressWarnings("unchecked")
+          ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+          ImmutableList<Integer> foundLinesLog =
+              transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+          assertThat(lines).containsExactlyElementsIn(expectedLines);
+          assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
+        }
+        case TFPOSTCONDITION -> {
+          @SuppressWarnings("unchecked")
+          ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+          ImmutableList<Integer> foundLines =
+              transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+          assertThat(foundLines).containsExactlyElementsIn(expectedLines);
+        }
+        case TFPRECONDITION -> {
+          @SuppressWarnings("unchecked")
+          ImmutableList<String> expectedValues = (ImmutableList<String>) value;
+          ImmutableList<String> variableValues =
+              found.get(key).stream()
+                  .map(Object::toString)
+                  .collect(ImmutableList.toImmutableList());
+          assertThat(variableValues).containsExactlyElementsIn(expectedValues);
+        }
+      }
+    });
   }
 
   @Test

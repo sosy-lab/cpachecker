@@ -16,6 +16,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
+import java.util.Optional;
 
 @SuppressWarnings("serial")
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
@@ -31,6 +32,20 @@ public class RankVar implements IProgramVar {
     identifier = checkNotNull(pIdenifier);
     isGlobal = pIsGlobal;
     term = checkNotNull(pTerm);
+  }
+
+  /**
+   * Returns the pointer that the given term dereferences if it is a heap cell of the heap encoding
+   * with UFs, e.g., |main::p| for (*int |main::p|).
+   */
+  public static Optional<Term> getDereferencedPointer(Term pTerm) {
+    if (pTerm instanceof ApplicationTerm uf
+        && !uf.getFunction().isInterpreted()
+        && uf.getFunction().getParameterSorts().length == 1
+        && uf.getFunction().getName().startsWith("*")) {
+      return Optional.of(uf.getParameters()[0]);
+    }
+    return Optional.empty();
   }
 
   @Override

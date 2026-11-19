@@ -162,7 +162,7 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   private List<Fault> sortingByScoreReversed(List<Fault> faults) {
     return faults.stream()
         .filter(f -> f.getScore() != 0)
-        .sorted(Comparator.comparing((Fault f) -> f.getScore()).reversed())
+        .sorted(Comparator.comparingDouble((Fault f) -> f.getScore()).reversed())
         .collect(ImmutableList.toImmutableList());
   }
 

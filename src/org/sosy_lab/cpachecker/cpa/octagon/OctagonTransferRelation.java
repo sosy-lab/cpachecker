@@ -266,7 +266,7 @@ public class OctagonTransferRelation
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
     // condition, (this simplification is added in the CFA creation phase)
     return switch (binExp.getOperator()) {
-      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO ->
+      case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT, REMAINDER ->
           // TODO check which cases can be handled
           Collections.singleton(pState);
 
@@ -1114,7 +1114,7 @@ public class OctagonTransferRelation
       // do not even evaluate the members of this binary expression if we cannot
       // handle the operator
       switch (e.getOperator()) {
-        case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO -> {
+        case BITWISE_AND, BITWISE_OR, BITWISE_XOR, SHIFT_LEFT, SHIFT_RIGHT, REMAINDER -> {
           return ImmutableSet.of(Pair.of(OctagonUniversalCoefficients.INSTANCE, visitorState));
         }
         default -> {
@@ -1147,7 +1147,7 @@ public class OctagonTransferRelation
         }
       }
 
-      switch (e.getOperator()) {
+      return switch (e.getOperator()) {
         case EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN, NOT_EQUALS -> {
           Set<Pair<IOctagonCoefficients, OctagonState>> returnCoefficients = new HashSet<>();
           MemoryLocation tempVarLeft =
@@ -1222,7 +1222,7 @@ public class OctagonTransferRelation
                   handleLogicalOperators(tempVarLeft, binOp, rightVisitorState, rightCoeffs));
             }
           }
-          return returnCoefficients;
+          yield returnCoefficients;
         }
         case DIVIDE, MULTIPLY, MINUS, PLUS -> {
           Set<Pair<IOctagonCoefficients, OctagonState>> returnCoefficients = new HashSet<>();
@@ -1238,83 +1238,87 @@ public class OctagonTransferRelation
               } else {
                 rightCoeffs = rightCoeffs.expandToSize(leftCoeffs.size(), rightVisitorState);
               }
-              if (e.getOperator() == BinaryOperator.MINUS) {
-                returnCoefficients.add(Pair.of(leftCoeffs.sub(rightCoeffs), rightVisitorState));
-              } else if (e.getOperator() == BinaryOperator.PLUS) {
-                returnCoefficients.add(Pair.of(leftCoeffs.add(rightCoeffs), rightVisitorState));
-
-                // TODO these are some more or less untested optimizations which should mostly
-                // be necessary for floats, after some testing this should be enabled by default
-              } else if (e.getOperator() == BinaryOperator.MULTIPLY) {
-
-                if (leftCoeffs.hasOnlyOneValue() || rightCoeffs.hasOnlyOneValue()) {
-                  returnCoefficients.add(Pair.of(leftCoeffs.mul(rightCoeffs), rightVisitorState));
-                } else {
-                  MemoryLocation tempVarLeft =
-                      MemoryLocation.forLocalVariable(
-                          visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
-                  temporaryVariableCounter++;
-                  rightVisitorState =
-                      rightVisitorState.declareVariable(
-                          tempVarLeft,
-                          getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
-                  rightVisitorState =
-                      rightVisitorState.makeAssignment(
-                          tempVarLeft,
-                          leftCoeffs.expandToSize(
-                              rightVisitorState.sizeOfVariables(), rightVisitorState));
-                  returnCoefficients.add(
-                      Pair.of(
-                          new OctagonSimpleCoefficients(
-                                  rightVisitorState.sizeOfVariables(),
-                                  rightVisitorState.getVariableIndexFor(tempVarLeft),
-                                  OctagonIntValue.ONE,
-                                  rightVisitorState)
-                              .mul(
-                                  rightCoeffs.expandToSize(
-                                      rightVisitorState.sizeOfVariables(), rightVisitorState)),
-                          rightVisitorState));
+              switch (e.getOperator()) {
+                case BinaryOperator.MINUS ->
+                    returnCoefficients.add(Pair.of(leftCoeffs.sub(rightCoeffs), rightVisitorState));
+                case BinaryOperator.PLUS ->
+                    // TODO these are some more or less untested optimizations which should mostly
+                    // be necessary for floats, after some testing this should be enabled by default
+                    returnCoefficients.add(Pair.of(leftCoeffs.add(rightCoeffs), rightVisitorState));
+                case BinaryOperator.MULTIPLY -> {
+                  if (leftCoeffs.hasOnlyOneValue() || rightCoeffs.hasOnlyOneValue()) {
+                    returnCoefficients.add(Pair.of(leftCoeffs.mul(rightCoeffs), rightVisitorState));
+                  } else {
+                    MemoryLocation tempVarLeft =
+                        MemoryLocation.forLocalVariable(
+                            visitorFunctionName,
+                            TEMP_VAR_PREFIX + temporaryVariableCounter + "_",
+                            0);
+                    temporaryVariableCounter++;
+                    rightVisitorState =
+                        rightVisitorState.declareVariable(
+                            tempVarLeft,
+                            getCorrespondingOctStateType(e.getOperand1().getExpressionType()));
+                    rightVisitorState =
+                        rightVisitorState.makeAssignment(
+                            tempVarLeft,
+                            leftCoeffs.expandToSize(
+                                rightVisitorState.sizeOfVariables(), rightVisitorState));
+                    returnCoefficients.add(
+                        Pair.of(
+                            new OctagonSimpleCoefficients(
+                                    rightVisitorState.sizeOfVariables(),
+                                    rightVisitorState.getVariableIndexFor(tempVarLeft),
+                                    OctagonIntValue.ONE,
+                                    rightVisitorState)
+                                .mul(
+                                    rightCoeffs.expandToSize(
+                                        rightVisitorState.sizeOfVariables(), rightVisitorState)),
+                            rightVisitorState));
+                  }
                 }
-
-              } else if (e.getOperator() == BinaryOperator.DIVIDE) {
-
-                if (rightCoeffs.hasOnlyOneValue()) {
-                  returnCoefficients.add(Pair.of(leftCoeffs.div(rightCoeffs), rightVisitorState));
-                } else {
-                  MemoryLocation tempVarRight =
-                      MemoryLocation.forLocalVariable(
-                          visitorFunctionName, TEMP_VAR_PREFIX + temporaryVariableCounter + "_", 0);
-                  temporaryVariableCounter++;
-                  rightVisitorState =
-                      rightVisitorState.declareVariable(
-                          tempVarRight,
-                          getCorrespondingOctStateType(e.getOperand2().getExpressionType()));
-                  rightVisitorState =
-                      rightVisitorState.makeAssignment(
-                          tempVarRight,
-                          rightCoeffs.expandToSize(
-                              rightVisitorState.sizeOfVariables(), rightVisitorState));
-                  IOctagonCoefficients expandedleftCoeffs =
-                      leftCoeffs.expandToSize(
-                          rightVisitorState.sizeOfVariables(), rightVisitorState);
-                  returnCoefficients.add(
-                      Pair.of(
-                          expandedleftCoeffs.div(
-                              new OctagonSimpleCoefficients(
-                                  rightVisitorState.sizeOfVariables(),
-                                  rightVisitorState.getVariableIndexFor(tempVarRight),
-                                  OctagonIntValue.ONE,
-                                  rightVisitorState)),
-                          rightVisitorState));
+                case BinaryOperator.DIVIDE -> {
+                  if (rightCoeffs.hasOnlyOneValue()) {
+                    returnCoefficients.add(Pair.of(leftCoeffs.div(rightCoeffs), rightVisitorState));
+                  } else {
+                    MemoryLocation tempVarRight =
+                        MemoryLocation.forLocalVariable(
+                            visitorFunctionName,
+                            TEMP_VAR_PREFIX + temporaryVariableCounter + "_",
+                            0);
+                    temporaryVariableCounter++;
+                    rightVisitorState =
+                        rightVisitorState.declareVariable(
+                            tempVarRight,
+                            getCorrespondingOctStateType(e.getOperand2().getExpressionType()));
+                    rightVisitorState =
+                        rightVisitorState.makeAssignment(
+                            tempVarRight,
+                            rightCoeffs.expandToSize(
+                                rightVisitorState.sizeOfVariables(), rightVisitorState));
+                    IOctagonCoefficients expandedleftCoeffs =
+                        leftCoeffs.expandToSize(
+                            rightVisitorState.sizeOfVariables(), rightVisitorState);
+                    returnCoefficients.add(
+                        Pair.of(
+                            expandedleftCoeffs.div(
+                                new OctagonSimpleCoefficients(
+                                    rightVisitorState.sizeOfVariables(),
+                                    rightVisitorState.getVariableIndexFor(tempVarRight),
+                                    OctagonIntValue.ONE,
+                                    rightVisitorState)),
+                            rightVisitorState));
+                  }
                 }
+                default -> {}
               }
             }
           }
 
-          return returnCoefficients;
+          yield returnCoefficients;
         }
         default -> throw new AssertionError("Unhandled case statement");
-      }
+      };
     }
 
     private Set<Pair<IOctagonCoefficients, OctagonState>> handleLogicalOperators(

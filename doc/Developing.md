@@ -29,11 +29,11 @@ For bug tracking, we use [GitLab](https://gitlab.com/sosy-lab/software/cpachecke
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-0. Install a Java 21 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
+0. Install a Java JDK in the appropriate version (c.f. [`../INSTALL.md`](../INSTALL.md)).
 
 1. Install [Eclipse](http://www.eclipse.org/) with at least version 2023-09 (4.29), with JDT.
    If you have more than one Java version installed,
-   make sure to start Eclipse with Java 21 or newer.
+   make sure to start Eclipse with Java 21 or newer such that the tool chain works.
 
 2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
@@ -56,10 +56,10 @@ Develop CPAchecker from within Eclipse
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 4. If Eclipse complains about a missing JDK
-   (`Unbound classpath container: 'JRE System Library [JavaSE-21]'`),
+   (`Unbound classpath container: 'JRE System Library [JavaSE-...]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
-   click the "Search" button and select the path where your Java 21 installation
-   can be found (on Ubuntu `/usr/lib/jvm` will do).
+   click the "Search" button and select the path where your Java installation
+   with the correct version can be found (on Ubuntu `/usr/lib/jvm` will do).
 
 5. In order to run CPAchecker, use one of the supplied launch configurations
    or create your own.
@@ -152,6 +152,42 @@ just run `bin/cpachecker --jvm-debug ...` and point your debugger to TCP port 50
 of the respective machine.
 
 
+Replacing SMT-Solver Versions
+------------------------------
+Sometimes it may be desirable to replace the SMT solver that CPAchecker uses
+with a newer or older version,
+for example in order to avoid dependency problems of newer solver binaries
+or test a newer version.
+This is easy if the respective target version is packaged by [JavaSMT](https://github.com/sosy-lab/java-smt):
+
+1. Check available solver versions in our Ivy repository, e.g., [here](https://www.sosy-lab.org/ivy/org.sosy_lab/javasmt-solver-mathsat/) for MathSAT.
+
+1. At the end of `lib/ivy.xml` before `</dependencies>` add an override of the version, for example like this:
+   ```
+   <override org="org.sosy_lab" module="javasmt-solver-mathsat" rev="5.6.11"/>
+   ```
+
+1. Run `ant`.
+
+However, there is no guarantee that different solver versions work with the used JavaSMT version.
+
+To try out solver binaries that are not in the Ivy repository,
+follow the instructions from the next section.
+
+
+Replacing Dependencies Locally
+------------------------------
+As described below under "Offline Development",
+it is possible to point the build process to a local Ivy repository,
+which can be used to try out dependency versions that are not yet public.
+
+Alternatively, by setting `ivy.disable = true`
+in a file called `build.properties` in the project root
+one can disable the dependency resolver completely
+and then put libraries into the directory in `lib/`
+without having them overwritten by the build process.
+
+
 JavaScript Development
 -----------------------
 The JS files can be found in the directory `src/org/sosy_lab/cpachecker/core/counterexample`. We use Node.js as environment for our files.
@@ -219,7 +255,7 @@ Releasing a New Version
 
 1. Publish new CPAchecker archive on [Zenodo](https://doi.org/10.5281/zenodo.3816620):
    - Assign new DOI and upload `CPAchecker-<version>-unix.zip` archive.
-   - Update title to `CPAchecker Release <version> (image)`.
+   - Update title to `CPAchecker Release <version> (unix)`.
    - Set publication date.
    - Update description with entries for new version in [`NEWS.md`](../NEWS.md).
    - Update list of contributors according to [`Authors.md`](../Authors.md).

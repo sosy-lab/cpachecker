@@ -53,7 +53,8 @@ public class CTypesTest {
               "n",
               "n",
               "n",
-              null));
+              null,
+              /* pHasThreadLocalStorage= */ false));
   static final CIdExpression VAR_CONST =
       new CIdExpression(
           FileLocation.DUMMY,
@@ -67,7 +68,8 @@ public class CTypesTest {
               "c",
               "c",
               "c",
-              new CInitializerExpression(FileLocation.DUMMY, TWO)));
+              new CInitializerExpression(FileLocation.DUMMY, TWO),
+              /* pHasThreadLocalStorage= */ false));
 
   static final CArrayType CONSTANT_ARRAY =
       new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, TWO);
@@ -185,7 +187,7 @@ public class CTypesTest {
   }
 
   @Test
-  @Ignore // FIXME, cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1031
+  @Ignore("FIXME, cf. issue #1031")
   public void testSizeofShouldThrowIfNotConstant() {
     assume().that(hasKnownConstantSize).isFalse();
     assertThrows(IllegalArgumentException.class, () -> TEST_MACHINE_MODEL.getSizeof(type));

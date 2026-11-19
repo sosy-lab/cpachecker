@@ -23,6 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -86,7 +87,8 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
             shutdownNotifierToUse(),
             MachineModel.LINUX32,
             Optional.empty(),
-            AnalysisDirection.FORWARD);
+            AnalysisDirection.FORWARD,
+            Language.C);
     pReqTrans = new PredicateRequirementsTranslator(fmv);
 
     SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();

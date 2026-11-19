@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
+import java.math.BigInteger;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -26,15 +27,26 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -50,14 +62,13 @@ public class CExpressionTransformer extends ExpressionTransformer
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
 
-  private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
   public CExpressionTransformer(
       final String pFunctionName,
       final ValueAnalysisState pValueState,
       final MachineModel pMachineModel,
-      final LogManagerWithoutDuplicates pLogger) {
-    super(pFunctionName, pValueState);
+      final LogManagerWithoutDuplicates pLogger,
+      final CFAEdge pCfaEdgeForDebugging) {
+    super(pFunctionName, pValueState, pCfaEdgeForDebugging);
 
     machineModel = pMachineModel;
     logger = pLogger;
@@ -86,51 +97,12 @@ public class CExpressionTransformer extends ExpressionTransformer
     final Type expressionType = pIastBinaryExpression.getExpressionType();
     final Type calculationType = pIastBinaryExpression.getCalculationType();
 
-    return switch (pIastBinaryExpression.getOperator()) {
-      case PLUS ->
-          factory.add(operand1Expression, operand2Expression, calculationType, calculationType);
-      case MINUS ->
-          factory.minus(operand1Expression, operand2Expression, expressionType, calculationType);
-      case MULTIPLY ->
-          factory.multiply(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case DIVIDE ->
-          factory.divide(operand1Expression, operand2Expression, calculationType, calculationType);
-      case MODULO ->
-          factory.modulo(operand1Expression, operand2Expression, calculationType, calculationType);
-      case SHIFT_LEFT ->
-          factory.shiftLeft(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case SHIFT_RIGHT ->
-          factory.shiftRightSigned(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case BINARY_AND ->
-          factory.binaryAnd(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case BINARY_OR ->
-          factory.binaryOr(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case BINARY_XOR ->
-          factory.binaryXor(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case EQUALS ->
-          factory.equal(operand1Expression, operand2Expression, calculationType, calculationType);
-      case NOT_EQUALS ->
-          factory.notEqual(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case LESS_THAN ->
-          factory.lessThan(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case LESS_EQUAL ->
-          factory.lessThanOrEqual(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case GREATER_THAN ->
-          factory.greaterThan(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-      case GREATER_EQUAL ->
-          factory.greaterThanOrEqual(
-              operand1Expression, operand2Expression, calculationType, calculationType);
-    };
+    return BinarySymbolicExpression.of(
+        operand1Expression,
+        operand2Expression,
+        expressionType,
+        calculationType,
+        pIastBinaryExpression.getOperator());
   }
 
   @Override
@@ -159,12 +131,16 @@ public class CExpressionTransformer extends ExpressionTransformer
   private SymbolicExpression transformUnaryArithmetic(
       final CUnaryExpression.UnaryOperator pOperator,
       final SymbolicExpression pOperand,
-      final Type pExpressionType) {
+      final Type pExpressionType)
+      throws UnsupportedCodeException {
     return switch (pOperator) {
-      case MINUS -> factory.negate(pOperand, pExpressionType);
-      case TILDE -> factory.binaryNot(pOperand, pExpressionType);
-      case AMPER -> factory.addressOf(pOperand, pExpressionType);
-      default -> throw new AssertionError("No arithmetic operator: " + pOperator);
+      case MINUS -> NegationExpression.of(pOperand, pExpressionType);
+      case TILDE -> BinaryNotExpression.of(pOperand, pExpressionType);
+      case AMPER -> AddressOfExpression.of(pOperand, pExpressionType);
+      default ->
+          throw new UnsupportedCodeException(
+              "Constraints with arithmetic operator " + pOperator + " unsupported",
+              getCfaEdgeForDebugging());
     };
   }
 
@@ -201,19 +177,41 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CTypeIdExpression pIastTypeIdExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Type id expression invalid for constraint");
+    final TypeIdOperator idOperator = pIastTypeIdExpression.getOperator();
+    final CType innerType = pIastTypeIdExpression.getType();
+
+    return switch (idOperator) {
+      case ALIGNOF ->
+          ConstantSymbolicExpression.of(
+              new NumericValue(machineModel.getAlignof(innerType)), CNumericTypes.SIZE_T);
+      case SIZEOF -> {
+        if (innerType.hasKnownConstantSize()) {
+          BigInteger size = machineModel.getSizeof(innerType);
+          yield ConstantSymbolicExpression.of(new NumericValue(size), CNumericTypes.SIZE_T);
+        }
+        throw new UnsupportedCodeException(
+            "Type id expressions with variable size not supported", getCfaEdgeForDebugging());
+      }
+      default ->
+          // TODO support more operators
+          throw new UnsupportedCodeException(
+              "Type id operator " + idOperator + " not supported", getCfaEdgeForDebugging());
+    };
   }
 
   @Override
   public SymbolicExpression visit(final CImaginaryLiteralExpression pIastLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Imaginary literal invalid for constraint");
+    throw new UnsupportedCodeException(
+        "Imaginary literals unsupported in constraints", getCfaEdgeForDebugging());
   }
 
   @Override
   public SymbolicExpression visit(final CAddressOfLabelExpression pAddressOfLabelExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Address of label expression used in symbolic expression");
+    throw new UnsupportedCodeException(
+        "Address of label expression used in symbolic expression unsupported",
+        getCfaEdgeForDebugging());
   }
 
   @Override
@@ -240,7 +238,7 @@ public class CExpressionTransformer extends ExpressionTransformer
     } else if (valueState.contains(memLoc)) {
       Value value = valueState.getValueFor(memLoc);
 
-      return factory.asConstant(value, pExpression.getExpressionType());
+      return ConstantSymbolicExpression.of(value, pExpression.getExpressionType());
     } else {
       return null;
     }
@@ -249,14 +247,8 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CPointerExpression pPointerExpression)
       throws UnrecognizedCodeException {
-    SymbolicExpression operand = pPointerExpression.getOperand().accept(this);
-
-    if (operand == null) {
-      return null;
-
-    } else {
-      return factory.pointer(operand, pPointerExpression.getExpressionType());
-    }
+    // Writes through pointers are not tracked, so a term *p would keep its value after *p = ...
+    return evaluateToValue(pPointerExpression);
   }
 
   private ExpressionValueVisitor getValueVisitor(final ValueAnalysisState pState) {
@@ -267,7 +259,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(final CFunctionCallExpression pIastFunctionCallExpression)
       throws UnrecognizedCodeException {
     throw new UnsupportedOperationException(
-        "Function calls can't be transformed to ConstraintExpressions");
+        "Function call transformation to ConstraintExpressions unsupported");
   }
 
   @Override
@@ -279,13 +271,14 @@ public class CExpressionTransformer extends ExpressionTransformer
       return null;
 
     } else {
-      return factory.cast(operand, pIastCastExpression.getCastType());
+      return CastExpression.of(operand, pIastCastExpression.getCastType());
     }
   }
 
   @Override
   public SymbolicExpression visit(final CComplexCastExpression complexCastExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Complex cast not valid for constraint");
+    throw new UnsupportedCodeException(
+        "Complex cast unsupported for constraint", getCfaEdgeForDebugging());
   }
 }

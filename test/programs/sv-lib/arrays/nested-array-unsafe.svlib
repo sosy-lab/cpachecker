@@ -1,0 +1,18 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic ALL)
+(declare-var m (Array Int (Array Int Int)))
+(define-proc main () () ((i Int))
+  (sequence
+    (havoc i)
+    (assign (m (store m 0 (store (select m 0) 1 i))))
+    (! (sequence) :tag check)))
+(annotate-tag check :check-true (not (= (select (select m 0) 1) 5)))
+(verify-call main ())
+(get-witness)

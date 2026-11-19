@@ -276,8 +276,8 @@ public final class CTypes {
         // C-Standard §6.7.6.3 (15, last sentence in parentheses):
         // "... each parameter declared with qualified type is taken
         // as having the unqualified version of its declared type."
-        paramOfA = paramOfA.withoutQualifiers();
-        paramOfB = paramOfB.withoutQualifiers();
+        paramOfA = paramOfA.asUnqualified();
+        paramOfB = paramOfB.asUnqualified();
 
         if (!areTypesCompatible(paramOfA, paramOfB)) {
           return false;

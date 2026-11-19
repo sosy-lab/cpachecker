@@ -1,0 +1,412 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
+
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
+import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAssignmentType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_statements.SeqFunctionStatements.SeqFunctionReturnValueAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadBuilder;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
+
+/**
+ * Tests if {@link SequentializationFields} are expected depending on the input program, e.g. number
+ * of threads.
+ */
+public class SequentializationFieldsTest {
+
+  private static final Path BASE_PATH = Path.of("test/programs/simple/concurrent");
+
+  @Test
+  public void test_13_privatized_04_priv_multi_true() throws Exception {
+    // this program contains multiple loops whose condition only contains local variables
+    Path path = BASE_PATH.resolve("goblint-regression-13-privatized_04-priv_multi_true.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(4);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).hasSize(1);
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).hasSize(1);
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).hasSize(1);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).hasSize(1);
+  }
+
+  @Test
+  public void test_28_race_reach_45_escape_racing() throws Exception {
+    // this program contains a start_routine argument passed via pthread_create
+    Path path = BASE_PATH.resolve("goblint-regression-28-race_reach_45-escape_racing.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(2);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(5);
+    // we want to identify int * p = (int *) arg; as a pointer assignment, even on declaration
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(2);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .isEmpty();
+    // access(*p); is a deref of p
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(1);
+    // check that we (only) identify the passing of &i to pthread_create as start_routine arg
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .hasSize(1);
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
+  }
+
+  @Test
+  public void test_36_apron_41_threadenter_no_locals_unknown_1_pos() throws Exception {
+    // this program contains only local variables, no global variables
+    Path path =
+        BASE_PATH.resolve("goblint-regression-36-apron_41-threadenter-no-locals_unknown_1_pos.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(2);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    // only local variables
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(0);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .isEmpty();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
+  }
+
+  @Test
+  public void test_chl_match_symm_wvr() throws Exception {
+    // this program contains multiple calls to the same function in a single thread
+    Path path = BASE_PATH.resolve("weaver-chl-match-symm.wvr.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(8);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .isEmpty();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+
+    // check that each __CPAchecker_TMP variable storing function return values is present once.
+    // this program contains a lot of __CPAchecker_TMP variables, and we want to ensure that they
+    // are in their correct place and not mixed up during the substitution process.
+    Set<CLeftHandSide> visited = new HashSet<>();
+    for (SeqFunctionStatements functionStatements : fields.functionStatements.values()) {
+      for (SeqFunctionReturnValueAssignment returnValueAssignment :
+          functionStatements.returnValueAssignments().values()) {
+        assertWithMessage(
+                "Duplicate __CPAchecker_TMP variable encountered in assignment: %s",
+                returnValueAssignment.expressionAssignmentStatement().toASTString())
+            .that(
+                visited.add(
+                    returnValueAssignment.expressionAssignmentStatement().getLeftHandSide()))
+            .isTrue();
+      }
+    }
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
+  }
+
+  @Test
+  public void test_fib_safe7() throws Exception {
+    // this example demonstrates the need to handle local variables with initializers explicitly.
+    // otherwise the local variables are declared (and initialized) and then never updated in cases.
+    Path path = BASE_PATH.resolve("pthread-fib_safe-7.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(8);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .isEmpty();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).hasSize(1);
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).hasSize(1);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).hasSize(1);
+  }
+
+  @Test
+  public void test_lazy01() throws Exception {
+    Path path = BASE_PATH.resolve("pthread-lazy01.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(4);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    // mutex and data
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(2);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .isEmpty();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
+  }
+
+  @Test
+  public void test_queue_longest() throws Exception {
+    // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
+    Path path = BASE_PATH.resolve("pthread-queue_longest.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    // check that each member of queue struct is identified as relevant individually
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(9);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(8);
+    // 2 in main, 3 in t1, 1 in t2
+    // (pthread_mutex_lock(&m) does not count as pointer parameter assignment)
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .hasSize(6);
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(17);
+    // both pthread_create calls take &queue as arguments
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .hasSize(2);
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).hasSize(1);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).hasSize(1);
+  }
+
+  @Test
+  public void test_function_call_entry() throws Exception {
+    // this program contains start_routines that start directly with a function call.
+    // this forces us to reorder the thread statements, because function statements are usually
+    // at the bottom of a thread simulation.
+    Path path = BASE_PATH.resolve("function-call-entry.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(4);
+    assertThat(pointerAliasingMap.pointerAssignments).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .isEmpty();
+    assertThat(pointerAliasingMap.pointerDereferences).isEmpty();
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .isEmpty();
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
+  }
+
+  @Test
+  public void test_simple_two() throws Exception {
+    // this program contains no return statements for the created threads
+    Path path = BASE_PATH.resolve("simple_two.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(6);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(33);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(24);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .hasSize(5);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.RETURN_VALUE))
+        .hasSize(1);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_EXIT))
+        .hasSize(4);
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(4);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .isEmpty();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).hasSize(3);
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).hasSize(2);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
+  }
+
+  @Test
+  public void test_singleton_with_uninit_problems_b() throws Exception {
+    // this program has thread creations inside a non-main thread
+    Path path = BASE_PATH.resolve("pthread-singleton_with-uninit-problems-b.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(7);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(2);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(1);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .isEmpty();
+    // v[0] counts as pointer dereference, but only once (same declaration)
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(1);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .isEmpty();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(2).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(3).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(4).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(5).cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).isEmpty();
+  }
+
+  @Test
+  public void test_stack_1() throws Exception {
+    Path path = BASE_PATH.resolve("pthread-stack-1.i");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options = MPOROptions.getDefaultTestInstance();
+    SequentializationFields fields = getSequentializationFields(path, options);
+    assertThat(fields.numThreads).isEqualTo(3);
+    assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
+    SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(3);
+    // 1 explicit, 2 parameter pointer assignments
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(3);
+    // unsigned int * stack = static unsigned int arr[SIZE]
+    // counts as pointer parameter assignments
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
+        .hasSize(2);
+    // stack[get_top()] count as pointer dereferences
+    assertThat(pointerAliasingMap.pointerDereferences).hasSize(2);
+    assertThat(
+            pointerAliasingMap.extractPointerAssignmentsByType(
+                SeqPointerAssignmentType.START_ROUTINE_ARG))
+        .isEmpty();
+    // the main thread should always have id 0
+    assertThat(fields.mainSubstitution.getThread().id())
+        .isEqualTo(MPORThreadBuilder.MAIN_THREAD_ID);
+    assertThat(fields.mainSubstitution.getThread().threadObject()).isEmpty();
+    assertThat(fields.threads.getFirst().cfa().getLoopHeads()).isEmpty();
+    assertThat(fields.threads.get(1).cfa().getLoopHeads()).hasSize(1);
+    assertThat(fields.threads.getLast().cfa().getLoopHeads()).hasSize(1);
+  }
+
+  private SequentializationFields getSequentializationFields(
+      Path pInputFilePath, MPOROptions pOptions) throws Exception {
+
+    CFA inputCfa = TestCfaUtils.makeCfaFromFile(pInputFilePath.toString());
+    Configuration config = TestUtils.configurationForTest().build();
+    LogManager logger = LogManager.createTestLogManager();
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
+    SequentializationUtils utils =
+        SequentializationUtils.of(inputCfa, config, logger, shutdownNotifier);
+    return new SequentializationFields(pOptions, inputCfa, utils);
+  }
+}

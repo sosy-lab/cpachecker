@@ -19,6 +19,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
  */
 public interface AbstractStateWithAssumptions extends AbstractState {
 
+  // TODO: add assertion to ensure all assumptions are logical. Some CPAs seem to expect binary
+  //  logical expressions and can't handle it if we just return expressions that return integers
+  //  as C style booleans.
+  // TODO: work on the CPAs exporting non-logical expressions or transform them to logical
+  //  expressions here. Or make sure all CPAs can handle integers as booleans.
+  // TODO: suggestion: add a isLogicalExpression() check to all expressions?
   /**
    * Get the list of assumptions represented as AssumeEdges.
    *

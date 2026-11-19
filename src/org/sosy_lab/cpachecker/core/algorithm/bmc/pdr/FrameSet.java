@@ -71,14 +71,13 @@ class FrameSet implements AutoCloseable {
   @Override
   public String toString() {
     return IntStream.rangeClosed(0, getFrontierIndex())
-        .mapToObj(
-            i -> {
-              Iterable<? extends Object> result = frames.get(i);
-              if (i == 0) {
-                result = Iterables.concat(ImmutableSet.of("I"), result);
-              }
-              return result;
-            })
+        .mapToObj(i -> {
+          Iterable<? extends Object> result = frames.get(i);
+          if (i == 0) {
+            result = Iterables.concat(ImmutableSet.of("I"), result);
+          }
+          return result;
+        })
         .map(Object::toString)
         .collect(Collectors.joining(", "));
   }
@@ -134,10 +133,7 @@ class FrameSet implements AutoCloseable {
     if (!oldFrame.remove(pClause)) {
       throw new IllegalArgumentException(pClause + " not found in frame " + pFrameIndex);
     }
-    for (CandidateInvariant clauseComponent :
-        CandidateInvariantCombination.getConjunctiveParts(pClause)) {
-      oldFrame.remove(clauseComponent);
-    }
+    oldFrame.removeAll(CandidateInvariantCombination.getConjunctiveParts(pClause));
     if (oldFrame.isEmpty()) {
       emptyFrames.add(pFrameIndex);
     }

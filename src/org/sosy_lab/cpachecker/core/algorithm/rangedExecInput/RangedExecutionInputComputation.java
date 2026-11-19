@@ -209,12 +209,11 @@ public class RangedExecutionInputComputation implements Algorithm {
             && stmtEdge.getStatement() instanceof CAssignment) {
           if (CFAEdgeUtils.getRightHandSide(edge) instanceof CFunctionCallExpression funCall
               && namesOfRandomFunctions.stream()
-                  .anyMatch(
-                      name ->
-                          Objects.requireNonNull(funCall)
-                              .getFunctionNameExpression()
-                              .toString()
-                              .startsWith(name))) {
+                  .anyMatch(name ->
+                      Objects.requireNonNull(funCall)
+                          .getFunctionNameExpression()
+                          .toString()
+                          .startsWith(name))) {
             return true;
           }
         }

@@ -13,6 +13,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
+import org.sosy_lab.cpachecker.cpa.smg2.AdditionalInfoExtractor.SMGConvertingTags;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 public class SMGAdditionalInfoConverter implements AdditionalInfoConverter {

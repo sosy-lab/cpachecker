@@ -60,8 +60,13 @@ public class InvariantEntry extends AbstractInvariantEntry {
     return value;
   }
 
+  /** The key an invariant is wrapped in, the counterpart of the contract key. */
+  static final String INVARIANT_KEY = "invariant";
+
   public enum InvariantRecordType {
     LOOP_INVARIANT("loop_invariant"),
+    TRANSITION_LOOP_INVARIANT("loop_transition_invariant"),
+    TRANSITION_LOCATION_INVARIANT("location_transition_invariant"),
     LOCATION_INVARIANT("location_invariant"),
     UNKNOWN("unknown");
 
@@ -98,7 +103,7 @@ public class InvariantEntry extends AbstractInvariantEntry {
       JsonNode node = mapper.readTree(jp);
 
       // The node should now be the 'invariant' node. Move one level deeper to its children.
-      JsonNode invariantNode = node.get("invariant");
+      JsonNode invariantNode = node.get(INVARIANT_KEY);
       assert invariantNode != null;
 
       // Delegate the actual object mapping back to Jackson:
@@ -128,7 +133,7 @@ public class InvariantEntry extends AbstractInvariantEntry {
 
       // Start a wrapper object for "waypoint"
       gen.writeStartObject();
-      gen.writeFieldName("invariant");
+      gen.writeFieldName(INVARIANT_KEY);
 
       // start the actual InvariantEntry object
       gen.writeStartObject();

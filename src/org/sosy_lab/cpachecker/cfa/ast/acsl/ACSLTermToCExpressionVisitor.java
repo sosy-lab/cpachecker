@@ -56,14 +56,14 @@ public class ACSLTermToCExpressionVisitor
       CExpression rightExpression = binaryTerm.getRight().accept(this);
       BinaryOperator op =
           switch (binaryTerm.getOperator()) {
-            case BAND -> CBinaryExpression.BinaryOperator.BINARY_AND;
-            case BOR -> CBinaryExpression.BinaryOperator.BINARY_OR;
-            case BXOR -> CBinaryExpression.BinaryOperator.BINARY_XOR;
+            case BAND -> CBinaryExpression.BinaryOperator.BITWISE_AND;
+            case BOR -> CBinaryExpression.BinaryOperator.BITWISE_OR;
+            case BXOR -> CBinaryExpression.BinaryOperator.BITWISE_XOR;
             case PLUS -> CBinaryExpression.BinaryOperator.PLUS;
             case MINUS -> CBinaryExpression.BinaryOperator.MINUS;
             case TIMES -> CBinaryExpression.BinaryOperator.MULTIPLY;
             case DIVIDE -> CBinaryExpression.BinaryOperator.DIVIDE;
-            case MOD -> CBinaryExpression.BinaryOperator.MODULO;
+            case MOD -> CBinaryExpression.BinaryOperator.REMAINDER;
             case LSHIFT -> CBinaryExpression.BinaryOperator.SHIFT_LEFT;
             case RSHIFT -> CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
             case EQ -> CBinaryExpression.BinaryOperator.EQUALS;
@@ -164,7 +164,8 @@ public class ACSLTermToCExpressionVisitor
               boundIdentifier.getName(),
               boundIdentifier.getName(),
               boundIdentifier.getFunctionName() + "::" + boundIdentifier.getName(),
-              null);
+              null,
+              /* pHasThreadLocalStorage= */ false);
       result = new CIdExpression(FileLocation.DUMMY, declaration);
     }
     return result;
@@ -186,7 +187,8 @@ public class ACSLTermToCExpressionVisitor
   public CExpression visit(ACSLStringLiteral stringLiteral) {
     CExpression result = cache.get(stringLiteral);
     if (result == null) {
-      result = new CStringLiteralExpression(FileLocation.DUMMY, stringLiteral.getLiteral());
+      result =
+          CStringLiteralExpression.fromSourceCode(FileLocation.DUMMY, stringLiteral.getLiteral());
       cache.put(stringLiteral, result);
     }
     return result;

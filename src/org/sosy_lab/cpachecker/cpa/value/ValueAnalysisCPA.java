@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -27,6 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -111,6 +113,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
+  @Option(secure = true, description = "get an initial precision from a correctness witness file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path witnessFileForInitialPrecision = null;
+
   @Option(
       secure = true,
       name = "unknownValueHandling",
@@ -126,7 +132,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final StateToFormulaWriter writer;
 
   private final Configuration config;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
@@ -138,22 +144,22 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
-  private final PredicateToValuePrecisionConverter predToValPrec;
+  private final ToValuePrecisionConverter converterToValPrec;
 
   private SymbolicStatistics symbolicStats;
 
   private ValueAnalysisCPA(
-      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA cfa)
       throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config = config;
-    this.logger = logger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     this.cfa = cfa;
 
     config.inject(this, ValueAnalysisCPA.class);
 
-    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    converterToValPrec = new ToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
 
     precision = initializePrecision(config, cfa);
     statistics = new ValueAnalysisCPAStatistics(this, cfa, config, logger, pShutdownNotifier);
@@ -180,7 +186,9 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException {
-    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && witnessFileForInitialPrecision == null) {
       return VariableTrackingPrecision.createStaticPrecision(
           pConfig, pCfa.getVarClassification(), getClass());
     }
@@ -192,6 +200,12 @@ public class ValueAnalysisCPA extends AbstractCPA
             VariableTrackingPrecision.createStaticPrecision(
                 pConfig, pCfa.getVarClassification(), getClass()));
 
+    if (witnessFileForInitialPrecision != null) {
+      initialPrecision =
+          initialPrecision.withIncrement(
+              converterToValPrec.convertWitnessToVariableTrackingPrec(
+                  witnessFileForInitialPrecision));
+    }
     if (initialPredicatePrecisionFile != null) {
 
       // convert the predicate precision to variable tracking precision and
@@ -200,7 +214,8 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       initialPrecision =
           initialPrecision.withIncrement(
-              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
+              converterToValPrec.convertPredPrecToVariableTrackingPrec(
+                  initialPredicatePrecisionFile));
     }
     if (initialPrecisionFile != null) {
       // create precision with empty, refinable component precision
@@ -250,6 +265,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null
         && initialPredicatePrecisionFile == null
+        && witnessFileForInitialPrecision == null
         && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
@@ -277,9 +293,17 @@ public class ValueAnalysisCPA extends AbstractCPA
         statistics);
   }
 
+  public ValueTransferOptions getTransferOptions() {
+    return transferOptions;
+  }
+
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new ValueAnalysisState(cfa.getMachineModel());
+    return new ValueAnalysisState(
+        cfa.getMachineModel(),
+        transferOptions.isOptimizeBooleanVariables() && cfa.getVarClassification().isPresent()
+            ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+            : ImmutableSet.of());
   }
 
   @Override
@@ -307,7 +331,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     return config;
   }
 
-  public LogManager getLogger() {
+  public LogManagerWithoutDuplicates getLogger() {
     return logger;
   }
 
@@ -332,8 +356,8 @@ public class ValueAnalysisCPA extends AbstractCPA
       pStatsCollection.add(symbolicStats);
     }
     pStatsCollection.add(constraintsStrengthenOperator);
-    if (predToValPrec.collectedStats()) {
-      pStatsCollection.add(predToValPrec);
+    if (converterToValPrec.collectedStats()) {
+      pStatsCollection.add(converterToValPrec);
     }
     writer.collectStatistics(pStatsCollection);
   }

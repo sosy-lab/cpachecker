@@ -241,8 +241,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @return the memory location of the struct member
    */
   public @Nullable MemoryLocation evaluateRelativeMemLocForStructMember(
-      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType)
-      throws UnrecognizedCodeException {
+      MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType) {
 
     MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
 
@@ -329,10 +328,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      CLeftHandSide fieldOwner = (CLeftHandSide) pIastFieldReference.getFieldOwner();
-
+      CExpression fieldOwner = pIastFieldReference.getFieldOwner();
       MemoryLocation memLocOfFieldOwner = fieldOwner.accept(this);
-
       if (memLocOfFieldOwner == null) {
         return null;
       }
@@ -342,8 +339,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     protected @Nullable MemoryLocation getStructureFieldLocationFromRelativePoint(
-        MemoryLocation pStartLocation, String pFieldName, CType pOwnerType)
-        throws UnrecognizedCodeException {
+        MemoryLocation pStartLocation, String pFieldName, CType pOwnerType) {
 
       CType canonicalOwnerType = pOwnerType.getCanonicalType();
 
@@ -356,30 +352,30 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       return pStartLocation.withAddedOffset(offset.orElseThrow());
     }
 
-    private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName)
-        throws UnrecognizedCodeException {
+    private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName) {
 
-      if (ownerType instanceof CElaboratedType cElaboratedType) {
-        return getFieldOffsetInBits(cElaboratedType.getRealType(), fieldName);
-      } else if (ownerType instanceof CCompositeType cCompositeType) {
-        return bitsToByte(evv.getMachineModel().getFieldOffsetInBits(cCompositeType, fieldName));
-      } else if (ownerType instanceof CPointerType) {
-        evv.missingPointer = true;
-        return OptionalLong.empty();
-      } else if (ownerType instanceof CProblemType) {
-        /*
-         * At this point CProblemType should not occur
-         * unless the parsing of the automaton for
-         * Counterexample-check failed to determine
-         * the type of an assumptions operand.
-         *
-         * This is unfortunate but not as critical as
-         * letting CPAchecker crash here.
-         */
-        return OptionalLong.empty();
-      }
-
-      throw new AssertionError();
+      return switch (ownerType) {
+        case CElaboratedType cElaboratedType ->
+            getFieldOffsetInBits(cElaboratedType.getRealType(), fieldName);
+        case CCompositeType cCompositeType ->
+            bitsToByte(evv.getMachineModel().getFieldOffsetInBits(cCompositeType, fieldName));
+        case CPointerType unused -> {
+          evv.missingPointer = true;
+          yield OptionalLong.empty();
+        }
+        case CProblemType unused ->
+            /*
+             * At this point CProblemType should not occur
+             * unless the parsing of the automaton for
+             * Counterexample-check failed to determine
+             * the type of an assumptions operand.
+             *
+             * This is unfortunate but not as critical as
+             * letting CPAchecker crash here.
+             */
+            OptionalLong.empty();
+        default -> throw new AssertionError();
+      };
     }
 
     private OptionalLong bitsToByte(BigInteger bits) {

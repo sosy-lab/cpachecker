@@ -154,7 +154,7 @@ public class ExpressionSimplificationVisitor
         final CBinaryExpressionBuilder binExprBuilder =
             new CBinaryExpressionBuilder(machineModel, logger);
         switch (binaryOperator) {
-          case BINARY_AND -> {
+          case BITWISE_AND -> {
             if (value1 != null && value1.bigIntegerValue().equals(BigInteger.ZERO)) {
               return op1;
             }
@@ -162,7 +162,7 @@ public class ExpressionSimplificationVisitor
               return op2;
             }
           }
-          case BINARY_OR -> {
+          case BITWISE_OR -> {
             if (value1 != null && value1.bigIntegerValue().equals(BigInteger.ZERO)) {
               return op2;
             }
@@ -215,26 +215,25 @@ public class ExpressionSimplificationVisitor
     final TypeIdOperator idOperator = expr.getOperator();
     final CType innerType = expr.getType();
 
-    switch (idOperator) {
+    return switch (idOperator) {
       case SIZEOF -> {
         if (innerType.hasKnownConstantSize()) {
           BigInteger size = machineModel.getSizeof(innerType);
-          return new CIntegerLiteralExpression(
+          yield new CIntegerLiteralExpression(
               expr.getFileLocation(), expr.getExpressionType(), size);
         }
-        return visitDefault(expr);
+        yield visitDefault(expr);
         // TODO simplify inner part of expr?
       }
       case ALIGNOF -> {
         int alignment = machineModel.getAlignof(innerType);
-        return new CIntegerLiteralExpression(
+        yield new CIntegerLiteralExpression(
             expr.getFileLocation(), expr.getExpressionType(), BigInteger.valueOf(alignment));
       }
-      default -> {
-        // TODO support more operators
-        return visitDefault(expr);
-      }
-    }
+      default ->
+          // TODO support more operators
+          visitDefault(expr);
+    };
   }
 
   @Override
@@ -253,10 +252,11 @@ public class ExpressionSimplificationVisitor
     }
 
     final CExpression op = recursive(operand);
-    assert op.getExpressionType().equals(operandType) : "simplification should not change type";
+    assert op.getExpressionType().getCanonicalType().equals(operandType.getCanonicalType())
+        : "simplification should not change type";
     final NumericValue value = getValue(op);
 
-    if (value != null && operandType instanceof CSimpleType cSimpleType) {
+    if (value != null && operandType.getCanonicalType() instanceof CSimpleType cSimpleType) {
       if (unaryOperator == UnaryOperator.MINUS) {
         // we have to cast the value, because it can overflow, for example for the unary-expression
         // "-2147483648" (=MIN_INT),
@@ -275,9 +275,10 @@ public class ExpressionSimplificationVisitor
             return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           }
           case FLOAT, DOUBLE, FLOAT128 -> {
-            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, exprType);
+            CType floatType = exprType.getCanonicalType();
+            FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, floatType);
             return new CFloatLiteralExpression(
-                loc, machineModel, exprType, negatedValue.floatingPointValue(precision));
+                loc, machineModel, floatType, negatedValue.floatingPointValue(precision));
           }
           default -> {
             // return the original expression below

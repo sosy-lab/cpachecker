@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
@@ -29,13 +30,13 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 public final class JArrayInitializer extends AbstractExpression implements JExpression {
 
   @Serial private static final long serialVersionUID = -9034136529891743726L;
-  private final List<JExpression> initializerExpressions;
+  private final ImmutableList<JExpression> initializerExpressions;
 
   public JArrayInitializer(
       FileLocation pFileLocation, List<JExpression> pInitializerExpression, JArrayType pType) {
     super(pFileLocation, pType);
 
-    initializerExpressions = pInitializerExpression;
+    initializerExpressions = ImmutableList.copyOf(pInitializerExpression);
   }
 
   @Override
@@ -43,7 +44,7 @@ public final class JArrayInitializer extends AbstractExpression implements JExpr
     return (JArrayType) super.getExpressionType();
   }
 
-  public List<JExpression> getInitializerExpressions() {
+  public ImmutableList<JExpression> getInitializerExpressions() {
     return initializerExpressions;
   }
 

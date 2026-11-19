@@ -239,9 +239,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
     final ImmutableSet<BooleanFormula> candidateLemmas =
         from(prevToMerge.getAbstraction())
-            .filter(
-                input ->
-                    allVarsInSSAMap(input, prevToMerge.getSSA(), iState.getPathFormula().getSsa()))
+            .filter(input ->
+                allVarsInSSAMap(input, prevToMerge.getSSA(), iState.getPathFormula().getSsa()))
             .toSet();
 
     PathFormulaWithStartSSA path =

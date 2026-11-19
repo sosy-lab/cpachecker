@@ -91,9 +91,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ShiftRightExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
@@ -242,13 +250,13 @@ public abstract class AbstractExpressionValueVisitor
       case PLUS,
           MINUS,
           DIVIDE,
-          MODULO,
+          REMAINDER,
           MULTIPLY,
           SHIFT_LEFT,
           SHIFT_RIGHT,
-          BINARY_AND,
-          BINARY_OR,
-          BINARY_XOR -> {
+          BITWISE_AND,
+          BITWISE_OR,
+          BITWISE_XOR -> {
         Value result =
             arithmeticOperation(
                 (NumericValue) lVal,
@@ -327,46 +335,15 @@ public abstract class AbstractExpressionValueVisitor
       CType pLeftType,
       Value pRightValue,
       CType pRightType,
-      CBinaryExpression.BinaryOperator pOperator,
+      BinaryOperator pOperator,
       CType pExpressionType,
       CType pCalculationType) {
 
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression leftOperand;
-    SymbolicExpression rightOperand;
+    SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
+    SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
 
-    leftOperand = factory.asConstant(pLeftValue, pLeftType);
-    rightOperand = factory.asConstant(pRightValue, pRightType);
-
-    return switch (pOperator) {
-      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY ->
-          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT ->
-          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT ->
-          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND ->
-          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR ->
-          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR ->
-          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS ->
-          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN ->
-          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL ->
-          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN ->
-          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL ->
-          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-    };
+    return BinarySymbolicExpression.of(
+        leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
   }
 
   /**
@@ -401,7 +378,7 @@ public abstract class AbstractExpressionValueVisitor
             }
             return UnsignedLongs.divide(l, r);
           }
-          case MODULO -> {
+          case REMAINDER -> {
             return UnsignedLongs.remainder(l, r);
           }
           case SHIFT_RIGHT -> {
@@ -419,54 +396,37 @@ public abstract class AbstractExpressionValueVisitor
       }
     }
 
-    switch (op) {
-      case PLUS -> {
-        return l + r;
-      }
-      case MINUS -> {
-        return l - r;
-      }
+    return switch (op) {
+      case PLUS -> l + r;
+      case MINUS -> l - r;
       case DIVIDE -> {
         if (r == 0) {
           logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
-          return 0;
+          yield 0;
         }
-        return l / r;
+        yield l / r;
       }
-      case MODULO -> {
-        return l % r;
-      }
-      case MULTIPLY -> {
-        return l * r;
-      }
-      case SHIFT_LEFT -> {
-        /* There is a difference in the SHIFT-operation in Java and C.
-         * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
-         *
-         * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
-         *
-         * If the promoted type of the left-hand operand is long, then only the
-         * six lowest-order bits of the right-hand operand are used as the
-         * shift distance. It is as if the right-hand operand were subjected to
-         * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
-         * The shift distance actually used is therefore always in the range 0 to 63.
-         */
-        return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
-      }
-      case SHIFT_RIGHT -> {
-        return l >> r;
-      }
-      case BINARY_AND -> {
-        return l & r;
-      }
-      case BINARY_OR -> {
-        return l | r;
-      }
-      case BINARY_XOR -> {
-        return l ^ r;
-      }
+      case REMAINDER -> l % r;
+      case MULTIPLY -> l * r;
+      case SHIFT_LEFT ->
+          /* There is a difference in the SHIFT-operation in Java and C.
+           * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
+           *
+           * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
+           *
+           * If the promoted type of the left-hand operand is long, then only the
+           * six lowest-order bits of the right-hand operand are used as the
+           * shift distance. It is as if the right-hand operand were subjected to
+           * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
+           * The shift distance actually used is therefore always in the range 0 to 63.
+           */
+          (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
+      case SHIFT_RIGHT -> l >> r;
+      case BITWISE_AND -> l & r;
+      case BITWISE_OR -> l | r;
+      case BITWISE_XOR -> l ^ r;
       default -> throw new AssertionError("unknown binary operation: " + op);
-    }
+    };
   }
 
   /**
@@ -496,7 +456,7 @@ public abstract class AbstractExpressionValueVisitor
         }
         return l.divide(r);
       }
-      case MODULO -> {
+      case REMAINDER -> {
         return l.mod(r);
       }
       case MULTIPLY -> {
@@ -523,13 +483,13 @@ public abstract class AbstractExpressionValueVisitor
           return BigInteger.ZERO;
         }
       }
-      case BINARY_AND -> {
+      case BITWISE_AND -> {
         return l.and(r);
       }
-      case BINARY_OR -> {
+      case BITWISE_OR -> {
         return l.or(r);
       }
-      case BINARY_XOR -> {
+      case BITWISE_XOR -> {
         return l.xor(r);
       }
       default -> throw new AssertionError("unknown binary operation: " + op);
@@ -562,9 +522,9 @@ public abstract class AbstractExpressionValueVisitor
       case PLUS -> pArg1.add(pArg2);
       case MINUS -> pArg1.subtract(pArg2);
       case DIVIDE -> pArg1.divide(pArg2);
-      case MODULO -> pArg1.modulo(pArg2);
+      case REMAINDER -> pArg1.modulo(pArg2);
       case MULTIPLY -> pArg1.multiply(pArg2);
-      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+      case SHIFT_LEFT, SHIFT_RIGHT, BITWISE_AND, BITWISE_OR, BITWISE_XOR ->
           throw new UnsupportedOperationException(
               "Trying to perform " + pOperation + " on floating point operands");
       default -> throw new IllegalArgumentException("Unknown binary operation: " + pOperation);
@@ -654,7 +614,7 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    switch (type.getType()) {
+    return switch (type.getType()) {
       case INT128, CHAR, INT -> {
         CSimpleType canonicalType = type.getCanonicalType();
         int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
@@ -683,13 +643,13 @@ public abstract class AbstractExpressionValueVisitor
             };
 
         // return 1 if expression holds, 0 otherwise
-        return new NumericValue(result ? 1 : 0);
+        yield new NumericValue(result ? 1 : 0);
       }
       case FLOAT, DOUBLE, FLOAT128 -> {
         boolean result =
             comparisonOperation(
                 op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-        return new NumericValue(result ? 1 : 0);
+        yield new NumericValue(result ? 1 : 0);
       }
       default -> {
         logger.logf(
@@ -697,9 +657,9 @@ public abstract class AbstractExpressionValueVisitor
             "unsupported type %s for result of binary operation %s",
             type.toString(),
             op);
-        return Value.UnknownValue.getInstance();
+        yield Value.UnknownValue.getInstance();
       }
-    }
+    };
   }
 
   /**
@@ -780,8 +740,8 @@ public abstract class AbstractExpressionValueVisitor
       throws UnrecognizedCodeException {
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
-    // We only handle builtin functions
     if (functionNameExp instanceof CIdExpression cIdExpression) {
+      // We only handle builtin functions
       String calledFunctionName = cIdExpression.getName();
 
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
@@ -801,265 +761,288 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinFunctions.isPopcountFunction(functionName)) {
-          return handlePopcount(
-              functionName, parameterValues, pIastFunctionCallExpression, machineModel, logger);
-
-        } else if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
-          return BuiltinOverflowFunctions.evaluateFunctionCall(
-              pIastFunctionCallExpression, this, machineModel, logger);
-
-        } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName, parameterValues, (FloatValue arg) -> new NumericValue(arg.abs()));
-
-        } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
-            || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
-          checkArgument(parameterValues.isEmpty());
-          FloatValue.Format precision =
-              FloatValue.Format.fromCType(
-                  machineModel,
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
-          return new NumericValue(FloatValue.infinity(precision));
-
-        } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
-          // FIXME: Add support for NaN payloads
-          checkArgument(parameterValues.size() < 2);
-          FloatValue.Format precision =
-              FloatValue.Format.fromCType(
-                  machineModel,
-                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
-          return new NumericValue(FloatValue.nan(precision));
-
-        } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) ->
-                  new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0));
-
-        } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1));
-
-        } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.FLOOR)));
-
-        } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.CEILING)));
-
-        } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.NEAREST_AWAY)));
-
-        } else if (BuiltinFloatFunctions.matchesLround(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> {
-                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
-                return switch (machineModel.getSizeofLongInt()) {
-                  case Integer.BYTES -> new NumericValue(value.integerValue());
-                  case Long.BYTES -> new NumericValue(value.longValue());
-                  default -> Value.UnknownValue.getInstance();
-                };
-              });
-
-        } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> {
-                FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
-                return switch (machineModel.getSizeofLongLongInt()) {
-                  case Integer.BYTES -> new NumericValue(value.integerValue());
-                  case Long.BYTES -> new NumericValue(value.longValue());
-                  default -> Value.UnknownValue.getInstance();
-                };
-              });
-
-        } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.TRUNCATE)));
-
-        } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(
-                      arg1.lessOrEqual(arg2)
-                          ? FloatValue.zero(arg1.getFormat())
-                          : arg1.subtract(arg2)));
-
-        } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
-          // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
-          // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
-          // return the first argument.
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(
-                      switch (arg1.compareWithTotalOrder(arg2)) {
-                        case -1 -> arg2.isNan() ? arg1 : arg2;
-                        case +1 -> arg1.isNan() ? arg2 : arg1;
-                        default -> arg1;
-                      }));
-
-        } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
-          // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
-          // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
-          // argument for `float` or `double` and the second for `long double`
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(
-                      switch (arg1.compareWithTotalOrder(arg2)) {
-                        case -1 -> arg1.isNan() ? arg2 : arg1;
-                        case +1 -> arg2.isNan() ? arg1 : arg2;
-                        default -> arg1;
-                      }));
-
-        } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)));
-
-        } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
-          return handleBuiltinFunction1(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg) -> {
-                int fpClass;
-                if (arg.isNan()) {
-                  fpClass = 0;
-                } else if (arg.isInfinite()) {
-                  fpClass = 1;
-                } else if (arg.isZero()) {
-                  fpClass = 2;
-                } else if (arg.isSubnormal()) {
-                  fpClass = 3;
-                } else {
-                  // Normal number
-                  fpClass = 4;
-                }
-                return new NumericValue(fpClass);
-              });
-
-        } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
-          // We only need the return value and can ignore the integer part that needs to be written
-          // to the pointer in the 2nd argument
-          if (parameterValues.size() == 2) {
-            Value value = parameterValues.getFirst();
-            if (value.isExplicitlyKnown()) {
-              FloatValue arg =
-                  castToFloat(
-                      machineModel,
-                      BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
-                      (NumericValue) value);
-
-              if (arg.isInfinite()) {
-                // Return zero if the number is infinite
-                return new NumericValue(
-                    arg.isNegative()
-                        ? FloatValue.negativeZero(arg.getFormat())
-                        : FloatValue.zero(arg.getFormat()));
-              } else {
-                // Otherwise, get the fractional part
-                return new NumericValue(arg.modulo(FloatValue.one(arg.getFormat())));
-              }
-            }
-          }
-
-        } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)));
-
-        } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)));
-
-        } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(arg1.greaterThan(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0));
-
-        } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
-          return handleBuiltinFunction2(
-              calledFunctionName,
-              parameterValues,
-              (FloatValue arg1, FloatValue arg2) ->
-                  new NumericValue((arg1.isNan() || arg2.isNan()) ? 1 : 0));
+        // Which functions are evaluated here is decided by HandledFunction, so that
+        // ValueAnalysisTransferRelation.handleUnknownOrUnhandledFunctionCalls does not report a
+        // call that is evaluated here as an unhandled call.
+        HandledFunction handled = HandledFunction.of(calledFunctionName);
+        if (handled != null) {
+          return switch (handled) {
+            case POPCOUNT ->
+                handlePopcount(
+                    calledFunctionName,
+                    parameterValues,
+                    pIastFunctionCallExpression,
+                    machineModel,
+                    logger);
+            case BUILTIN_OVERFLOW ->
+                BuiltinOverflowFunctions.evaluateFunctionCall(
+                    pIastFunctionCallExpression, this, machineModel, logger);
+            case BUILTIN_FLOAT -> handleBuiltinFloatFunction(calledFunctionName, parameterValues);
+            // These are not builtin functions and are handled before an expression is evaluated.
+            case FREE, FSCANF, NONDET_INPUT -> Value.UnknownValue.getInstance();
+          };
         }
       }
     }
     // Return 'unknown' if it's not a builtin function that we support
+    return Value.UnknownValue.getInstance();
+  }
+
+  /**
+   * Evaluate a call of one of the builtin float functions, cf. {@link BuiltinFloatFunctions}.
+   *
+   * <p>Which functions are evaluated here is part of what {@link HandledFunction#BUILTIN_FLOAT}
+   * promises, so a function that is added here has to be one that {@link HandledFunction} knows.
+   */
+  private Value handleBuiltinFloatFunction(String calledFunctionName, List<Value> parameterValues) {
+    if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName, parameterValues, (FloatValue arg) -> new NumericValue(arg.abs()));
+
+    } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
+        || BuiltinFloatFunctions.matchesInfinity(calledFunctionName)) {
+      checkArgument(parameterValues.isEmpty());
+      FloatValue.Format precision =
+          FloatValue.Format.fromCType(
+              machineModel,
+              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
+      return new NumericValue(FloatValue.infinity(precision));
+
+    } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
+      // FIXME: Add support for NaN payloads
+      checkArgument(parameterValues.size() < 2);
+      FloatValue.Format precision =
+          FloatValue.Format.fromCType(
+              machineModel,
+              BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName));
+      return new NumericValue(FloatValue.nan(precision));
+
+    } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.isNan() ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsInfinity(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.isInfinite() ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.isInfinite() ? (arg.isNegative() ? -1 : 1) : 0));
+
+    } else if (BuiltinFloatFunctions.matchesFinite(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue((arg.isInfinite() || arg.isNan()) ? 0 : 1));
+
+    } else if (BuiltinFloatFunctions.matchesFloor(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.FLOOR)));
+
+    } else if (BuiltinFloatFunctions.matchesCeil(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.CEILING)));
+
+    } else if (BuiltinFloatFunctions.matchesRound(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.NEAREST_AWAY)));
+
+    } else if (BuiltinFloatFunctions.matchesLround(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> {
+            FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+            return switch (machineModel.getSizeofLongInt()) {
+              case Integer.BYTES -> new NumericValue(value.integerValue());
+              case Long.BYTES -> new NumericValue(value.longValue());
+              default -> Value.UnknownValue.getInstance();
+            };
+          });
+
+    } else if (BuiltinFloatFunctions.matchesLlround(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> {
+            FloatValue value = arg.round(RoundingMode.NEAREST_AWAY);
+            return switch (machineModel.getSizeofLongLongInt()) {
+              case Integer.BYTES -> new NumericValue(value.integerValue());
+              case Long.BYTES -> new NumericValue(value.longValue());
+              default -> Value.UnknownValue.getInstance();
+            };
+          });
+
+    } else if (BuiltinFloatFunctions.matchesTrunc(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.round(RoundingMode.TRUNCATE)));
+
+    } else if (BuiltinFloatFunctions.matchesFdim(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue(
+                  arg1.lessOrEqual(arg2)
+                      ? FloatValue.zero(arg1.getFormat())
+                      : arg1.subtract(arg2)));
+
+    } else if (BuiltinFloatFunctions.matchesFmax(calledFunctionName)) {
+      // TODO: Add a warning message for fmax(0.0,-0.0) and fmax(-0.0, 0.0)
+      // The value is undefined and we simply pick 0.0 in those cases, but gcc will always
+      // return the first argument.
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue(
+                  switch (arg1.compareWithTotalOrder(arg2)) {
+                    case -1 -> arg2.isNan() ? arg1 : arg2;
+                    case +1 -> arg1.isNan() ? arg2 : arg1;
+                    default -> arg1;
+                  }));
+
+    } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
+      // FIXME: Add a warning message for fmin(0.0,-0.0) and fmin(-0.0, 0.0)
+      // The value is undefined and we pick -0.0 in those cases, but gcc will return the first
+      // argument for `float` or `double` and the second for `long double`
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue(
+                  switch (arg1.compareWithTotalOrder(arg2)) {
+                    case -1 -> arg1.isNan() ? arg2 : arg1;
+                    case +1 -> arg2.isNan() ? arg1 : arg2;
+                    default -> arg1;
+                  }));
+
+    } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> new NumericValue(arg.isNegative() ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesCopysign(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.copySign(arg2)));
+
+    } else if (BuiltinFloatFunctions.matchesFloatClassify(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg) -> {
+            int fpClass;
+            if (arg.isNan()) {
+              fpClass = 0;
+            } else if (arg.isInfinite()) {
+              fpClass = 1;
+            } else if (arg.isZero()) {
+              fpClass = 2;
+            } else if (arg.isSubnormal()) {
+              fpClass = 3;
+            } else {
+              // Normal number
+              fpClass = 4;
+            }
+            return new NumericValue(fpClass);
+          });
+
+    } else if (BuiltinFloatFunctions.matchesModf(calledFunctionName)) {
+      // We only need the return value and can ignore the integer part that needs to be written
+      // to the pointer in the 2nd argument
+      if (parameterValues.size() == 2) {
+        Value value = parameterValues.getFirst();
+        if (value.isExplicitlyKnown()) {
+          FloatValue arg =
+              castToFloat(
+                  machineModel,
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName),
+                  (NumericValue) value);
+
+          if (arg.isInfinite()) {
+            // Return zero if the number is infinite
+            return new NumericValue(
+                arg.isNegative()
+                    ? FloatValue.negativeZero(arg.getFormat())
+                    : FloatValue.zero(arg.getFormat()));
+          } else {
+            // Otherwise, get the fractional part
+            return new NumericValue(arg.modulo(FloatValue.one(arg.getFormat())));
+          }
+        }
+      }
+
+    } else if (BuiltinFloatFunctions.matchesFremainder(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.remainder(arg2)));
+
+    } else if (BuiltinFloatFunctions.matchesFmod(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.modulo(arg2)));
+
+    } else if (BuiltinFloatFunctions.matchesSqrt(calledFunctionName)) {
+      return handleBuiltinFunction1(
+          calledFunctionName, parameterValues, (FloatValue arg) -> new NumericValue(arg.sqrt()));
+
+    } else if (BuiltinFloatFunctions.matchesIsgreater(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.greaterThan(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue(arg1.greaterOrEqual(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessThan(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessOrEqual(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) -> new NumericValue(arg1.lessOrGreater(arg2) ? 1 : 0));
+
+    } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
+      return handleBuiltinFunction2(
+          calledFunctionName,
+          parameterValues,
+          (FloatValue arg1, FloatValue arg2) ->
+              new NumericValue((arg1.isNan() || arg2.isNan()) ? 1 : 0));
+    }
     return Value.UnknownValue.getInstance();
   }
 
@@ -1098,22 +1081,19 @@ public abstract class AbstractExpressionValueVisitor
     final TypeIdOperator idOperator = pE.getOperator();
     final CType innerType = pE.getType();
 
-    switch (idOperator) {
+    return switch (idOperator) {
       case SIZEOF -> {
         if (innerType.hasKnownConstantSize()) {
           BigInteger size = machineModel.getSizeof(innerType);
-          return new NumericValue(size);
+          yield new NumericValue(size);
         }
-        return Value.UnknownValue.getInstance();
+        yield Value.UnknownValue.getInstance();
       }
-      case ALIGNOF -> {
-        return new NumericValue(machineModel.getAlignof(innerType));
-      }
-      default -> {
-        // TODO support more operators
-        return Value.UnknownValue.getInstance();
-      }
-    }
+      case ALIGNOF -> new NumericValue(machineModel.getAlignof(innerType));
+      default ->
+          // TODO support more operators
+          Value.UnknownValue.getInstance();
+    };
   }
 
   /**
@@ -1231,12 +1211,11 @@ public abstract class AbstractExpressionValueVisitor
 
   private Value createSymbolicExpression(
       Value pValue, CType pOperandType, UnaryOperator pUnaryOperator, CType pExpressionType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
+    SymbolicExpression operand = ConstantSymbolicExpression.of(pValue, pOperandType);
 
     return switch (pUnaryOperator) {
-      case MINUS -> factory.negate(operand, pExpressionType);
-      case TILDE -> factory.binaryNot(operand, pExpressionType);
+      case MINUS -> NegationExpression.of(operand, pExpressionType);
+      case TILDE -> BinaryNotExpression.of(operand, pExpressionType);
       default -> throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
     };
   }
@@ -1360,46 +1339,11 @@ public abstract class AbstractExpressionValueVisitor
       JType pCalculationType) {
     assert pLeftValue instanceof SymbolicValue || pRightValue instanceof SymbolicValue;
 
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
-    SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
+    SymbolicExpression leftOperand = ConstantSymbolicExpression.of(pLeftValue, pLeftType);
+    SymbolicExpression rightOperand = ConstantSymbolicExpression.of(pRightValue, pRightType);
 
-    return switch (pOperator) {
-      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY ->
-          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT ->
-          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT_SIGNED ->
-          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT_UNSIGNED ->
-          factory.shiftRightUnsigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND ->
-          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LOGICAL_AND ->
-          factory.logicalAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR ->
-          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LOGICAL_OR ->
-          factory.logicalOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR, LOGICAL_XOR ->
-          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS ->
-          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN ->
-          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL ->
-          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN ->
-          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL ->
-          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
-    };
+    return BinarySymbolicExpression.of(
+        leftOperand, rightOperand, pExpressionType, pCalculationType, pOperator);
   }
 
   /*
@@ -1420,16 +1364,16 @@ public abstract class AbstractExpressionValueVisitor
     final long lVal = pLeftValue.longValue();
     final long rVal = pRightValue.longValue();
 
-    switch (pBinaryOperator) {
+    return switch (pBinaryOperator) {
       case PLUS,
           MINUS,
           DIVIDE,
           MULTIPLY,
           SHIFT_LEFT,
-          BINARY_AND,
-          BINARY_OR,
-          BINARY_XOR,
-          MODULO,
+          BITWISE_AND,
+          BITWISE_OR,
+          BITWISE_XOR,
+          REMAINDER,
           SHIFT_RIGHT_SIGNED,
           SHIFT_RIGHT_UNSIGNED -> {
         long numResult =
@@ -1447,13 +1391,13 @@ public abstract class AbstractExpressionValueVisitor
               }
               case MULTIPLY -> lVal * rVal;
 
-              case BINARY_AND -> lVal & rVal;
+              case BITWISE_AND -> lVal & rVal;
 
-              case BINARY_OR -> lVal | rVal;
+              case BITWISE_OR -> lVal | rVal;
 
-              case BINARY_XOR -> lVal ^ rVal;
+              case BITWISE_XOR -> lVal ^ rVal;
 
-              case MODULO -> lVal % rVal;
+              case REMAINDER -> lVal % rVal;
 
               // shift operations' behaviour is determined by whether the left hand side value is of
               // type int or long, so we have to cast if the actual type is int.
@@ -1489,7 +1433,7 @@ public abstract class AbstractExpressionValueVisitor
           numResult = intNumResult;
         }
 
-        return new NumericValue(numResult);
+        yield new NumericValue(numResult);
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final boolean result =
@@ -1502,13 +1446,12 @@ public abstract class AbstractExpressionValueVisitor
               case LESS_EQUAL -> (lVal <= rVal);
               default -> throw new AssertionError("Unhandled operation " + pBinaryOperator);
             };
-        return BooleanValue.valueOf(result);
+        yield BooleanValue.valueOf(result);
       }
-      default -> {
-        // TODO check which cases can be handled
-        return UnknownValue.getInstance();
-      }
-    }
+      default ->
+          // TODO check which cases can be handled
+          UnknownValue.getInstance();
+    };
   }
 
   /*
@@ -1535,7 +1478,7 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     return switch (pBinaryOperator) {
-      case PLUS, MINUS, DIVIDE, MULTIPLY, MODULO ->
+      case PLUS, MINUS, DIVIDE, MULTIPLY, REMAINDER ->
           switch (pBinaryOperator) {
             case PLUS -> new NumericValue(lVal + rVal);
 
@@ -1550,7 +1493,7 @@ public abstract class AbstractExpressionValueVisitor
 
             case MULTIPLY -> new NumericValue(lVal * rVal);
 
-            case MODULO -> new NumericValue(lVal % rVal);
+            case REMAINDER -> new NumericValue(lVal % rVal);
 
             default ->
                 throw new AssertionError(
@@ -1582,14 +1525,14 @@ public abstract class AbstractExpressionValueVisitor
       boolean lVal, boolean rVal, JBinaryExpression.BinaryOperator operator) {
 
     return switch (operator) {
-      case CONDITIONAL_AND,
-          LOGICAL_AND -> // we do not care about sideeffects through evaluation of the
+      case CONDITIONAL_AND, LOGICAL_AND -> // we do not care about sideeffects through evaluation of
+          // the
           // righthandside at this point -
           // this must be handled
           // earlier
           BooleanValue.valueOf(lVal && rVal);
-      case CONDITIONAL_OR,
-          LOGICAL_OR -> // we do not care about sideeffects through evaluation of the
+      case CONDITIONAL_OR, LOGICAL_OR -> // we do not care about sideeffects through evaluation of
+          // the
           // righthandside at this point
           BooleanValue.valueOf(lVal || rVal);
       case LOGICAL_XOR -> BooleanValue.valueOf(lVal ^ rVal);
@@ -1677,13 +1620,12 @@ public abstract class AbstractExpressionValueVisitor
       JUnaryExpression.UnaryOperator pUnaryOperator,
       JType pExpressionType) {
 
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
+    SymbolicExpression operand = ConstantSymbolicExpression.of(pValue, pOperandType);
 
     return switch (pUnaryOperator) {
-      case COMPLEMENT -> factory.binaryNot(operand, pExpressionType);
-      case NOT -> factory.logicalNot(operand, pExpressionType);
-      case MINUS -> factory.negate(operand, pExpressionType);
+      case COMPLEMENT -> BinaryNotExpression.of(operand, pExpressionType);
+      case NOT -> LogicalNotExpression.of(operand, pExpressionType);
+      case MINUS -> NegationExpression.of(operand, pExpressionType);
       case PLUS -> pValue;
     };
   }
@@ -2155,12 +2097,10 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static Value castIfSymbolic(Value pValue, Type pTargetType) {
-    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-
     if (pValue instanceof SymbolicValue symbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast(symbolicValue, pTargetType);
+      return CastExpression.of(symbolicValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -2309,26 +2249,27 @@ public abstract class AbstractExpressionValueVisitor
 
         int parameterBitSize = pMachineModel.getSizeofInBits(argumentType);
 
-        final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-        SymbolicExpression one = factory.asConstant(new NumericValue(1), CNumericTypes.INT);
+        SymbolicExpression one =
+            ConstantSymbolicExpression.of(new NumericValue(1), CNumericTypes.INT);
         SymbolicExpression constraint =
-            factory.binaryAnd(symbolicParam, one, CNumericTypes.INT, argumentType);
+            BinaryAndExpression.of(symbolicParam, one, CNumericTypes.INT, argumentType);
 
         // Add up the bits one by one
         // sum of ((castParamValue >> i) & 1)
         for (int i = 1; i < parameterBitSize; i++) {
           SymbolicExpression countOfBitAtIndex =
-              factory.binaryAnd(
-                  factory.shiftRightUnsigned(
+              BinaryAndExpression.of(
+                  ShiftRightExpression.ofUnsigned(
                       symbolicParam,
-                      factory.asConstant(new NumericValue(i), CNumericTypes.INT),
+                      ConstantSymbolicExpression.of(new NumericValue(i), CNumericTypes.INT),
                       argumentType,
                       argumentType),
                   one,
                   CNumericTypes.INT,
                   argumentType);
           constraint =
-              factory.add(constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
+              AdditionExpression.of(
+                  constraint, countOfBitAtIndex, CNumericTypes.INT, CNumericTypes.INT);
         }
         return constraint;
       }

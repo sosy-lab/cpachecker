@@ -32,9 +32,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
@@ -75,6 +75,7 @@ public final class Specification {
           .put(CommonVerificationProperty.DATA_RACE, "sv-comp-datarace")
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
+          .put(CommonVerificationProperty.CORRECT_ANNOTATIONS, "correct-annotations")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .buildOrThrow();
 
@@ -147,24 +148,47 @@ public final class Specification {
           throw new InvalidConfigurationException(
               String.format("Cannot parse property file %s: %s", specFile, e.getMessage()), e);
         }
-        @SuppressWarnings("deprecation") // just a sanity check, not real option usage
-        String configuredEntryFunction = config.getProperty("analysis.entryFunction");
-        if (!parser.getEntryFunction().equals(configuredEntryFunction)) {
-          // Will happen only if "specification=foo.prp" is used in config file or if CPAchecker
-          // is used as library instead of from CPAMain.
-          throw new InvalidConfigurationException(
-              String.format(
-                  "Entry function %s specified in %s is not consistent with configured entry"
-                      + " function %s. Please set 'analysis.entryFunction=%s' or pass property file"
-                      + " on command line with '--spec %s'.",
-                  parser.getEntryFunction(),
-                  specFile,
-                  configuredEntryFunction,
-                  parser.getEntryFunction(),
-                  specFile));
+
+        // For SV-LIB tasks, we do not care about the entry function specified in the property file,
+        // since it is given by the program.
+        if (cfa.getLanguage() != Language.SVLIB) {
+          @SuppressWarnings("deprecation") // just a sanity check, not real option usage
+          String configuredEntryFunction = config.getProperty("analysis.entryFunction");
+          if (parser.getEntryFunction().isPresent()
+              && !parser.getEntryFunction().orElseThrow().equals(configuredEntryFunction)) {
+            // Will happen only if "specification=foo.prp" is used in config file or if CPAchecker
+            // is used as library instead of from CPAMain.
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Entry function %s specified in %s is not consistent with configured entry"
+                        + " function %s. Please set 'analysis.entryFunction=%s' or pass property"
+                        + " file on command line with '--spec %s'.",
+                    parser.getEntryFunction(),
+                    specFile,
+                    configuredEntryFunction,
+                    parser.getEntryFunction(),
+                    specFile));
+          }
         }
 
-        for (Property prop : parser.getProperties()) {
+        ImmutableSet<Property> props = parser.getProperties();
+        if (cfa.getLanguage() == Language.SVLIB && props.isEmpty()) {
+          // We are inside of an SV-LIB verification task but no property was specified.
+          // Default to checking the correctness of SV-LIB annotations.
+          props = ImmutableSet.of(CommonVerificationProperty.CORRECT_ANNOTATIONS);
+        } else if (props.isEmpty()) {
+          throw new InvalidConfigurationException(
+              String.format("No properties specified in property file %s", specFile));
+        }
+
+        for (Property prop : props) {
+          if (prop.getUnsupportedLanguages().contains(cfa.getLanguage())) {
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Property %s in file %s is not applicable to programs in language %s",
+                    prop, specFile, cfa.getLanguage()));
+          }
+
           properties.add(prop);
 
           if (prop instanceof Property.OtherLtlProperty) {
@@ -220,18 +244,16 @@ public final class Specification {
     } else if (AutomatonACSLParser.isACSLAnnotatedFile(specFile)) {
       logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
       CFACreator cfaCreator = new CFACreator(config, logger, pShutdownNotifier);
-      CFAWithACSLAnnotations annotatedCFA;
+      CFA annotatedCFA;
       try {
-        annotatedCFA =
-            (CFAWithACSLAnnotations)
-                cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));
+        annotatedCFA = cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));
       } catch (ParserException | IOException e) {
         throw new InvalidConfigurationException(
             "Could not load automaton from file: " + e.getMessage(), e);
       }
       AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
       assert acslParser.areIsomorphicCFAs(cfa)
-          : "CFAs of task program and annotated progra m differ, "
+          : "CFAs of task program and annotated program differ, "
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
     } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(specFile)) {
@@ -330,6 +352,33 @@ public final class Specification {
             .putAll(pathToSpecificationAutomata)
             .putAll(newSpec.pathToSpecificationAutomata)
             .build());
+  }
+
+  /**
+   * Return a new specification instance in which the automata of the files of this instance are
+   * parsed again with the given configuration, e.g., such that the automaton of a witness follows
+   * the options of a nested analysis. Automata that come from no file and all properties are kept.
+   */
+  public Specification parsedAgain(
+      CFA cfa, Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
+    if (specificationFiles.isEmpty()) {
+      return this;
+    }
+    Specification parsed =
+        Specification.fromFiles(specificationFiles, cfa, config, logger, pShutdownNotifier);
+
+    ImmutableListMultimap.Builder<Path, Automaton> automata = ImmutableListMultimap.builder();
+    automata.putAll(parsed.pathToSpecificationAutomata);
+    pathToSpecificationAutomata.asMap().entrySet().stream()
+        .filter(entry -> !specificationFiles.contains(entry.getKey()))
+        .forEach(entry -> automata.putAll(entry.getKey(), entry.getValue()));
+    return new Specification(
+        specificationFiles, Sets.union(properties, parsed.properties), automata.build());
   }
 
   /**

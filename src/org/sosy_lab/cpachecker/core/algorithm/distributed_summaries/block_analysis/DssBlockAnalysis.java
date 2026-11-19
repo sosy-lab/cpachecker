@@ -9,595 +9,935 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssSingleWorkerStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalyses.DssBlockAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory.AnalysisComponents;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class DssBlockAnalysis {
+/**
+ * The analysis of a single {@link BlockNode} within the distributed-summary-synthesis algorithm.
+ *
+ * <p>An instance owns the CPA, the algorithm and the reached set of one block, knows how to run the
+ * algorithm once, how to (de)serialize abstract states and which explored states become messages
+ * for other blocks. What it does <em>not</em> decide is how the block reacts to the messages it
+ * receives; that is delegated to three collaborators:
+ *
+ * <ul>
+ *   <li>a {@link DssPreconditionHandler} that remembers the postconditions received from
+ *       predecessor blocks,
+ *   <li>a {@link DssViolationConditionHandler} that remembers the violation conditions received
+ *       from successor blocks, and
+ *   <li>a {@link DssExplorationEngine} that turns what the two handlers hold into CPA runs.
+ * </ul>
+ *
+ * <p>All three are chosen by {@link DssAnalysisOptions#getBlockAnalysisType()}, so the behavior of
+ * a block is assembled from configuration rather than fixed by a class hierarchy. Publishing what
+ * an engine found stays here, so that every engine reports its results the same way.
+ */
+@Options(prefix = "dss")
+public final class DssBlockAnalysis {
+  @Option(secure = true, description = "Compute violation conditions over the shared ARG graph.")
+  private boolean graphViolationConditions = false;
+
+  private record AnalysisComponents(
+      Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
+
+  private record ViolationConditionProgramPoint(
+      Optional<ARGState> previousCondition, Object programPoint) {}
+
+  private final BlockNode block;
+  private final LogManager logger;
+  private final DssMessageFactory messageFactory;
+  private final DssAnalysisOptions options;
+  private final DssSingleWorkerStatistics workerStats;
 
   private final DistributedConfigurableProgramAnalysis dcpa;
-  // In this map, value 'null' means that the key 'blockId' is a loop predecessor
-  // from which we have not seen any summary message yet
-  private final Map<String, DssMessage> states;
-  private final ConfigurableProgramAnalysis cpa;
-  private final BlockNode block;
-  private final ReachedSet reachedSet;
   private final Algorithm algorithm;
-  private final Set<String> predecessors;
-  private final Set<String> loopPredecessors;
-  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
-  private final Set<Set<String>> seenPrefixes;
-  private final Map<Set<String>, DssViolationConditionMessage> errors;
-  private final LogManager logger;
+  private final ReachedSet reachedSet;
 
-  private final DssMessageFactory messageFactory;
+  private final DssPreconditionHandler preconditions;
+  private final DssViolationConditionHandler violationConditionHandler;
+  private final DssExplorationEngine engine;
 
-  // forward analysis variables
-  private AlgorithmStatus status;
-  private boolean alreadyReportedInfeasibility;
-  private final Set<String> soundPredecessors;
+  private AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
   public DssBlockAnalysis(
       LogManager pLogger,
       BlockNode pBlock,
-      CFA pCFA,
+      CFA pCfa,
       Specification pSpecification,
       Configuration pConfiguration,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      DssSingleWorkerStatistics pWorkerStats)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    messageFactory = pMessageFactory;
-    alreadyReportedInfeasibility = false;
-    AnalysisComponents parts =
-        DssBlockAnalysisFactory.createAlgorithm(
-            pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
-    assumptionToEdgeAllocator =
-        AssumptionToEdgeAllocator.create(pConfiguration, pLogger, pCFA.getMachineModel());
-    // prepare dcpa and the algorithms
-    status = AlgorithmStatus.SOUND_AND_PRECISE;
-    algorithm = parts.algorithm();
-    cpa = parts.cpa();
+    pConfiguration.inject(this);
     block = pBlock;
     logger = pLogger;
+    messageFactory = pMessageFactory;
+    options = pOptions;
+    workerStats = pWorkerStats;
+
+    AnalysisComponents parts =
+        createBlockAlgorithm(
+            pLogger, pSpecification, pCfa, pConfiguration, pShutdownManager, pBlock);
+    algorithm = parts.algorithm();
+    ConfigurableProgramAnalysis cpa = parts.cpa();
+
     dcpa =
         DssFactory.distribute(
             cpa,
             pBlock,
-            pCFA,
+            pCfa,
             pConfiguration,
             pOptions,
             pMessageFactory,
             pLogger,
             pShutdownManager.getNotifier());
-    // prepare reached set and initial elements
+    assert dcpa != null : "Distribution of " + cpa.getClass().getSimpleName() + " not implemented.";
+
     reachedSet = parts.reached();
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
     reachedSet.clear();
-    assert dcpa != null : "Distribution of " + cpa.getClass().getSimpleName() + " not implemented.";
 
-    // handle predecessors
-    states = new LinkedHashMap<>();
-    predecessors = block.getPredecessorIds();
-    loopPredecessors = block.getLoopPredecessorIds();
-    // messages of loop predecessors do not matter since they will depend on this block
-    loopPredecessors.forEach(id -> states.put(id, null));
-    errors = new HashMap<>();
-    seenPrefixes = new HashSet<>();
-    soundPredecessors = new HashSet<>();
-  }
-
-  public Collection<DssMessage> reportUnreachableBlockEnd() {
-    // if sent once, it will never change (precondition is always the most general information)
-    if (alreadyReportedInfeasibility) {
-      return ImmutableSet.of();
-    }
-    alreadyReportedInfeasibility = true;
-    return ImmutableSet.of(
-        messageFactory.newBlockPostCondition(
-            block.getId(),
-            block.getFinalLocation().getNodeNumber(),
-            DssBlockAnalyses.appendStatus(
-                AlgorithmStatus.SOUND_AND_PRECISE, DssMessagePayload.empty()),
-            false));
-  }
-
-  private Collection<DssMessage> reportBlockPostConditions(
-      Set<ARGState> blockEnds, boolean allowTop)
-      throws InterruptedException, InvalidConfigurationException {
-    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    if (blockEnds.size() == 1) {
-      ARGState blockEndState = Iterables.getOnlyElement(blockEnds);
-      if (dcpa.isTop(blockEndState) && !allowTop) {
-        return ImmutableSet.of();
-      }
-      Precision precision = reachedSet.getPrecision(blockEndState);
-      blockEndState = resetCallstack(blockEndState);
-      DssMessagePayload serialized = dcpa.serialize(blockEndState, precision);
-      messages.add(
-          messageFactory.newBlockPostCondition(
-              block.getId(),
-              block.getFinalLocation().getNodeNumber(),
-              DssBlockAnalyses.appendStatus(status, serialized),
-              true));
-      return messages.build();
-    }
-    AbstractState start =
-        dcpa.getInitialState(block.getFinalLocation(), StateSpacePartition.getDefaultPartition());
-    PredicateCPA predicateCPA =
-        Objects.requireNonNull(CPAs.retrieveCPA(dcpa.getCPA(), PredicateCPA.class));
-
-    SSAMapBuilder newMap = SSAMap.emptySSAMap().builder();
-    BooleanFormulaManagerView bmgr =
-        predicateCPA.getSolver().getFormulaManager().getBooleanFormulaManager();
-    BooleanFormula formula = bmgr.makeFalse();
-    for (PredicateAbstractState abstractState :
-        FluentIterable.from(blockEnds)
-            .transform(b -> AbstractStates.extractStateByType(b, PredicateAbstractState.class))) {
-      formula = bmgr.or(formula, abstractState.getAbstractionFormula().asFormula());
-      SSAMap ssa = abstractState.getPathFormula().getSsa();
-      for (String variable : ssa.allVariables()) {
-        if (!newMap.build().containsVariable(variable)) {
-          newMap.setIndex(variable, ssa.getType(variable), 1);
-        }
-      }
-    }
-    formula =
-        predicateCPA
-            .getSolver()
-            .getFormulaManager()
-            .simplifyBooleanFormula(
-                predicateCPA.getSolver().getFormulaManager().instantiate(formula, newMap.build()));
-    PredicateAbstractState state =
-        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-            predicateCPA
-                .getPathFormulaManager()
-                .makeEmptyPathFormulaWithContext(
-                    newMap.build(), PointerTargetSet.emptyPointerTargetSet())
-                .withFormula(formula),
-            Objects.requireNonNull(
-                AbstractStates.extractStateByType(makeStartState(), PredicateAbstractState.class)));
-    List<AbstractState> curr = new ArrayList<>();
-    for (AbstractState wrappedState :
-        Objects.requireNonNull(AbstractStates.extractStateByType(start, CompositeState.class))
-            .getWrappedStates()) {
-      if (wrappedState instanceof PredicateAbstractState) {
-        curr.add(state);
-      } else {
-        curr.add(wrappedState);
-      }
-    }
-    ARGState blockEndState = new ARGState(new CompositeState(curr), null);
-    if (dcpa.isTop(blockEndState) && !allowTop) {
-      return ImmutableSet.of();
-    }
-    DssMessagePayload serialized =
-        dcpa.serialize(
-            resetCallstack(blockEndState), reachedSet.getPrecision(Iterables.get(blockEnds, 0)));
-    messages.add(
-        messageFactory.newBlockPostCondition(
-            block.getId(),
-            block.getFinalLocation().getNodeNumber(),
-            DssBlockAnalyses.appendStatus(status, serialized),
-            true));
-    return messages.build();
-  }
-
-  private boolean implies(DssPostConditionMessage pMessage1, DssPostConditionMessage pMessage2)
-      throws InterruptedException, SolverException {
-    if (pMessage1 == null || pMessage2 == null) {
-      return false;
-    }
-    PredicateCPA predicateCPA =
-        Objects.requireNonNull(CPAs.retrieveCPA(dcpa.getCPA(), PredicateCPA.class));
-    PredicateAbstractState msg1 =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(
-                dcpa.getDeserializeOperator().deserialize(pMessage1),
-                PredicateAbstractState.class));
-    PredicateAbstractState msg2 =
-        Objects.requireNonNull(
-            AbstractStates.extractStateByType(
-                dcpa.getDeserializeOperator().deserialize(pMessage2),
-                PredicateAbstractState.class));
-    return predicateCPA
-        .getSolver()
-        .implies(msg1.getPathFormula().getFormula(), msg2.getPathFormula().getFormula());
-  }
-
-  private Collection<DssMessage> reportViolationConditions(
-      Set<ARGState> violations,
-      ARGState condition,
-      boolean first,
-      String pPrefix,
-      boolean restoreAll)
-      throws CPAException, InterruptedException, SolverException {
-    ImmutableSet.Builder<ARGPath> pathsToViolations = ImmutableSet.builder();
-    if (restoreAll) {
-      for (ARGState violation : violations) {
-        Set<ARGPath> found = new HashSet<>();
-        ARGPath p = ARGUtils.getOnePathTo(violation);
-        found.add(p);
-        Optional<ARGPath> p2 = ARGUtils.getOnePathTo(violation, found);
-        while (p2.isPresent()) {
-          found.add(p2.orElseThrow());
-          p2 = ARGUtils.getOnePathTo(violation, found);
-        }
-        pathsToViolations.addAll(found);
-      }
-    } else {
-      pathsToViolations.addAll(
-          transformedImmutableSetCopy(
-              violations,
-              v ->
-                  ARGUtils.tryGetOrCreateCounterexampleInformation(
-                          v, dcpa.getCPA(), assumptionToEdgeAllocator)
-                      .orElseThrow()
-                      .getTargetPath()));
-    }
-    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    boolean makeFirst = false;
-    for (ARGPath path : pathsToViolations.build()) {
-      Optional<AbstractState> violationCondition =
-          dcpa.getViolationConditionOperator()
-              .computeViolationCondition(path, Optional.ofNullable(condition));
-      if (violationCondition.isEmpty()) {
-        continue;
-      }
-      String prefix =
-          FluentIterable.from(path.getFullPath())
-              .transform(e -> e.getPredecessor() + "->" + e.getSuccessor())
-              .join(Joiner.on(","));
-      if (!pPrefix.isBlank()) {
-        prefix = pPrefix + "," + prefix;
-      }
-      DssMessagePayload serialized =
-          dcpa.serialize(
-              violationCondition.orElseThrow(), reachedSet.getPrecision(path.getLastState()));
-      messages.add(
-          messageFactory.newViolationConditionMessage(
-              block.getId(),
-              block.getInitialLocation().getNodeNumber(),
-              DssBlockAnalyses.appendStatus(status, serialized),
-              first || makeFirst,
-              prefix));
-      makeFirst = true;
-    }
-    return messages.build();
-  }
-
-  public Collection<DssMessage> runInitialAnalysis()
-      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
-    reachedSet.clear();
-    reachedSet.add(makeStartState(), makeStartPrecision());
-
-    DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
-
-    status = status.update(result.getStatus());
-
-    if (result.getViolations().isEmpty()) {
-      if (result.getSummaries().isEmpty()) {
-        return reportUnreachableBlockEnd();
-      }
-      return reportBlockPostConditions(result.getSummaries(), true);
+    // Register dcpa-level statistics with the worker stats object.
+    if (dcpa instanceof DistributedARGCPA arg
+        && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
+      pWorkerStats.setDcpaStatistics(composite.getStatistics());
     }
 
-    return reportViolationConditions(result.getViolations(), null, true, "", true);
-  }
-
-  public DssMessageProcessing shouldRepeatAnalysis(DssPostConditionMessage pReceived)
-      throws InterruptedException, SolverException {
-    AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
-    DssMessageProcessing processing = dcpa.getProceedOperator().processForward(deserialized);
-    if (!processing.shouldProceed()) {
-      if (predecessors.contains(pReceived.getBlockId())) {
-        // null means that we cannot expect a state from this predecessor
-        states.put(pReceived.getBlockId(), null);
-      }
-      return processing;
-    }
-    assert processing.isEmpty() : "Proceed is not possible with unprocessed messages";
-    assert predecessors.contains(pReceived.getBlockId())
-        : "Proceed failed to recognize that this message is not meant for this block.";
-    // TODO: this should somehow be checked by ProceedBlockStateOperator,
-    //  but it has no access to this attribute.
-    boolean repeat = false;
-    if (pReceived.isReachable()) {
-      boolean receivedMessageHasNewInformation = hasNewInformation(pReceived);
-      // reset all loop predecessors if non-loop predecessor updates
-      if (!loopPredecessors.isEmpty() && !loopPredecessors.contains(pReceived.getBlockId())) {
-        if (receivedMessageHasNewInformation) {
-          repeat = true;
-          loopPredecessors.forEach(id -> states.put(id, null));
-          soundPredecessors.clear();
-        }
-      }
-      if (loopPredecessors.contains(pReceived.getBlockId()) && dcpa.isTop(deserialized)) {
-        states.put(pReceived.getBlockId(), null);
-        repeat = true;
-        soundPredecessors.remove(pReceived.getBlockId());
-      } else {
-        if (receivedMessageHasNewInformation) {
-          repeat = true;
-          soundPredecessors.remove(pReceived.getBlockId());
-        } else if (loopPredecessors.contains(pReceived.getBlockId())) {
-          soundPredecessors.add(pReceived.getBlockId());
-        }
-        states.put(pReceived.getBlockId(), pReceived);
-      }
-    } else {
-      // null means that we cannot expect a state from this predecessor, i.e.,
-      // we do not under-approximate when ignoring this predecessor.
-      states.put(pReceived.getBlockId(), null);
-      if (loopPredecessors.contains(pReceived.getBlockId())) {
-        soundPredecessors.add(pReceived.getBlockId());
-      }
-    }
-    return repeat ? DssMessageProcessing.proceed() : DssMessageProcessing.stop();
+    // Assembled last: the components use the services above, which are all initialized by now.
+    DssBlockAnalysisComponents components = pOptions.getBlockAnalysisType().createComponents(this);
+    preconditions = components.preconditions();
+    violationConditionHandler = components.violationConditions();
+    engine = components.engine();
   }
 
   /**
-   * Returns whether the given message provides a stronger postcondition for its block id then the
-   * postcondition already known.
-   */
-  private boolean hasNewInformation(DssPostConditionMessage pNewMessage)
-      throws SolverException, InterruptedException {
-    DssPostConditionMessage oldPostCond =
-        (DssPostConditionMessage) states.get(pNewMessage.getBlockId());
-    return !implies(oldPostCond, pNewMessage);
-  }
-
-  /**
-   * Adds a new abstract state to the known start states and execute the configured forward
-   * analysis.
+   * Creates the CPA algorithm to be used for the analysis of the given block node.
    *
-   * @param pReceived Current message to process
-   * @return All violations and/or abstractions that occurred while running the forward analysis.
+   * @param logger the logger to use
+   * @param specification the specification to use
+   * @param cfa the CFA to use
+   * @param globalConfig the global configuration to use for DSS
+   * @param singleShutdownManager the shutdown manager to use
+   * @param node the block node to analyze
+   * @return the analysis components to use for the analysis of the block node
+   * @throws InvalidConfigurationException if the configuration is invalid
+   * @throws CPAException if the CPA cannot be created
+   * @throws InterruptedException if the thread is interrupted
    */
-  public Collection<DssMessage> runAnalysis(DssPostConditionMessage pReceived)
-      throws SolverException, InterruptedException, CPAException, InvalidConfigurationException {
-    logger.log(Level.INFO, "Running forward analysis with new precondition");
-    // check if message is meant for this block
-    // if we do not have messages from all predecessors we under-approximate, so we abort!
-    // if element is top element, we abort
-    // for now we do not analyze at all
-    DssMessageProcessing processing = shouldRepeatAnalysis(pReceived);
-    if (!processing.shouldProceed()) {
-      return processing;
-    }
+  private static AnalysisComponents createBlockAlgorithm(
+      final LogManager logger,
+      final Specification specification,
+      final CFA cfa,
+      final Configuration globalConfig,
+      final ShutdownManager singleShutdownManager,
+      final BlockNode node)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
-    ImmutableSet.Builder<DssMessage> fixpointIteration = ImmutableSet.builder();
-    for (DssViolationConditionMessage value : errors.values()) {
-      for (DssMessage dssMessage : runAnalysisUnderCondition(value, false)) {
-        if ((dssMessage.getType() == MessageType.BLOCK_POSTCONDITION
-                || dssMessage.getType() == MessageType.VIOLATION_CONDITION)
-            && soundPredecessors.containsAll(loopPredecessors)) {
-          fixpointIteration.add(dssMessage);
-        }
+    LogManager singleLogger = logger.withComponentName("Analysis " + node);
+
+    ResourceLimitChecker singleLimits =
+        ResourceLimitChecker.fromConfiguration(globalConfig, singleLogger, singleShutdownManager);
+    singleLimits.start();
+
+    CoreComponentsFactory coreComponents =
+        new CoreComponentsFactory(
+            globalConfig,
+            singleLogger,
+            singleShutdownManager.getNotifier(),
+            AggregatedReachedSets.empty(),
+            cfa);
+
+    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(specification);
+    Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPA.class)).ifPresent(b -> b.init(node));
+    Algorithm algorithm = coreComponents.createAlgorithm(cpa, specification);
+
+    singleLogger.log(Level.FINE, "Creating initial reached set");
+    AbstractState initialState =
+        cpa.getInitialState(node.getInitialLocation(), StateSpacePartition.getDefaultPartition());
+    Precision initialPrecision =
+        cpa.getInitialPrecision(
+            node.getInitialLocation(), StateSpacePartition.getDefaultPartition());
+    ReachedSet reached = coreComponents.createReachedSet(cpa);
+    reached.add(initialState, initialPrecision);
+
+    return new AnalysisComponents(algorithm, cpa, reached);
+  }
+
+  /**
+   * Executes the configured CPA algorithm on the block with the initial state and precision.
+   *
+   * @return Important messages for other blocks.
+   */
+  public Collection<DssMessage> runInitialAnalysis()
+      throws CPAException, InterruptedException, SolverException {
+    return messagesFor(engine.exploreInitially());
+  }
+
+  /**
+   * Adds a new precondition to the known preconditions. The method checks whether the new
+   * precondition is already covered by an existing one. If this is the case, the new precondition
+   * is discarded and the analysis will not proceed. Otherwise, the new precondition is added and
+   * the analysis will proceed.
+   *
+   * @param pReceived The new precondition to add.
+   * @return Whether the analysis should proceed.
+   */
+  public DssMessageProcessing storePrecondition(DssPostConditionMessage pReceived)
+      throws InterruptedException, SolverException, CPAException {
+    return preconditions.store(pReceived);
+  }
+
+  /**
+   * Adds new abstract states to the known violation conditions.
+   *
+   * @param pReceived The new violation conditions to add.
+   * @return Whether the analysis should proceed.
+   */
+  public DssMessageProcessing storeViolationCondition(DssViolationConditionMessage pReceived)
+      throws InterruptedException, SolverException, CPAException {
+    return violationConditionHandler.store(pReceived);
+  }
+
+  /**
+   * Re-explores the block after {@link #storePrecondition} or {@link #storeViolationCondition}
+   * asked the analysis to proceed. The exploration always reads everything the handlers hold, not
+   * only what the triggering messages brought.
+   *
+   * @param pViolationConditionsChanged whether {@link #storeViolationCondition} asked to proceed
+   *     since the last exploration
+   * @return All violations, or the postcondition if no violation was found.
+   */
+  public Collection<DssMessage> analyze(boolean pViolationConditionsChanged)
+      throws SolverException, InterruptedException, CPAException {
+    return messagesFor(engine.explore(pViolationConditionsChanged));
+  }
+
+  /** Publishes all violations of a round, or its postcondition if it contains no violations. */
+  private Collection<DssMessage> messagesFor(AnalysisResult pRound)
+      throws CPAException, InterruptedException, SolverException {
+    if (!pRound.violationConditions().isEmpty()) {
+      try {
+        workerStats.getViolationConditionTimer().start();
+        workerStats.getViolationConditionCounter().add(pRound.violationConditions().size());
+        return reportViolationConditions(pRound.violationConditions());
+      } finally {
+        workerStats.getViolationConditionTimer().stop();
       }
+    } else if (pRound.blockEndUnreachable()) {
+      return reportUnreachableBlockEnd();
+    } else {
+      return reportPostconditions(combineSummaries(pRound.summaries()));
     }
-    return fixpointIteration.build();
   }
 
-  private AbstractState makeStartState() throws InterruptedException {
-    return dcpa.getInitialState(
-        block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
+  public ImmutableMap<String, String> serializedPreconditions() {
+    return serialize(preconditions.getKnownPreconditions());
   }
 
-  private Precision makeStartPrecision() throws InterruptedException {
+  public DistributedConfigurableProgramAnalysis getDcpa() {
+    return dcpa;
+  }
+
+  DssSingleWorkerStatistics statistics() {
+    return workerStats;
+  }
+
+  /** The most general state at the given location, i.e., the one that constrains nothing. */
+  private AbstractState makeTopState(CFANode pLocation) throws InterruptedException {
+    return dcpa.getInitialState(pLocation, StateSpacePartition.getDefaultPartition());
+  }
+
+  /**
+   * The unconstrained state at the block entry, with this block already recorded in its history.
+   *
+   * @param ignoreCallstackIfAvailable whether the callstack CPA may ignore its transfer while the
+   *     state is built, so that the block entry is not tied to one call context
+   */
+  AbstractState makeStartState(boolean ignoreCallstackIfAvailable) throws InterruptedException {
+    AbstractState state;
+    disableCallstackIfAvailable(ignoreCallstackIfAvailable);
+    try {
+      state = makeTopState(block.getInitialLocation());
+    } finally {
+      disableCallstackIfAvailable(false);
+    }
+    blockStateOf(state).addHistory(block);
+    return state;
+  }
+
+  Precision makeStartPrecision() throws InterruptedException {
     return dcpa.getInitialPrecision(
         block.getInitialLocation(), StateSpacePartition.getDefaultPartition());
   }
 
-  public void updateViolationCondition(DssViolationConditionMessage pViolationCondition) {
-    boolean covered = false;
-    Set<String> originPrefix =
-        ImmutableSet.copyOf(Splitter.on(",").splitToList(pViolationCondition.getOrigin()));
-    for (Set<String> errorPrefixes : errors.keySet()) {
-      if (originPrefix.containsAll(errorPrefixes)) {
-        covered = true;
-        break;
-      }
-    }
-    if (!covered) {
-      errors.put(originPrefix, pViolationCondition);
-    }
+  static BlockState blockStateOf(AbstractState pState) {
+    return Objects.requireNonNull(AbstractStates.extractStateByType(pState, BlockState.class));
   }
 
-  public Set<String> updateSeenPrefixes(DssViolationConditionMessage errorCond) {
-    ImmutableSet<String> originPrefixes =
-        ImmutableSet.copyOf(Splitter.on(",").splitToList(errorCond.getOrigin()));
-    seenPrefixes.add(originPrefixes);
-    return originPrefixes;
+  /** Runs the proceed operator over all received states and merges the outcome. */
+  DssMessageProcessing shouldProceedForward(Collection<@NonNull StateAndPrecision> pReceived)
+      throws InterruptedException, SolverException {
+    DssMessageProcessing processing = DssMessageProcessing.proceed();
+    for (StateAndPrecision stateAndPrecision : pReceived) {
+      processing =
+          processing.merge(
+              dcpa.getProceedOperator().processForward(stateAndPrecision.state()), true);
+    }
+    return processing;
   }
 
-  /**
-   * Runs the CPA under an error condition, i.e., if the current block contains a block-end edge,
-   * the error condition will be attached to that edge. In case this makes the path formula
-   * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
-   *
-   * @param pViolationCondition a message containing an abstract state representing an error
-   *     condition
-   * @return Important messages for other blocks.
-   * @throws CPAException thrown if CPA runs into an error
-   * @throws InterruptedException thrown if thread is interrupted unexpectedly
-   */
-  public Collection<DssMessage> runAnalysisUnderCondition(
-      DssViolationConditionMessage pViolationCondition, boolean put)
-      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
-    logger.log(Level.INFO, "Running forward analysis with respect to error condition");
-    // merge all states into the reached set
-    AbstractState violationCondition =
-        dcpa.getDeserializeOperator().deserialize(pViolationCondition);
-    DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(violationCondition);
-    if (!processing.shouldProceed()) {
-      return processing;
+  /** Combines the precisions carried by the received conditions. */
+  Precision combinePrecisions(Collection<@NonNull StateAndPrecision> pReceived)
+      throws InterruptedException {
+    if (!options.sharePrecision()) {
+      return makeStartPrecision();
     }
-
-    if (put) {
-      updateViolationCondition(pViolationCondition);
-    }
-    prepareReachedSet();
-
-    reachedSet.forEach(
-        abstractState ->
-            Objects.requireNonNull(
-                    AbstractStates.extractStateByType(abstractState, BlockState.class))
-                .setViolationCondition(violationCondition));
-
-    DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
-
-    status = status.update(result.getStatus());
-
-    ImmutableSet<Set<String>> previouslySeenPrefixes = ImmutableSet.copyOf(seenPrefixes);
-    Set<String> originPrefixes = updateSeenPrefixes(pViolationCondition);
-    boolean matched = false;
-    for (Set<String> seenPrefix : previouslySeenPrefixes) {
-      if (originPrefixes.containsAll(seenPrefix)) {
-        matched = true;
-        break;
-      }
-    }
-
-    ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
-    if (!result.getSummaries().isEmpty()
-        && block.isAbstractionPossible()
-        && result.getViolations().isEmpty()) {
-      messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
-    }
-    boolean restoreAll = !matched && !loopPredecessors.isEmpty();
-    if (restoreAll) {
-      reachedSet.clear();
-      reachedSet.add(makeStartState(), makeStartPrecision());
-      reachedSet.forEach(
-          abstractState ->
-              Objects.requireNonNull(
-                      AbstractStates.extractStateByType(abstractState, BlockState.class))
-                  .setViolationCondition(violationCondition));
-
-      result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
-      status = status.update(result.getStatus());
-    }
-    messages.addAll(
-        reportViolationConditions(
-            result.getViolations(),
-            ((ARGState) violationCondition),
-            false,
-            pViolationCondition.getOrigin(),
-            false));
-    return messages.build();
+    return dcpa.getCombinePrecisionOperator()
+        .combine(transformedImmutableListCopy(pReceived, StateAndPrecision::precision));
   }
 
-  private ARGState resetCallstack(AbstractState state) throws InvalidConfigurationException {
-    Preconditions.checkState(state instanceof ARGState, "Expected ARGState but got %s", state);
-    ARGState argState = (ARGState) state;
-    Preconditions.checkState(
-        argState.getWrappedState() instanceof CompositeState,
-        "Expected CompositeState but got %s",
-        argState.getWrappedState());
-    ImmutableList.Builder<AbstractState> reset = ImmutableList.builder();
-    for (AbstractState wrappedState :
-        ((CompositeState) argState.getWrappedState()).getWrappedStates()) {
-      if (wrappedState instanceof CallstackState) {
-        CFANode cfaNode = AbstractStates.extractLocation(argState);
-        Preconditions.checkNotNull(cfaNode, "Expected CFANode but got null");
-        reset.add(
-            CPAs.retrieveCPAOrFail(cpa, CallstackCPA.class, getClass())
-                .getInitialState(cfaNode, StateSpacePartition.getDefaultPartition()));
-      } else {
-        reset.add(wrappedState);
-      }
+  /** Whether the stored conditions already carry all precision information in the update. */
+  boolean precisionsCoveredBy(
+      Collection<StateAndPrecision> first, Collection<StateAndPrecision> second)
+      throws InterruptedException {
+    if (!options.sharePrecision()) {
+      return true;
     }
-    return new ARGState(new CompositeState(reset.build()), null);
+    if (first.isEmpty() || second.isEmpty()) {
+      return first.isEmpty();
+    }
+    // By contract, adding covered precisions does not change the combination. The stored ones go
+    // first, so components without a combine operator keep the stored precision.
+    CombinePrecisionOperator operator = dcpa.getCombinePrecisionOperator();
+    ImmutableList<Precision> stored =
+        transformedImmutableListCopy(second, StateAndPrecision::precision);
+    return operator
+        .combine(
+            ImmutableList.<Precision>builder()
+                .addAll(stored)
+                .addAll(transformedImmutableListCopy(first, StateAndPrecision::precision))
+                .build())
+        .equals(operator.combine(stored));
   }
 
   /**
-   * Prepare the reached set for next analysis by merging all received BPC messages into a non-empty
-   * set of start states.
+   * Removes duplicates from {@code pStatesAndPrecisions} that are equal. Equality used to compare
+   * states is decided by {@link #violationConditionEquality}.
    *
-   * @throws CPAException thrown in merge or stop operation runs into an error
-   * @throws InterruptedException thrown if thread is interrupted unexpectedly.
+   * <p>Only the states decide whether two entries are duplicates. The precision of a discarded
+   * entry is lost, so the caller has to combine the precisions beforehand (see {@link
+   * #combinePrecisions(Collection)}) if all of them have to be kept.
+   *
+   * @param pStatesAndPrecisions The states and precisions to deduplicate.
+   * @return The first entry of every class of equal states, in the order of {@code
+   *     pStatesAndPrecisions}.
    */
-  private void prepareReachedSet() throws CPAException, InterruptedException {
-    // simulate merge and stop for all states ending up at block#getStartNode
+  ImmutableList<StateAndPrecision> deduplicateViolationConditions(
+      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
+      throws CPAException, InterruptedException {
+    return deduplicate(pStatesAndPrecisions, violationConditionEquality());
+  }
+
+  /**
+   * Removes all elements whose state relates to an earlier element's state via {@code pEquality}.
+   *
+   * <p>Equal states are at the same program point and, thus, have the same program-point hash. The
+   * elements are therefore grouped by that hash first, and only elements within the same group are
+   * compared with the (potentially expensive) coverage operator.
+   *
+   * @param pElements The elements to deduplicate.
+   * @param pEquality The equality that decides whether two states are duplicates.
+   * @return The first element of every class of equal states, in the order of {@code pElements}.
+   */
+  private ImmutableList<StateAndPrecision> deduplicate(
+      Iterable<@NonNull StateAndPrecision> pElements, CoverageRelation pEquality)
+      throws CPAException, InterruptedException {
+    ListMultimap<Object, StateAndPrecision> keptPerProgramPoint = ArrayListMultimap.create();
+    ImmutableList.Builder<StateAndPrecision> deduplicated = ImmutableList.builder();
+    try {
+      workerStats.getCoverageTimer().start();
+      for (StateAndPrecision element : pElements) {
+        List<StateAndPrecision> candidates =
+            keptPerProgramPoint.get(dcpa.computeProgramPointId(element.state()));
+        if (!isCoveredByAny(element, candidates, pEquality)) {
+          candidates.add(element);
+          deduplicated.add(element);
+        }
+      }
+    } finally {
+      workerStats.getCoverageTimer().stop();
+    }
+    return deduplicated.build();
+  }
+
+  /**
+   * Removes all states that are subsumed by another state of the list.
+   *
+   * @param pStatesAndPrecisions The states and precisions to reduce.
+   * @return The uncovered states in the order of {@code pStatesAndPrecisions}.
+   */
+  ImmutableList<StateAndPrecision> removeCoveredStatesAndPrecisions(
+      Iterable<@NonNull StateAndPrecision> pStatesAndPrecisions)
+      throws CPAException, InterruptedException {
+    ListMultimap<Object, StateAndPrecision> uncoveredStatesPerProgramPoint =
+        ArrayListMultimap.create();
+    List<StateAndPrecision> uncovered = new ArrayList<>();
+    workerStats.getRemoveCoveredTimer().start();
+    try {
+      workerStats.getCoverageTimer().start();
+      for (StateAndPrecision element : pStatesAndPrecisions) {
+        List<StateAndPrecision> candidates =
+            uncoveredStatesPerProgramPoint.get(dcpa.computeProgramPointId(element.state()));
+        if (isCoveredByAny(element, candidates, dcpa.getCoverageOperator()::isSubsumed)) {
+          continue;
+        }
+        List<StateAndPrecision> coveredByElement = subsumes(element, candidates);
+        candidates.removeAll(coveredByElement);
+        candidates.add(element);
+        uncovered.removeAll(coveredByElement);
+        uncovered.add(element);
+      }
+    } finally {
+      workerStats.getCoverageTimer().stop();
+      workerStats.getRemoveCoveredTimer().stop();
+    }
+    return ImmutableList.copyOf(uncovered);
+  }
+
+  /** Whether {@code pElement} holds {@code pRelation} for any of the {@code pCandidates}. */
+  private boolean isCoveredByAny(
+      StateAndPrecision pElement, List<StateAndPrecision> pCandidates, CoverageRelation pRelation)
+      throws CPAException, InterruptedException {
+    for (StateAndPrecision candidate : pCandidates) {
+      if (covered(pRelation, pElement.state(), candidate.state())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** The states and precisions that {@code pElement} subsumes from {@code pCandidates}. */
+  private List<StateAndPrecision> subsumes(
+      StateAndPrecision pElement, List<StateAndPrecision> pCandidates)
+      throws CPAException, InterruptedException {
+    List<StateAndPrecision> covered = new ArrayList<>();
+    for (StateAndPrecision candidate : pCandidates) {
+      if (covered(dcpa.getCoverageOperator()::isSubsumed, candidate.state(), pElement.state())) {
+        covered.add(candidate);
+      }
+    }
+    return covered;
+  }
+
+  /**
+   * Whether {@code pStates1} and {@code pStates2} contain the same set of states, i.e., every state
+   * on either side has an equal state (per {@link CoverageOperator#areStatesEqual}) on the other
+   * side.
+   *
+   * <p>This matters wherever the state set drives further exploration -- see {@link
+   * AlwaysReplacePreconditionHandler} and {@link AlwaysReplaceViolationConditionHandler}, which
+   * have to detect that a set gained or lost a state, not only that its states are still covered.
+   *
+   * <p>{@link CoverageOperator#areStatesEqual} is symmetric, so one pass over the pairs decides
+   * both directions without repeating potentially expensive solver queries.
+   */
+  boolean statesEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2)
+      throws CPAException, InterruptedException {
+    return statesEqual(pStates1, pStates2, dcpa.getCoverageOperator()::areStatesEqual);
+  }
+
+  /**
+   * Whether the two sets of violation conditions are the same. A violation condition is built from
+   * the edges of a path, so the same path yields the same formula and the sets can be compared by
+   * their representation, which spares a solver query per pair.
+   */
+  boolean violationConditionsEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2)
+      throws CPAException, InterruptedException {
+    return statesEqual(pStates1, pStates2, violationConditionEquality());
+  }
+
+  private boolean statesEqual(
+      Collection<@NonNull StateAndPrecision> pStates1,
+      Collection<@NonNull StateAndPrecision> pStates2,
+      CoverageRelation pEquality)
+      throws CPAException, InterruptedException {
+    ImmutableList<StateAndPrecision> states2 = ImmutableList.copyOf(pStates2);
+    boolean[] matchedInStates2 = new boolean[states2.size()];
+    for (StateAndPrecision state1 : pStates1) {
+      boolean matched = false;
+      for (int i = 0; i < states2.size(); i++) {
+        if (matched && matchedInStates2[i]) {
+          // comparing them tells us nothing new: this state is already matched, and so is the
+          // candidate. The comparison itself can cost a solver query, so skip it.
+          continue;
+        }
+        if (covered(pEquality, state1.state(), states2.get(i).state())) {
+          matched = true;
+          matchedInStates2[i] = true;
+        }
+      }
+      if (!matched) {
+        return false;
+      }
+    }
+    for (boolean matched : matchedInStates2) {
+      if (!matched) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Checks {@code pA} == {@code pB}. If false returns result of applying {@code pRelation} to
+   * {@code pA} and {@code pB}.
+   */
+  private boolean covered(CoverageRelation pRelation, AbstractState pA, AbstractState pB)
+      throws CPAException, InterruptedException {
+    if (pA == pB) {
+      return true;
+    }
+    workerStats.getCoverageCounter().inc();
+    return pRelation.test(pA, pB);
+  }
+
+  /**
+   * The equality used to compare violation conditions, per {@code
+   * useSyntacticViolationConditionEquality}.
+   */
+  private CoverageRelation violationConditionEquality() {
+    return options.useSyntacticViolationConditionEquality()
+        ? dcpa.getCoverageOperator()::areStatesSyntacticallyEqual
+        : dcpa.getCoverageOperator()::areStatesEqual;
+  }
+
+  @FunctionalInterface
+  private interface CoverageRelation {
+    boolean test(AbstractState pA, AbstractState pB) throws CPAException, InterruptedException;
+  }
+
+  /**
+   * Explores the block once from the given precondition, without any violation condition attached.
+   *
+   * <p>This run is intentionally not counted in the block-analysis statistics, which only track the
+   * re-analyses triggered by incoming messages.
+   */
+  DssBlockAnalysisResult runInitialBlockAnalysis(AbstractState pPrecondition, Precision pPrecision)
+      throws CPAException, InterruptedException {
     reachedSet.clear();
-    ImmutableList.Builder<AbstractState> deserializedStates = ImmutableList.builder();
-    for (DssMessage message : states.values()) {
-      if (message == null) {
+    reachedSet.add(pPrecondition, pPrecision);
+    DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet);
+    status = status.update(result.getStatus());
+    return result;
+  }
+
+  /** Explores the block once from the given precondition under the given violation conditions. */
+  DssBlockAnalysisResult runBlockAnalysis(
+      AbstractState pPrecondition,
+      Precision pPrecision,
+      Collection<AbstractState> pViolationConditions)
+      throws CPAException, InterruptedException {
+    reachedSet.clear();
+    reachedSet.add(pPrecondition, pPrecision);
+    blockStateOf(pPrecondition).setViolationConditions(ImmutableList.copyOf(pViolationConditions));
+    try {
+      workerStats.getBlockAnalysisTimer().start();
+      DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet);
+      status = status.update(result.getStatus());
+      return result;
+    } finally {
+      workerStats.getBlockAnalysisTimer().stop();
+      workerStats.getBlockAnalysisCounter().inc();
+    }
+  }
+
+  /**
+   * The states at the final location of the block, paired with the precision they were found in.
+   */
+  ImmutableList<StateAndPrecision> summariesOf(DssBlockAnalysisResult pResult) {
+    ImmutableList.Builder<StateAndPrecision> summaries = ImmutableList.builder();
+    for (ARGState summary : pResult.getFinalLocationStates()) {
+      summaries.add(new StateAndPrecision(summary, reachedSet.getPrecision(summary)));
+    }
+    return summaries.build();
+  }
+
+  /** Try an exact union separately for each program point, retaining unsupported groups. */
+  ImmutableList<AbstractState> combineStates(Collection<AbstractState> pStates)
+      throws CPAException, InterruptedException {
+    if (!options.combineStates()) {
+      return ImmutableList.copyOf(pStates);
+    }
+    ImmutableListMultimap<Object, AbstractState> groups =
+        Multimaps.index(pStates, dcpa::computeProgramPointId);
+    ImmutableList.Builder<AbstractState> result = ImmutableList.builder();
+    for (Object point : groups.keySet()) {
+      ImmutableList<AbstractState> states = groups.get(point);
+      Optional<AbstractState> combined = dcpa.getCombineOperator().combineIfPossible(states);
+      if (combined.isPresent()) {
+        result.add(combined.orElseThrow());
+      } else {
+        result.addAll(states);
+      }
+    }
+    return result.build();
+  }
+
+  /**
+   * Combine summaries exactly before trying semantic deduplication. A powerset domain can retain
+   * their complete union without proving pairwise equivalence, which can require expensive SMT
+   * queries even when the summaries are about to be combined into one outgoing state anyway.
+   */
+  ImmutableList<StateAndPrecision> combineSummaries(Collection<StateAndPrecision> pSummaries)
+      throws CPAException, InterruptedException {
+    if (!options.combineStates()) {
+      return removeCoveredStatesAndPrecisions(pSummaries);
+    }
+    ImmutableListMultimap<Object, StateAndPrecision> groups =
+        Multimaps.index(pSummaries, sap -> dcpa.computeProgramPointId(sap.state()));
+    ImmutableList.Builder<StateAndPrecision> result = ImmutableList.builder();
+    for (Object point : groups.keySet()) {
+      ImmutableList<StateAndPrecision> summaries = groups.get(point);
+      if (summaries.size() == 1) {
+        result.addAll(summaries);
         continue;
       }
-      deserializedStates.add(dcpa.getDeserializeOperator().deserialize(message));
+      Optional<AbstractState> combined =
+          dcpa.getCombineOperator()
+              .combineIfPossible(transformedImmutableListCopy(summaries, StateAndPrecision::state));
+      if (combined.isPresent()) {
+        result.add(
+            new StateAndPrecision(
+                combined.orElseThrow(),
+                dcpa.getCombinePrecisionOperator()
+                    .combine(
+                        transformedImmutableListCopy(summaries, StateAndPrecision::precision))));
+      } else {
+        result.addAll(removeCoveredStatesAndPrecisions(summaries));
+      }
     }
-    DssBlockAnalyses.performCpaAlgorithmWithStates(reachedSet, cpa, deserializedStates.build());
-    if (reachedSet.isEmpty()) {
-      reachedSet.add(makeStartState(), makeStartPrecision());
+    return result.build();
+  }
+
+  private Collection<DssMessage> reportPostconditions(
+      Collection<@NonNull StateAndPrecision> pSummaries) {
+    if (pSummaries.isEmpty()) {
+      return ImmutableList.of();
+    }
+    return ImmutableList.of(
+        messageFactory.createDssPostConditionMessage(
+            block.getId(), status, serialize(ImmutableList.copyOf(pSummaries))));
+  }
+
+  /**
+   * Reports that the end of this block is unreachable, so successors must not be entered through
+   * it.
+   *
+   * <p>Successors recognize this from a flag on the message rather than from the states it carries,
+   * which keeps a genuine top postcondition (see {@link #makeTopState}) distinguishable from an
+   * unreachable block end.
+   */
+  private Collection<DssMessage> reportUnreachableBlockEnd() {
+    return ImmutableList.of(
+        messageFactory.createDssUnreachableBlockEndMessage(block.getId(), status));
+  }
+
+  private Collection<DssMessage> reportViolationConditions(
+      Collection<ArgPathAndCondition> pRelevantViolations)
+      throws InterruptedException, CPAException, SolverException {
+    ImmutableListMultimap.Builder<ViolationConditionProgramPoint, AbstractState>
+        statePerProgramCounterBuilder = ImmutableListMultimap.builder();
+    ImmutableListMultimap.Builder<ViolationConditionProgramPoint, Precision> precisions =
+        ImmutableListMultimap.builder();
+    for (ArgPathAndCondition pathAndCondition : pRelevantViolations) {
+      List<AbstractState> violationCondition =
+          dcpa.getViolationConditionOperator()
+              .computeViolationConditions(
+                  pathAndCondition.path(), Optional.ofNullable(pathAndCondition.condition()));
+      for (AbstractState condition : violationCondition) {
+        ViolationConditionProgramPoint programPoint =
+            new ViolationConditionProgramPoint(
+                Optional.ofNullable(pathAndCondition.condition()),
+                dcpa.computeProgramPointId(condition));
+        statePerProgramCounterBuilder.put(programPoint, condition);
+        precisions.put(programPoint, pathAndCondition.precision());
+      }
+    }
+    ImmutableListMultimap<ViolationConditionProgramPoint, AbstractState> statePerProgramCounter =
+        statePerProgramCounterBuilder.build();
+    Preconditions.checkState(
+        !statePerProgramCounter.isEmpty(),
+        "The analysis found a feasible counterexample "
+            + "which could not be reestablished with the violation-condition operator.");
+    ImmutableList.Builder<StateAndPrecision> vcs = ImmutableList.builder();
+    ImmutableListMultimap<ViolationConditionProgramPoint, Precision> precisionPerProgramPoint =
+        precisions.build();
+    for (ViolationConditionProgramPoint programPoint : statePerProgramCounter.keySet()) {
+      ImmutableList<AbstractState> group = statePerProgramCounter.get(programPoint);
+      ImmutableList<AbstractState> combination = group;
+      if (options.combineViolationConditionsByHash()) {
+        combination =
+            dcpa.getCombineViolationConditionsOperator()
+                .combineIfPossible(group)
+                .map(ImmutableList::of)
+                .orElse(group);
+      }
+      Precision precision =
+          options.sharePrecision()
+              ? dcpa.getCombinePrecisionOperator()
+                  .combine(precisionPerProgramPoint.get(programPoint))
+              : makeStartPrecision();
+      for (AbstractState condition : combination) {
+        vcs.add(new StateAndPrecision(condition, precision));
+      }
+    }
+    ImmutableList<StateAndPrecision> allVcs = vcs.build();
+    if (allVcs.isEmpty()) {
+      return ImmutableSet.of();
+    }
+    return ImmutableSet.of(
+        messageFactory.createViolationConditionMessage(block.getId(), status, serialize(allVcs)));
+  }
+
+  /** All ARG paths reaching the given states, without an originating violation condition. */
+  Set<ArgPathAndCondition> pathsFromOrigin(Collection<@NonNull ARGState> pStates) {
+    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
+    for (ARGPath path : collectPaths(pStates)) {
+      relevantViolations.add(
+          new ArgPathAndCondition(path, null, reachedSet.getPrecision(path.getLastState())));
+    }
+    return relevantViolations.build();
+  }
+
+  /**
+   * All ARG paths reaching the given states, each paired with the violation condition that the
+   * corresponding {@link BlockState} was analyzed under.
+   */
+  Set<ArgPathAndCondition> pathsWithCondition(Collection<@NonNull ARGState> pViolations) {
+    ImmutableSet.Builder<ArgPathAndCondition> relevantViolations = ImmutableSet.builder();
+    for (ARGState violation : pViolations) {
+      ARGState violationState =
+          (ARGState) Iterables.getOnlyElement(blockStateOf(violation).getViolationConditions());
+      for (ARGPath path : collectPaths(ImmutableList.of(violation))) {
+        relevantViolations.add(
+            new ArgPathAndCondition(
+                path, violationState, reachedSet.getPrecision(path.getLastState())));
+      }
+    }
+    return relevantViolations.build();
+  }
+
+  private Collection<ARGPath> collectPaths(Iterable<@NonNull ARGState> pStates) {
+    ImmutableList.Builder<ARGPath> paths = ImmutableList.builder();
+    for (ARGState state : pStates) {
+      if (graphViolationConditions) {
+        paths.add(DssARGPathGraph.of((ARGState) reachedSet.getFirstState(), state));
+      } else {
+        paths.addAll(ARGUtils.getAllPaths(reachedSet, state));
+      }
+    }
+    return paths.build();
+  }
+
+  /**
+   * Serialize a list of states and precisions into a map of strings. Every entry in the list will
+   * be serialized under its own key (prefixed by state#num. The {@link #deserialize(DssMessage)}
+   * method restores the list of states and precisions.
+   *
+   * @param pStatesAndPrecisions List of abstract states and their corresponding precision.
+   * @return Map of strings representing the serialized states and precisions. Every state will be
+   *     serialized with the given serialize operators but all keys will be prefixed with state#num.
+   */
+  ImmutableMap<String, String> serialize(
+      final List<@NonNull StateAndPrecision> pStatesAndPrecisions) {
+    workerStats.getSerializationTimer().start();
+    try {
+      ContentBuilder serializedContent = ContentBuilder.builder();
+      serializedContent.put(
+          DistributedConfigurableProgramAnalysis.MULTIPLE_STATES_KEY,
+          Integer.toString(pStatesAndPrecisions.size()));
+      int totalStateSize = 0;
+      for (int i = 0; i < pStatesAndPrecisions.size(); i++) {
+        serializedContent.pushLevel(SerializeOperator.STATE_KEY + i);
+        StateAndPrecision stateAndPrecision = pStatesAndPrecisions.get(i);
+        ImmutableMap.Builder<String, String> contentBuilder =
+            ImmutableMap.<String, String>builder()
+                .putAll(dcpa.getSerializeOperator().serialize(stateAndPrecision.state()));
+        if (options.sharePrecision()) {
+          contentBuilder.putAll(
+              dcpa.getSerializePrecisionOperator()
+                  .serializePrecision(stateAndPrecision.precision()));
+        }
+        ImmutableMap<String, String> content = contentBuilder.buildOrThrow();
+        for (Entry<String, String> contents : content.entrySet()) {
+          serializedContent.put(contents.getKey(), contents.getValue());
+          totalStateSize += contents.getKey().length() + contents.getValue().length();
+        }
+        serializedContent.popLevel();
+      }
+      workerStats.getSerializedStatesSizeStats().setNextValue(totalStateSize);
+      return serializedContent.build();
+    } finally {
+      workerStats.getSerializationTimer().stop();
     }
   }
 
-  public DistributedConfigurableProgramAnalysis getDCPA() {
-    return dcpa;
+  /**
+   * Retains local analysis statistics for comparison with ordinary CEGAR. Invoke on the worker
+   * thread before closing its solver: printing some CPA statistics accesses solver-owned objects.
+   * The reached set is local to this block, so it does not determine the global verification
+   * result.
+   */
+  @SuppressWarnings("checkstyle:IllegalInstantiation") // Statistics requires a PrintStream.
+  public void snapshotAnalysisStatistics() {
+    if (!workerStats.shouldCollectAnalysisStatistics()) {
+      return;
+    }
+    List<Statistics> statistics = new ArrayList<>();
+    if (dcpa.getCPA() instanceof StatisticsProvider provider) {
+      provider.collectStatistics(statistics);
+    }
+    if (algorithm instanceof StatisticsProvider provider) {
+      provider.collectStatistics(statistics);
+    }
+    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    try (PrintStream out = new PrintStream(buffer, false, StandardCharsets.UTF_8)) {
+      for (Statistics statistic : statistics) {
+        StatisticsUtils.printStatistics(statistic, out, logger, Result.UNKNOWN, reachedSet);
+      }
+    }
+    workerStats.setAnalysisStatistics(buffer.toString(StandardCharsets.UTF_8));
+  }
+
+  LogManager getLogger() {
+    return logger;
+  }
+
+  public BlockNode getBlock() {
+    return block;
+  }
+
+  /**
+   * The method restores a list of states and precisions from a DssMessage. In general, it should
+   * hold that the concretization of the list of states is a subset of the concretization after
+   * serializing and deserializing them, i.e., [[states]] <= [[deserialize(serialize(states))]].
+   *
+   * @param pMessage The message with potentially multiple abstract states to deserialize
+   * @return A list of StateAndPrecision objects restored from the message.
+   * @throws InterruptedException If the deserialization is interrupted.
+   */
+  public ImmutableList<@NonNull StateAndPrecision> deserialize(final DssMessage pMessage)
+      throws InterruptedException {
+    OptionalInt optionalNumberOfStates = pMessage.getNumberOfContainedStates();
+    if (optionalNumberOfStates.isEmpty()) {
+      return ImmutableList.of();
+    }
+    workerStats.getDeserializationTimer().start();
+    try {
+      int numStates = optionalNumberOfStates.orElseThrow();
+      ImmutableList.Builder<StateAndPrecision> statesAndPrecisions =
+          ImmutableList.builderWithExpectedSize(numStates);
+      for (int i = 0; i < numStates; i++) {
+        DssMessage advancedMessage = pMessage.advance(DeserializeOperator.STATE_KEY + i);
+        AbstractState state = dcpa.getDeserializeOperator().deserialize(advancedMessage);
+        if (pMessage.getType() == DssMessageType.POST_CONDITION) {
+          state = dcpa.reset(state);
+        }
+        Precision precision =
+            options.sharePrecision()
+                ? dcpa.getDeserializePrecisionOperator().deserializePrecision(advancedMessage)
+                : makeStartPrecision();
+        statesAndPrecisions.add(new StateAndPrecision(state, precision));
+      }
+      return statesAndPrecisions.build();
+    } finally {
+      workerStats.getDeserializationTimer().stop();
+    }
+  }
+
+  private void disableCallstackIfAvailable(boolean ignoreCallstack) {
+    Optional.ofNullable(CPAs.retrieveCPA(dcpa, DistributedCallstackCPA.class))
+        .ifPresent(c -> c.setIgnoreTransfer(ignoreCallstack));
   }
 }

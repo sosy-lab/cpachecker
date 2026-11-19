@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -21,7 +22,10 @@ import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.SvLibScope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -29,6 +33,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.svlibwitnessexport.FormulaToSvLibVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -115,7 +120,7 @@ public class AbstractionFormula implements Serializable {
     return pMgr.translateFrom(formula, fMgr);
   }
 
-  public ExpressionTree<Object> asExpressionTree(CFANode pLocation)
+  public ExpressionTree<Object> asExpressionTree(CFANode pLocation, MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
     return ExpressionTrees.fromFormula(
         asFormula(),
@@ -123,15 +128,32 @@ public class AbstractionFormula implements Serializable {
         name ->
             !name.contains(FUNCTION_DELIMITER)
                 || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER),
-        Function.identity());
+        Function.identity(),
+        pMachineModel);
   }
 
   public ExpressionTree<Object> asExpressionTree(
       Function<String, Boolean> pIncludeVariablesFilter,
-      Function<String, String> pVariableNameConverter)
+      Function<String, String> pVariableNameConverter,
+      MachineModel pMachineModel)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
     return ExpressionTrees.fromFormula(
-        asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
+        asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter, pMachineModel);
+  }
+
+  public SvLibTerm asSvLibTerm(SvLibScope pScope) throws InterruptedException {
+    // The abstraction can also describe the variables of other procedures, which the scope lacks
+    Predicate<BooleanFormula> inScope =
+        literal ->
+            fMgr.extractVariableNames(literal).stream()
+                .allMatch(name ->
+                    pScope.hasVariableForQualifiedName(FormulaToSvLibVisitor.nameWithoutSSA(name)));
+    BooleanFormula formulaInScope = asFormula();
+    if (!inScope.apply(formulaInScope)) {
+      formulaInScope = fMgr.filterLiterals(formulaInScope, inScope);
+    }
+    FormulaToSvLibVisitor visitor = new FormulaToSvLibVisitor(fMgr, pScope);
+    return fMgr.visit(formulaInScope, visitor);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */

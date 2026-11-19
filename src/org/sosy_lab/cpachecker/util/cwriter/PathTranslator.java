@@ -289,16 +289,14 @@ public abstract class PathTranslator {
         from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
     relevantChildrenOfElement = chooseIfArbitrary(currentElement, relevantChildrenOfElement);
 
-    switch (relevantChildrenOfElement.size()) {
-      case 0 -> {
-        return ImmutableList.of();
-      }
+    return switch (relevantChildrenOfElement.size()) {
+      case 0 -> ImmutableList.of();
       case 1 -> {
         // If there is only one child on the path, get the next ARG state, create a new edge using
         // the same stack and add it to the waitlist.
         ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
         CFAEdge e = currentElement.getEdgeToChild(elem);
-        return ImmutableList.of(new Edge(elem, currentElement, e, functionStack));
+        yield ImmutableList.of(new Edge(elem, currentElement, e, functionStack));
       }
       case 2 -> {
         // If there are more than one relevant child, then this is a condition.
@@ -322,12 +320,12 @@ public abstract class PathTranslator {
 
         String cond = "if (" + edge1.getExpression().toASTString() + ")";
 
-        return ImmutableList.of(
+        yield ImmutableList.of(
             createNewBasicBlock(currentElement, child1, edge1, cond, functionStack),
             createNewBasicBlock(currentElement, child2, edge2, "else", functionStack));
       }
       default -> throw new AssertionError();
-    }
+    };
   }
 
   private List<ARGState> chooseIfArbitrary(

@@ -14,4 +14,7 @@
  * in the class name if there is more than one and using YAML in the name for classes which concern
  * more than one version.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;

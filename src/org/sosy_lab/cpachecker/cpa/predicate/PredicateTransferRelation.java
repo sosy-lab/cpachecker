@@ -22,10 +22,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -393,22 +396,36 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
-      // assumptions do not contain complete type nor scope information
-      // hence, not all types can be resolved, so ignore these
-      // TODO: the witness automaton is complete in that regard, so use that in future
-      if (CFAUtils.getIdExpressionsOfExpression(assumption)
-              .anyMatch(var -> var.getExpressionType() instanceof CProblemType)
-          || assumption.getExpressionType() instanceof CProblemType) {
-        logger.log(Level.INFO, "Ignoring assumption", assumption, "because of CProblemType");
-        continue;
-      }
-      pathFormulaTimer.start();
-      try {
-        // compute new pathFormula with the operation on the edge
-        pf = pathFormulaManager.makeAnd(pf, assumption);
-      } finally {
-        pathFormulaTimer.stop();
+    for (AExpression assumption : pAssumeElement.getAssumptions()) {
+      if (assumption instanceof CExpression pCExpression) {
+        // assumptions do not contain complete type nor scope information
+        // hence, not all types can be resolved, so ignore these
+        // TODO: the witness automaton is complete in that regard, so use that in future
+        if (CFAUtils.getCIdExpressionsOfExpression(pCExpression)
+                .anyMatch(var -> var.getExpressionType() instanceof CProblemType)
+            || assumption.getExpressionType() instanceof CProblemType) {
+          logger.log(Level.INFO, "Ignoring assumption", assumption, "because of CProblemType");
+          continue;
+        }
+        pathFormulaTimer.start();
+        try {
+          // compute new pathFormula with the operation on the edge
+          pf = pathFormulaManager.makeAnd(pf, pCExpression);
+        } finally {
+          pathFormulaTimer.stop();
+        }
+      } else if (assumption instanceof SvLibRelationalTerm pTerm) {
+        pathFormulaTimer.start();
+        try {
+          // compute new pathFormula with the operation on the edge
+          pf = pathFormulaManager.makeAnd(pf, pTerm);
+        } finally {
+          pathFormulaTimer.stop();
+        }
+      } else {
+        throw new CPATransferException(
+            "Could not strengthen with assumption of type "
+                + assumption.getClass().getSimpleName());
       }
     }
 
@@ -438,12 +455,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private PredicateAbstractState strengthen(
       PredicateAbstractState pState, ThreadingState pThreadingState)
       throws CPATransferException, InterruptedException {
+    PredicateAbstractState state = pState;
     FunctionCallEdge function = pThreadingState.getEntryFunction();
-    if (function == null) {
-      return pState;
+    if (function != null) {
+      state = replacePathFormula(state, convertEdgeToPathFormula(state.getPathFormula(), function));
     }
-    PathFormula pathFormula = convertEdgeToPathFormula(pState.getPathFormula(), function);
-    return replacePathFormula(pState, pathFormula);
+    CStatementEdge resultEdge = pThreadingState.getResultEdge();
+    if (resultEdge != null) {
+      state =
+          replacePathFormula(state, convertEdgeToPathFormula(state.getPathFormula(), resultEdge));
+    }
+    return state;
   }
 
   private PredicateAbstractState strengthen(

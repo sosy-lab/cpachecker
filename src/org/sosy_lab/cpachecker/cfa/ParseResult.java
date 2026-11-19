@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
@@ -45,7 +46,14 @@ public record ParseResult(
     Optional<List<FileLocation>> commentLocations,
     Optional<List<SyntacticBlock>> blocks,
     Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToAstLocalVariablesInScope,
-    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope) {
+    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToAstParametersInScope,
+    // Like the two above, but as in the input program: without the variables and parameters that go
+    // out of scope at the node and without the ones hidden (shadowed) by a declaration with the
+    // same name in an inner block, see FunctionScope.visibleLocalVarsStack
+    Optional<ImmutableMap<CFANode, Set<AVariableDeclaration>>> cfaNodeToVisibleLocalVariables,
+    Optional<ImmutableMap<CFANode, Set<AParameterDeclaration>>> cfaNodeToVisibleParameters,
+    // Only relevant for SV-LIB scripts
+    Optional<SvLibCfaMetadata> svLibCfaMetadata) {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
@@ -57,6 +65,9 @@ public record ParseResult(
         pCfaNodes,
         pGlobalDeclarations,
         pFileNames,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -80,7 +91,31 @@ public record ParseResult(
         Optional.of(pCommentLocations),
         Optional.of(pBlocks),
         Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
         Optional.empty());
+  }
+
+  public ParseResult(
+      NavigableMap<String, FunctionEntryNode> pFunctions,
+      TreeMultimap<String, CFANode> pCfaNodes,
+      List<Pair<ADeclaration, String>> pGlobalDeclarations,
+      List<Path> pFileNames,
+      SvLibCfaMetadata pSvLibCfaMetadata) {
+    this(
+        pFunctions,
+        pCfaNodes,
+        pGlobalDeclarations,
+        pFileNames,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(pSvLibCfaMetadata));
   }
 
   public boolean isEmpty() {
@@ -98,14 +133,21 @@ public record ParseResult(
         commentLocations,
         blocks,
         cfaNodeToAstLocalVariablesInScope,
-        cfaNodeToAstParametersInScope);
+        cfaNodeToAstParametersInScope,
+        cfaNodeToVisibleLocalVariables,
+        cfaNodeToVisibleParameters,
+        svLibCfaMetadata);
   }
 
   public ParseResult withInScopeInformation(
       ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope) {
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersInScope,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToVisibleLocalVariables,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToVisibleParameters) {
     Verify.verify(cfaNodeToAstLocalVariablesInScope.isEmpty());
     Verify.verify(cfaNodeToAstParametersInScope.isEmpty());
+    Verify.verify(cfaNodeToVisibleLocalVariables.isEmpty());
+    Verify.verify(cfaNodeToVisibleParameters.isEmpty());
     return new ParseResult(
         functions,
         cfaNodes,
@@ -115,6 +157,25 @@ public record ParseResult(
         commentLocations,
         blocks,
         Optional.of(pCfaNodeToAstLocalVariablesInScope),
-        Optional.of(pCfaNodeToAstParametersInScope));
+        Optional.of(pCfaNodeToAstParametersInScope),
+        Optional.of(pCfaNodeToVisibleLocalVariables),
+        Optional.of(pCfaNodeToVisibleParameters),
+        svLibCfaMetadata);
+  }
+
+  public ParseResult withFileNames(List<Path> pFileNames) {
+    return new ParseResult(
+        functions,
+        cfaNodes,
+        globalDeclarations,
+        pFileNames,
+        astStructure,
+        commentLocations,
+        blocks,
+        cfaNodeToAstLocalVariablesInScope,
+        cfaNodeToAstParametersInScope,
+        cfaNodeToVisibleLocalVariables,
+        cfaNodeToVisibleParameters,
+        svLibCfaMetadata);
   }
 }

@@ -10,11 +10,17 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.base.Joiner;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -22,59 +28,97 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class SerializePredicatePrecisionOperator implements SerializePrecisionOperator {
 
-  private final FormulaManagerView formulaManagerView;
+  private final Map<CFANode, Integer> nodeToId;
+  private final LoadingCache<AbstractionPredicate, String> serializedPredicates;
 
-  public SerializePredicatePrecisionOperator(final FormulaManagerView pFormulaManagerView) {
-    formulaManagerView = pFormulaManagerView;
+  /** Keys used in the serialized message for global predicates. */
+  public static final String DSS_MESSAGE_GLOBAL_KEY = "global";
+
+  /** Key used in the serialized message for location-instance specific predicates. */
+  public static final String DSS_MESSAGE_LOCATION_INSTANCES_KEY = "locationInstances";
+
+  /** Key used in the serialized message for location specific predicates. */
+  public static final String DSS_MESSAGE_LOCAL_PREDICATES_KEY = "localPredicates";
+
+  /** Key used in the serialized message for function specific predicates. */
+  public static final String DSS_MESSAGE_FUNCTION_PREDICATES_KEY = "functionPredicates";
+
+  public SerializePredicatePrecisionOperator(
+      final FormulaManagerView pFormulaManagerView, Map<CFANode, Integer> pNodeToId) {
+    nodeToId = pNodeToId;
+    // Predicates are immutable and recur in multiple precision scopes and neighboring messages.
+    serializedPredicates =
+        CacheBuilder.newBuilder()
+            .maximumSize(1024)
+            .build(
+                CacheLoader.from(
+                    p -> pFormulaManagerView.dumpFormula(p.getSymbolicAtom()).toString()));
   }
 
   private String serializeAbstractionPredicate(AbstractionPredicate pPredicate) {
-    return formulaManagerView.dumpFormula(pPredicate.getSymbolicAtom()).toString();
+    return serializedPredicates.getUnchecked(pPredicate);
   }
 
   @Override
-  public DssMessagePayload serializePrecision(Precision pPrecision) {
-    if (pPrecision instanceof PredicatePrecision predicatePrecision) {
-      ImmutableSetMultimap.Builder<String, String> locationInstances =
-          ImmutableSetMultimap.builder();
-      predicatePrecision
-          .getLocationInstancePredicates()
-          .forEach(
-              (l, p) ->
-                  locationInstances.put(
-                      l.getLocation().getNodeNumber() + "," + l.getInstance(),
-                      serializeAbstractionPredicate(p)));
-      ImmutableSetMultimap.Builder<String, String> localPredicates = ImmutableSetMultimap.builder();
-      predicatePrecision
-          .getLocalPredicates()
-          .forEach(
-              (l, p) ->
-                  localPredicates.put(
-                      Integer.toString(l.getNodeNumber()), serializeAbstractionPredicate(p)));
-      ImmutableSetMultimap.Builder<String, String> functionPredicates =
-          ImmutableSetMultimap.builder();
-      predicatePrecision
-          .getFunctionPredicates()
-          .forEach((l, p) -> functionPredicates.put(l, serializeAbstractionPredicate(p)));
-      ImmutableSet<String> globalPredicates =
-          transformedImmutableSetCopy(
-              predicatePrecision.getGlobalPredicates(), this::serializeAbstractionPredicate);
-      ImmutableMap<String, Object> serialized =
-          ImmutableMap.<String, Object>builder()
-              .put("locationInstances", locationInstances.build().asMap())
-              .put("localPredicates", localPredicates.build().asMap())
-              .put("functionPredicates", functionPredicates.build().asMap())
-              .put("global", globalPredicates)
-              .buildOrThrow();
-      return DssMessagePayload.builder()
-          .addEntry(PredicatePrecision.class.getName(), serialized)
-          .buildPayload();
+  public ImmutableMap<String, String> serializePrecision(Precision pPrecision) {
+    if (!(pPrecision instanceof PredicatePrecision predicatePrecision)) {
+      throw new AssertionError(
+          "Cannot serialize a precision that is not of type "
+              + PredicatePrecision.class
+              + " (got: "
+              + pPrecision.getClass()
+              + ")");
     }
-    throw new AssertionError(
-        "Cannot serialize a precision that is not of type "
-            + PredicatePrecision.class
-            + " (got: "
-            + pPrecision.getClass()
-            + ")");
+    ContentBuilder contentBuilder =
+        ContentBuilder.builder().pushLevel(PredicatePrecision.class.getName());
+
+    contentBuilder.pushLevel(DSS_MESSAGE_LOCATION_INSTANCES_KEY);
+    Multimap<String, String> locationInstancePredicates = LinkedHashMultimap.create();
+    predicatePrecision
+        .getLocationInstancePredicates()
+        .forEach((l, p) ->
+            locationInstancePredicates.put(
+                nodeToId.get(l.getLocation()) + "," + l.getInstance(),
+                serializeAbstractionPredicate(p)));
+    for (String key : locationInstancePredicates.keySet()) {
+      contentBuilder.put(key, Joiner.on(" , ").join(locationInstancePredicates.get(key)));
+    }
+    contentBuilder.popLevel();
+
+    contentBuilder.pushLevel(DSS_MESSAGE_LOCAL_PREDICATES_KEY);
+    Multimap<String, String> localPredicates = LinkedHashMultimap.create();
+    predicatePrecision
+        .getLocalPredicates()
+        .forEach((l, p) ->
+            localPredicates.put(
+                Integer.toString(nodeToId.get(l)), serializeAbstractionPredicate(p)));
+    for (String key : localPredicates.keySet()) {
+      contentBuilder.put(key, Joiner.on(" , ").join(localPredicates.get(key)));
+    }
+    contentBuilder.popLevel();
+
+    contentBuilder.pushLevel(DSS_MESSAGE_FUNCTION_PREDICATES_KEY);
+    Multimap<String, String> functionPredicates = LinkedHashMultimap.create();
+    predicatePrecision
+        .getFunctionPredicates()
+        .forEach((l, p) -> functionPredicates.put(l, serializeAbstractionPredicate(p)));
+    for (String key : functionPredicates.keySet()) {
+      contentBuilder.put(key, Joiner.on(" , ").join(functionPredicates.get(key)));
+    }
+    contentBuilder.popLevel();
+
+    // The global key is written even when there are no global predicates, i.e. with an empty value.
+    // Skipping it (as the three sections above do) would make an entirely empty precision serialize
+    // to zero keys, and DssMessage.getPrecisionContent rejects empty content, so every block's
+    // initial precision would fail to deserialize. DeserializePredicatePrecisionOperator therefore
+    // filters out empty entries instead.
+    contentBuilder.put(
+        DSS_MESSAGE_GLOBAL_KEY,
+        Joiner.on(" , ")
+            .join(
+                transformedImmutableSetCopy(
+                    predicatePrecision.getGlobalPredicates(),
+                    this::serializeAbstractionPredicate)));
+    return contentBuilder.build();
   }
 }

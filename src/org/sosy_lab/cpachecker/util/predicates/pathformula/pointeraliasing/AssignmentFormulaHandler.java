@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
@@ -34,8 +35,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -124,7 +127,7 @@ class AssignmentFormulaHandler {
     }
   }
 
-  private final FormulaEncodingWithPointerAliasingOptions options;
+  private final CFormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final BitvectorFormulaManagerView bvmgr;
@@ -208,10 +211,10 @@ class AssignmentFormulaHandler {
     CType lhsType = lhsResolved.type();
 
     if (lhsResolved.expression().isNondetValue()) {
-      // can only occur due to non-supported bit-fields, warn and return
       conv.logger.logfOnce(
           Level.WARNING,
-          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
+          "%s: Ignoring assignment to %s because bit fields that do not fit into their declared"
+              + " type at their first byte are not supported (possible in packed structs)",
           edge.getFileLocation(),
           lhsType);
       return bfmgr.makeTrue();
@@ -221,19 +224,13 @@ class AssignmentFormulaHandler {
     ResolvedSlice rhsResult =
         resolveCompleteRhs(lhsResolved, targetType, rhsList, assignmentOptions);
 
-    if (assignmentOptions.forceArrayAttachment()) {
-      // attach the LHS to RHS and return
-      // LHS must be an aliased location as it is of array type
-      // RHS must be either an aliased location or a value that stores the location
-      final AliasedLocation lhsLocation = lhsResolved.expression().asAliasedLocation();
-      final Formula rhsFormula;
-      if (rhsResult.expression().isAliasedLocation()) {
-        rhsFormula = rhsResult.expression().asAliasedLocation().getAddress();
-      } else {
-        rhsFormula = rhsResult.expression().asValue().getValue();
-      }
-
-      return fmgr.assignment(lhsLocation.getAddress(), rhsFormula);
+    if (lhsResolved.expression().isAliasedLocation()
+        && lhsResolved.expression().asAliasedLocation().isBitField()) {
+      // assign the value of the declared type at the bit field's address, retaining other bits
+      final AliasedLocation bitFieldLocation = lhsResolved.expression().asAliasedLocation();
+      rhsResult = insertBitFieldValue(bitFieldLocation, lhsType, rhsResult);
+      lhsType = rhsResult.type();
+      lhsResolved = new ResolvedSlice(bitFieldLocation.withoutBitFieldOffset(), lhsType);
     }
 
     // determine whether it is desired to use old SSA indices because we are doing
@@ -270,6 +267,48 @@ class AssignmentFormulaHandler {
     }
 
     return result;
+  }
+
+  /**
+   * Returns the value of the declared type of a bit field at its address after setting the bit
+   * field to a new value. The other bits of this value are retained.
+   *
+   * @param bitFieldLocation The location of the bit field.
+   * @param bitFieldType The type of the bit field.
+   * @param bitFieldValue The new value of the bit field.
+   * @return The new value of the declared type at the address of the bit field.
+   */
+  private ResolvedSlice insertBitFieldValue(
+      final AliasedLocation bitFieldLocation,
+      final CType bitFieldType,
+      final ResolvedSlice bitFieldValue) {
+    final CType declaredType = ((CBitFieldType) bitFieldType).getType();
+    final long declaredBitSize = typeHandler.getExactBitSizeof(declaredType);
+    final long lsb = bitFieldLocation.getBitFieldOffset();
+    final long end = lsb + typeHandler.getExactBitSizeof(bitFieldType);
+    final BitvectorFormula previousValue =
+        conv.makeValueReinterpretationToBitvector(
+            declaredType,
+            addressHandler.getValueFormula(
+                bitFieldLocation.withoutBitFieldOffset(), declaredType, false));
+
+    BitvectorFormula result =
+        conv.makeValueReinterpretationToBitvector(
+            bitFieldType,
+            addressHandler.getValueFormula(bitFieldValue.expression(), bitFieldType, false));
+    if (lsb > 0) {
+      result =
+          bvmgr.concat(result, extractRangeOfBitvector(previousValue, Range.closedOpen(0L, lsb)));
+    }
+    if (end < declaredBitSize) {
+      result =
+          bvmgr.concat(
+              extractRangeOfBitvector(previousValue, Range.closedOpen(end, declaredBitSize)),
+              result);
+    }
+    return new ResolvedSlice(
+        Value.ofValue(conv.makeValueReinterpretationFromBitvector(declaredType, result)),
+        declaredType);
   }
 
   /**
@@ -689,9 +728,9 @@ class AssignmentFormulaHandler {
 
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
-      final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
+      final int oldIndex = conv.getExistingOrNewIndex(ufName, region.getType(), ssa);
       final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
+      final FormulaType<?> targetType = conv.getFormulaTypeFromType(region.getType());
 
       // forall counter : !condition => retentionConstraint
       // is equivalent to:
@@ -775,9 +814,9 @@ class AssignmentFormulaHandler {
 
     for (final MemoryRegion region : regions) {
       final String ufName = regionMgr.getPointerAccessName(region);
-      final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
+      final int oldIndex = conv.getExistingOrNewIndex(ufName, region.getType(), ssa);
       final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
+      final FormulaType<?> targetType = conv.getFormulaTypeFromType(region.getType());
 
       for (final PointerTarget target : targetLookup.apply(region)) {
         regionMgr.addTargetToStats(ufName);
@@ -844,7 +883,7 @@ class AssignmentFormulaHandler {
       final BooleanFormula negAntecedent =
           bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
       final Predicate<PointerTarget> exact =
-          PointerTargetPattern.forRange(target.getBase(), target.getOffset(), size);
+          PointerTargetPattern.forRange(target.base(), target.offset(), size);
 
       List<BooleanFormula> consequent = new ArrayList<>();
       makeRetentionConstraints(
@@ -895,6 +934,11 @@ class AssignmentFormulaHandler {
       final BooleanFormula condition,
       final boolean useQuantifiers)
       throws UnrecognizedCodeException {
+    if (useQuantifiers) {
+      // The addresses contain the quantified variable, which must not leave the quantifier.
+      pts.setZeroedMemoryFacts(ImmutableList.of());
+    }
+
     // Arrays and functions are implicitly converted to pointers
     CType rvalueType = implicitCastToPointer(pRvalueType);
 
@@ -902,7 +946,7 @@ class AssignmentFormulaHandler {
     checkArgument(isSimpleType(rvalueType));
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
+    final FormulaType<?> targetType = conv.getFormulaTypeFromType(lvalueType);
     BooleanFormula result;
 
     Formula rhs;
@@ -936,7 +980,7 @@ class AssignmentFormulaHandler {
         // add the condition
         // either the condition holds and the assignment should be done,
         // or the condition does not hold and the previous value should be copied
-        final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+        final int oldIndex = conv.getExistingOrNewIndex(targetName, lvalueType, ssa);
         Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
 
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
@@ -952,7 +996,7 @@ class AssignmentFormulaHandler {
       }
       final String targetName = regionMgr.getPointerAccessName(region);
 
-      final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+      final int oldIndex = conv.getExistingOrNewIndex(targetName, lvalueType, ssa);
       final int newIndex;
       if (useOldSSAIndices) {
         assert updatedRegions == null : "Returning updated regions is only for new indices";
@@ -979,6 +1023,34 @@ class AssignmentFormulaHandler {
       }
 
       final Formula address = lvalue.asAliased().getAddress();
+
+      // the write may change strings that facts are about
+      if (!pts.getStringFacts().isEmpty()) {
+        if (useQuantifiers) {
+          // This write is one element of a slice assignment (e.g., for memset or an array copy)
+          // that
+          // is encoded with a quantifier, so the address contains the quantified variable. The
+          // facts live outside of the quantifier and must not refer to this variable. So instead
+          // of checking which facts the write affects, we drop all of them, which is sound.
+          pts.setStringFacts(PersistentLinkedList.of());
+        } else {
+          Formula writeSize =
+              fmgr.makeNumber(fmgr.getFormulaType(address), typeHandler.getExactSizeof(lvalueType));
+          pts.setStringFacts(
+              StringEqualityFact.afterWrite(
+                  pts.getStringFacts(), address, writeSize, bfmgr.makeTrue(), fmgr));
+        }
+      }
+
+      // writes with old SSA indices initialize fresh memory and do not change zeroed memory
+      if (!useOldSSAIndices) {
+        pts.setZeroedMemoryFacts(
+            ZeroedMemoryFact.afterWrite(
+                pts.getZeroedMemoryFacts(),
+                address,
+                typeHandler.getExactSizeof(lvalueType),
+                options.maxWritesToZeroedBlock()));
+      }
 
       if (rhs != null) {
         // use the special quantifier version of pointer assignment if requested
@@ -1186,7 +1258,10 @@ class AssignmentFormulaHandler {
                       ssa)))) {
 
         final OptionalLong offset = typeHandler.getOffset(lvalueCompositeType, memberDeclaration);
-        if (!offset.isPresent()) {
+
+        // The code below would write to the wrong heap (e.g., to "unsigned int: 3" instead of
+        // "unsigned int"), so we ignore bit fields here. Best fix would be #1092.
+        if (!offset.isPresent() || newLvalueType instanceof CBitFieldType) {
           continue; // TODO this looses values of bit fields
         }
         final Formula offsetFormula =

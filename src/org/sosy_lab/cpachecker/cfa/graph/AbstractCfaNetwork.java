@@ -157,11 +157,10 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
         .filter(FunctionEntryNode.class)
         .first()
         .toJavaUtil()
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Function exit node doesn't have a corresponding function entry node: "
-                        + pFunctionExitNode));
+        .orElseThrow(() ->
+            new IllegalStateException(
+                "Function exit node doesn't have a corresponding function entry node: "
+                    + pFunctionExitNode));
   }
 
   @Override

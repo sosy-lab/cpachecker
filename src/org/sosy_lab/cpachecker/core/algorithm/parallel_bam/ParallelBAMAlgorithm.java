@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -226,6 +227,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
    * We check here whether an error occured in a CompletableFuture. We could also ignore this step,
    * but that might be dangerous and error-prone.
    */
+  @SuppressForbidden("time limit is intended here")
   private void collectExceptions(
       Map<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
       List<Throwable> errors,
@@ -236,31 +238,30 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
 
     pReachedSetMapping.entrySet().parallelStream()
-        .forEach(
-            entry -> {
-              ReachedSetExecutor rse = entry.getValue();
-              CompletableFuture<Void> job = rse.getWaitingTasks();
-              try {
-                job.get(5, TimeUnit.SECONDS);
-                stats.executionCounter.insertValue(entry.getValue().execCounter);
-                stats.unfinishedRSEcounter.inc();
+        .forEach(entry -> {
+          ReachedSetExecutor rse = entry.getValue();
+          CompletableFuture<Void> job = rse.getWaitingTasks();
+          try {
+            job.get(5, TimeUnit.SECONDS);
+            stats.executionCounter.insertValue(entry.getValue().execCounter);
+            stats.unfinishedRSEcounter.inc();
 
-                if (rse.isTargetStateFound()) {
-                  if (entry.getKey() == mainReachedSet) {
-                    mainRScontainsTarget.set(true);
-                  } else {
-                    otherRScontainsTarget.set(true);
-                  }
-                }
-
-              } catch (RejectedExecutionException
-                  | ExecutionException
-                  | InterruptedException
-                  | TimeoutException e) {
-                errors.add(e);
+            if (rse.isTargetStateFound()) {
+              if (entry.getKey() == mainReachedSet) {
+                mainRScontainsTarget.set(true);
+              } else {
+                otherRScontainsTarget.set(true);
               }
-              logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
-            });
+            }
+
+          } catch (RejectedExecutionException
+              | ExecutionException
+              | InterruptedException
+              | TimeoutException e) {
+            errors.add(e);
+          }
+          logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
+        });
 
     if (!errors.isEmpty()) {
       logger.log(Level.ALL, "The following errors appeared in the analysis:", errors);

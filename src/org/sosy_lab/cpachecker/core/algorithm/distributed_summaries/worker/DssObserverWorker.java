@@ -13,94 +13,133 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssExceptionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssResultMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssStatisticsMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Observer worker that detects termination conditions based on the received messages.
+ * Observer worker that monitors messages of analysis workers and detects termination conditions.
  *
- * <p>DssObserverWorker detects a termination condition when:
+ * <p>It accumulates {@link AlgorithmStatus} from every POST_CONDITION and VIOLATION_CONDITION
+ * message it sees, merging them across all senders. This combined status reflects the overall
+ * soundness of the analysis across all blocks.
  *
- * <ul>
- *   <li>All blocks report that no violations are reachable (SAFE verdict)
- *   <li>A root block reports a reachable violation (UNSAFE verdict)
- *   <li>An exception occurs during analysis
- * </ul>
- *
- * To function correctly, this DssObserverWorker must receive the messages of all analysis workers.
- *
- * <p>The observer also collects statistics from all workers for analysis reporting.
+ * <p>The observer shuts down as soon as a RESULT or EXCEPTION message arrives.
  */
 public class DssObserverWorker extends DssWorker {
 
   private final DssConnection connection;
   private final StatusObserver statusObserver;
+  private final ShutdownNotifier shutdownNotifier;
   private boolean shutdown;
-  private Optional<Result> result;
+  private Optional<Result> finalResult;
+  private Optional<DecisionGraph> violationWitness;
   private Optional<String> errorMessage;
 
-  private final Map<String, Map<String, Object>> stats = new HashMap<>();
+  private int witnessMessagesReceived;
 
-  private final int numberOfBlocks;
-
-  public record StatusAndResult(AlgorithmStatus status, Result result) {}
+  private final BlockGraph blockGraph;
+  private final DssWitnessArgStateCollector stateCollector;
 
   public DssObserverWorker(
       String pId,
       DssConnection pConnection,
-      int pNumberOfBlocks,
+      BlockGraph pBlockGraph,
       DssMessageFactory pMessageFactory,
-      LogManager pLogger) {
+      LogManager pLogger,
+      DssWitnessArgStateCollector pStateCollector,
+      ShutdownNotifier pShutdownNotifier) {
     super(pId, pMessageFactory, pLogger);
     shutdown = false;
     connection = pConnection;
     statusObserver = new StatusObserver();
     errorMessage = Optional.empty();
-    result = Optional.empty();
-    numberOfBlocks = pNumberOfBlocks;
+    finalResult = Optional.empty();
+    violationWitness = Optional.empty();
+    blockGraph = pBlockGraph;
+    stateCollector = pStateCollector;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
-  public Collection<DssMessage> processMessage(DssMessage pMessage) {
+  public Collection<DssMessage> processMessage(DssMessage pMessage) throws InterruptedException {
     switch (pMessage.getType()) {
-      case FOUND_RESULT -> {
-        result = Optional.of(((DssResultMessage) pMessage).getResult());
+      case RESULT -> {
+        finalResult = Optional.of(pMessage.getResult());
+        logger.log(
+            Level.INFO, "Received result", pMessage.getResult(), ", waiting for witness messages");
         statusObserver.updateStatus(pMessage);
+        shutdown = allPostAnalysisMessagesReceived();
       }
-      case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> statusObserver.updateStatus(pMessage);
-      case ERROR -> {
+      case VIOLATION_CONDITION, POST_CONDITION -> statusObserver.updateStatus(pMessage);
+      case EXCEPTION -> {
+        errorMessage = Optional.of(pMessage.getExceptionMessage());
         shutdown = true;
-        errorMessage = Optional.of(((DssExceptionMessage) pMessage).getErrorMessage());
       }
-      case STATISTICS -> {
-        stats.put(pMessage.getBlockId(), ((DssStatisticsMessage) pMessage).getStats());
-        shutdown = stats.size() == numberOfBlocks;
+      case WITNESS -> {
+        if (pMessage.getWitnessType() == WitnessType.VIOLATION) {
+          violationWitness = Optional.of(pMessage.getViolationPath());
+        } else {
+          stateCollector.collectFromMessage((DssWitnessMessage) pMessage);
+        }
+        witnessMessagesReceived++;
+        shutdown = allPostAnalysisMessagesReceived();
       }
     }
     return ImmutableList.of();
   }
 
-  public StatusAndResult observe() throws CPAException {
-    super.run();
-    if (errorMessage.isPresent()) {
-      throw new CPAException(errorMessage.orElseThrow());
+  private boolean allPostAnalysisMessagesReceived() {
+    if (finalResult.isEmpty()) {
+      return false;
     }
-    if (result.isEmpty()) {
-      throw new CPAException("Analysis finished but no result is present...");
-    }
-    return new StatusAndResult(statusObserver.finish(), result.orElseThrow());
+    int expectedWitnessMessages =
+        switch (finalResult.orElseThrow()) {
+          case TRUE -> blockGraph.getNodes().size();
+          case FALSE -> 1;
+          default -> 0;
+        };
+    return witnessMessagesReceived == expectedWitnessMessages;
   }
 
-  public Map<String, Map<String, Object>> getStats() {
-    return stats;
+  public StatusAndResult observe() throws CPAException, InterruptedException {
+    super.run();
+    if (errorMessage.isPresent()) {
+      // Worker messages serialize exceptions as text. Preserve a requested cancellation instead
+      // of turning its stack trace into a CPAException.
+      shutdownNotifier.shutdownIfNecessary();
+      throw new CPAException(errorMessage.orElseThrow());
+    }
+    if (finalResult.isEmpty()) {
+      if (wasInterrupted()) {
+        // e.g. the time limit elapsed while the analysis was still running
+        throw new InterruptedException("Interrupted before the analysis computed a result");
+      }
+      throw new CPAException("Analysis finished but no result is present...");
+    }
+    ResultWithWitnessInformation result =
+        switch (finalResult.orElseThrow()) {
+          case TRUE ->
+              ResultWithWitnessInformation.ofCorrectnessPreConditionCollector(stateCollector);
+          case FALSE ->
+              ResultWithWitnessInformation.ofViolationPath(violationWitness.orElseThrow());
+          default ->
+              ResultWithWitnessInformation.ofResultWithoutInformation(finalResult.orElseThrow());
+        };
+    return new StatusAndResult(statusObserver.finish(), result);
   }
 
   @Override
@@ -115,21 +154,6 @@ public class DssObserverWorker extends DssWorker {
 
   public static class StatusObserver {
 
-    public enum StatusSoundness {
-      SOUND,
-      UNSOUND
-    }
-
-    public enum StatusPropertyChecked {
-      CHECKED,
-      UNCHECKED
-    }
-
-    public enum StatusPrecise {
-      PRECISE,
-      IMPRECISE
-    }
-
     private final Map<String, AlgorithmStatus> statusMap;
 
     private StatusObserver() {
@@ -137,15 +161,17 @@ public class DssObserverWorker extends DssWorker {
     }
 
     private void updateStatus(DssMessage pMessage) {
-      pMessage
-          .getOptionalStatus()
-          .ifPresent(status -> statusMap.put(pMessage.getUniqueBlockId(), status));
+      switch (pMessage.getType()) {
+        case VIOLATION_CONDITION, POST_CONDITION ->
+            statusMap.put(pMessage.getSenderId(), pMessage.getAlgorithmStatus());
+        case RESULT, EXCEPTION, WITNESS -> {}
+      }
     }
 
     private AlgorithmStatus finish() {
       return statusMap.values().stream()
           .reduce(AlgorithmStatus::update)
-          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+          .orElse(AlgorithmStatus.SOUND_AND_PRECISE);
     }
   }
 }

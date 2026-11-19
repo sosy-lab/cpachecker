@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -24,8 +25,10 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.CExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.JExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.EqualsExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -41,27 +44,31 @@ public class ConstraintFactory {
   private final String functionName;
   private final ValueAnalysisState valueState;
 
-  private SymbolicValueFactory expressionFactory;
+  // The CFAEdge is only used for checked exceptions
+  private final CFAEdge cfaEdgeForDebugging;
 
   private ConstraintFactory(
       String pFunctionName,
       ValueAnalysisState pValueState,
       MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
+      LogManagerWithoutDuplicates pLogger,
+      CFAEdge pCfaEdgeForDebugging) {
 
     machineModel = pMachineModel;
     logger = pLogger;
     functionName = pFunctionName;
     valueState = pValueState;
-    expressionFactory = SymbolicValueFactory.getInstance();
+    cfaEdgeForDebugging = pCfaEdgeForDebugging;
   }
 
   public static ConstraintFactory getInstance(
       String pFunctionName,
       ValueAnalysisState pValueState,
       MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
-    return new ConstraintFactory(pFunctionName, pValueState, pMachineModel, pLogger);
+      LogManagerWithoutDuplicates pLogger,
+      final CFAEdge cfaEdgeForDebugging) {
+    return new ConstraintFactory(
+        pFunctionName, pValueState, pMachineModel, pLogger, cfaEdgeForDebugging);
   }
 
   public Constraint createNegativeConstraint(CBinaryExpression pExpression)
@@ -145,7 +152,8 @@ public class ConstraintFactory {
   }
 
   public Constraint createPositiveConstraint(AIdExpression pExpression) {
-    ExpressionTransformer transformer = new ExpressionTransformer(functionName, valueState);
+    ExpressionTransformer transformer =
+        new ExpressionTransformer(functionName, valueState, cfaEdgeForDebugging);
     SymbolicExpression symbolicExpression = transformer.visit(pExpression);
 
     if (symbolicExpression == null) {
@@ -179,11 +187,12 @@ public class ConstraintFactory {
   }
 
   private JExpressionTransformer getJavaTransformer() {
-    return new JExpressionTransformer(functionName, valueState);
+    return new JExpressionTransformer(functionName, valueState, cfaEdgeForDebugging);
   }
 
   private CExpressionTransformer getCTransformer() {
-    return new CExpressionTransformer(functionName, valueState, machineModel, logger);
+    return new CExpressionTransformer(
+        functionName, valueState, machineModel, logger, cfaEdgeForDebugging);
   }
 
   private boolean isNumeric(Type pType) {
@@ -233,11 +242,11 @@ public class ConstraintFactory {
   }
 
   private SymbolicExpression getOneConstant(Type pType) {
-    return expressionFactory.asConstant(new NumericValue(1L), pType);
+    return ConstantSymbolicExpression.of(new NumericValue(1L), pType);
   }
 
   private SymbolicExpression getTrueValueConstant() {
-    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
+    return ConstantSymbolicExpression.of(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
   }
 
   private Constraint createNot(Constraint pConstraint) {
@@ -246,8 +255,7 @@ public class ConstraintFactory {
   }
 
   private Constraint createNot(SymbolicExpression pSymbolicExpression) {
-    return (Constraint)
-        expressionFactory.logicalNot(pSymbolicExpression, pSymbolicExpression.getType());
+    return (Constraint) LogicalNotExpression.of(pSymbolicExpression, pSymbolicExpression.getType());
   }
 
   private Constraint createEqual(
@@ -256,6 +264,11 @@ public class ConstraintFactory {
       Type pExpressionType,
       Type pCalculationType) {
 
-    return expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
+    return EqualsExpression.of(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
+  }
+
+  /** Returns the current {@link CFAEdge} that can be used for checked exceptions. */
+  public CFAEdge getCfaEdgeForDebugging() {
+    return cfaEdgeForDebugging;
   }
 }

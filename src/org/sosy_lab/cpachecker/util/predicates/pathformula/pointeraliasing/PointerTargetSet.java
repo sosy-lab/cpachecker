@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
@@ -33,30 +34,6 @@ import org.sosy_lab.java_smt.api.Formula;
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PointerTargetSet implements Serializable {
 
-  static String getBaseName(final String name) {
-    return BASE_PREFIX + name;
-  }
-
-  public static boolean isBaseName(final String name) {
-    return name.startsWith(BASE_PREFIX);
-  }
-
-  public static String getBase(final String baseName) {
-    assert isBaseName(baseName);
-    return baseName.substring(BASE_PREFIX.length());
-  }
-
-  /**
-   * Check whether the given string is a base as it is created for dynamic memory allocation, i.e.,
-   * for malloc. Other bases would be those created for local and global variables.
-   *
-   * @param baseName must be a base as determined by {@link #isBaseName(String)}
-   */
-  public static boolean isMallocBase(final String baseName) {
-    assert isBaseName(baseName);
-    return DynamicMemoryHandler.isAllocVariableName(getBase(baseName));
-  }
-
   PersistentList<PointerTarget> getAllTargets(final String regionName) {
     return targets.getOrDefault(regionName, PersistentLinkedList.of());
   }
@@ -70,7 +47,9 @@ public final class PointerTargetSet implements Serializable {
         && fields.isEmpty()
         && deferredAllocations.isEmpty()
         && highestAllocatedAddresses.isEmpty()
-        && allocationCount == 0;
+        && allocationCount == 0
+        && stringFacts.isEmpty()
+        && zeroedMemoryFacts.isEmpty();
   }
 
   @Override
@@ -87,6 +66,8 @@ public final class PointerTargetSet implements Serializable {
     result = prime * result + deferredAllocations.hashCode();
     result = prime * result + highestAllocatedAddresses.hashCode();
     result = prime * result + Integer.hashCode(allocationCount);
+    result = prime * result + stringFacts.hashCode();
+    result = prime * result + zeroedMemoryFacts.hashCode();
     return result;
   }
 
@@ -102,16 +83,20 @@ public final class PointerTargetSet implements Serializable {
         && fields.equals(other.fields)
         && deferredAllocations.equals(other.deferredAllocations)
         && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
-        && allocationCount == other.allocationCount;
+        && allocationCount == other.allocationCount
+        && stringFacts.equals(other.stringFacts)
+        && zeroedMemoryFacts.equals(other.zeroedMemoryFacts);
   }
 
   PointerTargetSet(
-      final PersistentSortedMap<String, CType> bases,
+      final PersistentSortedMap<PointerBase, CType> bases,
       final PersistentSortedMap<CompositeField, Boolean> fields,
-      final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations,
+      final PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentList<Formula> pHighestAllocatedAddresess,
-      final int pAllocationCount) {
+      final int pAllocationCount,
+      final PersistentList<StringEqualityFact> pStringFacts,
+      final ImmutableList<ZeroedMemoryFact> pZeroedMemoryFacts) {
     this.bases = bases;
     this.fields = fields;
 
@@ -120,6 +105,8 @@ public final class PointerTargetSet implements Serializable {
     this.targets = targets;
     highestAllocatedAddresses = pHighestAllocatedAddresess;
     allocationCount = pAllocationCount;
+    stringFacts = pStringFacts;
+    zeroedMemoryFacts = pZeroedMemoryFacts;
 
     if (isEmpty()) {
       // Inside isEmpty(), we do not check the following the targets field.
@@ -128,25 +115,25 @@ public final class PointerTargetSet implements Serializable {
     }
   }
 
-  public PersistentSortedMap<String, CType> getBases() {
+  public PersistentSortedMap<PointerBase, CType> getBases() {
     return bases;
   }
 
   /**
    * Returns, if a variable is the actual base of a pointer.
    *
-   * @param name The name of the variable.
+   * @param base The base.
    * @return True, if the variable is an actual base, false otherwise.
    */
-  public boolean isActualBase(final String name) {
-    return bases.containsKey(name) && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
+  public boolean isActualBase(final PointerBase base) {
+    return bases.containsKey(base) && !PointerTargetSetManager.isFakeBaseType(bases.get(base));
   }
 
   PersistentSortedMap<CompositeField, Boolean> getFields() {
     return fields;
   }
 
-  PersistentList<Pair<String, DeferredAllocation>> getDeferredAllocations() {
+  PersistentList<Pair<PointerBase, DeferredAllocation>> getDeferredAllocations() {
     return deferredAllocations;
   }
 
@@ -167,6 +154,47 @@ public final class PointerTargetSet implements Serializable {
     return allocationCount;
   }
 
+  /**
+   * Get the facts about equal strings that currently hold, the newest first.
+   *
+   * <p>The facts are only relevant for precision, not for soundness: they may be dropped or ignored
+   * at any time, e.g., in case of doubt. However, a fact must not be kept if a write may change one
+   * of its strings.
+   */
+  PersistentList<StringEqualityFact> getStringFacts() {
+    return stringFacts;
+  }
+
+  /**
+   * Get the facts about memory that is still zero since its allocation, the newest first. Like the
+   * facts about equal strings, they may be dropped at any time, but must not miss a write.
+   */
+  ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+    return zeroedMemoryFacts;
+  }
+
+  /**
+   * Returns this set without the facts about equal strings and zeroed memory. They must be dropped
+   * whenever the path formula they were created for is replaced, e.g., by an abstraction, because
+   * they are only meaningful together with it.
+   */
+  public PointerTargetSet withoutFacts() {
+    if (stringFacts.isEmpty() && zeroedMemoryFacts.isEmpty()) {
+      return this;
+    }
+    PointerTargetSet result =
+        new PointerTargetSet(
+            bases,
+            fields,
+            deferredAllocations,
+            targets,
+            highestAllocatedAddresses,
+            allocationCount,
+            PersistentLinkedList.of(),
+            ImmutableList.of());
+    return result.isEmpty() ? EMPTY_INSTANCE : result;
+  }
+
   private static final PointerTargetSet EMPTY_INSTANCE =
       new PointerTargetSet(
           PathCopyingPersistentTreeMap.of(),
@@ -174,18 +202,19 @@ public final class PointerTargetSet implements Serializable {
           PersistentLinkedList.of(),
           PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
-          0);
+          0,
+          PersistentLinkedList.of(),
+          ImmutableList.of());
 
   private static final Joiner joiner = Joiner.on(" ");
 
   // The set of known memory objects.
   // This includes allocated memory regions and global/local structs/arrays.
-  // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
   // taken somewhere but are not yet tracked. These are marked with a special fake-base type.
   // Apart from distinguishing between "fake" and real bases,
   // the type for each base is mostly relevant for the UF-based encoding.
-  private final PersistentSortedMap<String, CType> bases;
+  private final PersistentSortedMap<PointerBase, CType> bases;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
@@ -196,7 +225,7 @@ public final class PointerTargetSet implements Serializable {
   // This is a list of allocations that have already occurred were not yet added to bases
   // because we do not know the type of the allocation yet and hope to find out later.
   // This is only used if revealAllocationTypeFromLhs or deferUntypedAllocations are true.
-  private final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
+  private final PersistentList<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
 
   // The complete set of tracked memory locations.
   // The map key is the type of the memory location.
@@ -213,7 +242,12 @@ public final class PointerTargetSet implements Serializable {
 
   private final int allocationCount;
 
-  private static final String BASE_PREFIX = "__ADDRESS_OF_";
+  // Facts about equal strings, see StringEqualityFact. They are not serialized (dropping them is
+  // sound).
+  private final PersistentList<StringEqualityFact> stringFacts;
+
+  // Facts about zeroed memory, see ZeroedMemoryFact. They are not serialized either.
+  private final ImmutableList<ZeroedMemoryFact> zeroedMemoryFacts;
 
   @Serial private static final long serialVersionUID = 2102505458322248624L;
 
@@ -236,9 +270,9 @@ public final class PointerTargetSet implements Serializable {
   private static class SerializationProxy implements Serializable {
 
     @Serial private static final long serialVersionUID = 8022025017590667769L;
-    private final PersistentSortedMap<String, CType> bases;
+    private final PersistentSortedMap<PointerBase, CType> bases;
     private final PersistentSortedMap<CompositeField, Boolean> fields;
-    private final List<Pair<String, DeferredAllocation>> deferredAllocations;
+    private final List<Pair<PointerBase, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
     private final List<String> highestAllocatedAddresses;
     private final int allocationCount;
@@ -274,7 +308,9 @@ public final class PointerTargetSet implements Serializable {
           PathCopyingPersistentTreeMap.copyOf(
               Maps.transformValues(targets, PersistentLinkedList::copyOf)),
           highestAllocatedAddressesFormulas,
-          allocationCount);
+          allocationCount,
+          PersistentLinkedList.of(),
+          ImmutableList.of());
     }
   }
 
