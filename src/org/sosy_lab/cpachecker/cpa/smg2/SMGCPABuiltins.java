@@ -949,9 +949,10 @@ public class SMGCPABuiltins {
    * <p>These functions first promote the operands a and b to infinite precision signed type (we use
    * INT128 internally), and then apply the operation specified in their name (add, sub, mul) to the
    * arguments a and b. This result is then cast to the type that the third argument points to,
-   * before storing the result of this calculation using the pointer in the third argument. If the
-   * stored result is equal to the infinite precision result, the functions return false, otherwise
-   * they return true. The following functions are handled by this method:
+   * before storing the result of this calculation using the pointer in the third argument. An array
+   * as third argument is treated as a pointer to its first element. If the stored result is equal
+   * to the infinite precision result, the functions return false, otherwise they return true. The
+   * following functions are handled by this method:
    *
    * <p>{@code bool __builtin_sadd_overflow(int a, int b, int *res)}
    *
@@ -1023,8 +1024,12 @@ public class SMGCPABuiltins {
     CExpression res = parameters.get(2);
 
     CType typeOfRes = res.getExpressionType().getCanonicalType();
-    checkArgument(typeOfRes instanceof CPointerType);
-    CType typeOfResBelowPointer = ((CPointerType) typeOfRes).getType().getCanonicalType();
+    // An array as result argument decays to a pointer to its first element
+    checkArgument(typeOfRes instanceof CPointerType || typeOfRes instanceof CArrayType);
+    CType typeOfResBelowPointer =
+        typeOfRes instanceof CArrayType arrayType
+            ? arrayType.getType().getCanonicalType()
+            : ((CPointerType) typeOfRes).getType().getCanonicalType();
     CPointerExpression resPointerExpr =
         new CPointerExpression(res.getFileLocation(), typeOfResBelowPointer, res);
 
