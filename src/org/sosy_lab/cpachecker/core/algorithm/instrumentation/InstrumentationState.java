@@ -59,6 +59,10 @@ public class InstrumentationState {
     return stateAnnotation == StateAnnotation.FUNCTIONHEADFORLOOP;
   }
 
+  public boolean isLoopHeadAnnotation() {
+    return stateAnnotation == StateAnnotation.LOOPHEAD;
+  }
+
   public boolean stateMatchesCfaNode(CFANode pCFANode) {
     if (stateAnnotation == StateAnnotation.MAINFUNCTIONHEAD
         && pCFANode.getFunctionName().equals("main")) {

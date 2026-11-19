@@ -33,6 +33,8 @@ public class InstrumentationAutomaton {
   private final ImmutableMap<String, String> liveVariablesAndTypes;
   // The live variables of all loops in the function, which share the ghost variables without index
   private final ImmutableMap<String, String> liveVariablesOfFunction;
+  // Whether the operations before the loop are inserted at the beginning of its function
+  private final boolean isInitializedAtFunctionHead;
   private final InstrumentationState initialState;
   private final ImmutableList<InstrumentationTransition> instrumentationTransitions;
 
@@ -65,16 +67,22 @@ public class InstrumentationAutomaton {
    *     because they are shared by all these loops
    * @param pIndex the index of the loop for which the automaton is constructed, it replaces
    *     INSTR_INDEX in the operations
+   * @param pIsInitializedAtFunctionHead whether the operations before the loop are inserted at the
+   *     beginning of its function instead of before the loop. The variables can be undeclared
+   *     there, so the ghost variables (__INSTR_init_in_scope(INSTR_INDEX_init)) are not initialized
+   *     with their values.
    * @throws CPAException if the automaton is malformed
    */
   public InstrumentationAutomaton(
       String pParsedInstrumentationAutomaton,
       ImmutableMap<String, String> pLiveVariablesAndTypes,
       ImmutableMap<String, String> pLiveVariablesOfFunction,
-      int pIndex)
+      int pIndex,
+      boolean pIsInitializedAtFunctionHead)
       throws CPAException {
     liveVariablesAndTypes = pLiveVariablesAndTypes;
     liveVariablesOfFunction = pLiveVariablesOfFunction;
+    isInitializedAtFunctionHead = pIsInitializedAtFunctionHead;
     List<String> statesAndTransitions =
         Splitter.on(" |||||").splitToList(pParsedInstrumentationAutomaton);
     if (statesAndTransitions.size() != 2) {
@@ -169,7 +177,7 @@ public class InstrumentationAutomaton {
       operation =
           operation.replace("__INSTR_init_in_scope(INSTR_INDEX_init)", "__INSTR_init_in_scope()");
       index = Integer.toString(pIndex);
-      initializeGhostVars = true;
+      initializeGhostVars = !isInitializedAtFunctionHead;
       variables = liveVariablesAndTypes;
     } else {
       index = "";
@@ -266,6 +274,10 @@ public class InstrumentationAutomaton {
 
   public InstrumentationState getInitialState() {
     return initialState;
+  }
+
+  public boolean isInitializedAtFunctionHead() {
+    return isInitializedAtFunctionHead;
   }
 
   /** Decides whether some transition of the automaton has the given pattern. */

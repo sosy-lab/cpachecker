@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -200,7 +201,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                 parsedInstrumentationAutomaton,
                 info.liveVariablesAndTypes(),
                 liveVariablesOfFunctions.get(getFunctionOfLoop(info)),
-                index));
+                index,
+                isEnteredWithoutPassingItsLabel(info.loop())));
         index += 1;
       }
     } else {
@@ -216,7 +218,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       mapAutomataToLocations.put(
           0,
           new InstrumentationAutomaton(
-              parsedInstrumentationAutomaton, variablesWithTypes, variablesWithTypes, 0));
+              parsedInstrumentationAutomaton, variablesWithTypes, variablesWithTypes, 0, false));
       if (mapAutomataToLocations.get(0).hasTransitionWithPattern("loop_declar")) {
         initializeVariablesRegisteredInUses();
       }
@@ -352,8 +354,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return "1";
     }
     if (pTransition.getSource().isFunctionHeadAnnotation()) {
-      return Integer.toString(
-          pEdge.getPredecessor().getFunction().getFileLocation().getStartingLineInOrigin() + 1);
+      return Integer.toString(getLineAfterFunctionHead(pEdge.getPredecessor()));
     }
     try {
       // TODO: The location should be computed differently !
@@ -380,8 +381,22 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       if (pTransition.getPattern().toString().equals("!cond")) {
         lineAfterBranch = getLineAfterBranch(pEdge.getSuccessor());
       }
+      boolean isLoopHead = pTransition.getSource().isLoopHeadAnnotation();
+      Optional<Integer> lineOfLoopLabel =
+          isLoopHead ? getLineOfLoopLabel(pEdge.getPredecessor()) : Optional.empty();
       if (lineAfterBranch != null) {
         location = lineAfterBranch;
+      } else if (isLoopHead
+          && pTransition.getOrderAsString().equals("BEFORE")
+          && pTransition.getSource().getAutomatonOfTheState().isInitializedAtFunctionHead()) {
+        location = getLineAfterFunctionHead(pEdge.getPredecessor());
+      } else if (lineOfLoopLabel.isPresent()
+          && !pTransition.getOrderAsString().equals("SAME_LINE")) {
+        // The operations before the loop are inserted before the label and the operations of
+        // every iteration right after it
+        location =
+            lineOfLoopLabel.orElseThrow()
+                + (pTransition.getOrderAsString().equals("AFTER") ? 1 : 0);
       } else {
         fileLocation = fileLocation.replaceFirst("line ", "");
         fileLocation =
@@ -423,6 +438,57 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return exitNode.getEntryNode().getFileLocation().getEndingLineInOrigin();
     }
     return null;
+  }
+
+  /*
+   * Returns the line of the label if the node is the head of a loop created by a goto statement,
+   * e.g., of 'L: x++; if (x < 10) goto L;'. The head of such a loop is the label, and the edge
+   * leaving it is the first statement of the loop. Unlike for the condition of a while loop, the
+   * code inserted before this statement is executed after every jump to the label, and the line
+   * after it can be outside the loop or unreachable, e.g., after 'goto L;' in 'L: goto L;'. The
+   * formatting of the program by TransVer puts every label on a separate line.
+   */
+  private Optional<Integer> getLineOfLoopLabel(CFANode pNode) {
+    if (!(pNode instanceof CFALabelNode labelNode) || !labelNode.isLoopStart()) {
+      return Optional.empty();
+    }
+    // The edge of the label enters the label node, or leaves it if the label is reachable only by
+    // goto statements
+    for (CFAEdge edge :
+        Iterables.concat(labelNode.getEnteringEdges(), labelNode.getLeavingEdges())) {
+      if (isEdgeOfLabel(edge, labelNode) && edge.getFileLocation().isRealLocation()) {
+        return Optional.of(edge.getFileLocation().getStartingLineInOrigin());
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static boolean isEdgeOfLabel(CFAEdge pEdge, CFALabelNode pLabelNode) {
+    return pEdge instanceof BlankEdge
+        && pEdge.getDescription().equals("Label: " + pLabelNode.getLabel());
+  }
+
+  /*
+   * Decides whether the loop is created by goto statements and can be entered without passing the
+   * label at its head, e.g., by a jump from outside the loop to the label, or by a jump into the
+   * loop if the label is reachable only by goto statements. Such a jump would skip the code before
+   * the label, so the operations before the loop are inserted at the beginning of the function. The
+   * ghost variables are then not reset when the loop is entered again, which is possible only in
+   * an outer loop, whose variables are compared as well.
+   */
+  private static boolean isEnteredWithoutPassingItsLabel(Loop pLoop) {
+    ImmutableSet<CFANode> loopHeads = pLoop.getLoopHeads();
+    return loopHeads.stream().anyMatch(head -> head instanceof CFALabelNode)
+        && !pLoop.getIncomingEdges().stream()
+            .allMatch(
+                edge ->
+                    edge.getSuccessor() instanceof CFALabelNode labelNode
+                        && loopHeads.contains(labelNode)
+                        && isEdgeOfLabel(edge, labelNode));
+  }
+
+  private static int getLineAfterFunctionHead(CFANode pNode) {
+    return pNode.getFunction().getFileLocation().getStartingLineInOrigin() + 1;
   }
 
   private void writeAllInformationIntoOutputFile(List<String> newEdges) {
