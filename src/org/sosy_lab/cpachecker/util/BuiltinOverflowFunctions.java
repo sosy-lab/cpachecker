@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
@@ -166,7 +166,7 @@ public class BuiltinOverflowFunctions {
    * #getCarryBorrowArithmeticType(String)}.
    */
   public static Optional<CSimpleType> getFixedArithmeticType(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
+    checkArgument(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).type;
   }
 
@@ -184,7 +184,7 @@ public class BuiltinOverflowFunctions {
    * </ul>
    */
   public static CSimpleType getCarryBorrowArithmeticType(String pFunctionName) {
-    checkState(OVERFLOW_CARRY_BORROW_TYPES.containsKey(pFunctionName));
+    checkArgument(OVERFLOW_CARRY_BORROW_TYPES.containsKey(pFunctionName));
     return checkNotNull(OVERFLOW_CARRY_BORROW_TYPES.get(pFunctionName));
   }
 
@@ -193,7 +193,7 @@ public class BuiltinOverflowFunctions {
    * #isBuiltinOverflowFunction(String)}.
    */
   public static BinaryOperator getOperator(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
+    checkArgument(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).operator;
   }
 
@@ -240,7 +240,7 @@ public class BuiltinOverflowFunctions {
    * <p>Returns false for all other recognized functions.
    */
   public static boolean isFunctionWithArbitraryArgumentTypes(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
+    checkArgument(functions.containsKey(pFunctionName));
     return !functions.get(pFunctionName).type.isPresent();
   }
 
@@ -262,7 +262,7 @@ public class BuiltinOverflowFunctions {
    * in their third argument.
    */
   public static boolean isFunctionWithoutSideEffect(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
+    checkArgument(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).hasNoSideEffects;
   }
 
@@ -292,7 +292,7 @@ public class BuiltinOverflowFunctions {
    * <p>Returns an empty list for all other recognized functions.
    */
   public static List<CType> getParameterTypes(String pFunctionName) {
-    checkState(functions.containsKey(pFunctionName));
+    checkArgument(functions.containsKey(pFunctionName));
     Optional<CSimpleType> type = functions.get(pFunctionName).type;
 
     if (type.isPresent()) {
@@ -318,7 +318,7 @@ public class BuiltinOverflowFunctions {
       CExpression var3,
       String pFunctionName)
       throws UnrecognizedCodeException {
-    checkState(functions.containsKey(pFunctionName));
+    checkArgument(functions.containsKey(pFunctionName));
     CSimpleType targetType = getTargetType(pFunctionName, var3);
     BinaryOperator operator = getOperator(pFunctionName);
     CExpression castedVar1 = var1;
@@ -348,7 +348,7 @@ public class BuiltinOverflowFunctions {
       CExpression var3,
       String pFunctionName)
       throws UnrecognizedCodeException {
-    checkState(functions.containsKey(pFunctionName));
+    checkArgument(functions.containsKey(pFunctionName));
     CSimpleType targetType = getTargetType(pFunctionName, var3);
     BinaryOperator operator = getOperator(pFunctionName);
     CExpression castedVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
