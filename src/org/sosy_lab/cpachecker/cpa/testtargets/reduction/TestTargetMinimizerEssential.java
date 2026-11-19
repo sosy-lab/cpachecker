@@ -90,21 +90,20 @@ public class TestTargetMinimizerEssential {
         CFANode currentNodeFinal = currentNode;
         pEntryNode
             .getExitNode()
-            .ifPresent(
-                exitNode -> {
-                  if (!origNodesCopied.contains(exitNode)) {
-                    origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
-                    waitlist.add(exitNode);
-                    origNodesCopied.add(exitNode);
-                  }
-                  CFAEdge copyEdge =
-                      new DummyInputCFAEdge(
-                          origCFANodeToCopyMap.get(currentNodeFinal),
-                          origCFANodeToCopyMap.get(exitNode),
-                          false);
-                  origCFANodeToCopyMap.get(currentNodeFinal).addLeavingEdge(copyEdge);
-                  origCFANodeToCopyMap.get(exitNode).addEnteringEdge(copyEdge);
-                });
+            .ifPresent(exitNode -> {
+              if (!origNodesCopied.contains(exitNode)) {
+                origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
+                waitlist.add(exitNode);
+                origNodesCopied.add(exitNode);
+              }
+              CFAEdge copyEdge =
+                  new DummyInputCFAEdge(
+                      origCFANodeToCopyMap.get(currentNodeFinal),
+                      origCFANodeToCopyMap.get(exitNode),
+                      false);
+              origCFANodeToCopyMap.get(currentNodeFinal).addLeavingEdge(copyEdge);
+              origCFANodeToCopyMap.get(exitNode).addEnteringEdge(copyEdge);
+            });
       }
 
       // create copies of all outgoing edges and the nodes they go into if they don't yet exist

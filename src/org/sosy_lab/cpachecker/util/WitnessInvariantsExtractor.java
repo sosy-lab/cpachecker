@@ -314,14 +314,13 @@ public class WitnessInvariantsExtractor {
     // For efficiency purposes, we match loop invariants differently to location invariants
     if (pInvariant.isLoopInvariant()) {
       return cfa.getLoopStructure()
-          .flatMap(
-              loopStructure ->
-                  column.isPresent()
-                      ? astCfaRelation.getNodeForIterationStatementLocation(
-                          line, column.orElseThrow(), loopStructure)
-                      : astCfaRelation
-                          .getIterationStructureFollowingColumnAtTheSameLine(column, line)
-                          .flatMap(loop -> loop.getLoopHead(loopStructure)));
+          .flatMap(loopStructure ->
+              column.isPresent()
+                  ? astCfaRelation.getNodeForIterationStatementLocation(
+                      line, column.orElseThrow(), loopStructure)
+                  : astCfaRelation
+                      .getIterationStructureFollowingColumnAtTheSameLine(column, line)
+                      .flatMap(loop -> loop.getLoopHead(loopStructure)));
     }
     return column.isPresent()
         ? astCfaRelation.getNodeForStatementLocation(line, column.orElseThrow())

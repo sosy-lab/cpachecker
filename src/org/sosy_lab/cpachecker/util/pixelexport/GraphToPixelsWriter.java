@@ -240,13 +240,12 @@ public abstract class GraphToPixelsWriter<Node> {
       for (Pair<ImmutableIntArray, Color> p : level.getGroups()) {
         pCanvas.setColor(p.getSecondNotNull());
         p.getFirstNotNull()
-            .forEach(
-                idx ->
-                    pCanvas.fillRect(
-                        xPos + (idx - 1) * options.scaling,
-                        currentYPos,
-                        options.scaling,
-                        options.scaling));
+            .forEach(idx ->
+                pCanvas.fillRect(
+                    xPos + (idx - 1) * options.scaling,
+                    currentYPos,
+                    options.scaling,
+                    options.scaling));
       }
 
       yPos += options.scaling;

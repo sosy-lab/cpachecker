@@ -166,21 +166,19 @@ public class DecompositionTestBase {
           cfaNode.getLeavingEdges().stream()
               .filter(e -> !(e instanceof CFunctionSummaryEdge))
               .map(e -> e.getSuccessor())
-              .forEach(
-                  n ->
-                      Truth.assertWithMessage(
-                              "Internal node has a successor in the cfa that is not in the block")
-                          .that(n)
-                          .isIn(blockNode.getNodes()));
+              .forEach(n ->
+                  Truth.assertWithMessage(
+                          "Internal node has a successor in the cfa that is not in the block")
+                      .that(n)
+                      .isIn(blockNode.getNodes()));
           cfaNode.getEnteringEdges().stream()
               .filter(e -> reachableEdges.contains(e))
               .map(e -> e.getPredecessor())
-              .forEach(
-                  n ->
-                      Truth.assertWithMessage(
-                              "Internal node has predecessor in the cfa that is not in the block")
-                          .that(n)
-                          .isIn(blockNode.getNodes()));
+              .forEach(n ->
+                  Truth.assertWithMessage(
+                          "Internal node has predecessor in the cfa that is not in the block")
+                      .that(n)
+                      .isIn(blockNode.getNodes()));
         }
       }
     }

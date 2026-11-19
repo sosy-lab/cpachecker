@@ -82,24 +82,23 @@ public class TraceFormulaTest {
     Multimap<LogKeys, Object> entries = ArrayListMultimap.create();
     Splitter.on("\n")
         .split(log)
-        .forEach(
-            line -> {
-              List<String> result = Splitter.on("=").limit(2).splitToList(line);
-              if (result.size() == 2 && LogKeys.containsKey(result.getFirst())) {
-                LogKeys key = LogKeys.valueOf(Ascii.toUpperCase(result.getFirst()));
-                String value = result.get(1).replaceAll("\\(.*, " + logLevel + "\\)", "").trim();
-                if (keywords.contains(key)) {
-                  if (key == LogKeys.TFPRECONDITION) {
-                    entries.put(key, value);
-                  } else {
-                    value = CharMatcher.anyOf("[]").removeFrom(value);
-                    Splitter.on(", ")
-                        .splitToList(value)
-                        .forEach(loc -> entries.put(key, Integer.parseInt(loc)));
-                  }
-                }
+        .forEach(line -> {
+          List<String> result = Splitter.on("=").limit(2).splitToList(line);
+          if (result.size() == 2 && LogKeys.containsKey(result.getFirst())) {
+            LogKeys key = LogKeys.valueOf(Ascii.toUpperCase(result.getFirst()));
+            String value = result.get(1).replaceAll("\\(.*, " + logLevel + "\\)", "").trim();
+            if (keywords.contains(key)) {
+              if (key == LogKeys.TFPRECONDITION) {
+                entries.put(key, value);
+              } else {
+                value = CharMatcher.anyOf("[]").removeFrom(value);
+                Splitter.on(", ")
+                    .splitToList(value)
+                    .forEach(loc -> entries.put(key, Integer.parseInt(loc)));
               }
-            });
+            }
+          }
+        });
     return entries;
   }
 
@@ -141,35 +140,34 @@ public class TraceFormulaTest {
       }
     }
 
-    expected.forEach(
-        (key, value) -> {
-          switch (key) {
-            case TFRESULT -> {
-              @SuppressWarnings("unchecked")
-              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-              ImmutableList<Integer> foundLinesLog =
-                  transformedImmutableListCopy(found.get(key), val -> (Integer) val);
-              assertThat(lines).containsExactlyElementsIn(expectedLines);
-              assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
-            }
-            case TFPOSTCONDITION -> {
-              @SuppressWarnings("unchecked")
-              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-              ImmutableList<Integer> foundLines =
-                  transformedImmutableListCopy(found.get(key), val -> (Integer) val);
-              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
-            }
-            case TFPRECONDITION -> {
-              @SuppressWarnings("unchecked")
-              ImmutableList<String> expectedValues = (ImmutableList<String>) value;
-              ImmutableList<String> variableValues =
-                  found.get(key).stream()
-                      .map(Object::toString)
-                      .collect(ImmutableList.toImmutableList());
-              assertThat(variableValues).containsExactlyElementsIn(expectedValues);
-            }
-          }
-        });
+    expected.forEach((key, value) -> {
+      switch (key) {
+        case TFRESULT -> {
+          @SuppressWarnings("unchecked")
+          ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+          ImmutableList<Integer> foundLinesLog =
+              transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+          assertThat(lines).containsExactlyElementsIn(expectedLines);
+          assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
+        }
+        case TFPOSTCONDITION -> {
+          @SuppressWarnings("unchecked")
+          ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+          ImmutableList<Integer> foundLines =
+              transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+          assertThat(foundLines).containsExactlyElementsIn(expectedLines);
+        }
+        case TFPRECONDITION -> {
+          @SuppressWarnings("unchecked")
+          ImmutableList<String> expectedValues = (ImmutableList<String>) value;
+          ImmutableList<String> variableValues =
+              found.get(key).stream()
+                  .map(Object::toString)
+                  .collect(ImmutableList.toImmutableList());
+          assertThat(variableValues).containsExactlyElementsIn(expectedValues);
+        }
+      }
+    });
   }
 
   @Test

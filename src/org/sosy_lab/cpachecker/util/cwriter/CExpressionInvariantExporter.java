@@ -327,10 +327,8 @@ public class CExpressionInvariantExporter {
           BooleanFormula reported =
               AbstractStates.asIterable(state)
                   .filter(FormulaReportingState.class)
-                  .transform(
-                      s ->
-                          s.getScopedFormulaApproximation(
-                              fmgr, functions.get(loc.getFunctionName())))
+                  .transform(s ->
+                      s.getScopedFormulaApproximation(fmgr, functions.get(loc.getFunctionName())))
                   .stream()
                   .collect(fmgr.getBooleanFormulaManager().toConjunction());
 

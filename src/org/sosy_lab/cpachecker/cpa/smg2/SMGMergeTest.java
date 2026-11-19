@@ -759,10 +759,9 @@ public class SMGMergeTest extends SMGCPATest0 {
       throws CPAException, InterruptedException {
     List<SMGState> allAbstractedStates =
         statesToTestWithAbstraction.stream()
-            .filter(
-                s ->
-                    s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
-                        > (topListAbstracted ? 1 : 0))
+            .filter(s ->
+                s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
+                    > (topListAbstracted ? 1 : 0))
             .collect(ImmutableList.toImmutableList());
     assertThat(allAbstractedStates.size()).isGreaterThan(1);
 
@@ -907,26 +906,23 @@ public class SMGMergeTest extends SMGCPATest0 {
     int minAmountOfAbstrElements = (topListAbstracted ? 1 : 0);
     assertThat(
             statesToTestWithAbstraction.stream()
-                .filter(
-                    s ->
-                        s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
-                            < minAmountOfAbstrElements)
+                .filter(s ->
+                    s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
+                        < minAmountOfAbstrElements)
                 .count())
         .isEqualTo(0);
     assertThat(
             statesToTestWithAbstraction.stream()
-                .filter(
-                    s ->
-                        s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
-                            == minAmountOfAbstrElements)
+                .filter(s ->
+                    s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
+                        == minAmountOfAbstrElements)
                 .count())
         .isAtLeast(3);
     assertThat(
             statesToTestWithAbstraction.stream()
-                .filter(
-                    s ->
-                        s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
-                            > minAmountOfAbstrElements)
+                .filter(s ->
+                    s.getMemoryModel().getSmg().getNumberOfAbstractedLists()
+                        > minAmountOfAbstrElements)
                 .count())
         .isAtLeast(2);
   }

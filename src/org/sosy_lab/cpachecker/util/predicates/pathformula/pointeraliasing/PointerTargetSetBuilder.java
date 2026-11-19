@@ -553,13 +553,12 @@ public interface PointerTargetSetBuilder {
       final Set<Pair<PointerBase, DeferredAllocation>> cache = new HashSet<>(deferredAllocations);
       deferredAllocations.stream()
           .filter(p -> p.getFirst().equals(originalPointer))
-          .forEachOrdered(
-              p -> {
-                final Pair<PointerBase, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
-                if (!cache.contains(pp)) {
-                  deferredAllocations = deferredAllocations.with(pp);
-                }
-              });
+          .forEachOrdered(p -> {
+            final Pair<PointerBase, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
+            if (!cache.contains(pp)) {
+              deferredAllocations = deferredAllocations.with(pp);
+            }
+          });
     }
 
     /**
@@ -576,12 +575,11 @@ public interface PointerTargetSetBuilder {
       if (result.isEmpty()) {
         return true;
       }
-      deferredAllocations.forEach(
-          p -> {
-            if (!p.getFirst().equals(pointer)) {
-              result.remove(p.getSecond());
-            }
-          });
+      deferredAllocations.forEach(p -> {
+        if (!p.getFirst().equals(pointer)) {
+          result.remove(p.getSecond());
+        }
+      });
       return result.isEmpty();
     }
 

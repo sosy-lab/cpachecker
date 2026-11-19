@@ -239,10 +239,9 @@ public class ToValuePrecisionConverter implements Statistics {
                 .depthFirstPreOrder(pExpressionTree))
         .filter(node -> node instanceof LeafExpression)
         .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression())
-        .transformAndConcat(
-            expr ->
-                CFAUtils.getIdExpressionsOfExpression(expr)
-                    .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration())));
+        .transformAndConcat(expr ->
+            CFAUtils.getIdExpressionsOfExpression(expr)
+                .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration())));
   }
 
   public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
@@ -542,13 +541,12 @@ public class ToValuePrecisionConverter implements Statistics {
       final Collection<CFAEdge> pRelevantEdges,
       boolean extractDefinitions) {
     return FluentIterable.from(pDepGraph.getNodes())
-        .filter(
-            node ->
-                (extractDefinitions
-                        ? pDepGraph.getDefs(node).contains(pVar)
-                        : pDepGraph.getUses(node).contains(pVar))
-                    && (relevantProperties.isEmpty()
-                        || pRelevantEdges.contains(node.getStatement().orElse(dummyEdge))))
+        .filter(node ->
+            (extractDefinitions
+                    ? pDepGraph.getDefs(node).contains(pVar)
+                    : pDepGraph.getUses(node).contains(pVar))
+                && (relevantProperties.isEmpty()
+                    || pRelevantEdges.contains(node.getStatement().orElse(dummyEdge))))
         .toList();
   }
 

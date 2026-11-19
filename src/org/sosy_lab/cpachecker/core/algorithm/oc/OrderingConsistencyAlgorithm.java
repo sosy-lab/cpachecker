@@ -221,12 +221,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
     targetProperty =
         targetPropertyOf(pSpecification)
-            .orElseThrow(
-                () ->
-                    new InvalidConfigurationException(
-                        "the ordering-consistency analysis cannot interpret the given"
-                            + " specification; it needs a property file stating unreach-call,"
-                            + " no-data-race, or no-overflow"));
+            .orElseThrow(() ->
+                new InvalidConfigurationException(
+                    "the ordering-consistency analysis cannot interpret the given"
+                        + " specification; it needs a property file stating unreach-call,"
+                        + " no-data-race, or no-overflow"));
     if (targetProperty == TargetProperty.DATA_RACE && encoding != EncodingMode.CLOCKS) {
       throw new InvalidConfigurationException(
           "the ordering-consistency data-race check needs the CLOCKS encoding (set"
@@ -951,12 +950,11 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
     }
     // Kahn's algorithm; ties broken by event id so the trace is deterministic
     PriorityQueue<Integer> ready = new PriorityQueue<>();
-    indegree.forEach(
-        (id, degree) -> {
-          if (degree == 0) {
-            ready.add(id);
-          }
-        });
+    indegree.forEach((id, degree) -> {
+      if (degree == 0) {
+        ready.add(id);
+      }
+    });
     List<MemoryEvent> ordered = new ArrayList<>();
     while (!ready.isEmpty()) {
       int id = ready.poll();

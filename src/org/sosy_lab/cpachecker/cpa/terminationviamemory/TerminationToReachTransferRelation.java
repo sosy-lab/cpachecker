@@ -190,10 +190,9 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       Iterable<AbstractState> otherStates) {
     return FluentIterable.from(otherStates)
         .filter(AutomatonState.class)
-        .filter(
-            state ->
-                state.getOwningAutomaton().getStates().stream()
-                    .anyMatch(AutomatonInternalState::isNontrivialCycleStart))
+        .filter(state ->
+            state.getOwningAutomaton().getStates().stream()
+                .anyMatch(AutomatonInternalState::isNontrivialCycleStart))
         .toList();
   }
 

@@ -5397,9 +5397,8 @@ public class SMGState
     boolean isNotConstraints = true;
     for (Constraint constraint : getConstraints()) {
       if (identsToReplace.stream()
-          .anyMatch(
-              i ->
-                  memoryModel.getSymbolicIdentifiersWithTypesForValue(constraint).containsKey(i))) {
+          .anyMatch(i ->
+              memoryModel.getSymbolicIdentifiersWithTypesForValue(constraint).containsKey(i))) {
         isNotConstraints = false;
         break;
       }

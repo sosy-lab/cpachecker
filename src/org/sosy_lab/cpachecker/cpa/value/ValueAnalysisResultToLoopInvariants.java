@@ -473,11 +473,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     Map<CFANode, Collection<CandidateInvariant>> filteredCandidates =
         ImmutableMap.copyOf(
             FluentIterable.from(pUnfilteredMap.entrySet())
-                .transform(
-                    entry ->
-                        Map.entry(
-                            entry.getKey(),
-                            FluentIterable.from(entry.getValue()).filter(pFilter).toList()))
+                .transform(entry ->
+                    Map.entry(
+                        entry.getKey(),
+                        FluentIterable.from(entry.getValue()).filter(pFilter).toList()))
                 .filter(entry -> !entry.getValue().isEmpty()));
 
     if (!filteredCandidates.isEmpty()) {
@@ -569,14 +568,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       locInvBuilder.putAll(
           entry.getKey(),
           FluentIterable.from(entry.getValue())
-              .transformAndConcat(
-                  canInv ->
-                      canInv.asBooleanFormulae(
-                          solver.getFormulaManager(),
-                          varToType,
-                          c2Formula,
-                          machineModel,
-                          pExportOpt))
+              .transformAndConcat(canInv ->
+                  canInv.asBooleanFormulae(
+                      solver.getFormulaManager(), varToType, c2Formula, machineModel, pExportOpt))
               .filter(bf -> !solver.getFormulaManager().getBooleanFormulaManager().isTrue(bf))
               .transform(bf -> absMgr.makePredicate(bf)));
     }
@@ -2800,11 +2794,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       Preconditions.checkArgument(pVars.length > 0 && pCoefficients.length == pVars.length + 1);
       Preconditions.checkArgument(
           FluentIterable.from(pCoefficients)
-              .allMatch(
-                  coefficient ->
-                      (coefficient != null
-                          && ((pFloatingType && isFloatingNumber(coefficient))
-                              || (!pFloatingType && isIntegralType(coefficient))))));
+              .allMatch(coefficient ->
+                  (coefficient != null
+                      && ((pFloatingType && isFloatingNumber(coefficient))
+                          || (!pFloatingType && isIntegralType(coefficient))))));
 
       vars = pVars;
       coefficients = pCoefficients;

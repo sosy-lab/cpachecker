@@ -357,10 +357,9 @@ public record SeqThreadStatementClauseBuilder(
     ImmutableSet<CFANodeForThread> loopHeads = pThread.cfa().getLoopHeads();
     boolean isLoopHead =
         pStatements.stream()
-            .allMatch(
-                s ->
-                    s.data().getSubstituteEdges().stream()
-                        .allMatch(e -> loopHeads.contains(e.getThreadEdge().getPredecessor())));
+            .allMatch(s ->
+                s.data().getSubstituteEdges().stream()
+                    .allMatch(e -> loopHeads.contains(e.getThreadEdge().getPredecessor())));
     SeqThreadStatementBlock block =
         new SeqThreadStatementBlock(
             pThread.id(), pLabelPc, isLoopHead, pStatements, pNextThreadLabel);
