@@ -65,6 +65,19 @@ configuration-checks:jdk-25:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
     - if: $[[ inputs.tests_per_java_version ]] == true
 
+configuration-checks:jdk-27:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-27
+  needs:
+    - build-dependencies
+    - build:jdk-27
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-27
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
+
 
 configuration-documentation:
   extends: .check-binaries-default-jdk
@@ -301,6 +314,17 @@ unit-tests:jdk-25:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
     - if: $[[ inputs.tests_per_java_version ]] == true
 
+unit-tests:jdk-27:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    paths:
+      - "UnitTests.html"
+    reports:
+      junit: "output/unit-tests/TESTS-TestSuites.xml"
+  rules:
+    - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
+    - if: $[[ inputs.tests_per_java_version ]] == true
+
 
 # Separate jobs for integration tests
 .integration-tests:
@@ -325,6 +349,11 @@ integration-tests-extended:jdk-21:
 integration-tests:jdk-25:
   extends:
     - unit-tests:jdk-25
+    - .integration-tests
+
+integration-tests:jdk-27:
+  extends:
+    - unit-tests:jdk-27
     - .integration-tests
 
 
