@@ -143,13 +143,46 @@ public class BuiltinOverflowFunctions {
    * Returns the declared arithmetic type of a fixed-type overflow builtin, or an empty optional for
    * a generic or predicate variant. Requires a name recognized by {@link
    * #isBuiltinOverflowFunction(String)}.
+   *
+   * <p>Returns the following types for the GCC builtin overflow functions with fixed types:
+   *
+   * <ul>
+   *   <li>int for __builtin_sadd_overflow, __builtin_ssub_overflow and __builtin_smul_overflow
+   *   <li>long int for __builtin_saddl_overflow, __builtin_ssubl_overflow and
+   *       __builtin_smull_overflow
+   *   <li>long long int for __builtin_saddll_overflow, __builtin_ssubll_overflow and
+   *       __builtin_smulll_overflow
+   *   <li>unsigned int for __builtin_uadd_overflow, __builtin_usub_overflow and
+   *       __builtin_umul_overflow
+   *   <li>unsigned long int for __builtin_uaddl_overflow, __builtin_usubl_overflow and
+   *       __builtin_umull_overflow
+   *   <li>unsigned long long int for __builtin_uaddll_overflow, __builtin_usubll_overflow and
+   *       __builtin_umulll_overflow
+   * </ul>
+   *
+   * <p>Returns an empty optional for all other recognized functions.
+   *
+   * <p>The carry/borrow builtins are not handled by this method, see {@link
+   * #getCarryBorrowArithmeticType(String)}.
    */
   public static Optional<CSimpleType> getFixedArithmeticType(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
     return functions.get(pFunctionName).type;
   }
 
-  /** Returns the integer type for the given carry or borrow builtin. */
+  /**
+   * Returns the integer type of the given carry/borrow builtin. This is the type of the arguments
+   * a, b and carry_in, of the returned value, and of the object that carry_out points to. Requires
+   * a name recognized by {@link #isBuiltinOverflowCarryBorrowFunction(String)}.
+   *
+   * <p>Returns the following types:
+   *
+   * <ul>
+   *   <li>unsigned int for __builtin_addc and __builtin_subc
+   *   <li>unsigned long int for __builtin_addcl and __builtin_subcl
+   *   <li>unsigned long long int for __builtin_addcll and __builtin_subcll
+   * </ul>
+   */
   public static CSimpleType getCarryBorrowArithmeticType(String pFunctionName) {
     checkState(OVERFLOW_CARRY_BORROW_TYPES.containsKey(pFunctionName));
     return checkNotNull(OVERFLOW_CARRY_BORROW_TYPES.get(pFunctionName));
@@ -190,7 +223,21 @@ public class BuiltinOverflowFunctions {
 
   /**
    * Returns whether a recognized overflow builtin accepts arbitrary integral operand types instead
-   * of converting its operands to a fixed parameter type.
+   * of converting its operands to a fixed parameter type. Requires a name recognized by {@link
+   * #isBuiltinOverflowFunction(String)}.
+   *
+   * <p>Returns true for the following GCC builtin overflow functions:
+   *
+   * <ul>
+   *   <li>__builtin_add_overflow
+   *   <li>__builtin_sub_overflow
+   *   <li>__builtin_mul_overflow
+   *   <li>__builtin_add_overflow_p
+   *   <li>__builtin_sub_overflow_p
+   *   <li>__builtin_mul_overflow_p
+   * </ul>
+   *
+   * <p>Returns false for all other recognized functions.
    */
   public static boolean isFunctionWithArbitraryArgumentTypes(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
@@ -199,7 +246,20 @@ public class BuiltinOverflowFunctions {
 
   /**
    * Returns whether a recognized overflow builtin is a predicate variant without a result write.
-   * This does not describe side effects in its argument expressions.
+   * This does not describe side effects in its argument expressions. Requires a name recognized by
+   * {@link #isBuiltinOverflowFunction(String)}.
+   *
+   * <p>Returns true for the following GCC builtin overflow functions, which only use the type of
+   * their third argument:
+   *
+   * <ul>
+   *   <li>__builtin_add_overflow_p
+   *   <li>__builtin_sub_overflow_p
+   *   <li>__builtin_mul_overflow_p
+   * </ul>
+   *
+   * <p>Returns false for all other recognized functions, which store their result using the pointer
+   * in their third argument.
    */
   public static boolean isFunctionWithoutSideEffect(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
@@ -207,9 +267,29 @@ public class BuiltinOverflowFunctions {
   }
 
   /**
-   * Returns the two arithmetic parameter types and result-pointer type of a fixed-type overflow
-   * builtin, or an empty list for a generic or predicate variant. Requires a name recognized by
-   * {@link #isBuiltinOverflowFunction(String)}.
+   * Returns the parameter types of a fixed-type overflow builtin, or an empty list for a generic or
+   * predicate variant. Requires a name recognized by {@link #isBuiltinOverflowFunction(String)}.
+   *
+   * <p>The order of the types in the returned list equals the order of the parameters (and thus of
+   * the arguments) of the function given by its name: the types of the two operands, followed by
+   * the type of the result pointer. For example, for {@code bool __builtin_saddl_overflow(long int
+   * a, long int b, long int *res)}, {@code getParameterTypes("__builtin_saddl_overflow")} returns
+   * the types {@code long int} (for a), {@code long int} (for b) and {@code long int *} (for res),
+   * in this order.
+   *
+   * <p>Returns the three parameter types for the following GCC builtin overflow functions with
+   * fixed types (see {@link #getFixedArithmeticType(String)} for their operand types):
+   *
+   * <ul>
+   *   <li>__builtin_sadd_overflow, __builtin_saddl_overflow and __builtin_saddll_overflow
+   *   <li>__builtin_ssub_overflow, __builtin_ssubl_overflow and __builtin_ssubll_overflow
+   *   <li>__builtin_smul_overflow, __builtin_smull_overflow and __builtin_smulll_overflow
+   *   <li>__builtin_uadd_overflow, __builtin_uaddl_overflow and __builtin_uaddll_overflow
+   *   <li>__builtin_usub_overflow, __builtin_usubl_overflow and __builtin_usubll_overflow
+   *   <li>__builtin_umul_overflow, __builtin_umull_overflow and __builtin_umulll_overflow
+   * </ul>
+   *
+   * <p>Returns an empty list for all other recognized functions.
    */
   public static List<CType> getParameterTypes(String pFunctionName) {
     checkState(functions.containsKey(pFunctionName));
