@@ -1040,20 +1040,21 @@ public class SMGCPABuiltins {
     CExpression castCalculationResult = resultExpressions.castCalculationResult();
     CExpression overflowComparison = resultExpressions.functionReturn();
 
+    // Calculate actual value returned by the function before the assignment, as res may point to
+    // an operand, whose value before the call is needed
+    List<ValueAndSMGState> overflowComparisonResults =
+        overflowComparison.accept(
+            new SMGCPAValueVisitor(evaluator, initialState, pCfaEdge, logger));
+    checkState(overflowComparisonResults.size() == 1);
+    Value overflowComparisonResult = overflowComparisonResults.getFirst().getValue();
+    SMGState currentState = overflowComparisonResults.getFirst().getState();
+
     // Assign the cast calculation result
     List<SMGState> assignedStates =
         SMGTransferRelation.handleAssignment(
-            initialState, pCfaEdge, resPointerExpr, castCalculationResult, evaluator, logger);
+            currentState, pCfaEdge, resPointerExpr, castCalculationResult, evaluator, logger);
     checkState(assignedStates.size() == 1);
-    SMGState currentState = assignedStates.iterator().next();
-
-    // Calculate actual value returned by the function
-    List<ValueAndSMGState> overflowComparisonResults =
-        overflowComparison.accept(
-            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger));
-    checkState(overflowComparisonResults.size() == 1);
-    Value overflowComparisonResult = overflowComparisonResults.getFirst().getValue();
-    currentState = overflowComparisonResults.getFirst().getState();
+    currentState = assignedStates.getFirst();
 
     return ImmutableList.of(ValueAndSMGState.of(overflowComparisonResult, currentState));
   }
@@ -1284,15 +1285,10 @@ public class SMGCPABuiltins {
     CExpression aArgumentCExpr = parameters.getFirst();
     CExpression bArgumentCExpr = parameters.get(1);
     CExpression carryInArgumentCExpr = parameters.get(2);
-    CExpression carryOutArgumentCExpr = parameters.get(3);
     // Convert the three scalar arguments to their declared parameter type.
     aArgumentCExpr = castIfNecessary(aArgumentCExpr, type);
     bArgumentCExpr = castIfNecessary(bArgumentCExpr, type);
     carryInArgumentCExpr = castIfNecessary(carryInArgumentCExpr, type);
-    checkState(
-        carryOutArgumentCExpr.getExpressionType().getCanonicalType()
-                instanceof CPointerType outputPointerType
-            && outputPointerType.getType().getCanonicalType().equals(type.getCanonicalType()));
     if (functionName.endsWith("ll")) {
       // __builtin_subcll or __builtin_addcll
       // Return type, as well as all input types are: unsigned long long int
@@ -1364,10 +1360,11 @@ public class SMGCPABuiltins {
         buildGccBuiltinCarryBorrowExpressions(
             functionName, cFCExpression, new CBinaryExpressionBuilder(machineModel, logger));
     CExpression carryOutArgumentCExpr = cFCExpression.getParameterExpressions().get(3);
-    CType carryOutType =
-        ((CPointerType) carryOutArgumentCExpr.getExpressionType().getCanonicalType())
-            .getType()
-            .getCanonicalType();
+    // The carry out argument does not need to have the pointer type of the parameter, it can also
+    // be an array (decaying to a pointer) or a null pointer constant. The dereference in the
+    // assignment skips the write if the argument does not evaluate to a pointer, and writing
+    // through a null pointer is recorded as invalid write.
+    CType carryOutType = BuiltinOverflowFunctions.getCarryBorrowArithmeticType(functionName);
     CExpressionAssignmentStatement carryOutAssignment =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY,
