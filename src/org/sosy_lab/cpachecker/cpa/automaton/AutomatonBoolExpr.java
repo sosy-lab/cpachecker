@@ -2163,7 +2163,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Boolean != */
   static class BoolNotEqTest extends BoolBinaryTest {
     public BoolNotEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      super(pA, pB, (a, b) -> !a.equals(b), "!=");
+      super(pA, pB, (boolA, boolB) -> !boolA.equals(boolB), "!=");
     }
   }
 }
