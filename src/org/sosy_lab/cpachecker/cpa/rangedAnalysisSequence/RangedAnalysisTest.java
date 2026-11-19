@@ -27,9 +27,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner;
+import org.sosy_lab.cpachecker.util.test.IntegrationTestRunner.IntegrationTestResult;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class RangedAnalysisTest {
 
@@ -177,17 +177,17 @@ public class RangedAnalysisTest {
     overrideOptions.put("witness.checkProgramHash", "false");
     Configuration generationConfig =
         getProperties(pGenerationConfig.fileName, overrideOptions, specificationFile);
-    TestResults res = CPATestRunner.run(generationConfig, pFilePath, Level.INFO);
-    logger.log(Level.FINE, res.getLog());
-    logger.log(Level.FINE, res.getCheckerResult().getResult());
-    return res.getCheckerResult().getResult();
+    IntegrationTestResult res = IntegrationTestRunner.run(generationConfig, pFilePath, Level.INFO);
+    logger.log(Level.FINE, res.log());
+    logger.log(Level.FINE, res.cpaCheckerResult().getResult());
+    return res.cpaCheckerResult().getResult();
   }
 
   private static Configuration getProperties(
       String pConfigFile, Map<String, String> pOverrideOptions, String pSpecification)
       throws InvalidConfigurationException, IOException {
     ConfigurationBuilder configBuilder =
-        TestDataTools.configurationForTest().loadFromFile(Path.of("config/", pConfigFile));
+        TestUtils.configurationForTest().loadFromFile(Path.of("config/", pConfigFile));
     if (!Strings.isNullOrEmpty(pSpecification)) {
       pOverrideOptions.put(SPECIFICATION_OPTION, pSpecification);
     }
