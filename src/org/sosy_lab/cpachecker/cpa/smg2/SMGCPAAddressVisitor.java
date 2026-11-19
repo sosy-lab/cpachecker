@@ -506,6 +506,18 @@ public class SMGCPAAddressVisitor
       // Try to disassemble the values (AddressExpression)
       Value value = evaluatedSubExpr.getValue();
 
+      if (value instanceof SymbolicIdentifier localArrayValue
+          && localArrayValue.getRepresentedLocation().isPresent()) {
+        // Local array in a local structure (e.g. a struct), the dereference targets its first
+        // element. Handled like the subscript of such an array.
+        MemoryLocation memLoc = localArrayValue.getRepresentedLocation().orElseThrow();
+        Optional<SMGObjectAndOffsetMaybeNestingLvl> maybeTarget =
+            evaluator.getTargetObjectAndOffset(
+                currentState, memLoc.getIdentifier(), new NumericValue(memLoc.getOffset()));
+        resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState, maybeTarget));
+        continue;
+      }
+
       Value offset = new NumericValue(0);
       Value memoryAddress = value;
       if (value instanceof AddressExpression pointerValue) {
