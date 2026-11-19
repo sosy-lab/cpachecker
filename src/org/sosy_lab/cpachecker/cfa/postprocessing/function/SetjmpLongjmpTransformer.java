@@ -259,12 +259,11 @@ public final class SetjmpLongjmpTransformer {
   private static SetMultimap<String, String> invert(
       SetMultimap<String, String> pCallees, String pExcludedCallee) {
     SetMultimap<String, String> callers = HashMultimap.create();
-    pCallees.forEach(
-        (caller, callee) -> {
-          if (!callee.equals(pExcludedCallee)) {
-            callers.put(callee, caller);
-          }
-        });
+    pCallees.forEach((caller, callee) -> {
+      if (!callee.equals(pExcludedCallee)) {
+        callers.put(callee, caller);
+      }
+    });
     return callers;
   }
 

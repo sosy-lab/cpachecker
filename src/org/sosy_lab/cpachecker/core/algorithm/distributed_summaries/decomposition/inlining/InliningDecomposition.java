@@ -90,26 +90,24 @@ public class InliningDecomposition implements DssBlockDecomposition {
 
     return FluentIterable.from(scc.functions())
         .transformAndConcat(f -> f.blockNodes())
-        .transform(
-            node -> {
-              Predicate<String> successorFilter = successorFilter(idsInScc, returnBlockId, node);
+        .transform(node -> {
+          Predicate<String> successorFilter = successorFilter(idsInScc, returnBlockId, node);
 
-              Function<String, String> succMapper = successorMapper(scc, node, idsInScc, stack);
+          Function<String, String> succMapper = successorMapper(scc, node, idsInScc, stack);
 
-              Predicate<String> predecessorFilter =
-                  predecessorFilter(node, idsInScc, callingBlockId);
+          Predicate<String> predecessorFilter = predecessorFilter(node, idsInScc, callingBlockId);
 
-              Function<String, String> predMapper =
-                  predecessorMapper(scc, node, idsInScc, callingBlockId, stack, previousStack);
+          Function<String, String> predMapper =
+              predecessorMapper(scc, node, idsInScc, callingBlockId, stack, previousStack);
 
-              return copyWithMappedBlockIds(
-                  node,
-                  stack::toStringWithBlockId,
-                  predecessorFilter,
-                  predMapper,
-                  successorFilter,
-                  succMapper);
-            });
+          return copyWithMappedBlockIds(
+              node,
+              stack::toStringWithBlockId,
+              predecessorFilter,
+              predMapper,
+              successorFilter,
+              succMapper);
+        });
   }
 
   /**

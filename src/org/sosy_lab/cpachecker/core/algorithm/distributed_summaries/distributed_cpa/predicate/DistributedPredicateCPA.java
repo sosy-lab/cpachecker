@@ -212,22 +212,20 @@ public class DistributedPredicateCPA
         ImmutableListMultimap.builder();
     precision
         .getLocalPredicates()
-        .forEach(
-            (node, predicate) -> {
-              if (pBoundaries.contains(node)) {
-                local.put(node, predicate);
-              }
-            });
+        .forEach((node, predicate) -> {
+          if (pBoundaries.contains(node)) {
+            local.put(node, predicate);
+          }
+        });
     ImmutableListMultimap.Builder<PredicatePrecision.LocationInstance, AbstractionPredicate>
         instances = ImmutableListMultimap.builder();
     precision
         .getLocationInstancePredicates()
-        .forEach(
-            (location, predicate) -> {
-              if (pBoundaries.contains(location.getLocation())) {
-                instances.put(location, predicate);
-              }
-            });
+        .forEach((location, predicate) -> {
+          if (pBoundaries.contains(location.getLocation())) {
+            instances.put(location, predicate);
+          }
+        });
     return new PredicatePrecision(
         instances.build(),
         local.build(),

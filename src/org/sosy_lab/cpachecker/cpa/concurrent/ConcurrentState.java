@@ -175,12 +175,11 @@ public class ConcurrentState extends AbstractSingleWrapperState
             : liveThreadIds;
     final ImmutableMap<String, ThreadId> newHandleToLastCreatedThreadId =
         pHandleQualifiedName
-            .map(
-                pS ->
-                    ImmutableMap.<String, ThreadId>builder()
-                        .putAll(handleToLastCreatedThreadId)
-                        .put(pS, newThreadId)
-                        .buildKeepingLast())
+            .map(pS ->
+                ImmutableMap.<String, ThreadId>builder()
+                    .putAll(handleToLastCreatedThreadId)
+                    .put(pS, newThreadId)
+                    .buildKeepingLast())
             .orElse(handleToLastCreatedThreadId);
     return update(getWrappedState(), newThreads, newLiveThreadIds, newHandleToLastCreatedThreadId);
   }

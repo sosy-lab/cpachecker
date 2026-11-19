@@ -77,10 +77,8 @@ public class GlobalAccessChecker {
     Optional<Set<String>> addressedVariables =
         pCfa.getVarClassification().map(VariableClassification::getAddressedVariables);
     globalAccessVisitor =
-        new GlobalAccessVisitor(
-            variable ->
-                addressedVariables.isEmpty()
-                    || addressedVariables.orElseThrow().contains(variable));
+        new GlobalAccessVisitor(variable ->
+            addressedVariables.isEmpty() || addressedVariables.orElseThrow().contains(variable));
   }
 
   /**

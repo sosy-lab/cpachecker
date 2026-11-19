@@ -65,10 +65,9 @@ public class BlockViolationConditionOperator
    */
   private DecisionGraph initialWitness(Optional<ARGState> previous) {
     return previous
-        .map(
-            state ->
-                Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
-                    .getWitness())
+        .map(state ->
+            Objects.requireNonNull(AbstractStates.extractStateByType(state, BlockState.class))
+                .getWitness())
         .orElse(DecisionGraph.UNRESTRICTED);
   }
 
@@ -90,9 +89,8 @@ public class BlockViolationConditionOperator
     }
     List<String> previousHistory =
         pPreviousCondition
-            .map(
-                state ->
-                    AbstractStates.extractStateByType(state, BlockState.class).getHistory().path())
+            .map(state ->
+                AbstractStates.extractStateByType(state, BlockState.class).getHistory().path())
             .orElse(ImmutableList.of());
     return new BlockState(
         topMost.getUniqueId(),

@@ -116,12 +116,11 @@ public class DssGraphViolationConditionTest {
         // two operators after this initialization, where flag actually is an entry variable.
         ARGState entry =
             ARGUtils.getOnePathTo(target).asStatesList().stream()
-                .filter(
-                    n ->
-                        AbstractStates.extractStateByType(n, PredicateAbstractState.class)
-                            .getPathFormula()
-                            .getSsa()
-                            .containsVariable("main::flag"))
+                .filter(n ->
+                    AbstractStates.extractStateByType(n, PredicateAbstractState.class)
+                        .getPathFormula()
+                        .getSsa()
+                        .containsVariable("main::flag"))
                 .findFirst()
                 .orElseThrow();
         DssARGPathGraph graph = DssARGPathGraph.of(entry, target);
@@ -233,10 +232,9 @@ public class DssGraphViolationConditionTest {
     DecisionGraph expected =
         DecisionGraph.union(
             selected.stream()
-                .map(
-                    path ->
-                        DecisionGraph.UNRESTRICTED.prepend(
-                            path.stream().map(e -> replacements.getOrDefault(e, e)).toList()))
+                .map(path ->
+                    DecisionGraph.UNRESTRICTED.prepend(
+                        path.stream().map(e -> replacements.getOrDefault(e, e)).toList()))
                 .toList());
     for (ImmutableList<CFAEdge> path : paths) {
       assertThat(accepts(mapped, cfa, path)).isEqualTo(accepts(expected, cfa, path));

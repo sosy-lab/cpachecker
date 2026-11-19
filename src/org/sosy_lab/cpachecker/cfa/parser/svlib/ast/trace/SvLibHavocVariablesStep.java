@@ -43,13 +43,12 @@ public final class SvLibHavocVariablesStep extends SvLibTraceStep {
         + Joiner.on(" ")
             .join(
                 assignments.entrySet().stream()
-                    .map(
-                        entry ->
-                            "("
-                                + entry.getKey().toASTString()
-                                + " "
-                                + entry.getValue().toASTString()
-                                + ")")
+                    .map(entry ->
+                        "("
+                            + entry.getKey().toASTString()
+                            + " "
+                            + entry.getValue().toASTString()
+                            + ")")
                     .toList())
         + ")";
   }

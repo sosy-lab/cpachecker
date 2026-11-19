@@ -919,10 +919,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     currentState = absFinder.findAndAbstractLists();
     assertThat(
             currentState.getMemoryModel().getSmg().getObjects().stream()
-                .anyMatch(
-                    o ->
-                        o instanceof SMGSinglyLinkedListSegment sll
-                            && sll.getMinLength() == listLength))
+                .anyMatch(o ->
+                    o instanceof SMGSinglyLinkedListSegment sll
+                        && sll.getMinLength() == listLength))
         .isTrue();
 
     checkAbstractionOfLLWithConcreteFirstAndLast(

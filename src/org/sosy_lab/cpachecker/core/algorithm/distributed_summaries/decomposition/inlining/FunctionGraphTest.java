@@ -67,10 +67,9 @@ public class FunctionGraphTest {
 
     ImmutableList<String> edges =
         FluentIterable.from(funcGraph.getEdges().entrySet())
-            .transformAndConcat(
-                e ->
-                    FluentIterable.from(e.getValue())
-                        .transform(c -> e.getKey().name() + " -> " + c.target().name()))
+            .transformAndConcat(e ->
+                FluentIterable.from(e.getValue())
+                    .transform(c -> e.getKey().name() + " -> " + c.target().name()))
             .toList();
 
     Truth.assertThat(edges)

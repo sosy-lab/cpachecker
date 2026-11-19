@@ -28,13 +28,11 @@ public class SymbolicValueFactoryTest {
       long[] idsOfThread = ids[t];
       threads[t] =
           Thread.ofPlatform()
-              .unstarted(
-                  () -> {
-                    for (int i = 0; i < IDS_PER_THREAD; i++) {
-                      idsOfThread[i] =
-                          SymbolicValueFactory.getInstance().newIdentifier(null).getId();
-                    }
-                  });
+              .unstarted(() -> {
+                for (int i = 0; i < IDS_PER_THREAD; i++) {
+                  idsOfThread[i] = SymbolicValueFactory.getInstance().newIdentifier(null).getId();
+                }
+              });
       threads[t].start();
     }
     for (Thread thread : threads) {
