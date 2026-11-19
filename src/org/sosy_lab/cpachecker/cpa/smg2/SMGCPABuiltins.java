@@ -1015,7 +1015,11 @@ public class SMGCPABuiltins {
       final CFunctionCallExpression cFCExpression,
       final CFAEdge pCfaEdge)
       throws CPATransferException {
-    checkArgument(cFCExpression.getExpressionType() == CNumericTypes.BOOL);
+    checkArgument(
+        cFCExpression
+            .getExpressionType()
+            .getCanonicalType()
+            .equals(CNumericTypes.BOOL.getCanonicalType()));
     ImmutableList<CExpression> parameters = cFCExpression.getParameterExpressions();
     checkArgument(parameters.size() == 3);
 
