@@ -433,7 +433,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
           }
         }
       }
-      case BlankEdge blankEdge -> {
+      case BlankEdge _ -> {
         return false;
       }
       case CFunctionCallEdge cFunctionCallEdge -> {
@@ -441,10 +441,10 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
           usedVars.addAll(exp.accept(visitor));
         }
       }
-      case CFunctionSummaryEdge summaryEdge -> {
+      case CFunctionSummaryEdge _ -> {
         return false;
       }
-      case CFunctionReturnEdge returnEdge -> {
+      case CFunctionReturnEdge _ -> {
         return false;
       }
       default -> {

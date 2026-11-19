@@ -192,7 +192,7 @@ class SvLibCfaBuilder {
                 transformedImmutableListCopy(
                     procedureDeclaration.getReturnValues(),
                     SvLibParsingParameterDeclaration::toVariableDeclaration)),
-            x -> {},
+            _ -> {},
             node -> allNodesCollector.add(node));
 
     FunctionExitNode functionExitNode = functionNodes.getSecondNotNull();
@@ -486,7 +486,7 @@ class SvLibCfaBuilder {
           }
           tagReferencesToAnnotations.putAll(tagName, tagProperties);
         }
-        case SvLibGetWitnessCommand pSvLibGetWitnessCommand -> {
+        case SvLibGetWitnessCommand _ -> {
           logger.log(
               Level.WARNING,
               "Ignoring get-proof command, since there was no verify call command before.");
@@ -537,11 +537,11 @@ class SvLibCfaBuilder {
           // For all options we simply add them to the SMT-LIB commands.
           smtLibCommandsBuilder.add(pSvLibSetOptionCommand);
         }
-        case SvLibSelectTraceCommand pSvLibSelectTraceCommand -> {
+        case SvLibSelectTraceCommand _ -> {
           throw new SvLibParserException(
               "Select trace commands are not yet supported in CFA parsing.");
         }
-        case SvLibSetInfoCommand pSvLibSetInfoCommand -> {
+        case SvLibSetInfoCommand _ -> {
           // we ignore set-info commands for now
         }
         case SmtLibDefineFunCommand pSmtLibDefineFunCommand -> {

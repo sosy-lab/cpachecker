@@ -105,7 +105,7 @@ public class ARGReachedSet {
    * reachable from the rootState. States which have become unreachable get properly detached
    */
   public void recalculateReachedSet(ARGState rootState) {
-    removeUnReachableFrom(Collections.singleton(rootState), ARGState::getChildren, x -> true);
+    removeUnReachableFrom(Collections.singleton(rootState), ARGState::getChildren, _ -> true);
   }
 
   /**

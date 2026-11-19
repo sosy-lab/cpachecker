@@ -647,7 +647,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
   private boolean hasNoVariables(CStatement pStatement, CFANode pNode) {
     return switch (pStatement) {
-      case CAssignment pCAssignment -> false;
+      case CAssignment _ -> false;
       case CExpressionStatement pCExpressionStatement ->
           hasNoVariables(pCExpressionStatement.getExpression(), pNode);
       case CFunctionCall pCFunctionCall ->
@@ -812,7 +812,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       }
 
       edgeToCurrentExpressionIndex.compute(
-          step.edge(), (key, value) -> (value == null) ? null : value + 1);
+          step.edge(), (_, value) -> (value == null) ? null : value + 1);
     }
 
     // Add target

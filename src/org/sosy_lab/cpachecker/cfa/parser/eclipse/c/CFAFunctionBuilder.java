@@ -334,7 +334,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         visit(problemDeclaration.getProblem());
         yield PROCESS_SKIP;
       }
-      case IASTASMDeclaration asm -> ignoreASMDeclaration(declaration);
+      case IASTASMDeclaration _ -> ignoreASMDeclaration(declaration);
 
       default ->
           throw parseContext.parseError(
@@ -646,7 +646,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // Handle each kind of expression
     switch (statement) {
-      case IASTCompoundStatement compoundStatement -> {
+      case IASTCompoundStatement _ -> {
         ASTNodeProperty property = statement.getPropertyInParent();
         if (property == IGNUASTCompoundStatementExpression.STATEMENT) {
           // IGNUASTCompoundStatementExpression content is already handled
@@ -681,10 +681,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       case IASTDefaultStatement iASTDefaultStatement ->
           handleDefaultStatement(iASTDefaultStatement, fileloc);
 
-      case IASTNullStatement nullStatement -> {
+      case IASTNullStatement _ -> {
         // We really don't care about blank statements
       }
-      case IASTDeclarationStatement declarationStatement -> {
+      case IASTDeclarationStatement _ -> {
         // these are handled by visit(IASTDeclaration)
       }
       case IASTProblemStatement iASTProblemStatement -> visit(iASTProblemStatement.getProblem());

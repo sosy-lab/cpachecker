@@ -114,7 +114,7 @@ class EdgeAnalyzer {
                 .buildOrThrow();
           }
 
-          case AVariableDeclaration variableDeclaration ->
+          case AVariableDeclaration _ ->
               throw new UnsupportedOperationException("Only C expressions are supported");
           default -> ImmutableMap.of();
         };

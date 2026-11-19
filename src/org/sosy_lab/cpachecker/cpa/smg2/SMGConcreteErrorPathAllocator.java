@@ -202,7 +202,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         getConcreteValuesForVariables(pSMGState, modelToUse, options),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        exp -> MEMORY_NAME,
+        _ -> MEMORY_NAME,
         pSMGState.getMachineModel());
   }
 

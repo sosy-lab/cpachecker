@@ -655,13 +655,13 @@ public class CustomInstruction {
         }
         ciVarToAciVar.put(ciVarDec.getQualifiedName(), aciVarDec.getQualifiedName());
       }
-      case CComplexTypeDeclaration unused when aciDec instanceof CComplexTypeDeclaration ->
+      case CComplexTypeDeclaration _ when aciDec instanceof CComplexTypeDeclaration ->
           throw new AppliedCustomInstructionParsingFailedException(
               "The code contains a CComplexTypeDeclaration, which is unsupported.");
-      case CTypeDefDeclaration unused when aciDec instanceof CTypeDefDeclaration ->
+      case CTypeDefDeclaration _ when aciDec instanceof CTypeDefDeclaration ->
           throw new AppliedCustomInstructionParsingFailedException(
               "The code contains a CTypeDefDeclaration, which is unsupported.");
-      case CFunctionDeclaration unused when aciDec instanceof CFunctionDeclaration ->
+      case CFunctionDeclaration _ when aciDec instanceof CFunctionDeclaration ->
           throw new AppliedCustomInstructionParsingFailedException(
               "The code contains a CFunctionDeclaration, which is unsupported.");
       default ->
@@ -888,21 +888,21 @@ public class CustomInstruction {
                 aciIdExp.getDeclaration().getQualifiedName());
           }
         }
-        case CCharLiteralExpression unused ->
+        case CCharLiteralExpression _ ->
             throw new AppliedCustomInstructionParsingFailedException(
                 "The code contains a CCharLiteralExpression, which is unsupported.");
-        case CStringLiteralExpression unused ->
+        case CStringLiteralExpression _ ->
             throw new AppliedCustomInstructionParsingFailedException(
                 "The code contains a CStringLiteralExpression, which is unsupported.");
-        case CImaginaryLiteralExpression unused ->
+        case CImaginaryLiteralExpression _ ->
             throw new AppliedCustomInstructionParsingFailedException(
                 "The code contains a CImaginaryLiteralExpression, which is unsupported.");
-        case CIntegerLiteralExpression unused ->
+        case CIntegerLiteralExpression _ ->
             compareSimpleTypes(
                 ciExp,
                 ((CIntegerLiteralExpression) aciExp).getValue(),
                 (CSimpleType) aciExp.getExpressionType());
-        case CFloatLiteralExpression unused ->
+        case CFloatLiteralExpression _ ->
             compareSimpleTypes(
                 ciExp,
                 ((CFloatLiteralExpression) aciExp).getValue(),

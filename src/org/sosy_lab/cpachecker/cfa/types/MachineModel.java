@@ -777,10 +777,10 @@ public enum MachineModel {
 
       case CEnumType pEnumType -> getAlignof(pEnumType.getCompatibleType());
 
-      case CFunctionType pFunctionType ->
+      case CFunctionType _ ->
           1; // function types have per definition the value 1 if compiled with gcc
 
-      case CPointerType pPointerType -> getAlignofPtr();
+      case CPointerType _ -> getAlignofPtr();
 
       case CProblemType pProblemType ->
           throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
@@ -819,7 +819,7 @@ public enum MachineModel {
 
       case CTypedefType pTypedefType -> getAlignof(pTypedefType.getRealType());
 
-      case CVoidType pVoidType -> getAlignofVoid();
+      case CVoidType _ -> getAlignofVoid();
 
       case CBitFieldType pCBitFieldType -> getAlignof(pCBitFieldType.getType());
     };

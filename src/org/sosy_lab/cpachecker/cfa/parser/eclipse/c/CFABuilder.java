@@ -249,7 +249,7 @@ class CFABuilder extends ASTVisitor {
         sideAssignmentStack.leaveBlock();
         yield PROCESS_SKIP;
       }
-      case IASTASMDeclaration asm -> {
+      case IASTASMDeclaration _ -> {
         // TODO Assembler code is ignored here
         encounteredAsm = true;
         @Nullable IASTFileLocation fileloc = declaration.getFileLocation();

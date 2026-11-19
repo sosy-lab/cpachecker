@@ -85,7 +85,7 @@ public final class SupportingInvariantsChecker {
       ShutdownNotifier pShutdownNotifier)
       throws CPAException, InterruptedException {
     Map<List<Path>, InvariantCheckResult> results =
-        RESULTS.asMap().computeIfAbsent(pCfa, cfa -> new ConcurrentHashMap<>());
+        RESULTS.asMap().computeIfAbsent(pCfa, _ -> new ConcurrentHashMap<>());
     List<Path> key =
         ImmutableList.of(
             pConfigFile.toAbsolutePath().normalize(), pWitnessPath.toAbsolutePath().normalize());

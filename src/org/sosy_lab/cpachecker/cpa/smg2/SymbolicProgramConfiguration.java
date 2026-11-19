@@ -4633,7 +4633,7 @@ public class SymbolicProgramConfiguration {
       } else {
         // Search for the return Value, there might be none if we are not on the return edge
         FluentIterable<SMGHasValueEdge> edges =
-            smg.getHasValueEdgesByPredicate(frame.getReturnObject().orElseThrow(), n -> true);
+            smg.getHasValueEdgesByPredicate(frame.getReturnObject().orElseThrow(), _ -> true);
         if (edges.isEmpty()) {
           decls =
               decls.pushAndCopy(
@@ -5152,7 +5152,7 @@ public class SymbolicProgramConfiguration {
       ImmutableList<SMGHasValueEdge> orderedHVes =
           ImmutableList.sortedCopyOf(
               Comparator.comparing(SMGHasValueEdge::getOffset),
-              smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
+              smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), _ -> true));
 
       builder
           .append(entry.getKey())

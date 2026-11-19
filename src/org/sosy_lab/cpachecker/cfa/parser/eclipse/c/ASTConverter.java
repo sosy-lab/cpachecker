@@ -3203,7 +3203,7 @@ class ASTConverter {
 
     final CType elementType =
         switch (assignmentType.getCanonicalType()) {
-          case CCompositeType ignored ->
+          case CCompositeType _ ->
               throw new IllegalArgumentException(
                   "Given type is resolved to composite type, expected array or scalar: "
                       + assignmentType);

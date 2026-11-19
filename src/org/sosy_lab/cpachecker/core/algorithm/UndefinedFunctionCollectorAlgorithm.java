@@ -249,11 +249,11 @@ public class UndefinedFunctionCollectorAlgorithm
   private boolean printType(String indent, StringBuilder prepend, StringBuilder buf, CType rt) {
     boolean couldBeHandled = true;
     switch (rt) {
-      case CVoidType unused -> {
+      case CVoidType _ -> {
         buf.append(indent + "// Void type\n");
         buf.append(indent + "return;\n");
       }
-      case CPointerType unused -> {
+      case CPointerType _ -> {
         buf.append(indent + "// Pointer type\n");
         prepend.append(odmFunctionDecl);
         buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
@@ -264,13 +264,13 @@ public class UndefinedFunctionCollectorAlgorithm
         buf.append(indent + "// Simple type\n");
         buf.append(indent + "return " + nondetFunc + "();\n");
       }
-      case CEnumType unused -> {
+      case CEnumType _ -> {
         buf.append(indent + "// Enum type\n");
         String nondetFunc = VerifierNondetFunctions.PREFIX + "int";
         prepend.append("int " + nondetFunc + "(void);\n");
         buf.append(indent + "return " + nondetFunc + "();\n");
       }
-      case CCompositeType unused -> {
+      case CCompositeType _ -> {
         buf.append(indent + "// Composite type\n");
         prepend.append(odmFunctionDecl);
         // We can not use rt.toASTString(), as it produces full definition with all fields

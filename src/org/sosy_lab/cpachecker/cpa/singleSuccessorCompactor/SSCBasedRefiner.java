@@ -47,7 +47,7 @@ public class SSCBasedRefiner extends AbstractARGBasedRefiner {
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     return SSCBasedRefiner.forARGBasedRefiner(
-        (rs, path) -> CounterexampleInfo.feasibleImprecise(path), pCpa);
+        (_, path) -> CounterexampleInfo.feasibleImprecise(path), pCpa);
   }
 
   /**

@@ -226,10 +226,9 @@ class SPORConcurrentState extends ConcurrentState {
     BiPredicate<CFAEdge, MutexState> goFurther;
     if (basicBlock != null && basicBlock.isValidMultiEdgeStart(edge.getPredecessor())) {
       goFurther =
-          (pCFAEdge, pMutexState) ->
-              basicBlock.isValidMultiEdgeComponent(edge.getPredecessor(), pCFAEdge);
+          (pCFAEdge, _) -> basicBlock.isValidMultiEdgeComponent(edge.getPredecessor(), pCFAEdge);
     } else {
-      goFurther = (pCFAEdge, pMutexState) -> false;
+      goFurther = (_, _) -> false;
     }
 
     final MutexState initialMutexState;
@@ -261,7 +260,7 @@ class SPORConcurrentState extends ConcurrentState {
   }
 
   private GlobalMemoryAccesses getInfluencedGlobalVars(CFAEdge edge) throws CPATransferException {
-    return getVarsWithTraversal(edge, (e, s) -> true, null, null, true);
+    return getVarsWithTraversal(edge, (_, _) -> true, null, null, true);
   }
 
   private GlobalMemoryAccesses getVarsWithTraversal(

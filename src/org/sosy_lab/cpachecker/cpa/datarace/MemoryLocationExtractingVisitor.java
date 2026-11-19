@@ -163,7 +163,7 @@ public class MemoryLocationExtractingVisitor
   /** Returns the locations read to compute the address of the given lvalue. */
   public Set<OverapproximatingMemoryLocation> getAddressReads(CExpression pLvalue) {
     return switch (pLvalue) {
-      case CIdExpression unused -> ImmutableSet.of();
+      case CIdExpression _ -> ImmutableSet.of();
       case CPointerExpression pointerExpression -> pointerExpression.getOperand().accept(this);
       case CFieldReference fieldRef when fieldRef.isPointerDereference() ->
           fieldRef.getFieldOwner().accept(this);

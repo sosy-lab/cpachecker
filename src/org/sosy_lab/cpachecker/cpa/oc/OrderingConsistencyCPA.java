@@ -155,7 +155,7 @@ public class OrderingConsistencyCPA extends AbstractCPA implements AutoCloseable
   @Override
   public StopOperator getStopOperator() {
     // covers exactly the states absorbed by a merge; nothing else is ever covered
-    return (pState, pReached, pPrecision) -> ((OrderingConsistencyState) pState).isAbsorbed();
+    return (pState, _, _) -> ((OrderingConsistencyState) pState).isAbsorbed();
   }
 
   /**

@@ -589,7 +589,7 @@ public class ARGStatistics implements Statistics {
 
     assert (refinementGraphUnderlyingWriter == null) == (refinementGraphWriter == null);
     if (refinementGraphUnderlyingWriter != null) {
-      try (Writer w = refinementGraphUnderlyingWriter) { // for auto-closing
+      try (Writer _ = refinementGraphUnderlyingWriter) { // for auto-closing
         // TODO: Support for partitioned state spaces
         refinementGraphWriter.writeSubgraph(
             rootState,

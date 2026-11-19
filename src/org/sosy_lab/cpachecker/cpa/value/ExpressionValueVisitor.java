@@ -359,11 +359,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
             getFieldOffsetInBits(cElaboratedType.getRealType(), fieldName);
         case CCompositeType cCompositeType ->
             bitsToByte(evv.getMachineModel().getFieldOffsetInBits(cCompositeType, fieldName));
-        case CPointerType unused -> {
+        case CPointerType _ -> {
           evv.missingPointer = true;
           yield OptionalLong.empty();
         }
-        case CProblemType unused ->
+        case CProblemType _ ->
             /*
              * At this point CProblemType should not occur
              * unless the parsing of the automaton for

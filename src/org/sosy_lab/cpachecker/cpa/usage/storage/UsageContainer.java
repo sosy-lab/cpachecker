@@ -221,7 +221,7 @@ public class UsageContainer {
       }
       toDelete.forEach(this::removeIdFromCaches);
 
-      refinedIds.forEach((id, list) -> unsafeUsages += list.size());
+      refinedIds.forEach((_, list) -> unsafeUsages += list.size());
 
       if (initialSet == null) {
         assert refinedIds.isEmpty();
@@ -303,7 +303,7 @@ public class UsageContainer {
   }
 
   public void removeState(final UsageState pUstate) {
-    unrefinedIds.forEach((id, uset) -> uset.remove(pUstate));
+    unrefinedIds.forEach((_, uset) -> uset.remove(pUstate));
     logger.log(
         Level.ALL,
         "All unsafes related to key state " + pUstate + " were removed from reached set");
@@ -359,7 +359,7 @@ public class UsageContainer {
     }
 
     final int generalRefinedSize = refinedIds.size();
-    refinedIds.forEach((id, rset) -> refinedUsages.setNextValue(rset.size()));
+    refinedIds.forEach((_, rset) -> refinedUsages.setNextValue(rset.size()));
 
     final int generalFailedSize = failedIds.size();
     for (RefinedUsagePointSet uset : failedIds.values()) {

@@ -863,7 +863,7 @@ class AssignmentFormulaHandler {
     makeRetentionConstraints(
         regions,
         region -> pts.getNonMatchingTargets(region, pattern),
-        (targetAddress, constraint) -> constraints.addConstraint(constraint));
+        (_, constraint) -> constraints.addConstraint(constraint));
   }
 
   /**
@@ -889,7 +889,7 @@ class AssignmentFormulaHandler {
       makeRetentionConstraints(
           regions,
           region -> pts.getNonMatchingTargets(region, exact),
-          (targetAddress, constraint) -> consequent.add(constraint));
+          (_, constraint) -> consequent.add(constraint));
       constraints.addConstraint(bfmgr.or(negAntecedent, bfmgr.and(consequent)));
     }
   }

@@ -142,10 +142,10 @@ public class MPORSubstitution {
 
     switch (pExpression) {
       // shortcut for optimization: never substitute pure int or strings
-      case CIntegerLiteralExpression ignored -> {
+      case CIntegerLiteralExpression _ -> {
         return pExpression;
       }
-      case CStringLiteralExpression ignored -> {
+      case CStringLiteralExpression _ -> {
         return pExpression;
       }
       case CIdExpression idExpression -> {

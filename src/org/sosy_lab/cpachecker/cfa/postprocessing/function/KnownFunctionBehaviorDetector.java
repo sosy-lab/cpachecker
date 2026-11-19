@@ -516,18 +516,18 @@ public final class KnownFunctionBehaviorDetector {
   private boolean isCheck(
       CFAEdge pEdge, Set<CSimpleDeclaration> pCheckVariables, boolean pAllowCheckingCalls) {
     return switch (pEdge) {
-      case BlankEdge unused -> true;
-      case CAssumeEdge unused -> true;
+      case BlankEdge _ -> true;
+      case CAssumeEdge _ -> true;
       case CDeclarationEdge declarationEdge ->
           !(declarationEdge.getDeclaration() instanceof CVariableDeclaration variable)
               || (!variable.isGlobal()
                   && (variable.getInitializer() == null || pCheckVariables.contains(variable)));
       case CStatementEdge statementEdge ->
           switch (statementEdge.getStatement()) {
-            case CExpressionStatement unused -> true;
-            case CFunctionCallStatement unused ->
+            case CExpressionStatement _ -> true;
+            case CFunctionCallStatement _ ->
                 pAllowCheckingCalls ? isCheckingCall(pEdge) : isTerminatingCall(pEdge);
-            case CFunctionCallAssignmentStatement unused -> false;
+            case CFunctionCallAssignmentStatement _ -> false;
             case CExpressionAssignmentStatement assignment ->
                 assignment.getLeftHandSide() instanceof CIdExpression target
                     && pCheckVariables.contains(target.getDeclaration());

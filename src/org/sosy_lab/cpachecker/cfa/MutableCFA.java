@@ -113,8 +113,7 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
   public static MutableCFA copyOf(CFA pCfa, Configuration pConfig, LogManager pLogger) {
     // create a clone of the specified CFA (clones all CFA nodes and edges)
-    CFA clone =
-        CCfaTransformer.substituteAstNodes(pConfig, pLogger, pCfa, (cfaEdge, astNode) -> astNode);
+    CFA clone = CCfaTransformer.substituteAstNodes(pConfig, pLogger, pCfa, (_, astNode) -> astNode);
     // create a `MutableCFA` for the clone (contains the same CFA nodes and edges as `clone`)
     NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
     TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();

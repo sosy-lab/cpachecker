@@ -229,7 +229,7 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
       }
 
       edgeToCurrentExpressionIndex.compute(
-          edgeWithStates.edge(), (key, value) -> (value == null) ? null : value + 1);
+          edgeWithStates.edge(), (_, value) -> (value == null) ? null : value + 1);
     }
 
     // Non-termination witnesses do not have a target waypoint, the cycle describes the violation

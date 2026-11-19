@@ -641,8 +641,8 @@ public final class DssDebugUtils {
         continue;
       }
       states
-          .computeIfAbsent(key.index(), i -> new LinkedHashMap<>())
-          .computeIfAbsent(key.component(), c -> new LinkedHashMap<>())
+          .computeIfAbsent(key.index(), _ -> new LinkedHashMap<>())
+          .computeIfAbsent(key.component(), _ -> new LinkedHashMap<>())
           .put(key.field(), entry.getValue());
     }
 

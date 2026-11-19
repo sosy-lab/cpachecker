@@ -72,7 +72,7 @@ public class BranchBoundaryMergeDecompositionTest {
         new LinearBlockNodeDecomposition(DssTestUtils.createBlockOperator(cfa));
     BlockGraph old =
         new MergeBlockNodesDecomposition(linear, 2, -1, null, false, true).decompose(cfa);
-    BlockGraph merged = new BranchBoundaryMergeDecomposition(unused -> old).decompose(cfa);
+    BlockGraph merged = new BranchBoundaryMergeDecomposition(_ -> old).decompose(cfa);
     merged.checkConsistency(ShutdownNotifier.createDummy());
     assertThat(prefixes(merged)).containsExactlyElementsIn(prefixes(old));
     for (BlockNode block : merged.getNodes()) {
