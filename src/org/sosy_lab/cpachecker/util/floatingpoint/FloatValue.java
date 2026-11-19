@@ -2590,12 +2590,11 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return BigInteger.ZERO;
     } else {
       return toInteger()
-          .orElseGet(
-              () -> {
-                Format extendedPrecision = new Format(format.expBits, format.sigBits + 1);
-                BigInteger infinity = maxValue(extendedPrecision).toInteger().orElseThrow();
-                return isNegative() ? infinity.negate() : infinity;
-              });
+          .orElseGet(() -> {
+            Format extendedPrecision = new Format(format.expBits, format.sigBits + 1);
+            BigInteger infinity = maxValue(extendedPrecision).toInteger().orElseThrow();
+            return isNegative() ? infinity.negate() : infinity;
+          });
     }
   }
 

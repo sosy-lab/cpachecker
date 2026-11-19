@@ -35,11 +35,9 @@ public class InterpreterPrecisionAdjustmentTest {
   private Optional<PrecisionAdjustmentResult> adjust(
       InterpreterState pState, Optional<AbstractState> pAdjustedState) throws Exception {
     InterpreterPrecisionAdjustment adjustment =
-        new InterpreterPrecisionAdjustment(
-            (state, precision, states, projection, fullState) ->
-                pAdjustedState.map(
-                    adjusted ->
-                        new PrecisionAdjustmentResult(adjusted, precision, Action.CONTINUE)));
+        new InterpreterPrecisionAdjustment((state, precision, states, projection, fullState) ->
+            pAdjustedState.map(
+                adjusted -> new PrecisionAdjustmentResult(adjusted, precision, Action.CONTINUE)));
     return adjustment.prec(
         pState,
         SingletonPrecision.getInstance(),

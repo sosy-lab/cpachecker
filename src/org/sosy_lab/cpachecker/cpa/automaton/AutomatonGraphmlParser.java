@@ -534,9 +534,8 @@ public class AutomatonGraphmlParser {
           getFunction(
                   pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction())
               .orElseThrow();
-      conditionTransformations.add(
-          condition ->
-              and(condition, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName)));
+      conditionTransformations.add(condition ->
+          and(condition, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName)));
     }
 
     // Add a source-code guard for specified function exits
@@ -567,22 +566,21 @@ public class AutomatonGraphmlParser {
       // (b) sometimes the transition needs to match the successor state to the loop head,
       // sometimes the transition even needs to match "both" of the above.
       // Therefore, we do exactly that (match "both");
-      conditionTransformations.add(
-          condition -> {
-            AutomatonBoolExpr conditionA =
-                and(
-                    condition,
-                    AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
-                        AutomatonBoolExpr.MatchLoopStart.INSTANCE, true));
-            if (pTransition.getTarget().getInvariants().isEmpty()) {
-              return conditionA;
-            }
-            AutomatonBoolExpr conditionB =
-                and(
-                    AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(condition, true),
-                    AutomatonBoolExpr.MatchLoopStart.INSTANCE);
-            return or(conditionA, conditionB);
-          });
+      conditionTransformations.add(condition -> {
+        AutomatonBoolExpr conditionA =
+            and(
+                condition,
+                AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
+                    AutomatonBoolExpr.MatchLoopStart.INSTANCE, true));
+        if (pTransition.getTarget().getInvariants().isEmpty()) {
+          return conditionA;
+        }
+        AutomatonBoolExpr conditionB =
+            and(
+                AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(condition, true),
+                AutomatonBoolExpr.MatchLoopStart.INSTANCE);
+        return or(conditionA, conditionB);
+      });
     }
 
     // Never match on the dummy edge directly after the main function entry node

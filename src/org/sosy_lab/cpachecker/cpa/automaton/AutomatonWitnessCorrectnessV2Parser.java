@@ -148,12 +148,11 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
 
       WitnessInvariantType invariantType =
           WitnessInvariantType.of(invariant.type())
-              .orElseThrow(
-                  () ->
-                      new WitnessParseException(
-                          "The witness contains an invariant of the unsupported type "
-                              + invariant.entry().getType()
-                              + "!"));
+              .orElseThrow(() ->
+                  new WitnessParseException(
+                      "The witness contains an invariant of the unsupported type "
+                          + invariant.entry().getType()
+                          + "!"));
       checkSupported(invariantType);
 
       // Where in the program the invariant has to hold

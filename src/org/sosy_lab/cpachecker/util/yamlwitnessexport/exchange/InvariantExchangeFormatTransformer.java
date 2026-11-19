@@ -193,17 +193,16 @@ public class InvariantExchangeFormatTransformer {
       node =
           astCfaRelation
               .getIterationStructureFollowingColumnAtTheSameLine(column, line)
-              .flatMap(
-                  loop -> {
-                    try {
-                      return loop.getNodesBetweenConditionAndBody().stream()
-                          // Not a node in a function called at the start of the body
-                          .filter(candidate -> candidate.getFunctionName().equals(function))
-                          .findFirst();
-                    } catch (BoundaryNodesComputationFailed e) {
-                      return Optional.empty();
-                    }
-                  });
+              .flatMap(loop -> {
+                try {
+                  return loop.getNodesBetweenConditionAndBody().stream()
+                      // Not a node in a function called at the start of the body
+                      .filter(candidate -> candidate.getFunctionName().equals(function))
+                      .findFirst();
+                } catch (BoundaryNodesComputationFailed e) {
+                  return Optional.empty();
+                }
+              });
     } else {
       node =
           astCfaRelation
@@ -237,10 +236,9 @@ public class InvariantExchangeFormatTransformer {
     CProgramScope programScope = new CProgramScope(cfa, logger);
     CProgramScope scope =
         nodeOfInvariant(pInvariantEntry)
-            .map(
-                node ->
-                    TerminationArgumentsToWitnessUtils.getScopeAtNode(
-                        programScope, node, cfa.getAstCfaRelation()))
+            .map(node ->
+                TerminationArgumentsToWitnessUtils.getScopeAtNode(
+                    programScope, node, cfa.getAstCfaRelation()))
             .orElseGet(() -> programScope.withFunctionScope(function));
 
     // The fresh variables by the variables for the values of the expressions

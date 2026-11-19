@@ -37,12 +37,11 @@ public class DssMessageBroadcaster {
   public DssMessageBroadcaster(Map<CommunicationId, DssDefaultQueue> pConnections) {
     connectionsBySenderId = new ConcurrentHashMap<>();
     connectionsByEntity = Multimaps.synchronizedSetMultimap(HashMultimap.create());
-    pConnections.forEach(
-        (id, queue) -> {
-          connectionsBySenderId.put(id.senderId(), queue);
-          connectionsByEntity.put(id.dssCommunicationEntity(), queue);
-          connectionsByEntity.put(DssCommunicationEntity.ALL, queue);
-        });
+    pConnections.forEach((id, queue) -> {
+      connectionsBySenderId.put(id.senderId(), queue);
+      connectionsByEntity.put(id.dssCommunicationEntity(), queue);
+      connectionsByEntity.put(DssCommunicationEntity.ALL, queue);
+    });
   }
 
   public boolean isEmpty() {

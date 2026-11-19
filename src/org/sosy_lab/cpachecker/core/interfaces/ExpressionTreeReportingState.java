@@ -53,10 +53,9 @@ public interface ExpressionTreeReportingState extends AbstractState {
       throws TranslationToExpressionTreeFailedException {
     return pAstCfaRelation
         .getVariablesAndParametersInScope(pLocation)
-        .orElseThrow(
-            () ->
-                new TranslationToExpressionTreeFailedException(
-                    "Variables in scope are unknown at " + pLocation));
+        .orElseThrow(() ->
+            new TranslationToExpressionTreeFailedException(
+                "Variables in scope are unknown at " + pLocation));
   }
 
   class ReportingMethodNotImplementedException extends Exception {

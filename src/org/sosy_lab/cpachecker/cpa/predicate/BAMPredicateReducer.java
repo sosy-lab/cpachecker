@@ -605,9 +605,8 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
     // in the formulas.
     if (returnVariable.orElseThrow() instanceof SvLibVariableDeclarationTuple tuple) {
       return tuple.getDeclarations().stream()
-          .anyMatch(
-              declaration ->
-                  cleanVariableNameForJavaSMT(declaration.getQualifiedName()).equals(var));
+          .anyMatch(declaration ->
+              cleanVariableNameForJavaSMT(declaration.getQualifiedName()).equals(var));
     }
     return returnVariable.orElseThrow().getQualifiedName().equals(var);
   }

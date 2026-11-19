@@ -89,12 +89,10 @@ public class ConfigurationParser {
 
       tmpString = CharMatcher.whitespace().removeFrom(tmpString);
       return from(Splitter.on(",").splitToList(tmpString))
-          .toMap(
-              f ->
-                  Pair.of(
-                      effect,
-                      new LockIdUnprepared(
-                          lockName, getValue(lockName + "." + f + ".parameters", 0))));
+          .toMap(f ->
+              Pair.of(
+                  effect,
+                  new LockIdUnprepared(lockName, getValue(lockName + "." + f + ".parameters", 0))));
     }
     return ImmutableMap.of();
   }

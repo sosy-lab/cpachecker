@@ -418,11 +418,10 @@ public class ConcurrentTransferRelation implements TransferRelation {
     String function = originalCurrentNode.getFunctionName();
     CFANode originalExitNode =
         cfa.nodes().stream()
-            .filter(
-                node ->
-                    node instanceof FunctionExitNode
-                        && function.equals(node.getFunctionName())
-                        && node.getNumLeavingEdges() == 0)
+            .filter(node ->
+                node instanceof FunctionExitNode
+                    && function.equals(node.getFunctionName())
+                    && node.getNumLeavingEdges() == 0)
             .findAny()
             .orElseThrow();
     CFANode clonedExitNode = cfaClones.getClonedNode(originalExitNode, threadId);

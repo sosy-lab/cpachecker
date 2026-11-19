@@ -351,13 +351,12 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
    */
   private static boolean isDeclaredInGeneratedProgram(CExpression pExpression) {
     return CFAUtils.traverseRecursively(pExpression)
-        .allMatch(
-            node ->
-                node instanceof CIdExpression variable
-                    ? variable.getExpressionType().getCanonicalType() instanceof CSimpleType
-                    : !(node instanceof CPointerExpression
-                        || node instanceof CFieldReference
-                        || node instanceof CArraySubscriptExpression));
+        .allMatch(node ->
+            node instanceof CIdExpression variable
+                ? variable.getExpressionType().getCanonicalType() instanceof CSimpleType
+                : !(node instanceof CPointerExpression
+                    || node instanceof CFieldReference
+                    || node instanceof CArraySubscriptExpression));
   }
 
   private void initializeVariables(
@@ -426,9 +425,8 @@ public class ImplicitRankingChecker implements WellFoundednessChecker {
         cfa.getMetadata().getAstCfaRelation().getGlobalVariables().orElseThrow();
 
     return FluentIterable.from(globalVars).anyMatch(globalVar -> globalVar.equals(variable))
-        && variablesInScope.anyMatch(
-            localVar ->
-                !localVar.equals(variable) && localVar.getName().equals(variable.getName()));
+        && variablesInScope.anyMatch(localVar ->
+            !localVar.equals(variable) && localVar.getName().equals(variable.getName()));
   }
 
   /**

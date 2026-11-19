@@ -164,12 +164,11 @@ public class AutomatonWitnessV2ParserUtils {
 
   private static boolean allEntriesHaveVersion(String pVersion, List<AbstractEntry> entries) {
     return FluentIterable.from(entries)
-        .allMatch(
-            e ->
-                (e instanceof ViolationSequenceEntry pViolationEntry
-                        && pViolationEntry.getMetadata().getFormatVersion().equals(pVersion))
-                    || (e instanceof InvariantSetEntry pInvariantEntry
-                        && pInvariantEntry.getMetadata().getFormatVersion().equals(pVersion)));
+        .allMatch(e ->
+            (e instanceof ViolationSequenceEntry pViolationEntry
+                    && pViolationEntry.getMetadata().getFormatVersion().equals(pVersion))
+                || (e instanceof InvariantSetEntry pInvariantEntry
+                    && pInvariantEntry.getMetadata().getFormatVersion().equals(pVersion)));
   }
 
   static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {

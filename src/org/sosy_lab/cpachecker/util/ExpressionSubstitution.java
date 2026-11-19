@@ -108,9 +108,8 @@ public final class ExpressionSubstitution {
   public static ImmutableMap<CExpression, CExpression> substitutionByVariables(
       ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
     ImmutableMap.Builder<CExpression, CExpression> substitution = ImmutableMap.builder();
-    pExpressionVariables.forEach(
-        (variable, expression) ->
-            substitution.put(expression, new CIdExpression(variable.getFileLocation(), variable)));
+    pExpressionVariables.forEach((variable, expression) ->
+        substitution.put(expression, new CIdExpression(variable.getFileLocation(), variable)));
     // An expression has a variable for each function of the invariants with it
     return substitution.buildKeepingLast();
   }
