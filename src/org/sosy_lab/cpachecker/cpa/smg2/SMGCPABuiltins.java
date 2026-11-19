@@ -57,6 +57,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -91,6 +92,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -1054,6 +1056,8 @@ public class SMGCPABuiltins {
 
     CExpression castCalculationResult = resultExpressions.castCalculationResult();
     CExpression overflowComparison = resultExpressions.functionReturn();
+    checkGccOverflowCalculationFitsIntoCalculationType(
+        castCalculationResult, typeOfResBelowPointer, initialState, cFCExpression, pCfaEdge);
 
     // Calculate actual value returned by the function before the assignment, as res may point to
     // an operand, whose value before the call is needed
@@ -1210,6 +1214,12 @@ public class SMGCPABuiltins {
         buildGccOverflowFunctionWithPreprocessingReturningCalculationAndResult(
             modifiedFunctionName, a, b, typeOfArgumentC);
     CExpression overflowComparison = overflowBoolCalcResAndState.functionReturn();
+    checkGccOverflowCalculationFitsIntoCalculationType(
+        overflowBoolCalcResAndState.castCalculationResult(),
+        typeOfArgumentC,
+        initialState,
+        cFCExpression,
+        pCfaEdge);
 
     List<ValueAndSMGState> overflowComparisonResults =
         overflowComparison.accept(
@@ -1241,7 +1251,18 @@ public class SMGCPABuiltins {
           final CType typeOfThirdArg,
           final BinaryOperator binaryOperator) {
 
-    // Since 2^128 > 2^65 + 1, we simply use __int128
+    // TODO: __int128 can not hold all exact results. For operands with at most 64 bits, only the
+    //  product of two unsigned 64 bit values can exceed it (up to (2^64 - 1)^2 > 2^127 - 1). The
+    //  calculation is then wrapped to __int128 (concrete results are cast to the expression type
+    //  of the calculation). As long as the result type has at most 64 bits, the results are still
+    //  correct: the wrapped value is congruent to the exact one modulo 2^128, so the stored result
+    //  is correct, and it is at most -2^65 + 1, so it never fits into the result type and the
+    //  overflow is detected. If an operand or the result has a 128 bit type (__int128 or unsigned
+    //  __int128), the exact result of any of the operations may not fit, and the wrapped
+    //  calculation can give wrong results, e.g., INT128_MAX + INT128_MAX wraps to -2, which fits
+    //  into an int result, so no overflow would be detected. Such cases throw in
+    //  checkGccOverflowCalculationFitsIntoCalculationType(). Supporting them needs a calculation
+    //  type with more than 128 bits, or a calculation that is independent of C types.
     CSimpleType calculationType = GnuInt128;
 
     CBinaryExpression calculation =
@@ -1262,6 +1283,148 @@ public class SMGCPABuiltins {
             BinaryOperator.NOT_EQUALS);
 
     return new OverflowFunctionReturnAndCastCalculationResult(overflowComparison, calculationCast);
+  }
+
+  /**
+   * Throws an {@link UnsupportedCodeException} if the calculation of a GCC builtin overflow
+   * function in {@link #GnuInt128} may give a wrong result, see the TODO in {@link
+   * #buildGccOverflowFunctionCalculationAndResult(CExpression, CExpression, CType,
+   * BinaryOperator)}. This can only happen if an operand or the result has a 128 bit type and the
+   * exact result of the calculation does not fit into __int128. For concrete operand values, the
+   * exact result is checked. For symbolic operand values, all results that the operand types allow
+   * are checked. Unknown operand values lead to an unknown result and are not checked.
+   *
+   * @param pCastCalculationResult the calculation cast to the result type, as built by {@link
+   *     #buildGccOverflowFunctionCalculationAndResult(CExpression, CExpression, CType,
+   *     BinaryOperator)}.
+   * @param pResultType the type of the result, i.e., the type that the third argument points to, or
+   *     the type of the third argument for the functions without side effect.
+   * @param pState the state in which the operands are evaluated.
+   * @param pCallExpression the function call, for the exception.
+   * @param pCfaEdge the edge of the function call.
+   * @throws CPATransferException if the result may not fit into __int128, or the evaluation of the
+   *     operands fails.
+   */
+  private void checkGccOverflowCalculationFitsIntoCalculationType(
+      final CExpression pCastCalculationResult,
+      final CType pResultType,
+      final SMGState pState,
+      final CFunctionCallExpression pCallExpression,
+      final CFAEdge pCfaEdge)
+      throws CPATransferException {
+    checkArgument(pCastCalculationResult instanceof CCastExpression);
+    CExpression calculationExpression = ((CCastExpression) pCastCalculationResult).getOperand();
+    checkArgument(calculationExpression instanceof CBinaryExpression);
+    CBinaryExpression calculation = (CBinaryExpression) calculationExpression;
+    CSimpleType operandType1 =
+        getIntegerTypeForRangeInGccOverflowFunctions(calculation.getOperand1().getExpressionType());
+    CSimpleType operandType2 =
+        getIntegerTypeForRangeInGccOverflowFunctions(calculation.getOperand2().getExpressionType());
+
+    int calculationTypeSize = machineModel.getSizeofInBits(GnuInt128);
+    if (machineModel.getSizeofInBits(operandType1) < calculationTypeSize
+        && machineModel.getSizeofInBits(operandType2) < calculationTypeSize
+        && machineModel.getSizeofInBits(getIntegerTypeForRangeInGccOverflowFunctions(pResultType))
+            < calculationTypeSize) {
+      // Without 128 bit types, the results are correct even if the calculation is wrapped
+      return;
+    }
+
+    Value value1 = evaluateToSingleValue(calculation.getOperand1(), pState, pCfaEdge);
+    Value value2 = evaluateToSingleValue(calculation.getOperand2(), pState, pCfaEdge);
+    if (value1.isUnknown() || value2.isUnknown()) {
+      return;
+    }
+
+    BinaryOperator operator = calculation.getOperator();
+    BigInteger minCalculationValue = machineModel.getMinimalIntegerValue(GnuInt128);
+    BigInteger maxCalculationValue = machineModel.getMaximalIntegerValue(GnuInt128);
+    if (value1 instanceof NumericValue numericValue1
+        && value2 instanceof NumericValue numericValue2) {
+      BigInteger exactResult =
+          calculateWithoutOverflow(
+              operator, numericValue1.bigIntegerValue(), numericValue2.bigIntegerValue());
+      if (exactResult.compareTo(minCalculationValue) < 0
+          || exactResult.compareTo(maxCalculationValue) > 0) {
+        throw new UnsupportedCodeException(
+            String.format(
+                "The exact result %s of %s does not fit into __int128, which is used for its"
+                    + " calculation. This is currently not supported if an operand or the result"
+                    + " has a 128 bit type.",
+                exactResult, pCallExpression.toASTString()),
+            pCfaEdge,
+            pCallExpression);
+      }
+      return;
+    }
+
+    // Symbolic operand values: the operations are monotone (+, -) or bilinear (*) in each operand,
+    // so the smallest and largest results are reached at the bounds of the operand types
+    ImmutableList.Builder<BigInteger> resultsAtBounds = ImmutableList.builder();
+    for (BigInteger bound1 :
+        ImmutableList.of(
+            machineModel.getMinimalIntegerValue(operandType1),
+            machineModel.getMaximalIntegerValue(operandType1))) {
+      for (BigInteger bound2 :
+          ImmutableList.of(
+              machineModel.getMinimalIntegerValue(operandType2),
+              machineModel.getMaximalIntegerValue(operandType2))) {
+        resultsAtBounds.add(calculateWithoutOverflow(operator, bound1, bound2));
+      }
+    }
+    ImmutableList<BigInteger> possibleResultBounds = resultsAtBounds.build();
+    if (Collections.min(possibleResultBounds).compareTo(minCalculationValue) < 0
+        || Collections.max(possibleResultBounds).compareTo(maxCalculationValue) > 0) {
+      throw new UnsupportedCodeException(
+          String.format(
+              "The result of %s for symbolic operands of the types %s and %s may not fit into"
+                  + " __int128, which is used for its calculation. This is currently not"
+                  + " supported if an operand or the result has a 128 bit type.",
+              pCallExpression.toASTString(), operandType1, operandType2),
+          pCfaEdge,
+          pCallExpression);
+    }
+  }
+
+  /**
+   * Returns the simple type whose size and range of values are used for the given integer type in
+   * {@link #checkGccOverflowCalculationFitsIntoCalculationType(CExpression, CType, SMGState,
+   * CFunctionCallExpression, CFAEdge)}. Only meant for the operand and result types of the GCC
+   * builtin overflow functions.
+   */
+  private static CSimpleType getIntegerTypeForRangeInGccOverflowFunctions(CType pType) {
+    CType type = pType.getCanonicalType();
+    if (type instanceof CBitFieldType bitFieldType) {
+      // The range of the underlying type includes the range of the bit-field
+      type = bitFieldType.getType().getCanonicalType();
+    }
+    checkArgument(type instanceof CSimpleType, "Expected an integer type, but got %s", pType);
+    return (CSimpleType) type;
+  }
+
+  /**
+   * Applies the operator of a GCC builtin overflow function in infinite precision on concrete
+   * {@link BigInteger}s.
+   */
+  private static BigInteger calculateWithoutOverflow(
+      BinaryOperator pOperator, BigInteger pLeft, BigInteger pRight) {
+    return switch (pOperator) {
+      case PLUS -> pLeft.add(pRight);
+      case MINUS -> pLeft.subtract(pRight);
+      case MULTIPLY -> pLeft.multiply(pRight);
+      default ->
+          throw new IllegalArgumentException(
+              "Unexpected operator of a GCC builtin overflow function: " + pOperator);
+    };
+  }
+
+  /** Evaluates the expression, which is expected to have exactly one value. */
+  private Value evaluateToSingleValue(CExpression pExpression, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    List<ValueAndSMGState> valuesAndStates =
+        pExpression.accept(new SMGCPAValueVisitor(evaluator, pState, pCfaEdge, logger));
+    checkState(valuesAndStates.size() == 1);
+    return valuesAndStates.getFirst().getValue();
   }
 
   /**
