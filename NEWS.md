@@ -8,6 +8,10 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 4.3
+----------------------------
+* Java 25 or later is required now.
+
 Changes from CPAchecker 4.2.2 to CPAchecker 4.3
 -----------------------------------------------
 * Due to system requirements from common SMT solvers,
