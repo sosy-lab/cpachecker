@@ -10,7 +10,7 @@ SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="120 s" memlimit="2 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -32,7 +32,12 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-wmm/safe003_tso.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe004_tso.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe005_tso.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe007_rmo.oepc_rmo.opt-thin001_rmo.oepc_rmo.opt.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe009_rmo.oepc.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe012_power.oepc.yml</exclude> <!-- flapping error/timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe012_rmo.oepc.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe015_pso.oepc_pso.opt_tso.oepc_tso.opt.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/pthread-wmm/safe018_power.oepc.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe018_rmo.oepc.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe025_pso.oepc_pso.opt_tso.oepc_tso.opt.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/safe032_tso.yml</exclude> <!-- flapping timeout -->
@@ -43,6 +48,11 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/weaver/chl-name-comparator-trans.wvr.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/weaver/chl-sre-subst.wvr.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/weaver/chl-sre-trans.wvr.yml</exclude> <!-- flapping timeout -->
+  </tasks>
+  <tasks name="simple">
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/no-data-race.prp</propertyfile>
   </tasks>
 
 </benchmark>

@@ -13,44 +13,48 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Optional;
+import java.util.Comparator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class BlockStateCombineViolationConditionOperator
     implements CombineViolationConditionsOperator {
 
   @Override
   public AbstractState combineViolationConditionsAtSameProgramHash(
-      Optional<AbstractState> origin, Collection<AbstractState> states) {
+      Collection<AbstractState> states) {
     ImmutableSet<CFANode> locations =
         FluentIterable.from(states)
             .filter(BlockState.class)
             .transform(BlockState::getLocationNode)
             .toSet();
-    SegmentedPaths finalWitness =
-        SegmentedPaths.merge(
+    DecisionGraph finalWitness =
+        DecisionGraph.union(
             FluentIterable.from(states)
                 .filter(BlockState.class)
                 .transform(BlockState::getWitness)
                 .toList());
+    String id =
+        BlockState.combineUniqueIds(
+            FluentIterable.from(states)
+                .filter(BlockState.class)
+                .transform(BlockState::getUniqueId)
+                .toSortedList(Comparator.comparing(String::toString)));
 
-    boolean stemsFromTopState =
-        Iterables.any(
-            states, s -> s instanceof BlockState b && b.hasNonTrivialSummaryForEachPredecessor());
     AbstractState reference = Iterables.getFirst(states, null);
     Preconditions.checkNotNull(reference);
     BlockState blockState = (BlockState) reference;
     return new BlockState(
+        id,
+        null,
         Iterables.getOnlyElement(locations),
         blockState.getBlockNode(),
         blockState.getType(),
         blockState.getViolationConditions(),
         blockState.getHistory(),
-        finalWitness,
-        stemsFromTopState);
+        finalWitness);
   }
 }

@@ -1,0 +1,59 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.2"
+    uuid: "5a7e9b2c-3d4f-4e1a-8b6c-0f2d1e3c4b5a"
+    creation_time: "2026-10-23T12:00:00+02:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/shadowed-variable-nontermination.c"
+      input_file_hashes:
+        "../../simple/witness_validation/shadowed-variable-nontermination.c": "2ae997270539eeb9be7b30ac01b5f80f6e69277baef39c1b6f61feae3d86730b"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "assumption"
+            action: "follow"
+            constraint:
+              value: "data == 0"
+              format: "c_expression"
+            location:
+              file_name: "../../simple/witness_validation/shadowed-variable-nontermination.c"
+              line: 15
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/shadowed-variable-nontermination.c"
+              line: 15
+              column: 5
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "assumption"
+            action: "cycle"
+            constraint:
+              value: "data == 0"
+              format: "c_expression"
+            location:
+              file_name: "../../simple/witness_validation/shadowed-variable-nontermination.c"
+              line: 16
+              column: 7
+              function: "main"

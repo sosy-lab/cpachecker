@@ -393,7 +393,8 @@ public class SMGTransferRelation
                 name,
                 name,
                 name,
-                initializer);
+                initializer,
+                /* pHasThreadLocalStorage= */ false);
         newStates =
             new ArrayList<>(
                 handleInitializer(
@@ -1161,7 +1162,8 @@ public class SMGTransferRelation
               region.getLabel(),
               region.getLabel(),
               region.getLabel(),
-              initializer);
+              initializer,
+              /* pHasThreadLocalStorage= */ false);
 
       // call #handleInitializer for new region and string expression
       for (SMGState smgState :

@@ -17,19 +17,22 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class DssMessageFactory {
 
   private final boolean exportTimestamp;
+  private final boolean compressMessages;
 
   public static final String DSS_MESSAGE_STATUS_KEY = "status";
   public static final String DSS_MESSAGE_PRECISE_KEY = "precise";
   public static final String DSS_MESSAGE_PROPERTY_KEY = "property";
   public static final String DSS_MESSAGE_SOUND_KEY = "sound";
+  public static final String DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY = "unreachableBlockEnd";
 
   public DssMessageFactory(DssAnalysisOptions pOptions) {
     exportTimestamp = pOptions.isDebugModeEnabled();
+    compressMessages = pOptions.compressMessages();
   }
 
   private ImmutableMap<String, String> serializeStatus(AlgorithmStatus pStatus) {
@@ -56,6 +59,26 @@ public class DssMessageFactory {
             .buildOrThrow());
   }
 
+  /**
+   * Creates a postcondition message that reports the end of the sender's block as unreachable,
+   * i.e., the block produced no state at its final location.
+   *
+   * <p>The message deliberately carries no states: the flag alone is the signal, so neither sender
+   * nor receiver has to (de)serialize an abstract state to communicate unreachability.
+   *
+   * @param pSenderId the ID of the block whose end is unreachable
+   * @param pStatus the status of the analysis that found the block end to be unreachable
+   */
+  public DssPostConditionMessage createDssUnreachableBlockEndMessage(
+      String pSenderId, AlgorithmStatus pStatus) {
+    return new DssPostConditionMessage(
+        pSenderId,
+        ImmutableMap.<String, String>builder()
+            .putAll(serializeStatus(pStatus))
+            .put(DSS_MESSAGE_UNREACHABLE_BLOCK_END_KEY, "true")
+            .buildOrThrow());
+  }
+
   public DssViolationConditionMessage createViolationConditionMessage(
       String pSenderId, AlgorithmStatus pStatus, ImmutableMap<String, String> pStateContent) {
     return new DssViolationConditionMessage(
@@ -77,7 +100,7 @@ public class DssMessageFactory {
   }
 
   public DssWitnessMessage createDssViolationWitnessMessage(
-      String pSenderId, SegmentedPaths violationWitness) {
+      String pSenderId, DecisionGraph violationWitness) {
     return new DssWitnessMessage(
         pSenderId,
         ImmutableMap.<String, String>builder()
@@ -96,7 +119,8 @@ public class DssMessageFactory {
 
   public ImmutableMap<String, ImmutableMap<String, String>> export(DssMessage pMessage) {
     if (!exportTimestamp) {
-      ImmutableMap<String, ImmutableMap<String, String>> messageContent = pMessage.asJson();
+      ImmutableMap<String, ImmutableMap<String, String>> messageContent =
+          pMessage.asJsonWithIdentifier(0, compressMessages);
       ImmutableMap.Builder<String, ImmutableMap<String, String>> noTimestampMessage =
           ImmutableMap.builder();
       ImmutableMap<String, String> header =
@@ -113,6 +137,6 @@ public class DssMessageFactory {
               "Content must not be null in DssMessage export"));
       return noTimestampMessage.buildOrThrow();
     }
-    return pMessage.asJson();
+    return pMessage.asJsonWithIdentifier(0, compressMessages);
   }
 }

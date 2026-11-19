@@ -85,7 +85,7 @@ public class BlockGraphModification {
       return getUnchanged(pCFA, pBlockGraph);
     }
 
-    MutableCFA mutableCfa = MutableCFA.copyOf(pCFA, pConfig, pLogger);
+    MutableCFA mutableCfa = DssCfaCopy.copyOf(pCFA, pConfig, pLogger);
 
     ModificationMetadata modificationMetadata =
         addBlankEdgesAtBlockEnds(mutableCfa, pCFA, pBlockGraph);
@@ -233,8 +233,7 @@ public class BlockGraphModification {
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {
       CFANode mutableCfaBlockEnd = blockMapping.originalToInstrumentedNodes().get(originalBlockEnd);
-      if (mutableCfaBlockEnd.getLeavingSummaryEdge() == null
-          && !mutableCfaBlockEnd.equals(pOriginalCfa.getMainFunction())
+      if (!mutableCfaBlockEnd.equals(pOriginalCfa.getMainFunction())
           && !(mutableCfaBlockEnd instanceof CFATerminationNode)) {
         CFANode blockEndEdgeSuccessor = new CFANode(mutableCfaBlockEnd.getFunction());
         pMutableCfa.addNode(blockEndEdgeSuccessor);

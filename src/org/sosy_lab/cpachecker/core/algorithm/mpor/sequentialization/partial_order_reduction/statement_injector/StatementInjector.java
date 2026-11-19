@@ -65,7 +65,7 @@ public record StatementInjector(
     }
     // then place executeThreadsUntilConflict, because if the reduction succeeds then the
     // subsequent ghost element updates are unnecessary
-    if (options.executeThreadsUntilConflict()) {
+    if (options.executeThreadsUntilConflict() && !otherThreads.isEmpty()) {
       ExecuteUntilConflictInjector executeUntilConflictInjector =
           new ExecuteUntilConflictInjector(
               options,
@@ -79,7 +79,7 @@ public record StatementInjector(
       pStatement =
           executeUntilConflictInjector.injectUntilConflictReductionIntoStatement(pStatement);
     }
-    if (options.executeCommutingThreadsFirst()) {
+    if (options.executeCommutingThreadsFirst() && !otherThreads.isEmpty()) {
       CommutingThreadsFirstInjector commutingThreadsFirstInjector =
           new CommutingThreadsFirstInjector(
               options, activeThread, otherThreads, labelClauseMap, ghostElements, utils);
@@ -91,7 +91,7 @@ public record StatementInjector(
               options, otherThreads.size() + 1, activeThread, labelClauseMap);
       pStatement = prevThreadAssignmentInjector.injectPrevThreadUpdatesIntoStatement(pStatement);
     }
-    if (options.abortCommutingContextSwitches()) {
+    if (options.abortCommutingContextSwitches() && !otherThreads.isEmpty()) {
       AbortCommutingContextSwitchesInjector abortCommutingContextSwitches =
           new AbortCommutingContextSwitchesInjector(
               options,

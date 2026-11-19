@@ -43,7 +43,10 @@ public final class SvLibFunctionType implements SvLibType, AFunctionType {
 
   @Override
   public String toASTString() {
-    return "(" + Joiner.on(") (").join(inputTypes) + ") " + outputType;
+    return "("
+        + from(inputTypes).transform(SvLibType::toASTString).join(Joiner.on(") ("))
+        + ") "
+        + outputType.toASTString();
   }
 
   @Override

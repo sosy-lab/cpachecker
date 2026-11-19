@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingUtil.CExpressionCollector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements.SeqThreadStatement;
@@ -169,7 +169,7 @@ public class SeqMemoryLocationFinder {
    * CRightHandSide} in an assignment where the pointer that is dereferenced is a {@link
    * CLeftHandSide}.
    */
-  static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
+  public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
       final SeqMemoryLocation pPointerDereference,
       ImmutableSet<SeqPointerAssignment> pPointerAssignments)
       throws UnsupportedCodeException {

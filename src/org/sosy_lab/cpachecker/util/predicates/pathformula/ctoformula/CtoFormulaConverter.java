@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -158,7 +159,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
 
   private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
       ImmutableSet.<String>builder()
-          .add("memcpy", "memmove", "memset")
+          .add("memcpy", "memmove", "memset", "strcpy")
           // the atomic builtins that write to the object their pointer argument designates,
           // i.e. all of them except __atomic_load_n and the fences
           .addAll(BuiltinAtomicFunctions.getSideEffectFunctionNames())
@@ -236,7 +237,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = pCompositeType.withoutQualifiers();
+    CCompositeType compositeType = pCompositeType.asUnqualified();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -561,14 +562,15 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
               typeHandler.getPointerType(),
               fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
-
-      // In principle, we could add constraints that the addresses of all these string literals
-      // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
-      // package. But this is likely rarely useful in practice.
-      // But we have seen code that relies on the address being non-null, so encode that.
-      constraints.addConstraint(
-          fmgr.makeNot(fmgr.makeEqual(result, fmgr.makeNumber(typeHandler.getPointerType(), 0))));
     }
+
+    // In principle, we could add constraints that the addresses of all these string literals
+    // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
+    // package. But this is likely rarely useful in practice.
+    // But we have seen code that relies on the address being non-null, so encode that.
+    // The formula is cached, but every path formula that uses it needs the constraint.
+    constraints.addConstraint(
+        fmgr.makeNot(fmgr.makeEqual(result, fmgr.makeNumber(typeHandler.getPointerType(), 0))));
 
     return result;
   }
@@ -1718,8 +1720,22 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       Constraints constraints,
       ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
+    if (options.abortOnPointerWrites() && isPointerTarget(exp)) {
+      throw new UnsupportedCodeException("write through pointer", edge, exp);
+    }
     return exp.accept(
         new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
+  }
+
+  /** Whether the expression refers to memory through a pointer, e.g., {@code p->f[i]}. */
+  private static boolean isPointerTarget(CExpression pExp) {
+    return switch (pExp) {
+      case CFieldReference f -> f.isPointerDereference() || isPointerTarget(f.getFieldOwner());
+      case CArraySubscriptExpression a ->
+          a.getArrayExpression().getExpressionType().getCanonicalType() instanceof CPointerType
+              || isPointerTarget(a.getArrayExpression());
+      default -> pExp instanceof CPointerExpression;
+    };
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {

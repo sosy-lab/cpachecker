@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
+import java.util.concurrent.atomic.AtomicLong;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SymbolicValueFactory {
 
   private static final SymbolicValueFactory SINGLETON = new SymbolicValueFactory();
-  private int idCounter = 0;
+  // atomic, because analyses that run in parallel share it
+  private final AtomicLong idCounter = new AtomicLong();
 
   private SymbolicValueFactory() {
     // DO NOTHING
@@ -24,10 +26,10 @@ public class SymbolicValueFactory {
   }
 
   public static void reset() {
-    SINGLETON.idCounter = 0;
+    SINGLETON.idCounter.set(0);
   }
 
   public SymbolicIdentifier newIdentifier(MemoryLocation pMemoryLocation) {
-    return new SymbolicIdentifier(idCounter++, pMemoryLocation);
+    return new SymbolicIdentifier(idCounter.getAndIncrement(), pMemoryLocation);
   }
 }

@@ -422,7 +422,16 @@ class PointerTargetSetManager {
             mergedDeferredAllocations,
             mergedTargets,
             highestAllocatedAddresses,
-            allocationCount);
+            allocationCount,
+            // facts about equal strings are only kept if they are the same on both paths
+            pts1.getStringFacts().equals(pts2.getStringFacts())
+                ? pts1.getStringFacts()
+                : PersistentLinkedList.of(),
+            ZeroedMemoryFact.merge(
+                pts1.getZeroedMemoryFacts(),
+                pts2.getZeroedMemoryFacts(),
+                options.maxTrackedZeroedBlocks(),
+                options.maxWritesToZeroedBlock()));
 
     // Handle value-import constraints
 
@@ -792,7 +801,7 @@ class PointerTargetSetManager {
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
         if (!offset.isPresent()) {
-          continue; // TODO this looses values of bit fields
+          continue; // TODO this loses values of bit fields that do not fit into a cell
         }
         if (fields.containsKey(CompositeField.of(compositeType, memberDeclaration))) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);

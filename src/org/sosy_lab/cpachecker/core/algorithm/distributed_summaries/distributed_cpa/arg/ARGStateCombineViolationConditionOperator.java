@@ -31,18 +31,23 @@ public class ARGStateCombineViolationConditionOperator
   }
 
   @Override
-  public AbstractState combineViolationConditionsAtSameProgramHash(
-      Optional<AbstractState> origin, Collection<AbstractState> states)
+  public AbstractState combineViolationConditionsAtSameProgramHash(Collection<AbstractState> states)
+      throws InterruptedException, CPAException {
+    return combineIfPossible(states)
+        .orElseThrow(
+            () -> new IllegalArgumentException("Cannot combine incompatible violation conditions"));
+  }
+
+  @Override
+  public Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
       throws InterruptedException, CPAException {
     FluentIterable<@NonNull ARGState> argStates =
         FluentIterable.from(states).filter(ARGState.class);
     Preconditions.checkState(argStates.size() == states.size(), "All states must be ARGStates.");
     ImmutableList<@NonNull AbstractState> wrappedStates =
         argStates.transform(ARGState::getWrappedState).toList();
-    AbstractState combined =
-        wrappedCpa
-            .getCombineViolationConditionsOperator()
-            .combineViolationConditionsAtSameProgramHash(origin, wrappedStates);
-    return new ARGState(combined, null);
+    Optional<AbstractState> combined =
+        wrappedCpa.getCombineViolationConditionsOperator().combineIfPossible(wrappedStates);
+    return combined.map(state -> new ARGState(state, null));
   }
 }

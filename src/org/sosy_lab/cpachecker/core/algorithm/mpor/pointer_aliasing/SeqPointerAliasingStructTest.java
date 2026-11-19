@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -143,7 +144,8 @@ public class SeqPointerAliasingStructTest {
           "global_ptr_A",
           "global_ptr_A",
           "global_ptr_A",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration OUTER_STRUCT_DECLARATION =
       new CVariableDeclaration(
@@ -154,7 +156,8 @@ public class SeqPointerAliasingStructTest {
           "outer_struct",
           "outer_struct",
           "outer_struct",
-          EMPTY_INITIALIZER_LIST);
+          EMPTY_INITIALIZER_LIST,
+          /* pHasThreadLocalStorage= */ false);
 
   // CDeclaration
 
@@ -167,7 +170,8 @@ public class SeqPointerAliasingStructTest {
           "global_G1",
           "global_G1",
           "global_G1",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration LOCAL_L1_DECLARATION =
       new CVariableDeclaration(
@@ -178,7 +182,8 @@ public class SeqPointerAliasingStructTest {
           "local_L1",
           "local_L1",
           "local_L1",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final CVariableDeclaration INNER_STRUCT_VARIABLE_DECLARATION =
       new CVariableDeclaration(
@@ -189,7 +194,8 @@ public class SeqPointerAliasingStructTest {
           "inner_struct",
           "inner_struct",
           "inner_struct",
-          EMPTY_INITIALIZER_LIST);
+          EMPTY_INITIALIZER_LIST,
+          /* pHasThreadLocalStorage= */ false);
 
   private final class CParameterDeclarations {
     final CParameterDeclaration PARAMETER_DECLARATION_POINTER_OUTER_STRUCT =
@@ -332,6 +338,7 @@ public class SeqPointerAliasingStructTest {
     // global_ptr_A = &outer_struct.outer_member; i.e. pointer assignment
     Optional<SeqPointerAssignment> pointerAssignment =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             OUTER_STRUCT_MEMBER_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -359,6 +366,7 @@ public class SeqPointerAliasingStructTest {
     // global_ptr_A = &outer_struct.outer_member
     Optional<SeqPointerAssignment> pointerAssignment1 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             OUTER_STRUCT_MEMBER_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -368,6 +376,7 @@ public class SeqPointerAliasingStructTest {
     // global_ptr_A = &outer_struct.inner_struct.inner_member
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             OUTER_STRUCT_INNER_STRUCT_MEMBER_FIELD_REFERENCE,
             SeqCallContext.EMPTY,
@@ -394,6 +403,7 @@ public class SeqPointerAliasingStructTest {
     // param_ptr_outer = &outer; i.e. pointer parameter assignment
     Optional<SeqPointerAssignment> parameterAssignment =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             PARAMETER_POINTER_OUTER_STRUCT_ID_EXPRESSION,
             OUTER_STRUCT_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -421,6 +431,7 @@ public class SeqPointerAliasingStructTest {
     // i.e. pointer parameter assignments
     Optional<SeqPointerAssignment> parameterAssignment1 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             PARAMETER_POINTER_P1_ID_EXPRESSION,
             OUTER_STRUCT_MEMBER_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -429,6 +440,7 @@ public class SeqPointerAliasingStructTest {
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> parameterAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             PARAMETER_POINTER_P2_ID_EXPRESSION,
             OUTER_STRUCT_INNER_STRUCT_MEMBER_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -468,6 +480,7 @@ public class SeqPointerAliasingStructTest {
     // outer.member_ptr = &local_L1; and outer.inner.member_ptr = &global_L1
     Optional<SeqPointerAssignment> pointerAssignment1 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             OUTER_STRUCT_POINTER_MEMBER_FIELD_REFERENCE,
             LOCAL_L1_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -476,6 +489,7 @@ public class SeqPointerAliasingStructTest {
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             OUTER_STRUCT_INNER_STRUCT_POINTER_MEMBER_FIELD_REFERENCE,
             GLOBAL_G1_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -490,6 +504,7 @@ public class SeqPointerAliasingStructTest {
     // i.e. pointer parameter assignment
     Optional<SeqPointerAssignment> parameterAssignment1 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             PARAMETER_POINTER_P1_ID_EXPRESSION,
             OUTER_STRUCT_POINTER_MEMBER_FIELD_REFERENCE,
             SeqCallContext.EMPTY,
@@ -498,6 +513,7 @@ public class SeqPointerAliasingStructTest {
             SeqPointerAssignmentType.PARAMETER);
     Optional<SeqPointerAssignment> parameterAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             PARAMETER_POINTER_P2_ID_EXPRESSION,
             OUTER_STRUCT_INNER_STRUCT_POINTER_MEMBER_FIELD_REFERENCE,
             SeqCallContext.EMPTY,

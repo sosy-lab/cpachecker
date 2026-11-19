@@ -106,6 +106,10 @@ public class WaypointRecord {
     return new WaypointRecord(type, action, constraint, location, pThreadId);
   }
 
+  public WaypointRecord withCycleAction() {
+    return new WaypointRecord(type, WaypointAction.CYCLE, constraint, location, thread);
+  }
+
   @Override
   @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object pOther) {

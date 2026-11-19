@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibLivenessTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -97,6 +98,12 @@ public class SvLibSafetySpecTransferRelation extends SingleEdgeTransferRelation 
             case SvLibRequiresTag pSvLibRequiresTag ->
                 throw new UnsupportedCodeException(
                     "Tag 'requires' not supported in safety specifications.", cfaEdge);
+            case SvLibLivenessTag pSvLibLivenessTag ->
+                throw new UnsupportedCodeException(
+                    "Liveness tag '"
+                        + pSvLibLivenessTag.toASTString()
+                        + "' not supported in safety specifications.",
+                    cfaEdge);
           };
       outStates.add(successorState);
     }

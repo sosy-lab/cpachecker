@@ -31,7 +31,6 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.NestedRankingFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
-import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.Serial;
@@ -364,12 +363,9 @@ public class RankingRelationBuilder {
       CIdExpression variable = new CIdExpression(DUMMY, variableDecl.orElseThrow());
       return Pair.of(primedVariable, variable);
 
-    } else if (pRankVar.getTerm() instanceof ApplicationTerm uf
-        && !uf.getFunction().isInterpreted()
-        && uf.getFunction().getParameterSorts().length == 1
-        && uf.getFunction().getName().startsWith("*")) { // dereference
+    } else if (RankVar.getDereferencedPointer(pRankVar.getTerm()).isPresent()) {
 
-      Term innerVariableTerm = uf.getParameters()[0];
+      Term innerVariableTerm = RankVar.getDereferencedPointer(pRankVar.getTerm()).orElseThrow();
       String innerVariableName = CharMatcher.is('|').trimFrom(innerVariableTerm.toStringDirect());
       RankVar innerDummyRankVar =
           new RankVar(innerVariableName, pRankVar.isGlobal(), innerVariableTerm);

@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -212,11 +211,11 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     ImmutableMap.Builder<LeftHandSide, Object> result = ImmutableMap.builder();
 
     if (options.exportVariableAssignmentsForViolations()) {
-      for (Entry<MemoryLocation, BigInteger> memLocsAndValues :
+      for (Entry<MemoryLocation, Number> memLocsAndValues :
           state.getVariablesWithConcreteValues(modelToUse).entrySet()) {
 
         MemoryLocation location = memLocsAndValues.getKey();
-        BigInteger value = memLocsAndValues.getValue();
+        Number value = memLocsAndValues.getValue();
 
         Optional<LeftHandSide> maybeLhs = createLeftHandSideFor(location, options);
         // We can't handle local arrays or field references currently, as we only have an offset,

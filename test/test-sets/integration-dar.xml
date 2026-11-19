@@ -8,7 +8,7 @@
 <!-- -->
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="2">
 
     <option name="--no-output-files"/>
@@ -24,12 +24,27 @@
         <propertyfile>../config/properties/unreach-label.prp</propertyfile>
     </tasks>
     <tasks>
+      <option name="--option">analysis.preprocessing.MPOR=true</option>
+      <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+      <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+    </tasks>
+    <tasks>
         <includesfile>../programs/simple/simple.set</includesfile>
         <propertyfile>../config/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks>
+      <option name="--option">analysis.preprocessing.MPOR=true</option>
+      <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+      <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks>
         <includesfile>../programs/simple/simple.set</includesfile>
         <propertyfile>../config/Assertion.spc</propertyfile>
+    </tasks>
+    <tasks>
+      <option name="--option">analysis.preprocessing.MPOR=true</option>
+      <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+      <propertyfile>../config/Assertion.spc</propertyfile>
     </tasks>
     <tasks>
         <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
@@ -127,6 +142,7 @@
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.4.1.ufo.UNBOUNDED.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.4.2.ufo.BOUNDED-8.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr-var-start-time.4.2.ufo.UNBOUNDED.pals.c.v+sep-reducer.yml</exclude> <!-- flapping timeout -->
+        <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.4.ufo.BOUNDED-8.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.5.1.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.5.3.ufo.BOUNDED-10.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
         <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.5.4.ufo.BOUNDED-10.pals.c.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->

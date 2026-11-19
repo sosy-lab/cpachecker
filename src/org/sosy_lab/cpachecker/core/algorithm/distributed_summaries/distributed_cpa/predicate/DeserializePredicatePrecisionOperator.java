@@ -12,6 +12,9 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -41,13 +44,28 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
  */
 public class DeserializePredicatePrecisionOperator implements DeserializePrecisionOperator {
 
+  /**
+   * Splitter for the predicate lists written by {@link SerializePredicatePrecisionOperator}, which
+   * joins them with {@code " , "}. {@code omitEmptyStrings()} is essential: joining an empty
+   * collection yields {@code ""}, and splitting {@code ""} without it yields a single blank element
+   * instead of none. A blank element would reach {@link AbstractionManager#parsePredicate(String)},
+   * which maps blanks to {@code false}, so an empty predicate list would deserialize into the
+   * "false" predicate and render the whole precision (and, through {@link PredicatePrecision}'s
+   * eager propagation of globals, every function and location key) unusable.
+   */
+  private static final Splitter PREDICATE_SPLITTER = Splitter.on(" , ").omitEmptyStrings();
+
   private final Function<Integer, CFANode> nodeMapping;
-  private final AbstractionManager abstractionManager;
+  // Scoped to this solver context: incoming messages repeatedly carry the same predicates.
+  private final LoadingCache<String, AbstractionPredicate> parsedPredicates;
 
   public DeserializePredicatePrecisionOperator(
       final AbstractionManager pAbstractionManager, final Function<Integer, CFANode> pNodeMapping) {
     nodeMapping = pNodeMapping;
-    abstractionManager = pAbstractionManager;
+    parsedPredicates =
+        CacheBuilder.newBuilder()
+            .maximumSize(1024)
+            .build(CacheLoader.from(pAbstractionManager::parsePredicate));
   }
 
   private Multimap<LocationInstance, AbstractionPredicate> parseLocationInstances(
@@ -65,8 +83,8 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
                   nodeMapping.apply(
                       Integer.parseInt(splitNodeNumberAndLocationInstance.getFirst())),
                   Integer.parseInt(splitNodeNumberAndLocationInstance.get(1)));
-          for (String precision : Splitter.on(" , ").split(serializedPredicates)) {
-            locationInstances.put(locationInstance, abstractionManager.parsePredicate(precision));
+          for (String precision : PREDICATE_SPLITTER.split(serializedPredicates)) {
+            locationInstances.put(locationInstance, parsedPredicates.getUnchecked(precision));
           }
         });
     contentReader.popLevel();
@@ -81,10 +99,10 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
         ImmutableListMultimap.builder();
     localPredicatesMap.forEach(
         (location, serializedPrecisions) -> {
-          for (String precision : Splitter.on(" , ").split(serializedPrecisions)) {
+          for (String precision : PREDICATE_SPLITTER.split(serializedPrecisions)) {
             localPredicates.put(
                 Objects.requireNonNull(nodeMapping.apply(Integer.parseInt(location))),
-                abstractionManager.parsePredicate(precision));
+                parsedPredicates.getUnchecked(precision));
           }
         });
     contentReader.popLevel();
@@ -100,8 +118,8 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
     Map<String, String> functionPredicatesMap = contentReader.getContent();
     functionPredicatesMap.forEach(
         (function, serializedPredicates) -> {
-          for (String predicate : Splitter.on(" , ").split(serializedPredicates)) {
-            functionPredicates.put(function, abstractionManager.parsePredicate(predicate));
+          for (String predicate : PREDICATE_SPLITTER.split(serializedPredicates)) {
+            functionPredicates.put(function, parsedPredicates.getUnchecked(predicate));
           }
         });
     contentReader.popLevel();
@@ -109,11 +127,13 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
   }
 
   private ImmutableSet<AbstractionPredicate> parseGlobals(ContentReader contentReader) {
+    // An absent key must behave exactly like the empty value the serializer writes for a precision
+    // without global predicates.
     String serializedPredicates =
-        contentReader.get(SerializePredicatePrecisionOperator.DSS_MESSAGE_GLOBAL_KEY);
+        contentReader.getOrDefault(SerializePredicatePrecisionOperator.DSS_MESSAGE_GLOBAL_KEY, "");
     return transformedImmutableSetCopy(
-        Splitter.on(" , ").splitToList(serializedPredicates),
-        predicate -> abstractionManager.parsePredicate(predicate));
+        PREDICATE_SPLITTER.splitToList(serializedPredicates),
+        predicate -> parsedPredicates.getUnchecked(predicate));
   }
 
   @Override

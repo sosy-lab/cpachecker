@@ -13,6 +13,9 @@ import java.util.Optional;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibBaseVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.IdentifierContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.Qual_identiferContext;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.antlr.generated.SvLibParser.SymbolContext;
 
 class AbstractAntlrToAstConverter<T> extends SvLibBaseVisitor<T> {
 
@@ -50,5 +53,23 @@ class AbstractAntlrToAstConverter<T> extends SvLibBaseVisitor<T> {
         pFinalContext.getStop().getLine(),
         pInitialContext.getStart().getCharPositionInLine(),
         pFinalContext.getStop().getCharPositionInLine());
+  }
+
+  /** The name that a symbol denotes, without the vertical bars of a quoted symbol. */
+  protected static String nameOf(SymbolContext pSymbol) {
+    String text = pSymbol.getText();
+    return pSymbol.quotedSymbol() == null ? text : text.substring(1, text.length() - 1);
+  }
+
+  /** The name of an identifier, which is the name of its symbol unless it has indices. */
+  protected static String nameOf(IdentifierContext pIdentifier) {
+    return pIdentifier.index().isEmpty() ? nameOf(pIdentifier.symbol()) : pIdentifier.getText();
+  }
+
+  /**
+   * The name of a qualified identifier, which is the name of its identifier unless it has a sort.
+   */
+  protected static String nameOf(Qual_identiferContext pIdentifier) {
+    return pIdentifier.GRW_As() == null ? nameOf(pIdentifier.identifier()) : pIdentifier.getText();
   }
 }

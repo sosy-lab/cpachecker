@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
@@ -186,16 +188,30 @@ class AutomatonWitnessV2ParserCommon {
     return segments.build();
   }
 
+  /**
+   * Parses the constraint among the variables in scope at the given node, if it is known, such that
+   * a name refers to the variable with this name in the input program.
+   */
   void handleConstraint(
       String constraint,
       Optional<String> resultFunction,
       int line,
+      Optional<CFANode> pNode,
       AutomatonTransition.Builder builder)
       throws InterruptedException, WitnessParseException {
     try {
       Scope defaultScope =
           switch (cfa.getLanguage()) {
-            case C -> new CProgramScope(cfa, logger);
+            case C -> {
+              CProgramScope programScope = new CProgramScope(cfa, logger);
+              yield pNode
+                  .flatMap(cfa.getAstCfaRelation()::getVariablesAndParametersInScope)
+                  .map(
+                      variables ->
+                          programScope.withVariablesInScope(
+                              variables.filter(CSimpleDeclaration.class).toList()))
+                  .orElse(programScope);
+            }
             default -> DummyScope.getInstance();
           };
       Scope scope =

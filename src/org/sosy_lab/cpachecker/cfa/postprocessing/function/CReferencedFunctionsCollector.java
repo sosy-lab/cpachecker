@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -46,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
  * Helper class that collects all functions referenced by some CFAEdges, not counting those that are
  * called directly. (Only functions that have their address taken (implicitly) are returned.)
  */
-class CReferencedFunctionsCollector {
+public class CReferencedFunctionsCollector {
 
   final Set<String> collectedFunctions = new HashSet<>();
   protected CollectFunctionsVisitor collector;
@@ -65,7 +66,7 @@ class CReferencedFunctionsCollector {
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
         assumeEdge.getExpression().accept(collector);
       }
-      case BlankEdge -> {
+      case BlankEdge, FunctionReturnEdge, CallToReturnEdge -> {
         // nothing to do
       }
       case DeclarationEdge -> {
@@ -84,7 +85,7 @@ class CReferencedFunctionsCollector {
         CStatementEdge statementEdge = (CStatementEdge) edge;
         statementEdge.getStatement().accept(collector);
       }
-      default -> throw new AssertionError();
+      case FunctionCallEdge -> ((CFunctionCallEdge) edge).getFunctionCall().accept(collector);
     }
   }
 

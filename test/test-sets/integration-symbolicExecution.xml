@@ -10,7 +10,7 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -30,11 +30,26 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/simple/struct-char-array-initializer.yml</exclude> <!-- flapping timeout / out of memory -->
   </tasks>
   <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+  <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/Assertion.spc</propertyfile>
+  </tasks>
+  <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>

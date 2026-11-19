@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
@@ -55,15 +54,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
+import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 
 @Options(prefix = "undefinedFunctionsCollector")
 public class UndefinedFunctionCollectorAlgorithm
     implements Algorithm, StatisticsProvider, Statistics {
 
   private static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
-  private static final String NONDET_FUNCTION_PREFIX = "__VERIFIER_nondet_";
   private static final String ASSUME_FUNCTION_DECL = "void " + ASSUME_FUNCTION_NAME + "(int);\n";
 
   @Option(secure = true, description = "export undefined functions as C file")
@@ -250,79 +248,57 @@ public class UndefinedFunctionCollectorAlgorithm
 
   private boolean printType(String indent, StringBuilder prepend, StringBuilder buf, CType rt) {
     boolean couldBeHandled = true;
-    if (rt instanceof CVoidType) {
-      buf.append(indent + "// Void type\n");
-      buf.append(indent + "return;\n");
-    } else if (rt instanceof CPointerType) {
-      buf.append(indent + "// Pointer type\n");
-      prepend.append(odmFunctionDecl);
-      buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
-    } else if (rt instanceof CSimpleType ct) {
-      Pair<String, String> pair = convertType(ct);
-      String nondetFunc = NONDET_FUNCTION_PREFIX + pair.getSecond();
-      prepend.append(pair.getFirst() + " " + nondetFunc + "(void);\n");
-      buf.append(indent + "// Simple type\n");
-      buf.append(indent + "return " + nondetFunc + "();\n");
-    } else if (rt instanceof CEnumType) {
-      buf.append(indent + "// Enum type\n");
-      String nondetFunc = NONDET_FUNCTION_PREFIX + "int";
-      prepend.append("int " + nondetFunc + "(void);\n");
-      buf.append(indent + "return " + nondetFunc + "();\n");
-    } else if (rt instanceof CCompositeType) {
-      buf.append(indent + "// Composite type\n");
-      prepend.append(odmFunctionDecl);
-      // We can not use rt.toASTString(), as it produces full definition with all fields
-      buf.append(indent + rt + " *tmp = (" + rt + "*)" + externAllocFunction + "();\n");
-      prepend.append(ASSUME_FUNCTION_DECL);
-      buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
-      buf.append(indent + "return *tmp;\n");
-    } else if (rt instanceof CElaboratedType cElaboratedType) {
-      CType real = cElaboratedType.getRealType();
-      if (real == null) {
-        couldBeHandled = false;
-      } else {
-        couldBeHandled = printType(indent, prepend, buf, real);
+    switch (rt) {
+      case CVoidType unused -> {
+        buf.append(indent + "// Void type\n");
+        buf.append(indent + "return;\n");
       }
-    } else if (rt instanceof CTypedefType tt) {
-      buf.append(indent + "// Typedef type\n");
-
-      CType real = tt.getRealType();
-      buf.append(indent + "// Real type: " + real + "\n");
-      couldBeHandled = printType(indent, prepend, buf, real);
-    } else {
-      throw new AssertionError(
-          "Unexpected type '" + rt + "' of class " + rt.getClass().getSimpleName());
-    }
-    return couldBeHandled;
-  }
-
-  // Copied from SV-COMP rules:
-  // bool, char, int, float, double, loff_t, long,
-  // pchar, pointer, pthread_t, sector_t, short,
-  // size_t, u32, uchar, uint, ulong, unsigned, ushort
-  private Pair<String, String> convertType(CSimpleType ct) {
-    CBasicType bt = ct.getType();
-    return switch (bt) {
-      case BOOL -> Pair.of("bool", "bool");
-      case CHAR ->
-          ct.hasUnsignedSpecifier() ? Pair.of("unsigned char", "uchar") : Pair.of("char", "char");
-      case DOUBLE -> Pair.of("double", "double");
-      case FLOAT -> Pair.of("float", "float");
-      case INT, UNSPECIFIED -> {
-        if (ct.hasShortSpecifier()) {
-          yield ct.hasUnsignedSpecifier()
-              ? Pair.of("unsigned short", "ushort")
-              : Pair.of("short", "short");
-        } else if (ct.hasLongSpecifier() || ct.hasLongLongSpecifier()) {
-          yield ct.hasUnsignedSpecifier()
-              ? Pair.of("unsigned long", "ulong")
-              : Pair.of("long", "long");
+      case CPointerType unused -> {
+        buf.append(indent + "// Pointer type\n");
+        prepend.append(odmFunctionDecl);
+        buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
+      }
+      case CSimpleType ct -> {
+        String nondetFunc = VerifierNondetFunctions.getFunctionName(ct);
+        prepend.append(VerifierNondetFunctions.getFunctionDeclaration(ct) + "\n");
+        buf.append(indent + "// Simple type\n");
+        buf.append(indent + "return " + nondetFunc + "();\n");
+      }
+      case CEnumType unused -> {
+        buf.append(indent + "// Enum type\n");
+        String nondetFunc = VerifierNondetFunctions.PREFIX + "int";
+        prepend.append("int " + nondetFunc + "(void);\n");
+        buf.append(indent + "return " + nondetFunc + "();\n");
+      }
+      case CCompositeType unused -> {
+        buf.append(indent + "// Composite type\n");
+        prepend.append(odmFunctionDecl);
+        // We can not use rt.toASTString(), as it produces full definition with all fields
+        buf.append(indent + rt + " *tmp = (" + rt + "*)" + externAllocFunction + "();\n");
+        prepend.append(ASSUME_FUNCTION_DECL);
+        buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
+        buf.append(indent + "return *tmp;\n");
+      }
+      case CElaboratedType cElaboratedType -> {
+        CType real = cElaboratedType.getRealType();
+        if (real == null) {
+          couldBeHandled = false;
         } else {
-          yield ct.hasUnsignedSpecifier() ? Pair.of("unsigned int", "uint") : Pair.of("int", "int");
+          couldBeHandled = printType(indent, prepend, buf, real);
         }
       }
-      default -> throw new RuntimeException("Unknown type " + ct);
-    };
+      case CTypedefType tt -> {
+        buf.append(indent + "// Typedef type\n");
+
+        CType real = tt.getRealType();
+        buf.append(indent + "// Real type: " + real + "\n");
+        couldBeHandled = printType(indent, prepend, buf, real);
+      }
+      default ->
+          throw new AssertionError(
+              "Unexpected type '" + rt + "' of class " + rt.getClass().getSimpleName());
+    }
+    return couldBeHandled;
   }
 
   @Override

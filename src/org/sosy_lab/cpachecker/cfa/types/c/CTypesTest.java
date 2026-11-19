@@ -53,7 +53,8 @@ public class CTypesTest {
               "n",
               "n",
               "n",
-              null));
+              null,
+              /* pHasThreadLocalStorage= */ false));
   static final CIdExpression VAR_CONST =
       new CIdExpression(
           FileLocation.DUMMY,
@@ -67,7 +68,8 @@ public class CTypesTest {
               "c",
               "c",
               "c",
-              new CInitializerExpression(FileLocation.DUMMY, TWO)));
+              new CInitializerExpression(FileLocation.DUMMY, TWO),
+              /* pHasThreadLocalStorage= */ false));
 
   static final CArrayType CONSTANT_ARRAY =
       new CArrayType(CTypeQualifiers.NONE, CNumericTypes.INT, TWO);

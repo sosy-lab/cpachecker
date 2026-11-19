@@ -12,6 +12,6 @@ CONTROL AUTOMATON CorrectAnnotations
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK("correct-annotations") -> ERROR("specification violation of program in $location");
+  CHECK(SvLibSafetySpecCPA, "correct-annotations") -> ERROR("specification violation of program in $location");
 
 END AUTOMATON

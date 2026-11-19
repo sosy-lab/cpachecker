@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -21,6 +24,9 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   private final CFANode successor;
   private final String rawStatement;
   private final FileLocation fileLocation;
+
+  /** The edge this edge is a per-thread clone of, or null (see {@link CFAEdge#getOriginal()}). */
+  private @Nullable CFAEdge original = null;
 
   protected AbstractCFAEdge(
       String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
@@ -33,6 +39,21 @@ public abstract class AbstractCFAEdge implements CFAEdge {
     successor = pSuccessor;
     rawStatement = pRawStatement;
     fileLocation = checkNotNull(pFileLocation);
+  }
+
+  @Override
+  public CFAEdge getOriginal() {
+    return original == null ? this : original;
+  }
+
+  /**
+   * Marks this edge as the per-thread clone of {@code pOriginal}. Only for the cloner that created
+   * this edge, directly after creating it (see {@link CFAEdge#getOriginal()}).
+   */
+  public final void setOriginal(CFAEdge pOriginal) {
+    checkState(original == null, "Original already set for edge %s", this);
+    checkArgument(pOriginal != this && pOriginal.getOriginal() == pOriginal);
+    original = pOriginal;
   }
 
   @Override

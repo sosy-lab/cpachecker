@@ -245,6 +245,23 @@ Note that the syntax of configuration files is explained in
   - Java itself provides the `Collections` class,
     though some parts like the singleton and immutable collections are better replaced by Guava utilities.
 
+### Threads and Concurrency
+
+- Prefer high-level utilities such as `ExecutorService` etc.
+  over low-level thread management and locking.
+- Make sure that all started threads have a name that indicates their use
+  (e.g., the class that started them).
+  For this, call `Thread.ofPlatform().name(...)`
+  and use the result either to start a thread or create a `ThreadFactory`
+  for `Executors`' factory methods.
+- Preferably avoid inheriting from thread.
+  This mixes the identity of the thread with the class managing it
+  and violates encapsulation.
+  A class that starts and manages a separate thread instance internally is cleaner.
+- With the above rules, all instances of thread creation in CPAchecker
+  are done via `Thread.ofPlatform()`, which is nice for searching for them.
+  Please deviate from this only when really necessary.
+
 ### Coding
 
 - Make sure that CPAchecker remains deterministic,

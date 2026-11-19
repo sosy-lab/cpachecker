@@ -11,11 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -28,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.executors.DssExecutor.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.DssWitnessArgStateCollector;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.witness.ResultWithWitnessInformation;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -44,14 +43,14 @@ public class DssObserverWorker extends DssWorker {
 
   private final DssConnection connection;
   private final StatusObserver statusObserver;
+  private final ShutdownNotifier shutdownNotifier;
   private boolean shutdown;
   private Optional<Result> finalResult;
-  private Optional<SegmentedPaths> violationWitness;
+  private Optional<DecisionGraph> violationWitness;
   private Optional<String> errorMessage;
 
   private int witnessMessagesReceived;
 
-  private final Set<String> receivedWitnesses;
   private final BlockGraph blockGraph;
   private final DssWitnessArgStateCollector stateCollector;
 
@@ -61,7 +60,8 @@ public class DssObserverWorker extends DssWorker {
       BlockGraph pBlockGraph,
       DssMessageFactory pMessageFactory,
       LogManager pLogger,
-      DssWitnessArgStateCollector pStateCollector) {
+      DssWitnessArgStateCollector pStateCollector,
+      ShutdownNotifier pShutdownNotifier) {
     super(pId, pMessageFactory, pLogger);
     shutdown = false;
     connection = pConnection;
@@ -71,7 +71,7 @@ public class DssObserverWorker extends DssWorker {
     violationWitness = Optional.empty();
     blockGraph = pBlockGraph;
     stateCollector = pStateCollector;
-    receivedWitnesses = new HashSet<>();
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -90,7 +90,6 @@ public class DssObserverWorker extends DssWorker {
         shutdown = true;
       }
       case WITNESS -> {
-        receivedWitnesses.add(pMessage.getSenderId());
         if (pMessage.getWitnessType() == WitnessType.VIOLATION) {
           violationWitness = Optional.of(pMessage.getViolationPath());
         } else {
@@ -113,16 +112,22 @@ public class DssObserverWorker extends DssWorker {
           case FALSE -> 1;
           default -> 0;
         };
-    return receivedWitnesses.size() == blockGraph.getNodes().size()
-        && witnessMessagesReceived == expectedWitnessMessages;
+    return witnessMessagesReceived == expectedWitnessMessages;
   }
 
-  public StatusAndResult observe() throws CPAException {
+  public StatusAndResult observe() throws CPAException, InterruptedException {
     super.run();
     if (errorMessage.isPresent()) {
+      // Worker messages serialize exceptions as text. Preserve a requested cancellation instead
+      // of turning its stack trace into a CPAException.
+      shutdownNotifier.shutdownIfNecessary();
       throw new CPAException(errorMessage.orElseThrow());
     }
     if (finalResult.isEmpty()) {
+      if (wasInterrupted()) {
+        // e.g. the time limit elapsed while the analysis was still running
+        throw new InterruptedException("Interrupted before the analysis computed a result");
+      }
       throw new CPAException("Analysis finished but no result is present...");
     }
     ResultWithWitnessInformation result =
@@ -166,7 +171,7 @@ public class DssObserverWorker extends DssWorker {
     private AlgorithmStatus finish() {
       return statusMap.values().stream()
           .reduce(AlgorithmStatus::update)
-          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+          .orElse(AlgorithmStatus.SOUND_AND_PRECISE);
     }
   }
 }

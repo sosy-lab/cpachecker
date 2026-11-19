@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -38,6 +40,23 @@ public interface ExpressionTreeReportingState extends AbstractState {
    */
   static String oldValueOf(String pVariable) {
     return "\\at(" + pVariable + ", Old)";
+  }
+
+  /**
+   * The variables and parameters of the input program in scope at the given location.
+   *
+   * @throws TranslationToExpressionTreeFailedException if they are unknown for the location, e.g.,
+   *     because a transformation of the CFA created it
+   */
+  static FluentIterable<AbstractSimpleDeclaration> variablesInScope(
+      AstCfaRelation pAstCfaRelation, CFANode pLocation)
+      throws TranslationToExpressionTreeFailedException {
+    return pAstCfaRelation
+        .getVariablesAndParametersInScope(pLocation)
+        .orElseThrow(
+            () ->
+                new TranslationToExpressionTreeFailedException(
+                    "Variables in scope are unknown at " + pLocation));
   }
 
   class ReportingMethodNotImplementedException extends Exception {

@@ -15,13 +15,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraphPath;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineSingletonPrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineViolationConditionsOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.EqualityCombinePreconditionsOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.coverage.CoverageOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class DistributedBlockCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -52,7 +52,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final CombinePreconditionsOperator combinePreconditionsOperator;
   private final CombineViolationConditionsOperator combineViolationConditionsOperator;
 
-  private final ConfigurableProgramAnalysis blockCpa;
+  private final BlockCPA blockCpa;
   private final BlockNode node;
   private final Function<CFANode, BlockState> blockStateSupplier;
   private final CombinePrecisionOperator combinePrecisionOperator;
@@ -61,18 +61,19 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
       ConfigurableProgramAnalysis pBlockCpa, BlockNode pNode, DssAnalysisOptions pOptions) {
     checkArgument(
         pBlockCpa instanceof BlockCPA, "%s is no %s", pBlockCpa.getClass(), BlockCPA.class);
-    blockCpa = pBlockCpa;
+    blockCpa = (BlockCPA) pBlockCpa;
     node = pNode;
     blockStateSupplier =
         location ->
             new BlockState(
+                pNode.getId() + "#" + blockCpa.getIdGenerator().getFreshId(),
+                null,
                 location,
                 pNode,
                 BlockStateType.INITIAL,
                 ImmutableList.of(),
-                ImmutableList.of(),
-                SegmentedPaths.EMPTY,
-                false);
+                BlockGraphPath.of(),
+                DecisionGraph.UNRESTRICTED);
 
     serializeOperator = new SerializeBlockStateOperator();
     deserializeOperator = new DeserializeBlockStateOperator(pNode);
@@ -82,8 +83,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     coverageOperator = new BlockStateCoverageOperator();
     serializePrecisionOperator = new NoPrecisionSerializeOperator();
     deserializePrecisionOperator = new NoPrecisionDeserializeOperator();
-    combinePreconditionsOperator =
-        new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());
+    combinePreconditionsOperator = new BlockStateCombinePreconditionsOperator();
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     combineViolationConditionsOperator = new BlockStateCombineViolationConditionOperator();
   }
@@ -174,9 +174,9 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
+  public Object computeProgramPointId(AbstractState pAbstractState) {
     Preconditions.checkState(pAbstractState instanceof BlockState);
     BlockState blockState = (BlockState) pAbstractState;
-    return Objects.hash(blockState.getLocationNode());
+    return blockState.getLocationNode().getNodeNumber();
   }
 }

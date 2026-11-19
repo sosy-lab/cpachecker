@@ -355,6 +355,33 @@ public final class Specification {
   }
 
   /**
+   * Return a new specification instance in which the automata of the files of this instance are
+   * parsed again with the given configuration, e.g., such that the automaton of a witness follows
+   * the options of a nested analysis. Automata that come from no file and all properties are kept.
+   */
+  public Specification parsedAgain(
+      CFA cfa, Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
+    if (specificationFiles.isEmpty()) {
+      return this;
+    }
+    Specification parsed =
+        Specification.fromFiles(specificationFiles, cfa, config, logger, pShutdownNotifier);
+
+    ImmutableListMultimap.Builder<Path, Automaton> automata = ImmutableListMultimap.builder();
+    automata.putAll(parsed.pathToSpecificationAutomata);
+    pathToSpecificationAutomata.asMap().entrySet().stream()
+        .filter(entry -> !specificationFiles.contains(entry.getKey()))
+        .forEach(entry -> automata.putAll(entry.getKey(), entry.getValue()));
+    return new Specification(
+        specificationFiles, Sets.union(properties, parsed.properties), automata.build());
+  }
+
+  /**
    * Return a new specification instance that has everything that the current instance has, and
    * additionally some new properties. Note that this only affects {@link #getProperties()} and not
    * the actual list of automata.

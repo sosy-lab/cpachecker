@@ -15,7 +15,7 @@ Runs Bounded Model Checking (BMC) with an automatically incrementing maximum loo
 This tests each solver for their performance in regards to incremental SAT checking in multiple theories/logics, as well as model retrieval.
 Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment below.
 -->
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
 
   <option name="--heap">10000M</option>
@@ -82,7 +82,7 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
 
 
 
-  <!-- SV-COMP26 unreach-call benchmark-set -->
+  <!-- SV-COMP unreach-call benchmark-set -->
   <tasks name="C.unreach-call.Arrays">
     <includesfile>../../programs/benchmarks/Arrays.set</includesfile>
     <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
@@ -93,7 +93,6 @@ Yices2 is disabled per default in CPAchecker. To enable Yices2, see comment belo
   </tasks>
   <tasks name="C.unreach-call.ControlFlow">
     <includesfile>../../programs/benchmarks/ControlFlow.set</includesfile>
-    <includesfile>../../programs/benchmarks/Sanity.set</includesfile>
     <propertyfile>../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="C.unreach-call.ECA">

@@ -91,9 +91,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
@@ -348,9 +346,8 @@ public class ToValuePrecisionConverter implements Statistics {
       ShutdownManager conversionShutdownManager =
           ShutdownManager.createWithParent(shutdownNotifier);
       ShutdownNotifier conversionShutdownNotifier = conversionShutdownManager.getNotifier();
-      ResourceLimit limit = WalltimeLimit.create(adaptionLimit);
       ResourceLimitChecker limitChecker =
-          new ResourceLimitChecker(conversionShutdownManager, ImmutableList.of(limit));
+          ResourceLimitChecker.createWallTimeLimitChecker(conversionShutdownManager, adaptionLimit);
       limitChecker.start();
       return Optional.of(Pair.of(conversionShutdownNotifier, limitChecker));
     }
