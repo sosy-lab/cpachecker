@@ -1023,13 +1023,24 @@ public class SMGCPABuiltins {
     CExpression b = parameters.get(1);
     CExpression res = parameters.get(2);
 
-    CType typeOfRes = res.getExpressionType().getCanonicalType();
-    // An array as result argument decays to a pointer to its first element
-    checkArgument(typeOfRes instanceof CPointerType || typeOfRes instanceof CArrayType);
-    CType typeOfResBelowPointer =
-        typeOfRes instanceof CArrayType arrayType
-            ? arrayType.getType().getCanonicalType()
-            : ((CPointerType) typeOfRes).getType().getCanonicalType();
+    final CType typeOfResBelowPointer;
+    Optional<CSimpleType> fixedType = BuiltinOverflowFunctions.getFixedArithmeticType(functionName);
+    if (fixedType.isPresent()) {
+      // The function defines the type of the result. res does not need to have the pointer type of
+      // the parameter, it can also be an array (decaying to a pointer) or a null pointer constant.
+      // The dereference in the assignment skips the write if res does not evaluate to a pointer,
+      // and writing through a null pointer is recorded as invalid write.
+      typeOfResBelowPointer = fixedType.orElseThrow().getCanonicalType();
+    } else {
+      // The type of the result is the type that res points to
+      CType typeOfRes = res.getExpressionType().getCanonicalType();
+      // An array as result argument decays to a pointer to its first element
+      checkArgument(typeOfRes instanceof CPointerType || typeOfRes instanceof CArrayType);
+      typeOfResBelowPointer =
+          typeOfRes instanceof CArrayType arrayType
+              ? arrayType.getType().getCanonicalType()
+              : ((CPointerType) typeOfRes).getType().getCanonicalType();
+    }
     CPointerExpression resPointerExpr =
         new CPointerExpression(res.getFileLocation(), typeOfResBelowPointer, res);
 
