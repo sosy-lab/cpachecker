@@ -146,10 +146,8 @@ public class AbstractionFormula implements Serializable {
     Predicate<BooleanFormula> inScope =
         literal ->
             fMgr.extractVariableNames(literal).stream()
-                .allMatch(
-                    name ->
-                        pScope.hasVariableForQualifiedName(
-                            FormulaToSvLibVisitor.nameWithoutSSA(name)));
+                .allMatch(name ->
+                    pScope.hasVariableForQualifiedName(FormulaToSvLibVisitor.nameWithoutSSA(name)));
     BooleanFormula formulaInScope = asFormula();
     if (!inScope.apply(formulaInScope)) {
       formulaInScope = fMgr.filterLiterals(formulaInScope, inScope);

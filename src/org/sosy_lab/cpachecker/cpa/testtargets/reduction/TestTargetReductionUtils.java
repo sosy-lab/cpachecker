@@ -65,10 +65,9 @@ public final class TestTargetReductionUtils {
     origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
     toExplore.add(pEntryNode);
     Optional<FunctionExitNode> functionExitNode = pEntryNode.getExitNode();
-    functionExitNode.ifPresent(
-        exitNode -> {
-          origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
-        });
+    functionExitNode.ifPresent(exitNode -> {
+      origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
+    });
     for (CFAEdge target : pTestTargets) {
       toExplore.add(target.getSuccessor());
 
@@ -97,17 +96,16 @@ public final class TestTargetReductionUtils {
 
         if (currentNode.getNumLeavingEdges() == 0) {
           boolean requiredInput = currentNodeInfo.getSecond();
-          functionExitNode.ifPresent(
-              exitNode -> {
-                if (!origCFANodeToCopyMap
-                    .get(predecessor)
-                    .hasEdgeTo(origCFANodeToCopyMap.get(exitNode))) {
-                  copyAsDummyEdge(
-                      origCFANodeToCopyMap.get(predecessor),
-                      origCFANodeToCopyMap.get(exitNode),
-                      requiredInput);
-                }
-              });
+          functionExitNode.ifPresent(exitNode -> {
+            if (!origCFANodeToCopyMap
+                .get(predecessor)
+                .hasEdgeTo(origCFANodeToCopyMap.get(exitNode))) {
+              copyAsDummyEdge(
+                  origCFANodeToCopyMap.get(predecessor),
+                  origCFANodeToCopyMap.get(exitNode),
+                  requiredInput);
+            }
+          });
         }
         for (CFAEdge leaving : currentNode.getLeavingEdges()) {
           requireInput = currentNodeInfo.getSecond();
@@ -140,13 +138,12 @@ public final class TestTargetReductionUtils {
 
     @Nullable CFANode exitNodeCopy =
         functionExitNode
-            .filter(
-                exitNode ->
-                    removeUnreachableTestGoalsAndIsReachExit(
-                        pTestTargets,
-                        pCopiedEdgeToTestTargetsMap,
-                        origCFANodeToCopyMap.get(pEntryNode),
-                        origCFANodeToCopyMap.get(exitNode)))
+            .filter(exitNode ->
+                removeUnreachableTestGoalsAndIsReachExit(
+                    pTestTargets,
+                    pCopiedEdgeToTestTargetsMap,
+                    origCFANodeToCopyMap.get(pEntryNode),
+                    origCFANodeToCopyMap.get(exitNode)))
             .map(exitNode -> origCFANodeToCopyMap.get(exitNode))
             .orElse(null);
     return Pair.of(origCFANodeToCopyMap.get(pEntryNode), exitNodeCopy);

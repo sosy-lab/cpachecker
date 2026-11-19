@@ -210,11 +210,10 @@ final class UntouchedAllocationCheck {
         .filter(edge -> !(edge instanceof CFunctionSummaryStatementEdge))
         // Make sure we only consider a function-call edge (going backwards, to the caller)
         // if this matches our call-stack
-        .filter(
-            edge ->
-                !(edge instanceof CFunctionCallEdge callEdge)
-                    || callSite.isEmpty()
-                    || callSite.orElseThrow().equals(callEdge.getSummaryEdge()));
+        .filter(edge ->
+            !(edge instanceof CFunctionCallEdge callEdge)
+                || callSite.isEmpty()
+                || callSite.orElseThrow().equals(callEdge.getSummaryEdge()));
   }
 
   private StepResult backwardsStep(CFAEdge pEdge, WalkState pCurrentState) {
@@ -324,12 +323,11 @@ final class UntouchedAllocationCheck {
   private boolean containsDereference(Iterable<? extends AAstNode> pAstNodes) {
     return FluentIterable.from(pAstNodes)
         .transformAndConcat(astNode -> CFAUtils.traverseRecursively(astNode))
-        .anyMatch(
-            astNode ->
-                astNode instanceof CPointerExpression
-                    || astNode instanceof CArraySubscriptExpression
-                    || (astNode instanceof CFieldReference fieldReference
-                        && fieldReference.isPointerDereference()));
+        .anyMatch(astNode ->
+            astNode instanceof CPointerExpression
+                || astNode instanceof CArraySubscriptExpression
+                || (astNode instanceof CFieldReference fieldReference
+                    && fieldReference.isPointerDereference()));
   }
 
   private StepResult backwardsStepOutOfCall(CFunctionCallEdge pEdge, WalkState pState) {

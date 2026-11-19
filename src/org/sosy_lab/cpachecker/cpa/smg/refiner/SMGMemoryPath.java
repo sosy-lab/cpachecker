@@ -81,11 +81,10 @@ public class SMGMemoryPath {
 
     result.append(variableName);
 
-    pathOffsets.forEach(
-        offset -> {
-          result.append("->");
-          result.append(offset);
-        });
+    pathOffsets.forEach(offset -> {
+      result.append("->");
+      result.append(offset);
+    });
 
     return result.toString();
   }

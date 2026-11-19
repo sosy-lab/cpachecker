@@ -261,11 +261,10 @@ public class TerminationLoopInformation {
     logger.logf(
         FINEST,
         "Adding declarations of primed variables %s after %s in function %s.",
-        MoreStrings.lazyString(
-            () ->
-                relevantVariables.values().stream()
-                    .map(AbstractSimpleDeclaration::getName)
-                    .collect(Collectors.joining(" ,"))),
+        MoreStrings.lazyString(() ->
+            relevantVariables.values().stream()
+                .map(AbstractSimpleDeclaration::getName)
+                .collect(Collectors.joining(" ,"))),
         startLocation,
         function);
 

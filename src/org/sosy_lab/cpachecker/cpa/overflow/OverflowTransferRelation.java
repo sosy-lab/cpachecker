@@ -91,10 +91,8 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       outStates.add(new OverflowState(assumptions, ImmutableSet.of(), prev, false));
     }
 
-    overflowingEdges.forEach(
-        (overflow, edges) ->
-            outStates.add(
-                new OverflowState(ImmutableSet.of(overflow), edges.build(), prev, false)));
+    overflowingEdges.forEach((overflow, edges) ->
+        outStates.add(new OverflowState(ImmutableSet.of(overflow), edges.build(), prev, false)));
 
     return outStates.build();
   }

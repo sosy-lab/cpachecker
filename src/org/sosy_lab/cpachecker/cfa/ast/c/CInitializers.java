@@ -492,15 +492,12 @@ public final class CInitializers {
 
     Iterator<CFieldReference> fields =
         from(structType.getMembers())
-            .filter(
-                field ->
-                    // filter anonymous member, but keep anonymous array/composite members
-                    !(field.getName().contains("__anon_type_member")
-                        && !isArrayOrCompositeType(field.getType())))
-            .transform(
-                field ->
-                    new CFieldReference(
-                        loc, field.getType(), field.getName(), currentSubobject, false))
+            .filter(field ->
+                // filter anonymous member, but keep anonymous array/composite members
+                !(field.getName().contains("__anon_type_member")
+                    && !isArrayOrCompositeType(field.getType())))
+            .transform(field ->
+                new CFieldReference(loc, field.getType(), field.getName(), currentSubobject, false))
             .iterator();
 
     if (!fields.hasNext()) {
@@ -611,14 +608,12 @@ public final class CInitializers {
     Set<Long> indexSet = ContiguousSet.create(arrayIndices, DiscreteDomain.longs());
     Iterator<CExpression> elements =
         from(indexSet)
-            .<CExpression>transform(
-                pInput -> {
-                  CIntegerLiteralExpression index =
-                      new CIntegerLiteralExpression(
-                          loc, CNumericTypes.INT, BigInteger.valueOf(pInput));
+            .<CExpression>transform(pInput -> {
+              CIntegerLiteralExpression index =
+                  new CIntegerLiteralExpression(loc, CNumericTypes.INT, BigInteger.valueOf(pInput));
 
-                  return new CArraySubscriptExpression(loc, elementType, currentSubobject, index);
-                })
+              return new CArraySubscriptExpression(loc, elementType, currentSubobject, index);
+            })
             .iterator();
 
     CExpression firstElement = elements.next();

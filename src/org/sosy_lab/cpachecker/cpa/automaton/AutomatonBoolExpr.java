@@ -584,11 +584,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         if (edgeLocation.getNodeOffset() + edgeLocation.getNodeLength() < offsetToReach) {
           if (edge.getSuccessor()
               .getLeavingEdges()
-              .anyMatch(
-                  e ->
-                      offsetToReach
-                          <= e.getFileLocation().getNodeOffset()
-                              + e.getFileLocation().getNodeLength())) {
+              .anyMatch(e ->
+                  offsetToReach
+                      <= e.getFileLocation().getNodeOffset()
+                          + e.getFileLocation().getNodeLength())) {
 
             return CONST_TRUE;
           }
@@ -1487,12 +1486,11 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
               callEdge
                   .getReturnNode()
                   .getEnteringEdges()
-                  .filter(
-                      e ->
-                          (e instanceof AStatementEdge aStatementEdge
-                                  && call.equals(aStatementEdge.getStatement()))
-                              || (e instanceof FunctionReturnEdge functionReturnEdge
-                                  && summaryEdge.equals(functionReturnEdge.getSummaryEdge())));
+                  .filter(e ->
+                      (e instanceof AStatementEdge aStatementEdge
+                              && call.equals(aStatementEdge.getStatement()))
+                          || (e instanceof FunctionReturnEdge functionReturnEdge
+                              && summaryEdge.equals(functionReturnEdge.getSummaryEdge())));
           leavingEdges = Iterables.concat(leavingEdges, potentialFurtherMatches);
         }
       }

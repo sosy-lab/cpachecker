@@ -419,15 +419,14 @@ public class TerminationToReachValidationPrecisionAdjustment
     ImmutableMap.Builder<CExpression, CExpression> previousValuesBuilder = ImmutableMap.builder();
     pInvariant
         .getMapPrevVarsToCurrent()
-        .forEach(
-            (previous, current) -> {
-              CExpression expression = pInvariant.getExpressionVariables().get(current);
-              if (!accessesMemory(expression)) {
-                previousValuesBuilder.put(
-                    new CIdExpression(previous.getFileLocation(), previous),
-                    inPreviousState(expression));
-              }
-            });
+        .forEach((previous, current) -> {
+          CExpression expression = pInvariant.getExpressionVariables().get(current);
+          if (!accessesMemory(expression)) {
+            previousValuesBuilder.put(
+                new CIdExpression(previous.getFileLocation(), previous),
+                inPreviousState(expression));
+          }
+        });
     ImmutableMap<CExpression, CExpression> previousValues = previousValuesBuilder.buildOrThrow();
     if (previousValues.isEmpty()) {
       return pInvariant;
@@ -445,11 +444,10 @@ public class TerminationToReachValidationPrecisionAdjustment
 
   private static boolean accessesMemory(CExpression pExpression) {
     return CFAUtils.traverseRecursively(pExpression)
-        .anyMatch(
-            node ->
-                node instanceof CPointerExpression
-                    || node instanceof CFieldReference
-                    || node instanceof CArraySubscriptExpression);
+        .anyMatch(node ->
+            node instanceof CPointerExpression
+                || node instanceof CFieldReference
+                || node instanceof CArraySubscriptExpression);
   }
 
   /** Returns the expression, where the variables are replaced by those of the previous state. */

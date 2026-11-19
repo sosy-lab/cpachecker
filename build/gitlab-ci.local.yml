@@ -220,7 +220,7 @@ javascript-e2e-tests:
 # Checks for Python code
 .base_ruff:
   extends: .check-without-dependencies
-  image: ghcr.io/astral-sh/ruff:0.16-alpine
+  image: ghcr.io/astral-sh/ruff:0.17-alpine
   before_script:
     - ruff --version
   cache:

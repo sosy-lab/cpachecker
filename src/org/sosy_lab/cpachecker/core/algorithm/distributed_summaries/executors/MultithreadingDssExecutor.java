@@ -132,14 +132,13 @@ public class MultithreadingDssExecutor implements DssExecutor {
           observer.getId());
       for (DssAnalysisWorker worker : actors.getAnalysisWorkers()) {
         // The block analysis can only be closed by the thread that created it.
-        executor.execute(
-            () -> {
-              try {
-                worker.run();
-              } finally {
-                worker.close();
-              }
-            });
+        executor.execute(() -> {
+          try {
+            worker.run();
+          } finally {
+            worker.close();
+          }
+        });
       }
       for (DssActor actor : actors.getRemainingActors()) {
         executor.execute(actor);

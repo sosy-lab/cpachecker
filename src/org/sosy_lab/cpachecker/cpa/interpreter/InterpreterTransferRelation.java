@@ -510,10 +510,8 @@ class InterpreterTransferRelation extends AbstractSingleWrapperTransferRelation 
       }
     }
     // ... and put the frame of the caller back in place.
-    shadowed.forEach(
-        (memoryLocation, valueAndType) ->
-            restored.assignConstant(
-                memoryLocation, valueAndType.getValue(), valueAndType.getType()));
+    shadowed.forEach((memoryLocation, valueAndType) ->
+        restored.assignConstant(memoryLocation, valueAndType.getValue(), valueAndType.getType()));
 
     // The state has a value analysis as a direct component, cf. the check above, so replacing it
     // cannot fail. Returning the unchanged state here would silently analyze the caller with the

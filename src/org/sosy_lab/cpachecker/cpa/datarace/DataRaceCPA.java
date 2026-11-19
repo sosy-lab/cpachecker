@@ -49,10 +49,9 @@ public class DataRaceCPA extends AbstractCPA {
     expressionBuilder = new CBinaryExpressionBuilder(machineModel, pLogger);
     addressedVariables =
         pCfa.getVarClassification()
-            .orElseThrow(
-                () ->
-                    new InvalidConfigurationException(
-                        "DataRaceCPA needs the variable classification of the CFA"))
+            .orElseThrow(() ->
+                new InvalidConfigurationException(
+                    "DataRaceCPA needs the variable classification of the CFA"))
             .getAddressedVariables();
     pointerTargets = PointerTargets.compute(pCfa, addressedVariables);
   }

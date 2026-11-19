@@ -89,14 +89,13 @@ public class TotalTransitionRelation {
 
   public FluentIterable<AbstractState> getPredecessorStates() {
     return FluentIterable.from(totalTransitionRelation.values())
-        .transformAndConcat(
-            partialTransitionRelation -> {
-              ReachedSet reached = partialTransitionRelation.getReachedSet().getReachedSet();
-              if (reached.size() <= 1) {
-                return reached;
-              }
-              return Collections.singleton(reached.getFirstState());
-            });
+        .transformAndConcat(partialTransitionRelation -> {
+          ReachedSet reached = partialTransitionRelation.getReachedSet().getReachedSet();
+          if (reached.size() <= 1) {
+            return reached;
+          }
+          return Collections.singleton(reached.getFirstState());
+        });
   }
 
   public AlgorithmStatus ensureK() throws InterruptedException, CPAException {
