@@ -336,6 +336,8 @@ refaster:
       - REFASTER_SOURCE_DIR: [common, guava, java, java_collection, truth]
   variables:
     REFASTER_SOURCE_PATTERN: "**/$REFASTER_SOURCE_DIR/**/*.java"
+  # Override Java version
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 
 # Override Java version for some jobs
@@ -345,9 +347,6 @@ check-format:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 checkstyle:
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
-
-refaster:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 .check-binaries-default-jdk:
