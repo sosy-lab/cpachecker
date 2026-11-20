@@ -2371,6 +2371,86 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
+# CPAs (as in CompositeCPA.cpas) that restart from their initial state at
+# every abstraction at a loop head
+cpa.induction.abstractedCPAs = []
+
+# initial number of abstractions of a loop head that the predicate precision
+# describes, -1 for all. A path ends without proof at the first abstraction
+# that is not described.
+cpa.induction.describedAbstractions = LoopPrecision.ALL_ABSTRACTIONS
+
+# initially start an induction step at every abstraction of a loop in the
+# base case
+cpa.induction.induction = false
+
+# CPAs (as in CompositeCPA.cpas) that also restart from their initial state
+# at every abstraction in an induction step, e.g., the callstack for an
+# arbitrary calling context
+cpa.induction.inductionStepCPAs = []
+
+# initial number of arrivals at a head of a loop after which the next arrival
+# abstracts
+cpa.induction.k = 0
+
+# continue as BMC if the program has more loop heads than
+# bmcFallbackLoopLimit or if an interpolation fails also in the form of
+# native IMC, as native IMC does. Without it, the refiner applies IMC to
+# every loop and ignores failed interpolations.
+cpa.induction.refinement.imc.bmcFallback = true
+
+# the number of loop heads up to which the refiner does not fall back to BMC
+cpa.induction.refinement.imc.bmcFallbackLoopLimit = 1
+
+# continue as BMC if the program has more loop heads than
+# bmcFallbackLoopLimit or if an interpolation fails, as native ISMC does.
+# Without it, the refiner applies ISMC to every loop and ignores failed
+# interpolations.
+cpa.induction.refinement.ismc.bmcFallback = true
+
+# the number of loop heads up to which the refiner does not fall back to BMC
+cpa.induction.refinement.ismc.bmcFallbackLoopLimit = 1
+
+# explore the base case and the induction steps in one pass, as split-case
+# k-induction does. Otherwise, the refiner alternates between rounds for the
+# base case and rounds for the step case, as native k-induction does.
+cpa.induction.refinement.kInduction.combineCases = false
+
+# Optimization: check the bounding assertions again when the induction steps
+# reach targets, for the induction starts of these steps. Native k-induction
+# checks them only before the step case, for all states at the bound.
+cpa.induction.refinement.kInduction.targetedBoundingAssertions = false
+
+# continue as BMC if no spurious counterexample can be blocked because an
+# interpolation failed, as the refiners of IMC and ISMC do
+cpa.induction.refinement.pdr.bmcFallback = false
+
+# check the targets whose paths contain no abstraction at a loop head with
+# one SAT query, as BMC does, and remove the unreachable ones without
+# interpolation
+cpa.induction.refinement.predk.checkConcreteTargetsAsBmc = false
+
+# refine a spurious target of an induction step by interpolation. Otherwise,
+# the induction step gets longer, as in k-induction.
+cpa.induction.refinement.predk.interpolateInductionSteps = true
+
+# raise k at a loop head whose predicates mostly describe single visits,
+# which moves its abstractions apart. Otherwise, the refinement only adds the
+# predicates.
+cpa.induction.refinement.predk.moveApartForSingleVisits = true
+
+# let the predicate analysis allocate the memory again at every abstraction
+# in an induction step, as the step case of native k-induction starts with an
+# empty memory model
+cpa.induction.resetMemoryInInductionStep = false
+
+# explore nothing if no target location of the specification is reachable, as
+# native BMC, k-induction, IMC and ISMC do
+cpa.induction.skipWithoutTargetLocations = false
+
+# initially forbid that abstractions of the same loop cover each other
+cpa.induction.unrolling = false
+
 # Maximum number of different assignments to collect per location for the
 # invariants of a correctness witness. If a location has more assignments
 # than this, no invariant is exported for it, because an incomplete
