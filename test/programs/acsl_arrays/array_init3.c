@@ -24,7 +24,7 @@ int main() {
     }
 
     if ((A[10]!=42)){
-        __assert_fail("0", "array_init.c", 27, "main");
+        __assert_fail("0", "array_init3.c", 27, "main");
     }
 }
 
