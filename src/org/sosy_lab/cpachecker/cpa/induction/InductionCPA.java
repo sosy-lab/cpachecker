@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.induction;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
@@ -142,29 +144,25 @@ public class InductionCPA extends AbstractCPA implements StatisticsProvider, Sta
 
   private static LoopStructure loopStructureOf(CFA pCfa) throws InvalidConfigurationException {
     return pCfa.getLoopStructure()
-        .orElseThrow(
-            () ->
-                new InvalidConfigurationException(
-                    "InductionCPA needs the loop structure of the CFA"));
+        .orElseThrow(() ->
+            new InvalidConfigurationException("InductionCPA needs the loop structure of the CFA"));
   }
 
   private static ImmutableSet<String> toClassNames(List<String> pCpas) {
-    return pCpas.stream()
-        .map(name -> name.startsWith("org.sosy_lab.") ? name : "org.sosy_lab.cpachecker." + name)
-        .collect(ImmutableSet.toImmutableSet());
+    return transformedImmutableSetCopy(
+        pCpas, name -> name.startsWith("org.sosy_lab.") ? name : "org.sosy_lab.cpachecker." + name);
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return InductionCPA::mergeInBlock;
+    return (state1, state2, _) -> mergeInBlock(state1, state2);
   }
 
   /**
    * Merge-sep that remembers the state of the same block that the first state was merged into, as
    * only this state covers the end of a block or an abstraction of an unrolling.
    */
-  private static AbstractState mergeInBlock(
-      AbstractState pState1, AbstractState pState2, Precision pPrecision) {
+  private static AbstractState mergeInBlock(AbstractState pState1, AbstractState pState2) {
     InductionState state1 = (InductionState) pState1;
     InductionState state2 = (InductionState) pState2;
     if (state1.isInSameBlock(state2)) {

@@ -488,7 +488,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       AbstractState pElement,
       CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors,
-      List<ConfigurableProgramAnalysis> cpas)
+      List<ConfigurableProgramAnalysis> pCpas)
       throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(pCfaEdge);
     Preconditions.checkState(!aggregateBasicBlocks);
@@ -507,7 +507,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         componentSuccessors.add(compositeSuccessor.get(i));
       }
       resultCount *= componentSuccessors.size();
-      ProofChecker componentProofChecker = (ProofChecker) cpas.get(i);
+      ProofChecker componentProofChecker = (ProofChecker) pCpas.get(i);
       if (!componentProofChecker.areAbstractSuccessors(
           compositeState.get(i), pCfaEdge, componentSuccessors)) {
         // if there are no successors it might be still ok if one of the other components is fine

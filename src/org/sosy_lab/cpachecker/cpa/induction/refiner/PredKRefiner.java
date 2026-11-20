@@ -168,7 +168,7 @@ public final class PredKRefiner extends InductionRefiner {
     Optional<ARGState> baseCaseTarget =
         from(targets).firstMatch(t -> !hasInductionStart(t)).toJavaUtil();
     if (baseCaseTarget.isPresent()) {
-      return refinePath(pReached, baseCaseTarget.get());
+      return refinePath(pReached, baseCaseTarget.orElseThrow());
     }
 
     // Only induction steps are left, which are checked as k-induction does before a refinement.
@@ -553,7 +553,7 @@ public final class PredKRefiner extends InductionRefiner {
             notClosing.add(loopHead);
           }
           Multiset<AbstractionPredicate> holdingHere =
-              holding.computeIfAbsent(loopHead, l -> HashMultiset.create());
+              holding.computeIfAbsent(loopHead, _ -> HashMultiset.create());
           for (AbstractionPredicate predicate :
               predicatePrecisionOf(pReached, state).getLocalPredicates().get(loopHead)) {
             offered.put(loopHead, predicate);

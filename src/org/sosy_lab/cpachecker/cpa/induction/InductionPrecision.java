@@ -89,7 +89,7 @@ public final class InductionPrecision implements Precision {
   }
 
   static InductionPrecision uniform(Collection<Loop> pLoops, LoopPrecision pPrecision) {
-    return new InductionPrecision(Maps.toMap(pLoops, loop -> pPrecision));
+    return new InductionPrecision(Maps.toMap(pLoops, _ -> pPrecision));
   }
 
   public LoopPrecision get(Loop pLoop) {

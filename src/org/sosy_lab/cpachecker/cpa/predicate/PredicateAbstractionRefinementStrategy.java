@@ -396,7 +396,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     }
   }
 
-  /** The target state whose precision this refinement extends. */
+  /**
+   * The target state whose precision this refinement extends.
+   *
+   * @param pReached the reached set
+   * @param pAbstractionStatesTrace the abstraction states on the path to the target
+   */
   protected AbstractState getRefinedTargetState(
       UnmodifiableReachedSet pReached, List<ARGState> pAbstractionStatesTrace) {
     return pReached.getLastState();

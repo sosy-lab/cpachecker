@@ -234,7 +234,7 @@ public class InductionTransferRelationTest {
     ImmutableList<InductionState> split =
         ImmutableList.copyOf(successors(successor(first, precision, body), precision, back));
     assertThat(split).hasSize(2);
-    InductionState continuation = split.get(0);
+    InductionState continuation = split.getFirst();
     InductionState inductionStart = split.get(1);
     assertThat(continuation.isAbstraction()).isFalse();
     assertThat(continuation.isInInductionStep()).isFalse();
@@ -345,14 +345,14 @@ public class InductionTransferRelationTest {
     ImmutableList<InductionState> split =
         ImmutableList.copyOf(arrival.successors(initial, precision));
     assertThat(split).hasSize(2);
-    assertThat(split.get(0).isAbstraction()).isFalse();
+    assertThat(split.getFirst().isAbstraction()).isFalse();
     assertThat(split.get(1).isInductionStart()).isTrue();
 
     // in the induction step every arrival starts a further step
     ImmutableList<InductionState> inStep =
         ImmutableList.copyOf(arrival.successors(split.get(1), precision));
     assertThat(inStep).hasSize(2);
-    assertThat(inStep.get(0).isAbstraction()).isFalse();
+    assertThat(inStep.getFirst().isAbstraction()).isFalse();
     assertThat(inStep.get(1).isAbstraction()).isTrue();
     assertThat(inStep.get(1).isInductionStart()).isFalse();
     assertThat(inStep.get(1).isInInductionStep()).isTrue();

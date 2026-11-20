@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.cpa.induction.refiner;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getBlockFormula;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -221,7 +221,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
         chain.add(state);
       }
       if (state.getParents().isEmpty()) {
-        return ImmutableList.copyOf(Lists.reverse(chain));
+        return ImmutableList.copyOf(chain.reversed());
       }
       state = state.getParents().getFirst();
     }
@@ -342,7 +342,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     }
     try (Model model = pProver.getModel()) {
       for (Map.Entry<ARGState, BooleanFormula> entry : pPathFormulas.entrySet()) {
-        if (Boolean.TRUE.equals(evaluate(model, entry.getValue()))) {
+        if (evaluatesToTrue(model, entry.getValue())) {
           ARGState target = entry.getKey();
           @Nullable ARGPath path = pathFromModel(model, target);
           // a path that forgot the memory model needs a replay, see replayedCounterexample
@@ -366,13 +366,13 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     return Optional.empty();
   }
 
-  private @Nullable Boolean evaluate(Model pModel, BooleanFormula pFormula) {
+  private boolean evaluatesToTrue(Model pModel, BooleanFormula pFormula) {
     try {
-      return pModel.evaluate(pFormula);
+      return Boolean.TRUE.equals(pModel.evaluate(pFormula));
     } catch (IllegalArgumentException e) {
       // MathSAT fails to evaluate some formulas, e.g., with floats
       logger.logDebugException(e, "Could not evaluate the model");
-      return null;
+      return false;
     }
   }
 
@@ -415,12 +415,12 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
       return Optional.empty();
     }
     List<ARGPath> paths = new ArrayList<>();
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      prover.push(concretePathFormula(pTarget));
-      if (prover.isUnsat()) {
+    try (ProverEnvironment ownProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      ownProver.push(concretePathFormula(pTarget));
+      if (ownProver.isUnsat()) {
         return Optional.empty();
       }
-      try (Model model = prover.getModel()) {
+      try (Model model = ownProver.getModel()) {
         @Nullable ARGPath path = pathFromModel(model, pTarget);
         if (path != null) {
           paths.add(path);
@@ -469,7 +469,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
   protected boolean removeIfNoneReachable(ARGReachedSet pReached, Collection<ARGState> pStates)
       throws SolverException, InterruptedException {
     BooleanFormula reachability =
-        bfmgr.or(from(pStates).transform(this::concretePathFormula).toList());
+        bfmgr.or(transformedImmutableListCopy(pStates, this::concretePathFormula));
     satCheckTime.start();
     try {
       boolean unsat =
@@ -495,7 +495,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
       ARGReachedSet pReached, Collection<ARGState> pStates)
       throws SolverException, InterruptedException {
     BooleanFormula reachability =
-        bfmgr.or(from(pStates).transform(this::lastBlockFromRegion).toList());
+        bfmgr.or(transformedImmutableListCopy(pStates, this::lastBlockFromRegion));
     satCheckTime.start();
     try (ProverEnvironment ownProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       if (!isUnsat(ownProver, reachability)) {
@@ -643,7 +643,7 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
    */
   protected Optional<ARGState> refineAsBmc(
       ARGReachedSet pReached, List<ARGState> pTargets, List<ARGState> pCutOffs)
-      throws CPAException, InterruptedException, SolverException {
+      throws InterruptedException, SolverException {
     Optional<ARGState> counterexample = findFeasibleTarget(pTargets);
     if (counterexample.isPresent()) {
       return counterexample;
@@ -663,14 +663,13 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     ARGState root = (ARGState) pReached.asReachedSet().getFirstState();
     InductionPrecision precision =
         inductionPrecisionOf(pReached, root)
-            .withAll(
-                p ->
-                    new LoopPrecision(
-                        Math.max(p.k(), pMinimalK),
-                        /* induction= */ false,
-                        /* describedAbstractions= */ 0,
-                        /* unrolling= */ false,
-                        /* concreteFirstArrival= */ false));
+            .withAll(p ->
+                new LoopPrecision(
+                    Math.max(p.k(), pMinimalK),
+                    /* induction= */ false,
+                    /* describedAbstractions= */ 0,
+                    /* unrolling= */ false,
+                    /* concreteFirstArrival= */ false));
     recordK(precision);
     pReached.removeAllExceptFirstStateWithPrecision(
         ImmutableList.of(precision, PredicatePrecision.empty()),
@@ -727,6 +726,11 @@ public abstract class InductionRefiner implements Refiner, StatisticsProvider, S
     printRefinerStatistics(writer);
   }
 
+  /**
+   * Print the statistics of a subclass.
+   *
+   * @param pWriter the writer for the statistics
+   */
   protected void printRefinerStatistics(StatisticsWriter pWriter) {}
 
   @Override

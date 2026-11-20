@@ -360,14 +360,13 @@ public final class ImcRefiner extends InductionRefiner {
     ARGState root = (ARGState) pReached.asReachedSet().getFirstState();
     InductionPrecision precision =
         inductionPrecisionOf(pReached, root)
-            .withAll(
-                p ->
-                    new LoopPrecision(
-                        /* k= */ 0,
-                        /* induction= */ false,
-                        LoopPrecision.ALL_ABSTRACTIONS,
-                        /* unrolling= */ false,
-                        /* concreteFirstArrival= */ true));
+            .withAll(_ ->
+                new LoopPrecision(
+                    /* k= */ 0,
+                    /* induction= */ false,
+                    LoopPrecision.ALL_ABSTRACTIONS,
+                    /* unrolling= */ false,
+                    /* concreteFirstArrival= */ true));
     recordK(precision);
     pReached.removeAllExceptFirstStateWithPrecision(
         ImmutableList.of(precision, PredicatePrecision.empty()),

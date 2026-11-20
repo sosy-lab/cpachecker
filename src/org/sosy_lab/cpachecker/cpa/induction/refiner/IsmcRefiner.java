@@ -227,7 +227,7 @@ public final class IsmcRefiner extends InductionRefiner {
   }
 
   private void addToFrames(List<ARGState> pChain, List<ARGState> pTargets)
-      throws CPAException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException {
     List<BooleanFormula> formulas =
         from(pChain)
             .skip(1)
@@ -250,7 +250,7 @@ public final class IsmcRefiner extends InductionRefiner {
           checkNotNull(
               getPredicateState(abstraction).getAbstractionLocationsOnPath().get(loopHead));
       BooleanFormula interpolant = fmgr.uninstantiate(interpolants.orElseThrow().get(i));
-      List<BooleanFormula> vector = frames.computeIfAbsent(loopHead, l -> new ArrayList<>());
+      List<BooleanFormula> vector = frames.computeIfAbsent(loopHead, _ -> new ArrayList<>());
       while (vector.size() < visit) {
         vector.add(bfmgr.makeTrue());
       }
@@ -308,26 +308,24 @@ public final class IsmcRefiner extends InductionRefiner {
 
   private InductionPrecision framePrecision(ARGReachedSet pReached, ARGState pRoot) {
     return inductionPrecisionOf(pReached, pRoot.getParents().getFirst())
-        .withAll(
-            p ->
-                new LoopPrecision(
-                    0,
-                    /* induction= */ false,
-                    LoopPrecision.ALL_ABSTRACTIONS,
-                    /* unrolling= */ false,
-                    /* concreteFirstArrival= */ true));
+        .withAll(_ ->
+            new LoopPrecision(
+                0,
+                /* induction= */ false,
+                LoopPrecision.ALL_ABSTRACTIONS,
+                /* unrolling= */ false,
+                /* concreteFirstArrival= */ true));
   }
 
   private InductionPrecision searchPrecision(ARGReachedSet pReached, ARGState pRoot) {
     return inductionPrecisionOf(pReached, pRoot.getParents().getFirst())
-        .withAll(
-            p ->
-                new LoopPrecision(
-                    0,
-                    /* induction= */ false,
-                    bound,
-                    /* unrolling= */ true,
-                    /* concreteFirstArrival= */ false));
+        .withAll(_ ->
+            new LoopPrecision(
+                0,
+                /* induction= */ false,
+                bound,
+                /* unrolling= */ true,
+                /* concreteFirstArrival= */ false));
   }
 
   /** Every frame of a loop head that the fixpoint check uses as a predicate of all its visits. */
