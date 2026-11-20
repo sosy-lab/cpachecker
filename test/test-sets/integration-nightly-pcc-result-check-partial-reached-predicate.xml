@@ -77,9 +77,11 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--regulator--wm831x-dcdc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
   </tasks>
 
+<!--
   <columns>
     <column title="total">time for CPAchecker</column>
     <column title="verification">Time for Verification</column>
     <column title="pcc check">Time for Result Check</column>
   </columns>
+-->
 </benchmark>
