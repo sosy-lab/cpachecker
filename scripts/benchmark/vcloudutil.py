@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import collections
-import logging
 import os
 import sys
 
@@ -14,64 +13,31 @@ import benchexec.util
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
-RESULT_FILES_COUNT = "resultFilesCount"
 RESULT_FILE_NAMES = "resultFileNames"
 
 
-def check_result_files(
-    values, actual_files, run_identifier, *, key_prefix="", include_file=None
-):
-    """Check received files against run metadata and log count mismatches.
+def find_missing_result_files(expected_names, actual_files, *, include_file=None):
+    """Determine which of the expected result files of a run were not received.
 
-    key_prefix supports the executor's prefixed metadata keys. include_file
-    filters expected names to exclude files handled separately by the caller.
+    @param expected_names: the value of the run attribute RESULT_FILE_NAMES, i.e.,
+        the comma-separated names of the result files that the worker collected,
+        or None if the worker did not report it
+    @param actual_files: the names of the received result files (any iterable)
+    @param include_file: optional predicate that returns False for expected names
+        that the caller handles separately and that are thus not part of actual_files
+    @return: the set of missing file names (empty if all files were received),
+        or None if the check is not possible. Older workers report only the number
+        of result files, which is not reliable for this purpose because it also
+        counts files that are stored separately by the client.
     """
-    count_key = key_prefix + RESULT_FILES_COUNT
-    names_key = key_prefix + RESULT_FILE_NAMES
-    if count_key not in values:
-        logging.debug(
-            "'%s' not found in run information for run %s.",
-            count_key,
-            run_identifier,
-        )
-        return
-
-    expected_count = int(values[count_key])
-    actual_files = set(actual_files)
-    actual_count = len(actual_files)
-    expected_files = None
-    if names_key in values:
-        expected_files = {
-            name
-            for name in values[names_key].split(",")
-            if include_file is None or include_file(name)
-        }
-        expected_count = len(expected_files)
-
-    if expected_count != actual_count:
-        if expected_files is not None:
-            logging.warning(
-                "Number of result files received (%d) does not match the expected count (%d) for run %s. "
-                "Missing files: %s",
-                actual_count,
-                expected_count,
-                run_identifier,
-                sorted(expected_files - actual_files),
-            )
-        else:
-            logging.warning(
-                "Number of result files received (%d) does not match the expected count (%d) for run %s.",
-                actual_count,
-                expected_count,
-                run_identifier,
-            )
-    else:
-        logging.debug(
-            "Number of result files received (%d) matches the expected count (%d) for run %s.",
-            actual_count,
-            expected_count,
-            run_identifier,
-        )
+    if expected_names is None:
+        return None
+    expected_files = {
+        name
+        for name in expected_names.split(",")
+        if name and (include_file is None or include_file(name))
+    }
+    return expected_files.difference(actual_files)
 
 
 def parse_vcloud_run_result(values):

@@ -67,7 +67,6 @@ TIMELIMIT = "timelimit"
 SOFTTIMELIMIT = "softtimelimit"
 CORELIMIT = "cpuCores"
 
-
 RESULT_FILE_LOG = "output.log"
 RESULT_FILE_STDERR = "stderr"
 RESULT_FILE_RUN_INFO = "runInformation.txt"
@@ -1242,11 +1241,15 @@ def handle_result(
     handle_host_info=_handle_host_info,
     handle_special_files=_handle_special_files,
     result_files_patterns=("*"),
+    handle_missing_result_files=None,
 ):
     """
     Parses the given result ZIP archive: Extract meta information
     and pass it on to the given handler functions.
     The default handler functions print some relevant info and write it all to 'output_path'.
+    If result files are missing from the archive, an error is logged and
+    handle_missing_result_files (if given) is called with the set of their names,
+    such that the caller can mark the result as incomplete.
     @return: the return value of CPAchecker
     """
     if result_files_pattern:
@@ -1271,6 +1274,7 @@ def handle_result(
                     handle_special_files,
                     result_files_patterns,
                     run_identifier,
+                    handle_missing_result_files,
                 )
 
         except zipfile.BadZipfile:
@@ -1297,16 +1301,20 @@ def _handle_result(
     handle_special_files,
     result_files_patterns,
     run_identifier,
+    handle_missing_result_files,
 ):
     files = set(resultZipFile.namelist())
-    logging.debug("All files in ZIP for run %s: %s", run_identifier, sorted(files))
 
     # extract run info
-    run_info_values = {}
+    expected_result_file_names = None
     if RESULT_FILE_RUN_INFO in files:
         with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
             run_info_values = _parse_cloud_file(runInformation)
-            return_value = handle_run_info(dict(run_info_values))
+            # Read this before passing on the values, handlers may modify them.
+            expected_result_file_names = run_info_values.get(
+                vcloudutil.RESULT_FILE_NAMES
+            )
+            return_value = handle_run_info(run_info_values)
     else:
         return_value = None
         logging.warning("Missing result for run %s.", run_identifier)
@@ -1335,31 +1343,26 @@ def _handle_result(
     if result_files_patterns:
         result_files = set()
         for pattern in result_files_patterns:
-            matched_files = fnmatch.filter(files, pattern)
-            result_files.update(matched_files)
+            result_files.update(fnmatch.filter(files, pattern))
         result_files = result_files - SPECIAL_RESULT_FILES
 
-        # Debug logging for result files
-        logging.debug(
-            "Result files for run %s: %s", run_identifier, sorted(result_files)
-        )
-        logging.debug(
-            "Number of result files: %d",
-            len({f for f in result_files if not f.endswith("/")}),
-        )
-
         if result_files:
-            # Ensure output directory exists
-            if not os.path.isdir(output_path):
-                os.makedirs(output_path, exist_ok=True)
             resultZipFile.extractall(output_path, result_files)
 
-        vcloudutil.check_result_files(
-            run_info_values,
-            {f for f in result_files if not f.endswith("/")},
-            run_identifier,
+        missing_result_files = vcloudutil.find_missing_result_files(
+            expected_result_file_names,
+            result_files,
             include_file=lambda name: name not in SPECIAL_RESULT_FILES,
         )
+        if missing_result_files:
+            logging.error(
+                "Run %s: %d result file(s) missing: %s",
+                run_identifier,
+                len(missing_result_files),
+                sorted(missing_result_files),
+            )
+            if handle_missing_result_files:
+                handle_missing_result_files(missing_result_files)
 
     return return_value
 

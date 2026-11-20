@@ -340,6 +340,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
 
         for run in runSet.runs:
             run.cmdline()  # ignore result, but necessary, otherwise _cmdline is not set
+            expected_result_files = None
             dataFile = run.log_file + ".data"
             if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
@@ -356,6 +357,9 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
                     output_handler.set_error("missing results", runSet)
                     executedAllRuns = False
                 else:
+                    expected_result_files = values.get(
+                        "vcloud-" + vcloudutil.RESULT_FILE_NAMES
+                    )
                     output_handler.output_before_run(run)
                     run.set_result(values, ["host"])
                     output_handler.output_after_run(run)
@@ -374,21 +378,29 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             vcloudFilesDirectory = rawPath + ".files"
             benchexecFilesDirectory = run.result_files_folder
 
-            # Check if the number of result files matches the expected count
-            if os.path.isdir(vcloudFilesDirectory):
-                actual_result_files = _list_result_files_recursively(
-                    vcloudFilesDirectory
-                )
-                # The worker excludes submission-wide stdout/stderr capture files.
-                vcloudutil.check_result_files(
-                    values,
-                    actual_result_files,
-                    run.identifier,
-                    key_prefix="vcloud-",
+            # Check that all result files reported by the worker have been received.
+            if expected_result_files is not None and os.path.isdir(
+                vcloudFilesDirectory
+            ):
+                missing_files = vcloudutil.find_missing_result_files(
+                    expected_result_files,
+                    _list_result_files_recursively(vcloudFilesDirectory),
+                    # The worker reports the output of the cloud run, too,
+                    # but this client stores it separately as the .log file of the
+                    # run, so it is not part of the .files directory.
                     include_file=lambda name: (
                         not name.startswith("cloudBenchmarkOutput-")
                     ),
                 )
+                if missing_files:
+                    logging.error(
+                        "Run %s: %d result file(s) missing: %s",
+                        run.identifier,
+                        len(missing_files),
+                        sorted(missing_files),
+                    )
+                    output_handler.set_error("missing result files", runSet)
+                    executedAllRuns = False
 
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
                 benchexecFilesDirectory

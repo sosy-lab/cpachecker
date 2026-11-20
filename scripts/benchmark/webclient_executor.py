@@ -294,6 +294,10 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
                 os.path.join(log_dir, RESULT_FILE_STDERR), run.log_file + ".stdError"
             )
 
+    def _handle_missing_result_files(missing_files):
+        # webclient.handle_result has already logged which files are missing
+        output_handler.set_error("missing result files", run.runSet)
+
     handle_result(
         zip_content,
         run.result_files_folder,
@@ -303,6 +307,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         handle_run_info=_handle_run_info,
         handle_host_info=_handle_host_info,
         handle_special_files=_handle_stderr_file,
+        handle_missing_result_files=_handle_missing_result_files,
     )
 
     if not run_info_present:
