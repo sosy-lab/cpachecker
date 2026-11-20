@@ -19,11 +19,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the
  * threads to identify which parts of a CFA are executed by the thread.
  *
- * @param threadObject The pthread_t object. Set to empty for the main thread.
+ * @param threadObject The {@code pthread_t} object. Set to empty for the main thread.
  * @param startRoutine The {@link CFunctionDeclaration} of the startRoutine (pthreads) or main
  *     function (main thread).
  * @param startRoutineExitVariable The intermediate variable storing the {@code retval} given to
- *     {@code pthread_exit}, if called anywhere in this thread.
+ *     {@code pthread_exit} or the expression in any {@code return} statement.
  * @param localVariables The set of context-sensitive local variable declarations of this thread.
  * @param cfa The subset of the original CFA executed by the thread.
  */
@@ -32,7 +32,7 @@ public record MPORThread(
     Optional<CIdExpression> threadObject,
     CFunctionDeclaration startRoutine,
     Optional<CFAEdgeForThread> startRoutineCall,
-    Optional<CIdExpression> startRoutineExitVariable,
+    CIdExpression startRoutineExitVariable,
     ImmutableListMultimap<CVariableDeclaration, SeqCallContext> localVariables,
     CFAForThread cfa) {
 
@@ -64,7 +64,7 @@ public record MPORThread(
                 Optional<CIdExpression> pThreadObject,
                 CFunctionDeclaration pStartRoutine,
                 Optional<CFAEdgeForThread> pStartRoutineCall,
-                Optional<CIdExpression> pStartRoutineExitVariable,
+                CIdExpression pStartRoutineExitVariable,
                 ImmutableListMultimap<CVariableDeclaration, SeqCallContext> pLocalVariables,
                 CFAForThread pCfa)
         && id == pId

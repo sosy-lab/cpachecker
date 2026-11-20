@@ -22,12 +22,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
@@ -150,12 +148,11 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
 
       WitnessInvariantType invariantType =
           WitnessInvariantType.of(invariant.type())
-              .orElseThrow(
-                  () ->
-                      new WitnessParseException(
-                          "The witness contains an invariant of the unsupported type "
-                              + invariant.entry().getType()
-                              + "!"));
+              .orElseThrow(() ->
+                  new WitnessParseException(
+                      "The witness contains an invariant of the unsupported type "
+                          + invariant.entry().getType()
+                          + "!"));
       checkSupported(invariantType);
 
       // Where in the program the invariant has to hold
@@ -237,7 +234,7 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
         cfa.getAstCfaRelation()
             .getIterationStructureFollowingColumnAtTheSameLine(
                 pInvariant.column(), pInvariant.line())
-            .flatMap(IterationElement::getLoopHead)
+            .flatMap(loop -> cfa.getLoopStructure().flatMap(loop::getLoopHead))
             .map(loopHead -> new CheckEndsAtNodes(ImmutableSet.of(loopHead)));
     if (check.isEmpty()) {
       logUnmatchedInvariant(pInvariant, "there is no loop at this location");
@@ -250,14 +247,11 @@ class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon
    * Optional if the location of the invariant does not point at a statement of the program.
    */
   private Optional<AutomatonBoolExpr> statementCheck(ParsedInvariant pInvariant) {
-    int line = pInvariant.line();
+    // The invariant holds before the statement, i.e., at the nodes at which it starts
     Optional<AutomatonBoolExpr> check =
         cfa.getAstCfaRelation()
-            .getTightestStatementForStarting(line, pInvariant.column())
-            .map(
-                statement ->
-                    new CheckCoversColumnAndLine(
-                        statement.location().getStartColumnInLine(), line));
+            .getTightestStatementForStarting(pInvariant.line(), pInvariant.column())
+            .map(statement -> new CheckEndsAtNodes(statement.startNodes()));
     if (check.isEmpty()) {
       logUnmatchedInvariant(pInvariant, "there is no statement at this location");
     }

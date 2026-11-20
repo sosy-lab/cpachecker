@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -82,7 +84,8 @@ public class SequentialInterpolation extends ITPStrategy {
       final InterpolationManager.Interpolator<T> interpolator,
       final List<InterpolationGroup<T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException {
-    List<T> formulas = Lists.transform(formulasWithStateAndGroupId, InterpolationGroup::groupId);
+    final List<T> formulas =
+        Lists.transform(formulasWithStateAndGroupId, InterpolationGroup::groupId);
 
     return switch (sequentialStrategy) {
       case FWD_FALLBACK -> {
@@ -90,9 +93,8 @@ public class SequentialInterpolation extends ITPStrategy {
           yield getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
-          formulas = rebuild(interpolator, formulas);
+          yield getBwdInterpolants(interpolator, rebuildSolverEnvironment(interpolator, formulas));
         }
-        yield getBwdInterpolants(interpolator, formulas);
       }
       case BWD -> getBwdInterpolants(interpolator, formulas);
       case BWD_FALLBACK -> {
@@ -100,9 +102,8 @@ public class SequentialInterpolation extends ITPStrategy {
           yield getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_FWD_MSG);
-          formulas = rebuild(interpolator, formulas);
+          yield getFwdInterpolants(interpolator, rebuildSolverEnvironment(interpolator, formulas));
         }
-        yield getFwdInterpolants(interpolator, formulas);
       }
       case FWD -> getFwdInterpolants(interpolator, formulas);
       case CONJUNCTION, DISJUNCTION, WEIGHTED, RANDOM -> {
@@ -111,8 +112,7 @@ public class SequentialInterpolation extends ITPStrategy {
           forward = getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
-          formulas = rebuild(interpolator, formulas);
-          yield getBwdInterpolants(interpolator, formulas);
+          yield getBwdInterpolants(interpolator, rebuildSolverEnvironment(interpolator, formulas));
         }
 
         try {
@@ -123,7 +123,7 @@ public class SequentialInterpolation extends ITPStrategy {
             throw e;
           } else {
             logger.logDebugException(e, FALLBACK_FWD_MSG);
-            // the environment might be tainted after the exception
+            // Rebuild solver env as it might be tainted after an exception
             interpolator.destroyAndRebuildSolverEnvironment();
             yield forward;
           }
@@ -133,14 +133,15 @@ public class SequentialInterpolation extends ITPStrategy {
   }
 
   /**
-   * Rebuild the solver environment, which may be tainted after an exception, and return the new
-   * interpolation groups of the given ones.
+   * Rebuild the solver environment, as it might be tainted after an exception.
+   *
+   * @return the group ids of the given formulas in the new environment
    */
-  private static <T> List<T> rebuild(
-      final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
+  private <T> List<T> rebuildSolverEnvironment(
+      final InterpolationManager.Interpolator<T> interpolator, final List<T> groupIds)
       throws InterruptedException, SolverException {
-    ImmutableMap<T, T> newGroups = interpolator.destroyAndRebuildSolverEnvironment();
-    return ImmutableList.copyOf(Lists.transform(formulas, newGroups::get));
+    Map<T, T> newGroupIds = interpolator.destroyAndRebuildSolverEnvironment();
+    return transformedImmutableListCopy(groupIds, newGroupIds::get);
   }
 
   /**

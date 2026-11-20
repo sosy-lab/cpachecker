@@ -367,10 +367,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     for (TerminationState state : pStates) {
       transferRelation.getAbstractSuccessors(state.getWrappedState(), pPrecision).stream()
           .map(state::withWrappedState)
-          .filter(
-              s ->
-                  s.isPartOfStem()
-                      || !terminationInformation.isloopLeavingLocation(extractLocation(s)))
+          .filter(s ->
+              s.isPartOfStem() || !terminationInformation.isloopLeavingLocation(extractLocation(s)))
           .forEach(resultingSuccessors::add);
     }
 
@@ -388,7 +386,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
             TMP_VARIABLE_NAME,
             TMP_VARIABLE_NAME,
             function + "::" + TMP_VARIABLE_NAME,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
     CDeclarationEdge edge =
         new CDeclarationEdge(declaration.toASTString(), DUMMY, predecessor, successor, declaration);
     addToCfa(edge);

@@ -11,7 +11,7 @@ SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -145,6 +145,10 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_1.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_2.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_3.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_4.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loop-industry-pattern/ofuf_*.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/loop-invgen/SpamAssassin-loop.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->

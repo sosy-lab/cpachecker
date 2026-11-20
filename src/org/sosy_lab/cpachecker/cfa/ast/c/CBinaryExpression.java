@@ -228,6 +228,18 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
       };
     }
 
+    /**
+     * Returns whether this is one of the relational operators {@code <}, {@code >}, {@code <=}, and
+     * {@code >=} (C11 § 6.5.8). The equality operators {@code ==} and {@code !=} (C11 § 6.5.9) are
+     * not relational operators.
+     */
+    public boolean isRelationalOperator() {
+      return switch (this) {
+        case LESS_EQUAL, LESS_THAN, GREATER_EQUAL, GREATER_THAN -> true;
+        default -> false;
+      };
+    }
+
     public BinaryOperator getSwitchOperandsSidesLogicalOperator() {
       assert isLogicalOperator();
       return switch (this) {

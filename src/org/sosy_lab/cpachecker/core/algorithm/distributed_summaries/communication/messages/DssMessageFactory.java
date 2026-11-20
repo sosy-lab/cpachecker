@@ -17,11 +17,12 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssWitnessMessage.WitnessType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
-import org.sosy_lab.cpachecker.cpa.pathrestriction.SegmentedPaths;
+import org.sosy_lab.cpachecker.cpa.pathrestriction.DecisionGraph;
 
 public class DssMessageFactory {
 
   private final boolean exportTimestamp;
+  private final boolean compressMessages;
 
   public static final String DSS_MESSAGE_STATUS_KEY = "status";
   public static final String DSS_MESSAGE_PRECISE_KEY = "precise";
@@ -31,6 +32,7 @@ public class DssMessageFactory {
 
   public DssMessageFactory(DssAnalysisOptions pOptions) {
     exportTimestamp = pOptions.isDebugModeEnabled();
+    compressMessages = pOptions.compressMessages();
   }
 
   private ImmutableMap<String, String> serializeStatus(AlgorithmStatus pStatus) {
@@ -98,7 +100,7 @@ public class DssMessageFactory {
   }
 
   public DssWitnessMessage createDssViolationWitnessMessage(
-      String pSenderId, SegmentedPaths violationWitness) {
+      String pSenderId, DecisionGraph violationWitness) {
     return new DssWitnessMessage(
         pSenderId,
         ImmutableMap.<String, String>builder()
@@ -117,7 +119,8 @@ public class DssMessageFactory {
 
   public ImmutableMap<String, ImmutableMap<String, String>> export(DssMessage pMessage) {
     if (!exportTimestamp) {
-      ImmutableMap<String, ImmutableMap<String, String>> messageContent = pMessage.asJson();
+      ImmutableMap<String, ImmutableMap<String, String>> messageContent =
+          pMessage.asJsonWithIdentifier(0, compressMessages);
       ImmutableMap.Builder<String, ImmutableMap<String, String>> noTimestampMessage =
           ImmutableMap.builder();
       ImmutableMap<String, String> header =
@@ -134,6 +137,6 @@ public class DssMessageFactory {
               "Content must not be null in DssMessage export"));
       return noTimestampMessage.buildOrThrow();
     }
-    return pMessage.asJson();
+    return pMessage.asJsonWithIdentifier(0, compressMessages);
   }
 }

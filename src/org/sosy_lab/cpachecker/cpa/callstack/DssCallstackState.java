@@ -124,7 +124,15 @@ public class DssCallstackState extends CallstackState {
 
   /** Records another edge without changing the current stack. The backwards effect may change. */
   public DssCallstackState withTraversedEdge(CFAEdge pEdge) {
-    return withWrappedStateAndTraversedEdge(wrappedState, pEdge);
+    return withTraversedEdge(pEdge, false);
+  }
+
+  /**
+   * Like {@link #withTraversedEdge(CFAEdge)}, but may cancel matched calls in the backwards effect,
+   * see {@link DssCallstackEffect#append(CFAEdge, boolean)}.
+   */
+  DssCallstackState withTraversedEdge(CFAEdge pEdge, boolean pCancelMatchedCalls) {
+    return withWrappedStateAndTraversedEdge(wrappedState, pEdge, pCancelMatchedCalls);
   }
 
   /**
@@ -137,8 +145,20 @@ public class DssCallstackState extends CallstackState {
    */
   public DssCallstackState withWrappedStateAndTraversedEdge(
       CallstackState pWrappedState, CFAEdge pEdge) {
+    return withWrappedStateAndTraversedEdge(pWrappedState, pEdge, false);
+  }
+
+  /**
+   * Like {@link #withWrappedStateAndTraversedEdge(CallstackState, CFAEdge)}, but may cancel matched
+   * calls in the backwards effect, see {@link DssCallstackEffect#append(CFAEdge, boolean)}.
+   */
+  DssCallstackState withWrappedStateAndTraversedEdge(
+      CallstackState pWrappedState, CFAEdge pEdge, boolean pCancelMatchedCalls) {
     return new DssCallstackState(
-        pWrappedState, canBeTopState, reversedTraversedEdges.with(pEdge), effect.append(pEdge));
+        pWrappedState,
+        canBeTopState,
+        reversedTraversedEdges.with(pEdge),
+        effect.append(pEdge, pCancelMatchedCalls));
   }
 
   @Override

@@ -179,8 +179,7 @@ final class ArrayAccess {
         arrayAccessExpression -> builder.add(new ArrayAccess(Type.READ, arrayAccessExpression));
     Consumer<CExpression> writingArrayAccessConsumer =
         arrayAccessExpression -> builder.add(new ArrayAccess(Type.WRITE, arrayAccessExpression));
-    analyseAstNode(
-        pCAstNode, readingArrayAccessConsumer, writingArrayAccessConsumer, arrayDeclaration -> {});
+    analyseAstNode(pCAstNode, readingArrayAccessConsumer, writingArrayAccessConsumer, _ -> {});
 
     return builder.build();
   }
@@ -200,8 +199,7 @@ final class ArrayAccess {
         arrayAccessExpression -> builder.add(new ArrayAccess(Type.READ, arrayAccessExpression));
     Consumer<CExpression> writingArrayAccessConsumer =
         arrayAccessExpression -> builder.add(new ArrayAccess(Type.WRITE, arrayAccessExpression));
-    analyseCfaEdge(
-        pEdge, readingArrayAccessConsumer, writingArrayAccessConsumer, arrayDeclaration -> {});
+    analyseCfaEdge(pEdge, readingArrayAccessConsumer, writingArrayAccessConsumer, _ -> {});
 
     return builder.build();
   }
@@ -219,7 +217,7 @@ final class ArrayAccess {
 
     Consumer<CSimpleDeclaration> arrayDeclarationConsumer =
         arrayDeclaration -> builder.add(arrayDeclaration);
-    analyseCfaEdge(pEdge, arrayAccess -> {}, arrayAccess -> {}, arrayDeclarationConsumer);
+    analyseCfaEdge(pEdge, _ -> {}, _ -> {}, arrayDeclarationConsumer);
 
     return builder.build();
   }

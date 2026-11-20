@@ -26,7 +26,7 @@ SPDX-License-Identifier: Apache-2.0
             <include name="**/*.java" />
         </fileset>
         <pathconvert property="source.files" refid="source.files" pathsep="' '"/>
-        <java fork="true" classname="com.google.googlejavaformat.java.Main">
+        <java fork="true" failonerror="true" classname="com.google.googlejavaformat.java.Main">
             <classpath>
                 <fileset dir="${ivy.lib.dir}" includes="format-source/*.jar"/>
             </classpath>

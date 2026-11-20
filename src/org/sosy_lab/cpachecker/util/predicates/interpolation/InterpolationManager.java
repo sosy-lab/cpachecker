@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.ObjectArrays;
 import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Ints;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1011,20 +1012,21 @@ public final class InterpolationManager {
      * environment. Deletes old environment afterward. The currentlyAssertedFormulas are updated as
      * well. Should be used after an interpolation failed with an exception.
      *
-     * @return the new interpolation group of each old one
+     * @return the new group id of each asserted formula, by its old group id
      * @throws InterruptedException solver specific
      * @throws SolverException solver specific
      */
+    @CanIgnoreReturnValue
     public ImmutableMap<T, T> destroyAndRebuildSolverEnvironment()
         throws InterruptedException, SolverException {
       itpProver.close();
       itpProver = newEnvironment();
+      ImmutableMap.Builder<T, T> newGroupIds = ImmutableMap.builder();
       List<Pair<BooleanFormula, T>> newAssertedFormulas = new ArrayList<>();
-      ImmutableMap.Builder<T, T> newGroups = ImmutableMap.builder();
       for (Pair<BooleanFormula, T> formulaAndItpP : currentlyAssertedFormulas) {
-        T group = itpProver.push(formulaAndItpP.getFirst());
-        newAssertedFormulas.add(Pair.of(formulaAndItpP.getFirst(), group));
-        newGroups.put(formulaAndItpP.getSecond(), group);
+        T newGroupId = itpProver.push(formulaAndItpP.getFirst());
+        newGroupIds.put(formulaAndItpP.getSecond(), newGroupId);
+        newAssertedFormulas.add(Pair.of(formulaAndItpP.getFirst(), newGroupId));
       }
       currentlyAssertedFormulas = newAssertedFormulas;
       // One could argue that this should be done manually and not automatically.
@@ -1032,7 +1034,7 @@ public final class InterpolationManager {
       // The result here should not differ from before, but it needs to be done for the internal
       // solver state
       Preconditions.checkArgument(itpProver.isUnsat());
-      return newGroups.buildOrThrow();
+      return newGroupIds.buildOrThrow();
     }
 
     /**

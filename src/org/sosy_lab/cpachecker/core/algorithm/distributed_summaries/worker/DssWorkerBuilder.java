@@ -138,7 +138,13 @@ public class DssWorkerBuilder {
         new CommunicationId(pId, DssCommunicationEntity.OBSERVER),
         connection ->
             new DssObserverWorker(
-                pId, connection, pBlockGraph, messageFactory, logger, pStateCollector));
+                pId,
+                connection,
+                pBlockGraph,
+                messageFactory,
+                logger,
+                pStateCollector,
+                shutdownManager.getNotifier()));
     return this;
   }
 

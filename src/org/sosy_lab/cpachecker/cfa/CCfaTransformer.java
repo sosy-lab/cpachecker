@@ -102,7 +102,7 @@ public final class CCfaTransformer {
         pOriginalCfa,
         pCfaMutableNetwork,
         pCfaEdgeAstNodeSubstitution,
-        (cfaNode, astNode) -> astNode);
+        (_, astNode) -> astNode);
   }
 
   /**
@@ -196,6 +196,7 @@ public final class CCfaTransformer {
               newFunctionDeclaration(pOldNode),
               newExitNode,
               newReturnVariable);
+      pOldNode.getKnownBehavior().ifPresent(newEntryNode::setKnownBehavior);
       if (newExitNode != null) {
         newExitNode.setEntryNode(newEntryNode);
       }

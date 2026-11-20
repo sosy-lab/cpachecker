@@ -36,7 +36,8 @@ public class TerminationUtils {
         pVariableDecl.getName() + PRIMED_VARIABLE_POSTFIX,
         pVariableDecl.getOrigName() + PRIMED_VARIABLE_POSTFIX,
         pVariableDecl.getQualifiedName() + PRIMED_VARIABLE_POSTFIX,
-        null);
+        null,
+        /* pHasThreadLocalStorage= */ false);
   }
 
   public static CVariableDeclaration createDereferencedVariable(CSimpleDeclaration pVariableDecl) {
@@ -54,7 +55,8 @@ public class TerminationUtils {
           pVariableDecl.getName() + DEREFERENCE_POSTFIX,
           pVariableDecl.getOrigName() + DEREFERENCE_POSTFIX,
           pVariableDecl.getQualifiedName() + DEREFERENCE_POSTFIX,
-          null);
+          null,
+          /* pHasThreadLocalStorage= */ false);
 
     } else {
       throw new IllegalArgumentException(type + " is not a pointer type");

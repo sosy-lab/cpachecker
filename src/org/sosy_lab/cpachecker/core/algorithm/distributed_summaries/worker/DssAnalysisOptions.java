@@ -105,10 +105,39 @@ public class DssAnalysisOptions {
   private boolean combineViolationConditionsByHash = true;
 
   @Option(
-      name = "combinePresByHash",
-      description = "Whether to combine preconditions at same program location",
-      secure = true)
-  private boolean combinePreconditionsByHash = false;
+      secure = true,
+      description = "Whether to combine incoming states and outgoing summaries by exact union.")
+  private boolean combineStates = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether to send and use precision updates in precondition and violation-condition"
+              + " messages.")
+  private boolean sharePrecision = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to cache violation conditions normalized for comparison.")
+  private boolean cacheViolationConditions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether a block without successors stops exploring after its first run. Such a block"
+              + " never receives a violation condition, and its first run, from the unconstrained"
+              + " start state, already finds every violation it can report.")
+  private boolean retireTerminalBlocks = false;
+
+  @Option(
+      secure = true,
+      description = "Whether to dictionary-encode repeated text in serialized messages.")
+  private boolean compressMessages = true;
+
+  @Option(
+      secure = true,
+      description = "Whether to add the block entry as an explicit predicate abstraction location.")
+  private boolean abstractAtBlockEntry = true;
 
   // TODO How to make sure the other Witness export does not overwrite this?
   @Option(
@@ -161,16 +190,36 @@ public class DssAnalysisOptions {
     return debug && readableFormulas;
   }
 
+  public boolean abstractAtBlockEntry() {
+    return abstractAtBlockEntry;
+  }
+
+  public boolean combineStates() {
+    return combineStates;
+  }
+
+  public boolean sharePrecision() {
+    return sharePrecision;
+  }
+
+  public boolean cacheViolationConditions() {
+    return cacheViolationConditions;
+  }
+
+  public boolean retireTerminalBlocks() {
+    return retireTerminalBlocks;
+  }
+
+  public boolean compressMessages() {
+    return compressMessages;
+  }
+
   public boolean combineViolationConditionsByHash() {
     return combineViolationConditionsByHash;
   }
 
   public boolean useSyntacticViolationConditionEquality() {
     return syntacticViolationConditionEquality;
-  }
-
-  public boolean combinePreconditionsByHash() {
-    return combinePreconditionsByHash;
   }
 
   public PathTemplate getYamlCorrectnessWitnessOutputFileTemplate() {

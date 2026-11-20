@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -37,6 +38,10 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
       VariableTrackingPrecision pBaseline, Iterable<MemoryLocation> pRawPrecision) {
     super(pBaseline);
     rawPrecision = ImmutableSortedSet.copyOf(pRawPrecision);
+  }
+
+  public ImmutableCollection<MemoryLocation> getRawPrecision() {
+    return rawPrecision;
   }
 
   @Override

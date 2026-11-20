@@ -34,19 +34,14 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
 
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pState) {
-    try {
-      stats.getSerializationCount().inc();
-      stats.getSerializationTime().start();
-      ContentBuilder contentBuilder = ContentBuilder.builder();
-      CompositeState compositeState = ((CompositeState) pState);
-      for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
-        if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
-          contentBuilder.putAll(dcpa.getSerializeOperator().serialize(cpaAndState.state()));
-        }
+    stats.getSerializationCount().inc();
+    ContentBuilder contentBuilder = ContentBuilder.builder();
+    CompositeState compositeState = ((CompositeState) pState);
+    for (CpaAndState cpaAndState : zip(wrapped, compositeState)) {
+      if (cpaAndState.cpa() instanceof DistributedConfigurableProgramAnalysis dcpa) {
+        contentBuilder.putAll(dcpa.getSerializeOperator().serialize(cpaAndState.state()));
       }
-      return contentBuilder.build();
-    } finally {
-      stats.getSerializationTime().stop();
     }
+    return contentBuilder.build();
   }
 }

@@ -118,7 +118,7 @@ public class TargetFunctionsProvider {
         }
       }
     }
-    return predicates.stream().reduce((a, b) -> true, BiPredicate::and);
+    return predicates.stream().reduce((_, _) -> true, BiPredicate::and);
   }
 
   private boolean checkParamCount(CFunctionType func, CFunctionType functionType) {

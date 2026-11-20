@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -95,7 +94,7 @@ public final class BOMParser {
       }
       String code;
       try (InputStreamReader reader = new InputStreamReader(in, bom.charset)) {
-        code = CharStreams.toString(reader);
+        code = reader.readAllAsString();
       }
       // If we have a BOM we need to check whether it contains only ascii values
       if (bom != ByteOrderMark.NO_BOM && !CharMatcher.ascii().matchesAllOf(code)) {

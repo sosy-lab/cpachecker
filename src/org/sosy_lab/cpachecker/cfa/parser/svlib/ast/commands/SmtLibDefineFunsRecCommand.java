@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
@@ -57,9 +58,9 @@ public final class SmtLibDefineFunsRecCommand implements SmtLibCommand, SvLibCom
   public String toASTString() {
     return "(define-funs-rec (("
         + from(functionDeclarations)
-            .transform(
-                pFunctionDeclaration ->
-                    pFunctionDeclaration.getName() + pFunctionDeclaration.getType().toASTString())
+            .transform(pFunctionDeclaration ->
+                SmtLibSymbols.quoteIfNeeded(pFunctionDeclaration.getName())
+                    + pFunctionDeclaration.getType().toASTString())
             .join(Joiner.on(") ("))
         + ")) ("
         + from(bodies).transform(SvLibTerm::toASTString).join(Joiner.on(") ("))

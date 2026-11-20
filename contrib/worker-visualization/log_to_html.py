@@ -373,10 +373,11 @@ def decode_block_state(value: str) -> str:
     witness_and_history = rest.split(" H:", 1)
     witness = witness_and_history[0]
     history = witness_and_history[1] if len(witness_and_history) == 2 else ""
-    segments = [s for s in witness.split(";") if s]
+    # The witness is a serialized DecisionGraph: "D" followed by one "/"-separated entry per node.
+    witness_nodes = max(len(witness.split("/")) - 1, 0)
     parts = [f"block={block_id}"]
     parts.append("history=[" + " -> ".join(h for h in history.split(",") if h) + "]")
-    parts.append(f"witnessSegments={len(segments)}")
+    parts.append(f"witnessNodes={witness_nodes}")
     return "  ".join(parts)
 
 

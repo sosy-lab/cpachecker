@@ -406,11 +406,10 @@ public final class DomTree<T> implements Iterable<T> {
 
       sb.append(node);
       getParent(node)
-          .ifPresent(
-              parent -> {
-                sb.append(" --> ");
-                sb.append(parent);
-              });
+          .ifPresent(parent -> {
+            sb.append(" --> ");
+            sb.append(parent);
+          });
     }
 
     sb.append("]");

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis.StateAndPrecision;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -36,4 +37,7 @@ interface DssViolationConditionHandler {
 
   /** All known violation conditions, i.e., the conditions to explore the block under. */
   ImmutableList<AbstractState> states();
+
+  /** Conditions with their received precisions, before state-only deduplication. */
+  ImmutableList<StateAndPrecision> getKnownConditions();
 }

@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -112,5 +113,10 @@ public class MPORThreadUtil {
       }
     }
     return highestPc;
+  }
+
+  public static MPORThread testThreadInstance() {
+    return new MPORThread(
+        0, Optional.empty(), null, Optional.empty(), null, ImmutableListMultimap.of(), null);
   }
 }

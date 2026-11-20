@@ -69,6 +69,10 @@ public class CPAcheckerIntegrationTest {
   private static final String UNSAFE_PROGRAM_SvLib = "test/programs/sv-lib/simple-incorrect.svlib";
   private static final String UNSAFE_LOOP_PROGRAM_SvLib =
       "test/programs/sv-lib/loop-simple-unsafe.svlib";
+  private static final String UNSAFE_PROGRAM_TWO_CALLS_SvLib =
+      "test/programs/sv-lib/witnesses/two-calls-unassigned-output-unsafe.svlib";
+  private static final String UNSAFE_NESTED_ARRAY_PROGRAM_SvLib =
+      "test/programs/sv-lib/arrays/nested-array-unsafe.svlib";
 
   private static final String SAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall.ll";
   private static final String UNSAFE_PROGRAM_LLVM = "test/programs/llvm/functionCall2.ll";
@@ -185,6 +189,19 @@ public class CPAcheckerIntegrationTest {
   }
 
   @Test
+  public void testRunForUnsafeSvLibProgramWithNestedArray() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_SvLib, Language.SVLIB, SPECIFICATION_SvLib)
+            .build();
+    IntegrationTestResult result =
+        IntegrationTestRunner.run(config, UNSAFE_NESTED_ARRAY_PROGRAM_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+  }
+
+  @Test
   public void testRunDeprecatedSpecificationForUnsafeSvLibProgram() throws Exception {
     Configuration config =
         getConfigWithOutputFiles(
@@ -223,6 +240,26 @@ public class CPAcheckerIntegrationTest {
             result, witnessOutputPath, UNSAFE_LOOP_PROGRAM_SvLib);
 
     assertWithMessage("The witness should contain at least one error-path.")
+        .that(content)
+        .contains("select-trace");
+  }
+
+  @Test
+  public void testWitnessExportForTwoCallsOfOneProcedure() throws Exception {
+    Path witnessOutputPath = tempFolder.getRoot().toPath().resolve("output").resolve(WITNESS_SvLib);
+    Configuration config = svLibConfigWithWitnessOutput();
+    IntegrationTestResult result =
+        IntegrationTestRunner.run(config, UNSAFE_PROGRAM_TWO_CALLS_SvLib);
+    result.cpaCheckerResult().printStatistics(statisticsStream);
+    result.cpaCheckerResult().writeOutputFiles();
+
+    result.assertIsUnsafe();
+
+    // The replayed path keeps the value that each call returns
+    String content =
+        obtainSvLibWitnessContentCheckingOutputCorrectness(
+            result, witnessOutputPath, UNSAFE_PROGRAM_TWO_CALLS_SvLib);
+    assertWithMessage("The witness should contain an error path.")
         .that(content)
         .contains("select-trace");
   }

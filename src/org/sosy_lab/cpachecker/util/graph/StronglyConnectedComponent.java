@@ -57,6 +57,6 @@ public class StronglyConnectedComponent<T> {
 
   @Override
   public final int hashCode() {
-    return Objects.hash(nodes);
+    return Objects.hashCode(nodes);
   }
 }

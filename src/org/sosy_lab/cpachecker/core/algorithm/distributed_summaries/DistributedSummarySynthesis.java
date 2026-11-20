@@ -110,14 +110,22 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   @Option(description = "Decomposition type to use for the block analysis.", secure = true)
   private ExecutorType executorType = ExecutorType.DSS;
 
+  @Option(
+      description =
+          "Report UNKNOWN instead of FALSE if the analysis that replays the violation path for the"
+              + " violation witness does not reach a property violation.",
+      secure = true)
+  private boolean requireConfirmedViolation = true;
+
   private enum ExecutorType {
     DSS,
     SINGLE_WORKER,
     SEQUENTIAL
   }
 
-  // Cache is static because it is shared between different instances of DistributedSummarySynthesis
-  private static final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
+  // Decomposition and instrumentation depend on this analysis configuration. A later restart
+  // may use the same CFA with different boundaries, so it must not reuse this cache.
+  private final Map<CFA, Modification> modifiedBlockGraphCache = new HashMap<>();
 
   public DistributedSummarySynthesis(
       Configuration pConfig,
@@ -134,6 +142,14 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     dssStats = new DistributedSummarySynthesisStatistics(configuration);
 
     logger = pLogger;
+    DssAnalysisOptions analysisOptions = new DssAnalysisOptions(configuration);
+    if (analysisOptions.isDebugModeEnabled() && analysisOptions.compressMessages()) {
+      // contrib/worker-visualization reads the message logs of debug mode, but cannot decode them.
+      logger.log(
+          Level.WARNING,
+          "Debug mode writes dictionary-encoded messages, which the worker visualization cannot"
+              + " display. Set distributedSummaries.compressMessages=false to inspect them.");
+    }
     initialCFA = pInitialCFA;
     shutdownManager = pShutdownManager;
     executor = getExecutor(pSpecification);
@@ -194,8 +210,18 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       StatusAndResult statusAndResult, ReachedSet reachedSet, Modification pModification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    witnessExporter.export(statusAndResult.result(), reachedSet, pModification);
+    boolean violationReplayed =
+        witnessExporter.export(statusAndResult.result(), reachedSet, pModification);
 
+    if (!violationReplayed && requireConfirmedViolation) {
+      // The reached set still contains a dummy target state, so an imprecise status makes
+      // CPAchecker report UNKNOWN instead of FALSE.
+      logger.log(
+          Level.WARNING,
+          "Reporting UNKNOWN because the violation found by the block analysis could not be"
+              + " confirmed by the violation witness check.");
+      return statusAndResult.status().withPrecise(false);
+    }
     return statusAndResult.status();
   }
 

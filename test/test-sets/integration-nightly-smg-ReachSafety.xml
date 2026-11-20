@@ -10,7 +10,7 @@ SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -30,7 +30,6 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
   <tasks name="C.unreach-call.ControlFlow">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-    <includesfile>../programs/benchmarks/Sanity.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="C.unreach-call.ECA">

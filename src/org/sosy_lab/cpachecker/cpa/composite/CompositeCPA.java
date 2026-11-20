@@ -175,10 +175,9 @@ public final class CompositeCPA
           PredicateCPA predicateCPA =
               Collections3.filterByClass(cpas.stream(), PredicateCPA.class)
                   .findFirst()
-                  .orElseThrow(
-                      () ->
-                          new InvalidConfigurationException(
-                              "Option 'cpa.composite.inCPAEnabledAnalysis' needs PredicateCPA"));
+                  .orElseThrow(() ->
+                      new InvalidConfigurationException(
+                          "Option 'cpa.composite.inCPAEnabledAnalysis' needs PredicateCPA"));
           return () ->
               new CompositeMergeAgreeCPAEnabledAnalysisOperator(
                   getMergeOperators(), getStopOperators(), predicateCPA.getPredicateManager());
@@ -311,14 +310,13 @@ public final class CompositeCPA
 
   @Override
   public void setPartitioning(BlockPartitioning partitioning) {
-    cpas.forEach(
-        cpa -> {
-          checkState(
-              cpa instanceof ConfigurableProgramAnalysisWithBAM,
-              "wrapped CPA does not support BAM: %s",
-              cpa.getClass().getCanonicalName());
-          ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(partitioning);
-        });
+    cpas.forEach(cpa -> {
+      checkState(
+          cpa instanceof ConfigurableProgramAnalysisWithBAM,
+          "wrapped CPA does not support BAM: %s",
+          cpa.getClass().getCanonicalName());
+      ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(partitioning);
+    });
   }
 
   @Override

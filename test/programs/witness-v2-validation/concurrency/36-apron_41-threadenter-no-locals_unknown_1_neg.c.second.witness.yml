@@ -29,7 +29,7 @@
             location:
               file_name: '36-apron_41-threadenter-no-locals_unknown_1_neg.c'
               line: 40
-              column: 17
+              column: 34
             action: 'follow'
             thread_id: 0
     - segment:

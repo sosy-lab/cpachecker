@@ -318,11 +318,10 @@ public class InterpolationAutomatonBuilder {
   private void printHoareTriple(
       ImmutableList<AbstractionPredicate> pPredicates, AbstractionFormula resultFormula) {
     Object prettyPrintPredicateList =
-        MoreStrings.lazyString(
-            () ->
-                FluentIterable.from(pPredicates)
-                    .transform(AbstractionPredicate::getSymbolicAtom)
-                    .join(Joiner.on(", ")));
+        MoreStrings.lazyString(() ->
+            FluentIterable.from(pPredicates)
+                .transform(AbstractionPredicate::getSymbolicAtom)
+                .join(Joiner.on(", ")));
     logger.logf(
         Level.FINE,
         "[%s] --- %s --- %s",

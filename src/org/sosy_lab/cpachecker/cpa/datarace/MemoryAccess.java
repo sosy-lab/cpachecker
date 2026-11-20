@@ -9,11 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 class MemoryAccess {
 
@@ -23,6 +26,8 @@ class MemoryAccess {
   private final ImmutableSet<String> locks;
   private final CFAEdge edge;
   private final int accessEpoch;
+  // Whether a location read to compute the address may have changed after the access
+  private final boolean addressMayHaveChanged;
 
   MemoryAccess(
       String pThreadId,
@@ -31,12 +36,42 @@ class MemoryAccess {
       Set<String> pLocks,
       CFAEdge pEdge,
       int pAccessEpoch) {
+    this(pThreadId, pMemoryLocation, pIsWrite, pLocks, pEdge, pAccessEpoch, false);
+  }
+
+  private MemoryAccess(
+      String pThreadId,
+      OverapproximatingMemoryLocation pMemoryLocation,
+      boolean pIsWrite,
+      Set<String> pLocks,
+      CFAEdge pEdge,
+      int pAccessEpoch,
+      boolean pAddressMayHaveChanged) {
     threadId = pThreadId;
     memoryLocation = pMemoryLocation;
     isWrite = pIsWrite;
     locks = ImmutableSet.copyOf(pLocks);
     edge = pEdge;
     accessEpoch = pAccessEpoch;
+    addressMayHaveChanged = pAddressMayHaveChanged;
+  }
+
+  /** Returns this access, marked if the given writes may change a location read for its address. */
+  MemoryAccess withWrites(Set<OverapproximatingMemoryLocation> pWrites) {
+    if (addressMayHaveChanged
+        || !Iterables.any(
+            memoryLocation.getAddressReads(), read -> Iterables.any(pWrites, read::mayOverlap))) {
+      return this;
+    }
+    return new MemoryAccess(threadId, memoryLocation, isWrite, locks, edge, accessEpoch, true);
+  }
+
+  boolean addressMayHaveChanged() {
+    return addressMayHaveChanged;
+  }
+
+  CExpression getExpression() {
+    return memoryLocation.getExpression();
   }
 
   String getThreadId() {
@@ -57,6 +92,15 @@ class MemoryAccess {
 
   boolean isOverapproximating() {
     return memoryLocation.isAmbiguous() || !memoryLocation.isPrecise();
+  }
+
+  /** Checks whether the locations of the two accesses may overlap, regardless of their types. */
+  boolean mayOverlap(MemoryAccess other) {
+    return memoryLocation.mayOverlap(other.memoryLocation);
+  }
+
+  CType getType() {
+    return memoryLocation.getType();
   }
 
   boolean memoryLocationIsAtomic() {
@@ -132,6 +176,7 @@ class MemoryAccess {
     return pO instanceof MemoryAccess access
         && isWrite == access.isWrite
         && accessEpoch == access.accessEpoch
+        && addressMayHaveChanged == access.addressMayHaveChanged
         && threadId.equals(access.threadId)
         && memoryLocation.equals(access.memoryLocation)
         && locks.equals(access.locks)
@@ -140,6 +185,7 @@ class MemoryAccess {
 
   @Override
   public int hashCode() {
-    return Objects.hash(threadId, memoryLocation, isWrite, locks, edge, accessEpoch);
+    return Objects.hash(
+        threadId, memoryLocation, isWrite, locks, edge, accessEpoch, addressMayHaveChanged);
   }
 }

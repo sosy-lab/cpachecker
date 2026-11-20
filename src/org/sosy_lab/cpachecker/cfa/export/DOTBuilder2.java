@@ -219,11 +219,10 @@ public final class DOTBuilder2 {
               label.append(edge.getDescription());
             }
           }
-          comboNodes.forEach(
-              (k, v) -> {
-                v.remove(k);
-                mergedNodes.addAll(v);
-              });
+          comboNodes.forEach((k, v) -> {
+            v.remove(k);
+            mergedNodes.addAll(v);
+          });
         }
       }
       for (CFAEdge edge : edges.values()) {

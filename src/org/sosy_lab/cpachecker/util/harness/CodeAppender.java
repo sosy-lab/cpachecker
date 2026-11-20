@@ -246,7 +246,8 @@ class CodeAppender implements Appendable {
           inputVariable.getName(),
           inputVariable.getOrigName(),
           inputVariable.getQualifiedName(),
-          (CInitializer) initializer);
+          (CInitializer) initializer,
+          /* pHasThreadLocalStorage= */ false);
     } else if (inputVariable instanceof JVariableDeclaration jVariableDeclaration) {
       return new JVariableDeclaration(
           FileLocation.DUMMY,

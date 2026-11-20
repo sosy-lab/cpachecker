@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
+
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -78,14 +81,22 @@ final class AddressHandler {
 
     final OptionalLong fieldOffset = typeHandler.getOffset(field.getOwnerType(), fieldName);
     if (!fieldOffset.isPresent()) {
-      // TODO: This loses values of bit fields
+      // TODO: This loses values of bit fields that do not fit into a cell
       return Value.nondetValue();
     }
     final Formula offset =
         conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.orElseThrow());
     final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
     addEqualBaseAddressConstraint(base.getAddress(), address);
-    final MemoryRegion region = regionMgr.makeMemoryRegion(fieldOwnerType, fieldType, fieldName);
+    final MemoryRegion region =
+        regionMgr.makeMemoryRegion(fieldOwnerType, field.getFieldDeclaration());
+    if (fieldType instanceof CBitFieldType) {
+      final int bitFieldOffset =
+          Math.toIntExact(
+              typeHandler.getBitOffset(field.getOwnerType(), field.getFieldDeclaration())
+                  - fieldOffset.orElseThrow() * conv.machineModel.getSizeofCharInBits());
+      return AliasedLocation.ofBitField(address, region, bitFieldOffset);
+    }
     return AliasedLocation.ofAddressWithRegion(address, region);
   }
 
@@ -206,6 +217,9 @@ final class AddressHandler {
       final Expression expression, final CType type, final boolean isSafe) {
     return switch (expression.getKind()) {
       case ALIASED_LOCATION -> {
+        if (expression.asAliasedLocation().isBitField()) {
+          yield Optional.of(getBitFieldValueFormula(expression.asAliasedLocation(), type, isSafe));
+        }
         final Formula address = expression.asAliasedLocation().getAddress();
         if (type.getCanonicalType() instanceof CFunctionType) {
           yield Optional.of(address);
@@ -214,10 +228,20 @@ final class AddressHandler {
         if (region == null) {
           region = regionMgr.makeMemoryRegion(type);
         }
-        if (isSafe) {
-          yield Optional.of(conv.makeSafeDereference(type, address, ssa, region));
+        final Formula value =
+            isSafe
+                ? conv.makeSafeDereference(type, address, ssa, region)
+                : conv.makeDereference(type, address, ssa, errorConditions, region);
+        if (!pts.getZeroedMemoryFacts().isEmpty() && isSimpleType(type) && !type.isIncomplete()) {
+          constraints.addConstraint(
+              ZeroedMemoryFact.makeReadConstraint(
+                  pts.getZeroedMemoryFacts(),
+                  address,
+                  typeHandler.getExactSizeof(type),
+                  value,
+                  conv.fmgr));
         }
-        yield Optional.of(conv.makeDereference(type, address, ssa, errorConditions, region));
+        yield Optional.of(value);
       }
       case UNALIASED_LOCATION ->
           Optional.of(
@@ -225,6 +249,19 @@ final class AddressHandler {
       case DET_VALUE -> Optional.of(expression.asValue().getValue());
       case NONDET -> Optional.empty();
     };
+  }
+
+  /**
+   * Creates a formula for the value of a bit field from the value of its declared type at its
+   * address.
+   */
+  private Formula getBitFieldValueFormula(
+      final AliasedLocation location, final CType type, final boolean isSafe) {
+    final CType declaredType = ((CBitFieldType) type.getCanonicalType()).getType();
+    final Formula value =
+        getOptionalValueFormula(location.withoutBitFieldOffset(), declaredType, isSafe)
+            .orElseThrow();
+    return conv.makeBitFieldValue(value, location.getBitFieldOffset(), type);
   }
 
   /**

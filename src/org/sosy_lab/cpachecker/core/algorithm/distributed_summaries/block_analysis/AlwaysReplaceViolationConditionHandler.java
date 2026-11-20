@@ -59,10 +59,12 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
       // other senders: if two successors report the same condition, an update from one of them
       // must not erase the condition that still belongs to the other. Both directions matter,
       // because removing a condition is an update as well, so this asks for set equality.
-      if (analysis.violationConditionsEqual(received, storedForSender)) {
+      if (analysis.violationConditionsEqual(received, storedForSender)
+          && analysis.precisionsCoveredBy(received, storedForSender)) {
         return DssMessageProcessing.stop();
       }
 
+      ImmutableList<StateAndPrecision> previousConditions = conditions.getStatesAndPrecisions();
       ImmutableListMultimap<Object, @NonNull StateAndPrecision> programPointToState =
           Multimaps.index(received, sap -> analysis.getDcpa().computeProgramPointId(sap.state()));
       conditions.overwriteStatesForKey(sender, programPointToState);
@@ -73,7 +75,9 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
       ImmutableList<StateAndPrecision> updatedConditionsToExplore =
           analysis.deduplicateViolationConditions(conditions.getStatesAndPrecisions());
       boolean conditionSetUnchanged =
-          analysis.violationConditionsEqual(updatedConditionsToExplore, conditionsToExplore);
+          analysis.violationConditionsEqual(updatedConditionsToExplore, conditionsToExplore)
+              && analysis.precisionsCoveredBy(
+                  conditions.getStatesAndPrecisions(), previousConditions);
       conditionsToExplore = updatedConditionsToExplore;
       return conditionSetUnchanged ? DssMessageProcessing.stop() : DssMessageProcessing.proceed();
     } finally {
@@ -87,6 +91,11 @@ final class AlwaysReplaceViolationConditionHandler implements DssViolationCondit
     // The conditions to explore, not the raw entries: two successors can report the same condition,
     // and the block gains nothing from exploring it once per successor.
     return transformedImmutableListCopy(conditionsToExplore, StateAndPrecision::state);
+  }
+
+  @Override
+  public ImmutableList<StateAndPrecision> getKnownConditions() {
+    return conditions.getStatesAndPrecisions();
   }
 
   BlockToProgramLocationMap getConditions() {

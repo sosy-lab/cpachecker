@@ -77,7 +77,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
         new DeserializeCallstackStateOperator(pCallstackCPA, pBlockNode, pIdToNodeMap::get);
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
-            callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);
+            callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA, serialize);
     coverageOperator = new CallstackStateCoverageOperator();
     combinePreconditionsOperator =
         new EqualityCombinePreconditionsOperator(coverageOperator, getAbstractStateClass());

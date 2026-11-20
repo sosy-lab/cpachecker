@@ -11,12 +11,24 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class CFANodeForThread {
+
+  /**
+   * The block types that a {@link CFANodeForThread} can be a part of. A block is a sequence of
+   * nodes that are grouped together and need to be identified to handle their semantics.
+   */
+  public enum BlockType {
+    ATOMIC,
+    PTHREAD_ONCE_ROUTINE,
+  }
 
   private static int currentId = 0;
 
@@ -40,10 +52,12 @@ public class CFANodeForThread {
 
   public final SeqCallContext callContext;
 
+  private final List<CFAEdgeForThread> enteringEdges;
+
   /** The list of context-sensitive return leaving edges of this ThreadNode. */
   private final List<CFAEdgeForThread> leavingEdges;
 
-  public final boolean isInAtomicBlock;
+  public final ImmutableMap<SeqCallContext, BlockType> blockTypes;
 
   CFANodeForThread(
       int pThreadId,
@@ -51,20 +65,31 @@ public class CFANodeForThread {
       int pPc,
       SeqCallContext pCallContext,
       List<CFAEdgeForThread> pLeavingEdges,
-      boolean pIsInAtomicBlock) {
+      ImmutableMap<SeqCallContext, BlockType> pBlockTypes) {
+
+    checkNumLeavingEdges(pCfaNode, pLeavingEdges);
 
     id = getNewId();
     threadId = pThreadId;
     cfaNode = pCfaNode;
     pc = pPc;
     callContext = pCallContext;
+    enteringEdges = new ArrayList<>();
     leavingEdges = pLeavingEdges;
-    isInAtomicBlock = pIsInAtomicBlock;
+    blockTypes = pBlockTypes;
+  }
+
+  private static void checkNumLeavingEdges(CFANode pCfaNode, List<CFAEdgeForThread> pLeavingEdges) {
+    checkArgument(pLeavingEdges.size() <= 3 || pCfaNode instanceof FunctionExitNode);
   }
 
   public CFAEdgeForThread firstLeavingEdge() {
     checkArgument(!leavingEdges.isEmpty(), "cannot get first leaving edge, list is empty");
     return leavingEdges.getFirst();
+  }
+
+  public ImmutableList<CFAEdgeForThread> enteringEdges() {
+    return ImmutableList.copyOf(enteringEdges);
   }
 
   public ImmutableList<CFAEdgeForThread> leavingEdges() {
@@ -84,9 +109,19 @@ public class CFANodeForThread {
     leavingEdges.remove(pThreadEdge);
   }
 
+  void addEnteringEdge(CFAEdgeForThread pEnteringEdge) {
+    checkArgument(pEnteringEdge.getSuccessor().equals(this));
+    enteringEdges.add(pEnteringEdge);
+  }
+
+  void addLeavingEdge(CFAEdgeForThread pLeavingEdge) {
+    checkArgument(pLeavingEdge.getPredecessor().equals(this));
+    leavingEdges.add(pLeavingEdge);
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(id, threadId, cfaNode, pc, isInAtomicBlock);
+    return Objects.hash(id, threadId, cfaNode, pc, blockTypes);
   }
 
   @Override
@@ -99,6 +134,6 @@ public class CFANodeForThread {
         && threadId == other.threadId
         && cfaNode.equals(other.cfaNode)
         && pc == other.pc
-        && isInAtomicBlock == other.isInAtomicBlock;
+        && blockTypes.equals(other.blockTypes);
   }
 }

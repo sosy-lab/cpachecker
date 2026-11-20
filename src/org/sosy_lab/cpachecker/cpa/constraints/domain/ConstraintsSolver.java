@@ -217,15 +217,27 @@ public class ConstraintsSolver {
   }
 
   /**
-   * Returns the given constraints {@link Satisfiability} within a {@link SolverResult}, bundling
-   * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
-   * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will build a new,
-   * empty SMT solver instance (i.e. {@link ProverEnvironment}) to calculate results.
+   * Returns the {@link Satisfiability} of the given constraints within a {@link SolverResult},
+   * bundling a satisfying model for {@link Satisfiability#SAT} results. A state without constraints
+   * (that is, an empty state) is always {@link Satisfiability#SAT} with an empty model. A new,
+   * empty SMT solver instance (i.e. {@link ProverEnvironment}), that is closed afterward, is always
+   * created for this satisfiability check.
    *
-   * @param pConstraintsToCheck the single constraint to check.
+   * <p>Which constraints are checked depends on option {@code cpa.constraints.minimalSatCheck}: if
+   * it is enabled (default) and {@code pConstraintsToCheck} has a {@link
+   * ConstraintsState#getLastAddedConstraint() last added constraint}, only this constraint and the
+   * constraints that transitively share symbolic identifiers with it are checked. Otherwise, all
+   * constraints are checked. The known definite assignments of {@code pConstraintsToCheck} are
+   * added to the checked constraints if option {@code cpa.constraints.resolveDefinites} is enabled
+   * (disabled per default).
+   *
+   * @param pConstraintsToCheck {@link ConstraintsState} with a potentially empty set of {@link
+   *     Constraint}s to check, see above for which of them are actually checked.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
-   *     model is automatically included for {@link Satisfiability#SAT}.
+   *     model is included for {@link Satisfiability#SAT} and only assigns symbolic identifiers that
+   *     occur in the checked constraints or definite assignments. Identifiers of constraints that
+   *     were not checked are not part of the model.
    */
   public SolverResult checkUnsatWithFreshSolver(
       ConstraintsState pConstraintsToCheck, String pFunctionName)

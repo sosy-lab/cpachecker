@@ -6,12 +6,72 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import collections
+import logging
 import os
 import sys
 
 import benchexec.util
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
+
+RESULT_FILES_COUNT = "resultFilesCount"
+RESULT_FILE_NAMES = "resultFileNames"
+
+
+def check_result_files(
+    values, actual_files, run_identifier, *, key_prefix="", include_file=None
+):
+    """Check received files against run metadata and log count mismatches.
+
+    key_prefix supports the executor's prefixed metadata keys. include_file
+    filters expected names to exclude files handled separately by the caller.
+    """
+    count_key = key_prefix + RESULT_FILES_COUNT
+    names_key = key_prefix + RESULT_FILE_NAMES
+    if count_key not in values:
+        logging.debug(
+            "'%s' not found in run information for run %s.",
+            count_key,
+            run_identifier,
+        )
+        return
+
+    expected_count = int(values[count_key])
+    actual_files = set(actual_files)
+    actual_count = len(actual_files)
+    expected_files = None
+    if names_key in values:
+        expected_files = {
+            name
+            for name in values[names_key].split(",")
+            if include_file is None or include_file(name)
+        }
+        expected_count = len(expected_files)
+
+    if expected_count != actual_count:
+        if expected_files is not None:
+            logging.warning(
+                "Number of result files received (%d) does not match the expected count (%d) for run %s. "
+                "Missing files: %s",
+                actual_count,
+                expected_count,
+                run_identifier,
+                sorted(expected_files - actual_files),
+            )
+        else:
+            logging.warning(
+                "Number of result files received (%d) does not match the expected count (%d) for run %s.",
+                actual_count,
+                expected_count,
+                run_identifier,
+            )
+    else:
+        logging.debug(
+            "Number of result files received (%d) matches the expected count (%d) for run %s.",
+            actual_count,
+            expected_count,
+            run_identifier,
+        )
 
 
 def parse_vcloud_run_result(values):
