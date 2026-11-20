@@ -17,9 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.graph.Traverser;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -93,9 +91,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
@@ -209,21 +205,18 @@ public class ToValuePrecisionConverter implements Statistics {
         if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(pWitnessFile)
             .orElseThrow()
             .equals(WitnessType.CORRECTNESS_WITNESS)) {
-          try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream()) {
-            InvariantExchangeFormatTransformer transformer =
-                new InvariantExchangeFormatTransformer(
-                    config, logger, pConversionShutdownNotifier, cfa);
-            SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
+          InvariantExchangeFormatTransformer transformer =
+              new InvariantExchangeFormatTransformer(
+                  config, logger, pConversionShutdownNotifier, cfa);
+          SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
 
-            for (Invariant inv :
-                transformer.generateInvariantsFromEntries(
-                    AutomatonWitnessV2ParserUtils.parseYAML(witness))) {
-              trackedVariables.putAll(
-                  dummyNode, extractMemoryLocationsFromLeaves(inv.getFormula()));
-            }
-
-            return trackedVariables;
+          for (Invariant inv :
+              transformer.generateInvariantsFromEntries(
+                  AutomatonWitnessV2ParserUtils.parseYAML(pWitnessFile))) {
+            trackedVariables.putAll(dummyNode, extractMemoryLocationsFromLeaves(inv.getFormula()));
           }
+
+          return trackedVariables;
         } else {
           logger.log(
               Level.WARNING,
@@ -246,10 +239,9 @@ public class ToValuePrecisionConverter implements Statistics {
                 .depthFirstPreOrder(pExpressionTree))
         .filter(node -> node instanceof LeafExpression)
         .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression())
-        .transformAndConcat(
-            expr ->
-                CFAUtils.getIdExpressionsOfExpression(expr)
-                    .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration())));
+        .transformAndConcat(expr ->
+            CFAUtils.getIdExpressionsOfExpression(expr)
+                .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration())));
   }
 
   public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
@@ -353,9 +345,8 @@ public class ToValuePrecisionConverter implements Statistics {
       ShutdownManager conversionShutdownManager =
           ShutdownManager.createWithParent(shutdownNotifier);
       ShutdownNotifier conversionShutdownNotifier = conversionShutdownManager.getNotifier();
-      ResourceLimit limit = WalltimeLimit.create(adaptionLimit);
       ResourceLimitChecker limitChecker =
-          new ResourceLimitChecker(conversionShutdownManager, ImmutableList.of(limit));
+          ResourceLimitChecker.createWallTimeLimitChecker(conversionShutdownManager, adaptionLimit);
       limitChecker.start();
       return Optional.of(Pair.of(conversionShutdownNotifier, limitChecker));
     }
@@ -550,13 +541,12 @@ public class ToValuePrecisionConverter implements Statistics {
       final Collection<CFAEdge> pRelevantEdges,
       boolean extractDefinitions) {
     return FluentIterable.from(pDepGraph.getNodes())
-        .filter(
-            node ->
-                (extractDefinitions
-                        ? pDepGraph.getDefs(node).contains(pVar)
-                        : pDepGraph.getUses(node).contains(pVar))
-                    && (relevantProperties.isEmpty()
-                        || pRelevantEdges.contains(node.getStatement().orElse(dummyEdge))))
+        .filter(node ->
+            (extractDefinitions
+                    ? pDepGraph.getDefs(node).contains(pVar)
+                    : pDepGraph.getUses(node).contains(pVar))
+                && (relevantProperties.isEmpty()
+                    || pRelevantEdges.contains(node.getStatement().orElse(dummyEdge))))
         .toList();
   }
 

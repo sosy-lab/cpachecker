@@ -29,11 +29,14 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
@@ -80,16 +83,24 @@ class AutomatonWitnessV2ParserCommon {
   final Configuration config;
   final ShutdownNotifier shutdownNotifier;
 
+  /** The version of the witness format the witness being parsed is written in. */
+  final YAMLWitnessVersion version;
+
   final InvariantExchangeFormatTransformer transformer;
 
   AutomatonWitnessV2ParserCommon(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA,
+      YAMLWitnessVersion pVersion)
       throws InvalidConfigurationException {
     pConfig.inject(this, AutomatonWitnessV2ParserCommon.class);
     logger = pLogger;
     cfa = pCFA;
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
+    version = pVersion;
     transformer = new InvariantExchangeFormatTransformer(pConfig, pLogger, pShutdownNotifier, pCFA);
   }
 
@@ -177,16 +188,29 @@ class AutomatonWitnessV2ParserCommon {
     return segments.build();
   }
 
+  /**
+   * Parses the constraint among the variables in scope at the given node, if it is known, such that
+   * a name refers to the variable with this name in the input program.
+   */
   void handleConstraint(
       String constraint,
       Optional<String> resultFunction,
       int line,
+      Optional<CFANode> pNode,
       AutomatonTransition.Builder builder)
       throws InterruptedException, WitnessParseException {
     try {
       Scope defaultScope =
           switch (cfa.getLanguage()) {
-            case C -> new CProgramScope(cfa, logger);
+            case C -> {
+              CProgramScope programScope = new CProgramScope(cfa, logger);
+              yield pNode
+                  .flatMap(cfa.getAstCfaRelation()::getVariablesAndParametersInScope)
+                  .map(variables ->
+                      programScope.withVariablesInScope(
+                          variables.filter(CSimpleDeclaration.class).toList()))
+                  .orElse(programScope);
+            }
             default -> DummyScope.getInstance();
           };
       Scope scope =

@@ -14,6 +14,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.util.Map;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
@@ -100,7 +101,7 @@ public final class ConcreteState {
     variableAddressMap = ImmutableMap.of();
     allocatedMemory = ImmutableMap.of();
     variables = ImmutableMap.of();
-    memoryNameAllocator = pExp -> "";
+    memoryNameAllocator = _ -> "";
     analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
     machineModel = null;
   }
@@ -221,6 +222,11 @@ public final class ConcreteState {
     Preconditions.checkArgument(variables.containsKey(variable));
 
     return variables.get(variable);
+  }
+
+  /** The memory with the given name, if it holds a value along the path. */
+  public Optional<Memory> getMemory(String pName) {
+    return Optional.ofNullable(allocatedMemory.get(pName));
   }
 
   /**

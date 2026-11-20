@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
@@ -36,7 +37,7 @@ public final class SvLibDeclareFunCommand implements SvLibCommand, SmtLibCommand
   @Override
   public String toASTString() {
     return "(declare-fun "
-        + functionDeclaration.getName()
+        + SmtLibSymbols.quoteIfNeeded(functionDeclaration.getName())
         + " ("
         + Joiner.on(" ")
             .join(

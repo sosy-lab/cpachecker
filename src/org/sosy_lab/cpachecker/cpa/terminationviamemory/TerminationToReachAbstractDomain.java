@@ -8,14 +8,24 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
-import com.google.common.collect.ImmutableList;
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class TerminationToReachAbstractDomain implements AbstractDomain {
+
+  private final LoopStructure loopStructure;
+
+  public TerminationToReachAbstractDomain(LoopStructure pLoopStructure) {
+    loopStructure = pLoopStructure;
+  }
 
   @Override
   public AbstractState join(AbstractState pState1, AbstractState pState2) throws CPAException {
@@ -32,25 +42,43 @@ public class TerminationToReachAbstractDomain implements AbstractDomain {
 
     // An abstract state in this domain expresses paths.
     // Therefore, one abstract state can cover other only if they are on the same path.
-    return newTerminationState.equals(reachedTerminationState)
+    // A state with more transition invariants represents fewer pairs of states.
+    if (newTerminationState.isTarget() != reachedTerminationState.isTarget()
+        || !newTerminationState
+            .getTransitionInvariants()
+            .containsAll(reachedTerminationState.getTransitionInvariants())) {
+      return false;
+    }
+    if (newTerminationState.getPathSequence().equals(reachedTerminationState.getPathSequence())) {
+      return newTerminationState
+          .getTransitionPredicates()
+          .equals(reachedTerminationState.getTransitionPredicates());
+    }
+    return !reachedTerminationState.getTransitionInvariants().isEmpty()
         && isSubsequence(
             newTerminationState.getPathSequence(), reachedTerminationState.getPathSequence());
   }
 
-  private boolean isSubsequence(
-      ImmutableList<CFANode> newPath, ImmutableList<CFANode> reachedPath) {
-    if (newPath.size() < reachedPath.size()) {
+  private boolean isSubsequence(PathSequence newPath, PathSequence reachedPath) {
+    if (newPath.size() <= reachedPath.size()
+        || !newPath.prefix(reachedPath.size()).equals(reachedPath)) {
       return false;
     }
+
+    // Only cover the state by the abstract state of the previous visit of its loop head, i.e., the
+    // path between them is exactly one iteration of the loop. It may contain iterations of
+    // nested loops, but it must not leave the loop, e.g., through the head of an outer loop.
+    CFANode loopHead = newPath.getLast();
+    ImmutableSet<CFANode> loopNodes =
+        from(loopStructure.getLoopsForLoopHead(loopHead))
+            .transformAndConcat(Loop::getLoopNodes)
+            .toSet();
     // Taking one more state away with reachPath.size() instead of reachedPath.size() - 1, because
     // the previous loop head is included twice at the end.
-    ImmutableList<CFANode> lastIterationOfTheBranch =
-        newPath.subList(reachedPath.size(), newPath.size());
-
-    return newPath.subList(0, reachedPath.size()).equals(reachedPath)
-        // Only cover the state, if it is covered by the previous abstract state at a loop head.
-        // In other words, we check that no CFANode repeats in the last iteration between the
-        // reachedPath and the newPath.
-        && lastIterationOfTheBranch.stream().distinct().count() == lastIterationOfTheBranch.size();
+    return loopNodes.contains(loopHead)
+        && newPath.allNodesMatch(
+            reachedPath.size(),
+            newPath.size() - 1,
+            node -> !node.equals(loopHead) && loopNodes.contains(node));
   }
 }

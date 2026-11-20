@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -142,6 +141,25 @@ int main(void) {
   all_expected_checks_fail = all_expected_checks_fail || (addp_ov_12 != 1);
 
 
+  long long int addp_ignored_ll;
+  int addp_ov_13 = __builtin_add_overflow_p(int_max, 1, addp_ignored_ll);
+
+  // The third argument's uninitialized value is ignored; its long long type makes the sum representable.
+  all_expected_checks_fail = all_expected_checks_fail || (addp_ov_13 != 0);
+
+
+  int addp_ov_14 = __builtin_add_overflow_p(int_max, 1, (int)addp_ignored_ll);
+
+  // Casting the ignored third argument to int makes 2147483647 + 1 overflow.
+  all_expected_checks_fail = all_expected_checks_fail || (addp_ov_14 != 1);
+
+
+  int addp_ov_15 = __builtin_add_overflow_p(2147483648LL, -100, int_0);
+
+  // The first operand exceeds int, but 2147483648LL + -100 fits the third argument's type.
+  all_expected_checks_fail = all_expected_checks_fail || (addp_ov_15 != 0);
+
+
   // Subtraction overflow predicate tests.
 
   const unsigned long int subp_ulong_max = ~0UL;
@@ -222,6 +240,18 @@ int main(void) {
 
   // -128 - 1 = -129, which is outside the destination range; overflow = 1.
   all_expected_checks_fail = all_expected_checks_fail || (subp_ov_12 != 1);
+
+
+  int subp_ov_13 = __builtin_sub_overflow_p(int_min, 1, ll_0);
+
+  // -2147483648 - 1 fits the long long third argument's type.
+  all_expected_checks_fail = all_expected_checks_fail || (subp_ov_13 != 0);
+
+
+  int subp_ov_14 = __builtin_sub_overflow_p(-2147483649LL, -100, int_0);
+
+  // The first operand is below int, but -2147483649LL - -100 fits the third argument's type.
+  all_expected_checks_fail = all_expected_checks_fail || (subp_ov_14 != 0);
 
 
   // Multiplication overflow predicate tests.
@@ -305,6 +335,12 @@ int main(void) {
 
   // 127 * 2 = 254, which is outside the destination range; overflow = 1.
   all_expected_checks_fail = all_expected_checks_fail || (mulp_ov_12 != 1);
+
+
+  int mulp_ov_13 = __builtin_mul_overflow_p(int_max, 2, ll_0);
+
+  // 2147483647 * 2 fits the long long third argument's type.
+  all_expected_checks_fail = all_expected_checks_fail || (mulp_ov_13 != 0);
 
 
   // If no expected-value check fails, every deliberately negated check is false.

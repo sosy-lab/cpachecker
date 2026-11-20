@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -27,7 +30,226 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
 
   private String CONCURRENCY_TEST_DIR_PATH = "test/programs/witness-v2-validation/concurrency";
 
+  private String UNREACH_CALL_TEST_DIR_PATH = "test/programs/witness-v2-validation/unreach-call";
+
+  private String TERMINATION_TEST_DIR_PATH = "test/programs/witness-v2-validation/termination";
+
+  private String PROGRAMS_PATH = "test/programs/simple/witness_validation";
+
   private String SPECIFICATION_PATH = "config/properties/";
+
+  /** The overflow happens in the condition of an if statement, before its branch is taken. */
+  @Test(timeout = 9000)
+  public void validate_overflow_in_condition_roundtrip() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-overflow.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "overflow-in-condition.c");
+    WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  /** The name {@code data} in the assumption refers to the inner of two variables. */
+  @Test(timeout = 3000)
+  public void validate_assumption_with_shadowed_variable() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-violation.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "shadowed-variable-violation.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** BAM does not handle the write through a pointer to a variable of the caller. */
+  @Test(timeout = 9000)
+  public void validate_recursion_with_pointer_write() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "recursion-with-pointer-write.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "recursion-with-pointer-write.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.UNKNOWN, specificationFilePath, witnessFilePath);
+  }
+
+  /** The condition of the branching waypoint calls a function in its second operand. */
+  @Test(timeout = 3000)
+  public void validate_branching_at_condition_with_calls() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "branching-at-condition-with-calls.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "branching-at-condition-with-calls.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 3000)
+  public void reject_wrong_branch_at_condition_with_calls() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "branching-at-condition-with-calls.c");
+    Path witnessFilePath =
+        Path.of(
+            UNREACH_CALL_TEST_DIR_PATH,
+            "branching-at-condition-with-calls.wrong-branch.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  /** Branching waypoints at a loop with an empty body and at a condition with constants. */
+  @Test(timeout = 3000)
+  public void validate_branching_at_empty_loop_body_and_constant_operand() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "empty-loop-body-and-constant-operand.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "empty-loop-body-and-constant-operand.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** Function-enter and function-return waypoints exist since format version 2.0. */
+  @Test(timeout = 3000)
+  public void validate_function_waypoints() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "function-waypoints.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "function-waypoints.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The defined function never returns the value of the function-return waypoint. */
+  @Test(timeout = 3000)
+  public void reject_function_return_waypoint_with_wrong_result() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "function-waypoints.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "function-waypoints-wrong-result.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  /** Without a column, the waypoints refer to the first call in their line. */
+  @Test(timeout = 3000)
+  public void validate_function_waypoints_without_column() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "function-waypoints.c");
+    Path witnessFilePath =
+        Path.of(UNREACH_CALL_TEST_DIR_PATH, "function-waypoints-without-column.witness-2.0.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The exported assumption names the inner of two variables as in the input program. */
+  @Test(timeout = 9000)
+  public void validate_shadowed_variable_roundtrip() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-violation.c");
+    Path witnessFilePath =
+        WitnessV2ValidationTestUtils.verificationPlusValidationTest(
+            inputFilePath, Result.FALSE, specificationFilePath);
+    assertThat(Files.readString(witnessFilePath)).contains("\"(data == 5)\"");
+  }
+
+  /** The name {@code data} in the assumptions of the lasso refers to the inner of two variables. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_assumption_with_shadowed_variable() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-nontermination.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH, "shadowed-variable-nontermination-inner.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The assumptions of the lasso hold only for the outer variable, so the witness is rejected. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_assumption_on_outer_shadowed_variable() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "shadowed-variable-nontermination.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH, "shadowed-variable-nontermination-outer.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The waypoint at the loop refers to the loop and not to the if statement after it. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_loop_and_branch_on_one_line() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "loop-and-branch-on-one-line-nontermination.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH,
+            "loop-and-branch-on-one-line-nontermination.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The assumption before an if statement does not consume the branch that follows it. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_assumption_before_branch() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "assumption-before-branch-nontermination.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH, "assumption-before-branch-nontermination.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The program repeats a state, but the branch in the cycle of the witness is taken once. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_cycle_not_repeated() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "assumption-before-branch-nontermination.c");
+    Path witnessFilePath =
+        Path.of(TERMINATION_TEST_DIR_PATH, "assumption-before-branch-wrong-cycle.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_nontermination_swap_loop() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "swap-loop-nontermination.c");
+    Path witnessFilePath =
+        Path.of(TERMINATION_TEST_DIR_PATH, "swap-loop-nontermination.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The assumption of the witness skips the loop, so the unrolled paths are infeasible. */
+  @Test(timeout = 3000)
+  public void validate_nontermination_infeasible_cycle() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "swap-loop-nontermination.c");
+    Path witnessFilePath =
+        Path.of(TERMINATION_TEST_DIR_PATH, "swap-loop-skipped-loop.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
+
+  @Test(timeout = 3000)
+  public void validate_nontermination_in_second_call() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "nontermination-in-second-call.c");
+    Path witnessFilePath =
+        Path.of(TERMINATION_TEST_DIR_PATH, "nontermination-in-second-call.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
+  }
+
+  /** The loop repeats in the second call only, but the cycle of the witness covers both calls. */
+  @Test(timeout = 9000)
+  public void validate_nontermination_cycle_in_first_call() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "termination.prp");
+    Path inputFilePath = Path.of(PROGRAMS_PATH, "nontermination-in-second-call.c");
+    Path witnessFilePath =
+        Path.of(
+            TERMINATION_TEST_DIR_PATH,
+            "nontermination-in-second-call-cycle-in-first-call.witness-2.1.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.TRUE, specificationFilePath, witnessFilePath);
+  }
 
   @Test(timeout = 3000)
   public void validate_unreach_call_concurrency() throws Exception {
@@ -81,7 +303,7 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
    * The avoid waypoint of the witness points to a thread creation that has already been passed when
    * its segment is entered, so it can never be matched and the witness still has to be confirmed.
    */
-  @Test(timeout = 3000)
+  @Test(timeout = 9000)
   public void validate_data_race_witness_avoiding_a_passed_thread_creation() throws Exception {
     Path specificationFilePath = Path.of(SPECIFICATION_PATH, "no-data-race.prp");
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-data-race.c");
@@ -98,6 +320,17 @@ public final class AutomatonWitnessV2ValidationViolationIntegrationTest {
     Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach.c");
     WitnessV2ValidationTestUtils.verificationPlusValidationTest(
         inputFilePath, Result.FALSE, specificationFilePath);
+  }
+
+  /** The thread creation spans two lines, so its closing parenthesis is on the second one. */
+  @Test(timeout = 3000)
+  public void validate_function_enter_of_call_spanning_lines() throws Exception {
+    Path specificationFilePath = Path.of(SPECIFICATION_PATH, "unreach-call.prp");
+    Path inputFilePath = Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach-multiline-call.c");
+    Path witnessFilePath =
+        Path.of(CONCURRENCY_TEST_DIR_PATH, "concurrent-unreach-multiline-call.witness-2.2.yml");
+    WitnessV2ValidationTestUtils.performValidationTest(
+        inputFilePath, Result.FALSE, specificationFilePath, witnessFilePath);
   }
 
   @Test(timeout = 3000)

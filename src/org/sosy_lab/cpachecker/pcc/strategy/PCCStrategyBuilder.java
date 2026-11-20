@@ -39,14 +39,7 @@ public class PCCStrategyBuilder {
         "org.sosy_lab.cpachecker.pcc.strategy.parallel"
       })
   private PCCStrategy.Factory strategy =
-      (config,
-          logger,
-          shutdownNotifier,
-          proofFile,
-          cfa,
-          specification,
-          proofChecker,
-          propertyChecker) ->
+      (config, logger, shutdownNotifier, proofFile, _, _, proofChecker, _) ->
           new ARGProofCheckerStrategy(config, logger, shutdownNotifier, proofFile, proofChecker);
 
   private PCCStrategyBuilder() {}

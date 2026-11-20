@@ -15,7 +15,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface CombineViolationConditionsOperator {
 
-  AbstractState combineViolationConditionsAtSameProgramHash(
-      Optional<AbstractState> origin, Collection<AbstractState> states)
+  /**
+   * Attempts a union at one program point. A domain with additional compatibility requirements may
+   * decline; callers must then retain all original conditions.
+   */
+  default Optional<AbstractState> combineIfPossible(Collection<AbstractState> states)
+      throws InterruptedException, CPAException {
+    return Optional.of(combineViolationConditionsAtSameProgramHash(states));
+  }
+
+  AbstractState combineViolationConditionsAtSameProgramHash(Collection<AbstractState> states)
       throws InterruptedException, CPAException;
 }

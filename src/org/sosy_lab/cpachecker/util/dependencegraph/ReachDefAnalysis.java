@@ -64,7 +64,7 @@ abstract class ReachDefAnalysis<D, N, E> {
   protected abstract Set<D> getEdgeDefs(E pEdge);
 
   private Deque<Def<D, E>> getDefStack(D pVariable) {
-    return variableDefStacks.computeIfAbsent(pVariable, key -> new ArrayDeque<>());
+    return variableDefStacks.computeIfAbsent(pVariable, _ -> new ArrayDeque<>());
   }
 
   protected final Iterable<Def<D, E>> iterateDefsNewestFirst(D pVariable) {

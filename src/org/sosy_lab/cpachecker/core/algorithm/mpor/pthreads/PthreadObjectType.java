@@ -11,6 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -22,36 +28,50 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 public enum PthreadObjectType {
-  PTHREAD_BARRIER_T("pthread_barrier_t", false, ImmutableSet.of()),
-  PTHREAD_COND_INITIALIZER("PTHREAD_COND_INITIALIZER", false, ImmutableSet.of()),
+  COUNT("", true, ImmutableSet.of(), Optional.empty()),
+  PTHREAD_BARRIER_T(
+      "pthread_barrier_t",
+      true,
+      ImmutableSet.of(
+          PthreadObjectSubstitutions.BARRIER_COMPOSITE_TYPE,
+          PthreadObjectSubstitutions.BARRIER_ELABORATED_TYPE,
+          PthreadObjectSubstitutions.BARRIER_TYPEDEF_TYPE),
+      Optional.empty()),
   PTHREAD_COND_T(
       "pthread_cond_t",
       true,
       ImmutableSet.of(
           PthreadObjectSubstitutions.COND_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.COND_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.COND_TYPEDEF_TYPE)),
-  PTHREAD_KEY_T("pthread_key_t", false, ImmutableSet.of()),
-  PTHREAD_MUTEX_INITIALIZER("PTHREAD_MUTEX_INITIALIZER", false, ImmutableSet.of()),
+          PthreadObjectSubstitutions.COND_TYPEDEF_TYPE),
+      Optional.of(PthreadObjectSubstitutions.COND_INITIALIZER)),
+  PTHREAD_KEY_T("pthread_key_t", false, ImmutableSet.of(), Optional.empty()),
   PTHREAD_MUTEX_T(
       "pthread_mutex_t",
       true,
       ImmutableSet.of(
           PthreadObjectSubstitutions.MUTEX_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE)),
-  PTHREAD_ONCE_T("pthread_once_t", false, ImmutableSet.of()),
+          PthreadObjectSubstitutions.MUTEX_TYPEDEF_TYPE),
+      Optional.of(PthreadObjectSubstitutions.MUTEX_INITIALIZER)),
+  PTHREAD_MUTEXATTR_T("pthread_mutexattr_t", false, ImmutableSet.of(), Optional.empty()),
+  PTHREAD_ONCE_T(
+      "pthread_once_t",
+      true,
+      ImmutableSet.of(PthreadObjectSubstitutions.ONCE_TYPEDEF_TYPE),
+      Optional.of(PthreadObjectSubstitutions.ONCE_INITIALIZER)),
   PTHREAD_RWLOCK_T(
       "pthread_rwlock_t",
       true,
       ImmutableSet.of(
           PthreadObjectSubstitutions.RWLOCK_COMPOSITE_TYPE,
           PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE,
-          PthreadObjectSubstitutions.RWLOCK_TYPEDEF_TYPE)),
-  PTHREAD_T("pthread_t", false, ImmutableSet.of()),
-  RETURN_VALUE("", true, ImmutableSet.of()),
-  START_ROUTINE("", true, ImmutableSet.of()),
-  START_ROUTINE_ARGUMENT("", true, ImmutableSet.of());
+          PthreadObjectSubstitutions.RWLOCK_TYPEDEF_TYPE),
+      Optional.of(PthreadObjectSubstitutions.RWLOCK_INITIALIZER)),
+  PTHREAD_T("pthread_t", false, ImmutableSet.of(), Optional.empty()),
+  RETURN_VALUE("", true, ImmutableSet.of(), Optional.empty()),
+  START_ROUTINE("", true, ImmutableSet.of(), Optional.empty()),
+  START_ROUTINE_ARGUMENT("", true, ImmutableSet.of(), Optional.empty());
 
   private final String name;
 
@@ -60,10 +80,19 @@ public enum PthreadObjectType {
   @SuppressWarnings("Immutable")
   private final ImmutableSet<CType> substituteTypes;
 
-  PthreadObjectType(String pName, boolean pIsArraySupported, ImmutableSet<CType> pSubstituteTypes) {
+  @SuppressWarnings("Immutable")
+  private final Optional<CInitializer> substituteInitializer;
+
+  PthreadObjectType(
+      String pName,
+      boolean pIsArraySupported,
+      ImmutableSet<CType> pSubstituteTypes,
+      Optional<CInitializer> pSubstituteInitializer) {
+
     name = pName;
     isArraySupported = pIsArraySupported;
     substituteTypes = pSubstituteTypes;
+    substituteInitializer = pSubstituteInitializer;
   }
 
   public String getName() {
@@ -76,6 +105,10 @@ public enum PthreadObjectType {
 
   public ImmutableSet<CType> getSubstituteTypes() {
     return substituteTypes;
+  }
+
+  public Optional<CInitializer> getSubstituteInitializer() {
+    return substituteInitializer;
   }
 
   public boolean equalsType(CType pType) {
@@ -97,138 +130,38 @@ public enum PthreadObjectType {
   /** A private class to define final variables that can be used as attributes in the enum. */
   static final class PthreadObjectSubstitutions {
 
-    static final String INNER_LIST_NAME = "inner_list";
+    // pthread_barrier_t
 
-    private static final String INNER_INNER_LIST_NAME = "inner_inner_list";
+    private static final String BARRIER_NAME = "pthread_barrier_t";
 
-    private static final String INNER_INNER_LIST_A_NAME = "inner_inner_list_a";
+    private static final String BARRIER_SUBSTITUTION_NAME =
+        Sequentialization.MPOR_PREFIX + BARRIER_NAME;
 
-    private static final String INNER_INNER_LIST_B_NAME = "inner_inner_list_b";
+    static final CCompositeTypeMemberDeclaration BARRIER_NUM_WAITERS_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_INT, "NUM_WAITERS");
 
-    private static final String INNER_INNER_LIST_C_NAME = "inner_inner_list_c";
+    static final CCompositeTypeMemberDeclaration BARRIER_COUNT_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_INT, "COUNT");
 
-    private static final String INNER_INNER_LIST_D_NAME = "inner_inner_list_d";
-
-    private static final String INNER_INNER_LIST_E_NAME = "inner_inner_list_e";
-
-    private static final String INNER_INNER_INNER_LIST_NAME = "inner_inner_inner_list";
-
-    // dummies that can be reused
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_A_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_a");
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_B_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_b");
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_C_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_c");
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_D_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_d");
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_E_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_e");
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_F_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_f");
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_G_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_g");
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_H_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_h");
-
-    private static final CCompositeTypeMemberDeclaration DUMMY_I_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "dummy_i");
-
-    // pthread_mutex_t
-
-    private static final String MUTEX_NAME = "pthread_mutex_t";
-
-    private static final String MUTEX_SUBSTITUTION_NAME =
-        Sequentialization.MPOR_PREFIX + MUTEX_NAME;
-
-    private static final String MUTEX_INNER_LIST_SUBSTITUTION_NAME =
-        MUTEX_SUBSTITUTION_NAME + "_" + INNER_LIST_NAME;
-
-    private static final String MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME =
-        MUTEX_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_NAME;
-
-    private static final String MUTEX_INNER_INNER_INNER_LIST_SUBSTITUTION_NAME =
-        MUTEX_SUBSTITUTION_NAME + "_" + INNER_INNER_INNER_LIST_NAME;
-
-    static final CCompositeTypeMemberDeclaration MUTEX_LOCKED_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "LOCKED");
-
-    private static final CCompositeType MUTEX_INNER_INNER_INNER_LIST_COMPOSITE_TYPE =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION, DUMMY_B_MEMBER_DECLARATION),
-            MUTEX_INNER_INNER_INNER_LIST_SUBSTITUTION_NAME,
-            MUTEX_INNER_INNER_INNER_LIST_SUBSTITUTION_NAME);
-
-    private static final CCompositeTypeMemberDeclaration
-        MUTEX_INNER_INNER_INNER_LIST_MEMBER_DECLARATION =
-            new CCompositeTypeMemberDeclaration(
-                MUTEX_INNER_INNER_INNER_LIST_COMPOSITE_TYPE, INNER_INNER_INNER_LIST_NAME);
-
-    private static final CCompositeType MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(MUTEX_INNER_INNER_INNER_LIST_MEMBER_DECLARATION),
-            MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME,
-            MUTEX_INNER_INNER_LIST_SUBSTITUTION_NAME);
-
-    private static final CCompositeTypeMemberDeclaration MUTEX_INNER_INNER_LIST_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(
-            MUTEX_INNER_INNER_LIST_COMPOSITE_TYPE, INNER_INNER_LIST_NAME);
-
-    private static final CCompositeType MUTEX_INNER_LIST_COMPOSITE_TYPE =
+    private static final CCompositeType BARRIER_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
             ImmutableList.of(
-                MUTEX_LOCKED_MEMBER_DECLARATION,
-                DUMMY_A_MEMBER_DECLARATION,
-                DUMMY_B_MEMBER_DECLARATION,
-                DUMMY_C_MEMBER_DECLARATION,
-                DUMMY_D_MEMBER_DECLARATION,
-                MUTEX_INNER_INNER_LIST_MEMBER_DECLARATION),
-            MUTEX_INNER_LIST_SUBSTITUTION_NAME,
-            MUTEX_INNER_LIST_SUBSTITUTION_NAME);
+                BARRIER_COUNT_MEMBER_DECLARATION, BARRIER_NUM_WAITERS_MEMBER_DECLARATION),
+            BARRIER_SUBSTITUTION_NAME,
+            BARRIER_SUBSTITUTION_NAME);
 
-    static final CElaboratedType MUTEX_INNER_LIST_ELABORATED_TYPE =
+    static final CElaboratedType BARRIER_ELABORATED_TYPE =
         new CElaboratedType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
-            MUTEX_INNER_LIST_SUBSTITUTION_NAME,
-            MUTEX_INNER_LIST_SUBSTITUTION_NAME,
-            MUTEX_INNER_LIST_COMPOSITE_TYPE);
+            BARRIER_SUBSTITUTION_NAME,
+            BARRIER_SUBSTITUTION_NAME,
+            BARRIER_COMPOSITE_TYPE);
 
-    static final CCompositeTypeMemberDeclaration MUTEX_INNER_LIST_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(MUTEX_INNER_LIST_COMPOSITE_TYPE, INNER_LIST_NAME);
-
-    private static final CCompositeType MUTEX_COMPOSITE_TYPE =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(MUTEX_INNER_LIST_MEMBER_DECLARATION),
-            MUTEX_SUBSTITUTION_NAME,
-            MUTEX_SUBSTITUTION_NAME);
-
-    static final CElaboratedType MUTEX_ELABORATED_TYPE =
-        new CElaboratedType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            MUTEX_SUBSTITUTION_NAME,
-            MUTEX_SUBSTITUTION_NAME,
-            MUTEX_COMPOSITE_TYPE);
-
-    private static final CTypedefType MUTEX_TYPEDEF_TYPE =
-        new CTypedefType(CTypeQualifiers.NONE, MUTEX_NAME, MUTEX_ELABORATED_TYPE);
+    private static final CTypedefType BARRIER_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, BARRIER_NAME, BARRIER_ELABORATED_TYPE);
 
     // pthread_cond_t
 
@@ -236,123 +169,14 @@ public enum PthreadObjectType {
 
     private static final String COND_SUBSTITUTION_NAME = Sequentialization.MPOR_PREFIX + COND_NAME;
 
-    private static final String COND_INNER_LIST_SUBSTITUTION_NAME =
-        COND_SUBSTITUTION_NAME + "_" + INNER_LIST_NAME;
-
-    private static final String COND_INNER_INNER_LIST_A_SUBSTITUTION_NAME =
-        COND_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_A_NAME;
-
-    private static final String COND_INNER_INNER_LIST_B_SUBSTITUTION_NAME =
-        COND_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_B_NAME;
-
-    private static final String COND_INNER_INNER_LIST_C_SUBSTITUTION_NAME =
-        COND_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_C_NAME;
-
-    private static final String COND_INNER_INNER_LIST_D_SUBSTITUTION_NAME =
-        COND_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_D_NAME;
-
-    private static final String COND_INNER_INNER_LIST_E_SUBSTITUTION_NAME =
-        COND_SUBSTITUTION_NAME + "_" + INNER_INNER_LIST_E_NAME;
-
-    private static final CCompositeType COND_INNER_INNER_LIST_COMPOSITE_TYPE_A =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION),
-            COND_INNER_INNER_LIST_A_SUBSTITUTION_NAME,
-            COND_INNER_INNER_LIST_A_SUBSTITUTION_NAME);
-
-    private static final CCompositeTypeMemberDeclaration
-        COND_INNER_INNER_LIST_A_MEMBER_DECLARATION =
-            new CCompositeTypeMemberDeclaration(
-                COND_INNER_INNER_LIST_COMPOSITE_TYPE_A, INNER_INNER_LIST_A_NAME);
-
-    private static final CCompositeType COND_INNER_INNER_LIST_COMPOSITE_TYPE_B =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION),
-            COND_INNER_INNER_LIST_B_SUBSTITUTION_NAME,
-            COND_INNER_INNER_LIST_B_SUBSTITUTION_NAME);
-
-    private static final CCompositeTypeMemberDeclaration
-        COND_INNER_INNER_LIST_B_MEMBER_DECLARATION =
-            new CCompositeTypeMemberDeclaration(
-                COND_INNER_INNER_LIST_COMPOSITE_TYPE_B, INNER_INNER_LIST_B_NAME);
-
-    private static final CCompositeType COND_INNER_INNER_LIST_COMPOSITE_TYPE_C =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION, DUMMY_B_MEMBER_DECLARATION),
-            COND_INNER_INNER_LIST_C_SUBSTITUTION_NAME,
-            COND_INNER_INNER_LIST_C_SUBSTITUTION_NAME);
-
-    private static final CCompositeTypeMemberDeclaration
-        COND_INNER_INNER_LIST_C_MEMBER_DECLARATION =
-            new CCompositeTypeMemberDeclaration(
-                COND_INNER_INNER_LIST_COMPOSITE_TYPE_C, INNER_INNER_LIST_C_NAME);
-
-    private static final CCompositeType COND_INNER_INNER_LIST_COMPOSITE_TYPE_D =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION, DUMMY_B_MEMBER_DECLARATION),
-            COND_INNER_INNER_LIST_D_SUBSTITUTION_NAME,
-            COND_INNER_INNER_LIST_D_SUBSTITUTION_NAME);
-
-    private static final CCompositeTypeMemberDeclaration
-        COND_INNER_INNER_LIST_D_MEMBER_DECLARATION =
-            new CCompositeTypeMemberDeclaration(
-                COND_INNER_INNER_LIST_COMPOSITE_TYPE_D, INNER_INNER_LIST_D_NAME);
-
     static final CCompositeTypeMemberDeclaration COND_SIGNALED_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "SIGNALED");
-
-    private static final CCompositeType COND_INNER_INNER_LIST_COMPOSITE_TYPE_E =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(DUMMY_A_MEMBER_DECLARATION, DUMMY_B_MEMBER_DECLARATION),
-            COND_INNER_INNER_LIST_E_SUBSTITUTION_NAME,
-            COND_INNER_INNER_LIST_E_SUBSTITUTION_NAME);
-
-    private static final CCompositeTypeMemberDeclaration
-        COND_INNER_INNER_LIST_E_MEMBER_DECLARATION =
-            new CCompositeTypeMemberDeclaration(
-                COND_INNER_INNER_LIST_COMPOSITE_TYPE_E, INNER_INNER_LIST_E_NAME);
-
-    private static final CCompositeType COND_INNER_LIST_COMPOSITE_TYPE =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(
-                COND_INNER_INNER_LIST_A_MEMBER_DECLARATION,
-                COND_INNER_INNER_LIST_B_MEMBER_DECLARATION,
-                COND_INNER_INNER_LIST_C_MEMBER_DECLARATION,
-                COND_INNER_INNER_LIST_D_MEMBER_DECLARATION,
-                COND_SIGNALED_MEMBER_DECLARATION,
-                DUMMY_A_MEMBER_DECLARATION,
-                COND_INNER_INNER_LIST_E_MEMBER_DECLARATION),
-            COND_INNER_LIST_SUBSTITUTION_NAME,
-            COND_INNER_LIST_SUBSTITUTION_NAME);
-
-    static final CElaboratedType COND_INNER_LIST_ELABORATED_TYPE =
-        new CElaboratedType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            COND_INNER_LIST_SUBSTITUTION_NAME,
-            COND_INNER_LIST_SUBSTITUTION_NAME,
-            COND_INNER_LIST_COMPOSITE_TYPE);
-
-    static final CCompositeTypeMemberDeclaration COND_INNER_LIST_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(COND_INNER_LIST_COMPOSITE_TYPE, INNER_LIST_NAME);
 
     private static final CCompositeType COND_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
-            ImmutableList.of(COND_INNER_LIST_MEMBER_DECLARATION),
+            ImmutableList.of(COND_SIGNALED_MEMBER_DECLARATION),
             COND_SUBSTITUTION_NAME,
             COND_SUBSTITUTION_NAME);
 
@@ -367,15 +191,63 @@ public enum PthreadObjectType {
     private static final CTypedefType COND_TYPEDEF_TYPE =
         new CTypedefType(CTypeQualifiers.NONE, COND_NAME, COND_ELABORATED_TYPE);
 
+    private static final CInitializer COND_SIGNALED_INITIALIZER =
+        new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO);
+
+    private static final CInitializerList COND_INITIALIZER =
+        new CInitializerList(FileLocation.DUMMY, ImmutableList.of(COND_SIGNALED_INITIALIZER));
+
+    // pthread_mutex_t
+
+    private static final String MUTEX_NAME = "pthread_mutex_t";
+
+    private static final String MUTEX_SUBSTITUTION_NAME =
+        Sequentialization.MPOR_PREFIX + MUTEX_NAME;
+
+    static final CCompositeTypeMemberDeclaration MUTEX_LOCKED_MEMBER_DECLARATION =
+        new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "LOCKED");
+
+    private static final CCompositeType MUTEX_COMPOSITE_TYPE =
+        new CCompositeType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            ImmutableList.of(MUTEX_LOCKED_MEMBER_DECLARATION),
+            MUTEX_SUBSTITUTION_NAME,
+            MUTEX_SUBSTITUTION_NAME);
+
+    static final CElaboratedType MUTEX_ELABORATED_TYPE =
+        new CElaboratedType(
+            CTypeQualifiers.NONE,
+            ComplexTypeKind.STRUCT,
+            MUTEX_SUBSTITUTION_NAME,
+            MUTEX_SUBSTITUTION_NAME,
+            MUTEX_COMPOSITE_TYPE);
+
+    private static final CTypedefType MUTEX_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, MUTEX_NAME, MUTEX_ELABORATED_TYPE);
+
+    private static final CInitializer MUTEX_LOCKED_INITIALIZER =
+        new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO);
+
+    private static final CInitializerList MUTEX_INITIALIZER =
+        new CInitializerList(FileLocation.DUMMY, ImmutableList.of(MUTEX_LOCKED_INITIALIZER));
+
+    // pthread_once_t
+
+    private static final String ONCE_NAME = "pthread_once_t";
+
+    private static final CTypedefType ONCE_TYPEDEF_TYPE =
+        new CTypedefType(CTypeQualifiers.NONE, ONCE_NAME, CNumericTypes.UNSIGNED_INT);
+
+    private static final CInitializer ONCE_INITIALIZER =
+        new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO);
+
     // pthread_rwlock_t
 
     private static final String RWLOCK_NAME = "pthread_rwlock_t";
 
     private static final String RWLOCK_SUBSTITUTION_NAME =
         Sequentialization.MPOR_PREFIX + RWLOCK_NAME;
-
-    private static final String RWLOCK_INNER_LIST_SUBSTITUTION_NAME =
-        RWLOCK_SUBSTITUTION_NAME + "_" + INNER_LIST_NAME;
 
     // NUM_READERS is an unsigned int because it can be incremented to any number
     static final CCompositeTypeMemberDeclaration RWLOCK_NUM_READERS_MEMBER_DECLARATION =
@@ -384,41 +256,12 @@ public enum PthreadObjectType {
     static final CCompositeTypeMemberDeclaration RWLOCK_NUM_WRITERS_MEMBER_DECLARATION =
         new CCompositeTypeMemberDeclaration(CNumericTypes.UNSIGNED_CHAR, "NUM_WRITERS");
 
-    private static final CCompositeType RWLOCK_INNER_LIST_COMPOSITE_TYPE =
-        new CCompositeType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.of(
-                RWLOCK_NUM_READERS_MEMBER_DECLARATION,
-                RWLOCK_NUM_WRITERS_MEMBER_DECLARATION,
-                DUMMY_A_MEMBER_DECLARATION,
-                DUMMY_B_MEMBER_DECLARATION,
-                DUMMY_C_MEMBER_DECLARATION,
-                DUMMY_D_MEMBER_DECLARATION,
-                DUMMY_E_MEMBER_DECLARATION,
-                DUMMY_F_MEMBER_DECLARATION,
-                DUMMY_G_MEMBER_DECLARATION,
-                DUMMY_H_MEMBER_DECLARATION,
-                DUMMY_I_MEMBER_DECLARATION),
-            RWLOCK_INNER_LIST_SUBSTITUTION_NAME,
-            RWLOCK_INNER_LIST_SUBSTITUTION_NAME);
-
-    static final CElaboratedType RWLOCK_INNER_LIST_ELABORATED_TYPE =
-        new CElaboratedType(
-            CTypeQualifiers.NONE,
-            ComplexTypeKind.STRUCT,
-            RWLOCK_INNER_LIST_SUBSTITUTION_NAME,
-            RWLOCK_INNER_LIST_SUBSTITUTION_NAME,
-            RWLOCK_INNER_LIST_COMPOSITE_TYPE);
-
-    static final CCompositeTypeMemberDeclaration RWLOCK_INNER_LIST_MEMBER_DECLARATION =
-        new CCompositeTypeMemberDeclaration(RWLOCK_INNER_LIST_COMPOSITE_TYPE, INNER_LIST_NAME);
-
     private static final CCompositeType RWLOCK_COMPOSITE_TYPE =
         new CCompositeType(
             CTypeQualifiers.NONE,
             ComplexTypeKind.STRUCT,
-            ImmutableList.of(RWLOCK_INNER_LIST_MEMBER_DECLARATION),
+            ImmutableList.of(
+                RWLOCK_NUM_READERS_MEMBER_DECLARATION, RWLOCK_NUM_WRITERS_MEMBER_DECLARATION),
             RWLOCK_SUBSTITUTION_NAME,
             RWLOCK_SUBSTITUTION_NAME);
 
@@ -432,5 +275,16 @@ public enum PthreadObjectType {
 
     private static final CTypedefType RWLOCK_TYPEDEF_TYPE =
         new CTypedefType(CTypeQualifiers.NONE, RWLOCK_NAME, RWLOCK_ELABORATED_TYPE);
+
+    private static final CInitializer RWLOCK_NUM_READERS_INITIALIZER =
+        new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO);
+
+    private static final CInitializer RWLOCK_NUM_WRITERS_INITIALIZER =
+        new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO);
+
+    private static final CInitializerList RWLOCK_INITIALIZER =
+        new CInitializerList(
+            FileLocation.DUMMY,
+            ImmutableList.of(RWLOCK_NUM_READERS_INITIALIZER, RWLOCK_NUM_WRITERS_INITIALIZER));
   }
 }

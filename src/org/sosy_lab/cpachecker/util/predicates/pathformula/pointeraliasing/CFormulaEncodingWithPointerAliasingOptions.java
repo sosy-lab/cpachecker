@@ -106,6 +106,23 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
   @Option(
       secure = true,
       description =
+          "Number of the most recently allocated zeroed blocks (e.g., by calloc) whose zero bytes"
+              + " are tracked for reads with any type. Each block adds conditions to every heap"
+              + " read. Use 0 to disable the tracking.")
+  @IntegerOption(min = 0)
+  private int maxTrackedZeroedBlocks = 5;
+
+  @Option(
+      secure = true,
+      description =
+          "Number of writes after its allocation up to which a zeroed block is tracked (see"
+              + " maxTrackedZeroedBlocks). Each write adds a condition to every heap read.")
+  @IntegerOption(min = 0)
+  private int maxWritesToZeroedBlock = 20;
+
+  @Option(
+      secure = true,
+      description =
           "When a string literal initializer is encountered, initialize the contents of the char"
               + " array with the contents of the string literal instead of just assigning a fresh"
               + " non-det address to it")
@@ -251,6 +268,14 @@ public class CFormulaEncodingWithPointerAliasingOptions extends CFormulaEncoding
 
   public boolean useQuantifiersOnArrays() {
     return useQuantifiersOnArrays;
+  }
+
+  int maxTrackedZeroedBlocks() {
+    return maxTrackedZeroedBlocks;
+  }
+
+  int maxWritesToZeroedBlock() {
+    return maxWritesToZeroedBlock;
   }
 
   boolean handleStringLiteralInitializers() {

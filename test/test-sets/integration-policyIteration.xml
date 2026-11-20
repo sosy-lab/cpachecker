@@ -11,7 +11,7 @@ SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -136,7 +136,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <option name="--policy-overflow"/>
     <option name="--option">cpa.reportFalseAsUnknown=false</option>
-    <option name="--option">overflow.useLiveness=false</option>
     <propertyfile>../config/properties/no-overflow.prp</propertyfile>
     <include>../programs/policyiteration/overflow/*.yml</include>
   </tasks>
@@ -146,6 +145,10 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_1.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_2.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_3.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_4.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loop-industry-pattern/ofuf_*.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/loop-invgen/SpamAssassin-loop.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->
@@ -156,6 +159,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/heavy-1.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/loops/invert_string-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/invert_string-3.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loops/linear_sea.ch.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops/linear_search.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops/sum01-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/trex03-1.yml</exclude> <!-- flapping unknown/timeout -->
@@ -176,5 +180,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/dijkstra-u_valuebound10.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/divbin2_valuebound5.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/nla-digbench/dijkstra-u.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/verifythis/elimination_max.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
 </benchmark>

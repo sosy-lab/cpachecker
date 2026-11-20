@@ -192,11 +192,8 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     PathDistancePair<CFAEdge, Event> closest =
         Collections.min(
             pDistancePairs,
-            Comparator.comparingInt(
-                distancePair ->
-                    distancePair.getDistances().stream()
-                        .mapToInt(Event::getDistanceFromTheEnd)
-                        .sum()));
+            Comparator.comparingInt(distancePair ->
+                distancePair.getDistances().stream().mapToInt(Event::getDistanceFromTheEnd).sum()));
 
     return closest.getPath();
   }

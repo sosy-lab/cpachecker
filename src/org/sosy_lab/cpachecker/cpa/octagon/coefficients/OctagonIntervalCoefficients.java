@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
 import com.google.common.base.Preconditions;
 import java.util.Arrays;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
@@ -358,7 +357,7 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
     final int prime = 31;
     int result = 7;
     result = prime * result + Arrays.hashCode(coefficients);
-    result = prime * result + Objects.hash(size);
+    result = prime * result + Integer.hashCode(size);
     return result;
   }
 

@@ -708,7 +708,8 @@ public class HarnessExporter {
                 varName,
                 varName,
                 varName,
-                (CInitializer) getDummyInitializer(machineModel, pType.getType()));
+                (CInitializer) getDummyInitializer(machineModel, pType.getType()),
+                /* pHasThreadLocalStorage= */ false);
         CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
         return ExpressionTestValue.of(
             new AuxiliaryCode(tmpDeclaration.toASTString()),
@@ -808,7 +809,8 @@ public class HarnessExporter {
             variableName,
             variableName,
             variableName,
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
     CLeftHandSide variable = new CIdExpression(FileLocation.DUMMY, tmpVarDeclaration);
     CAssignment assignment =
         new CFunctionCallAssignmentStatement(FileLocation.DUMMY, variable, pointerToValue);

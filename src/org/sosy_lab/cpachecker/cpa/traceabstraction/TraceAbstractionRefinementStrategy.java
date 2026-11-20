@@ -173,7 +173,11 @@ public class TraceAbstractionRefinementStrategy extends PredicateAbstractionRefi
     shutdownNotifier.shutdownIfNecessary();
 
     argUpdate.start();
-    pReached.removeSubtree(pRefinementRoot);
+    if (pRefinementRoot.getParents().isEmpty()) {
+      pReached.removeAllExceptFirstState();
+    } else {
+      pReached.removeSubtree(pRefinementRoot);
+    }
     argUpdate.stop();
 
     assert refinementCount > 0;
@@ -181,15 +185,14 @@ public class TraceAbstractionRefinementStrategy extends PredicateAbstractionRefi
 
   private Object lazyPrintItpToTransitionMapping(
       Collection<ARGState> pStates, List<BooleanFormula> pInterpolants) {
-    return MoreStrings.lazyString(
-        () ->
-            Streams.zip(
-                    pStates.stream(),
-                    pInterpolants.stream(),
-                    (state, itp) ->
-                        String.format(
-                            "%d:%s : %s",
-                            state.getStateId(), AbstractStates.extractLocation(state), itp))
-                .collect(Collectors.joining("\n")));
+    return MoreStrings.lazyString(() ->
+        Streams.zip(
+                pStates.stream(),
+                pInterpolants.stream(),
+                (state, itp) ->
+                    String.format(
+                        "%d:%s : %s",
+                        state.getStateId(), AbstractStates.extractLocation(state), itp))
+            .collect(Collectors.joining("\n")));
   }
 }

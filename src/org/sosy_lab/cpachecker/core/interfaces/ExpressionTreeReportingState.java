@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -27,6 +29,34 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
  * will not be possible.
  */
 public interface ExpressionTreeReportingState extends AbstractState {
+
+  /**
+   * How to refer to the value a variable had when the function was called, for the implementations
+   * which are asked to use it. This is the syntax of the witness format, so it belongs in one place
+   * instead of being spelled out by every implementation.
+   *
+   * @param pVariable the name of the variable
+   * @return the expression referring to the value of the variable at the call
+   */
+  static String oldValueOf(String pVariable) {
+    return "\\at(" + pVariable + ", Old)";
+  }
+
+  /**
+   * The variables and parameters of the input program in scope at the given location.
+   *
+   * @throws TranslationToExpressionTreeFailedException if they are unknown for the location, e.g.,
+   *     because a transformation of the CFA created it
+   */
+  static FluentIterable<AbstractSimpleDeclaration> variablesInScope(
+      AstCfaRelation pAstCfaRelation, CFANode pLocation)
+      throws TranslationToExpressionTreeFailedException {
+    return pAstCfaRelation
+        .getVariablesAndParametersInScope(pLocation)
+        .orElseThrow(() ->
+            new TranslationToExpressionTreeFailedException(
+                "Variables in scope are unknown at " + pLocation));
+  }
 
   class ReportingMethodNotImplementedException extends Exception {
     @Serial private static final long serialVersionUID = -1208757812;
@@ -67,9 +97,9 @@ public interface ExpressionTreeReportingState extends AbstractState {
    * @param pLocation the formula should at least try to approximate variables referenced by
    *     entering edges at this location
    * @param pAstCfaRelation the relation between the AST and the CFA
-   * @param useOldKeywordForVariables whether to use the old keyword for variables or not. For
-   *     example if true the variable `x` should be denoted by `\old(x)` in the produced ACSL
-   *     formula
+   * @param useOldKeywordForVariables whether the produced formula should refer to the value a
+   *     variable had when the function was called. For example if true the variable `x` should be
+   *     denoted by `\at(x, Old)`
    * @param pMachineModel the machine model of the analyzed program
    * @return the formula approximation
    * @throws InterruptedException if the computation is interrupted

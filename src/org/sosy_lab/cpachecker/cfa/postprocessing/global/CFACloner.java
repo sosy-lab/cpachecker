@@ -34,8 +34,11 @@ public class CFACloner {
 
   private final CFA cfa;
 
-  @Option(secure = true, description = "how often do we clone a function?")
-  private int numberOfCopies = 5;
+  @Option(
+      secure = true,
+      description =
+          "how often do we clone a function? The ThreadingCPA uses one copy per created thread.")
+  private int numberOfCopies = 10;
 
   public CFACloner(final CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
     cfa = pCfa;

@@ -71,11 +71,10 @@ public class CPAs {
   public static FluentIterable<ConfigurableProgramAnalysis> asIterable(
       final ConfigurableProgramAnalysis pCpa) {
     return FluentIterable.from(
-        Traverser.forTree(
-                (ConfigurableProgramAnalysis cpa) ->
-                    (cpa instanceof WrapperCPA wrapperCPA)
-                        ? wrapperCPA.getWrappedCPAs()
-                        : ImmutableList.of())
+        Traverser.forTree((ConfigurableProgramAnalysis cpa) ->
+                (cpa instanceof WrapperCPA wrapperCPA)
+                    ? wrapperCPA.getWrappedCPAs()
+                    : ImmutableList.of())
             .depthFirstPreOrder(pCpa));
   }
 

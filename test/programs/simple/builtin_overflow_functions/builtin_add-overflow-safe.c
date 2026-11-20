@@ -6,7 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-
 void __VERIFIER_assert(int condition) {
   if (!condition) {
     ERROR:
@@ -18,6 +17,23 @@ void __VERIFIER_assert(int condition) {
 // This program is safe for unreach-label, valid-memsafety, and no-overflow in ILP32 and LP64
 int main(void) {
 
+  int add_address_result;
+  int add_address_overflow = __builtin_add_overflow(1, 2, &add_address_result);
+
+  // 1 + 2 = 3; the ordinary address-of result pointer stores the result and reports no overflow.
+  __VERIFIER_assert(add_address_result == 3);
+  __VERIFIER_assert(add_address_overflow == 0);
+
+
+  int add_pointer_result;
+  int *add_pointer = &add_pointer_result;
+  int add_pointer_overflow = __builtin_add_overflow(1, 2, add_pointer);
+
+  // The pointer-variable result destination has the same result and overflow flag as &add_pointer_result.
+  __VERIFIER_assert(add_pointer_result == 3);
+  __VERIFIER_assert(add_pointer_overflow == 0);
+
+
   // Constant test values are initialized directly and never modified.
   const char char_min = -128;
   const char char_max = 127;
@@ -26,18 +42,20 @@ int main(void) {
   const unsigned char uchar_max = 255U;
   const short int short_min = -32768;
   const short int short_max = 32767;
-  const int int_min = (-2147483647 - 1);
+  const int int_min = -2147483648LL;
   const int int_max = 2147483647;
   const unsigned int uint_max = 4294967295U;
-  const long long int ll_min = (-9223372036854775807LL - 1LL);
+  // GCC converts the explicit unsigned sign-bit value to LLONG_MIN.
+  const long long int ll_min = (long long int)9223372036854775808ULL;
   const long long int ll_max = 9223372036854775807LL;
   const unsigned long long int ull_max = 18446744073709551615ULL;
-  const unsigned long int add_ulong_max = ~0UL;
-  const long int add_long_max = (long int)((~0UL) >> 1);
-  const long int add_long_min = (-((long int)((~0UL) >> 1)) - 1L);
-  const long int saddl_max = (long int)((~0UL) >> 1);
-  const long int saddl_min = (-((long int)((~0UL) >> 1)) - 1L);
-  const unsigned long int uaddl_max = ~0UL;
+  const unsigned long int add_ulong_max = sizeof(long int) == 4U ? 4294967295UL : 18446744073709551615UL;
+  const long int add_long_max = sizeof(long int) == 4U ? 2147483647L : 9223372036854775807L;
+  // GCC's unsigned-to-signed conversion gives LONG_MIN for the explicit sign-bit value.
+  const long int add_long_min = sizeof(long int) == 4U ? (long int)2147483648UL : (long int)9223372036854775808UL;
+  const long int saddl_max = add_long_max;
+  const long int saddl_min = add_long_min;
+  const unsigned long int uaddl_max = add_ulong_max;
 
 
   // long is 32 bits in ILP32 and 64 bits in LP64, so this builtin case has model-dependent expected results.
@@ -202,6 +220,26 @@ int main(void) {
   __VERIFIER_assert(add_int_ull_max_0_ov == 1);
 
 
+  long long int add_int_max_1_wide_res;
+  int add_int_max_1_wide_ov;
+  add_int_max_1_wide_ov = __builtin_add_overflow(int_max, 1, &add_int_max_1_wide_res);
+
+  // 2147483647 + 1 fits the wider destination; stored result = 2147483648LL and overflow = 0.
+  __VERIFIER_assert(add_int_max_1_wide_res == 2147483648LL);
+
+  __VERIFIER_assert(add_int_max_1_wide_ov == 0);
+
+
+  int add_wide_back_in_range_res;
+  int add_wide_back_in_range_ov;
+  add_wide_back_in_range_ov = __builtin_add_overflow(2147483648LL, -100, &add_wide_back_in_range_res);
+
+  // The first operand exceeds int, but 2147483648LL + -100 fits the destination.
+  __VERIFIER_assert(add_wide_back_in_range_res == 2147483548);
+
+  __VERIFIER_assert(add_wide_back_in_range_ov == 0);
+
+
   // Signed int addition overflow tests.
 
   int sadd_0_0_res;
@@ -272,6 +310,16 @@ int main(void) {
   __VERIFIER_assert(sadd_min_m1_res == int_max);
 
   __VERIFIER_assert(sadd_min_m1_ov == 1);
+
+
+  int sadd_converted_res;
+  int sadd_converted_ov;
+  sadd_converted_ov = __builtin_sadd_overflow(2147483648LL, -100, &sadd_converted_res);
+
+  // GCC converts the first argument to INT_MIN; adding -100 overflows int.
+  __VERIFIER_assert(sadd_converted_res == 2147483548);
+
+  __VERIFIER_assert(sadd_converted_ov == 1);
   long int saddl_0_0_res;
   int saddl_0_0_ov;
   saddl_0_0_ov = __builtin_saddl_overflow(0L, 0L, &saddl_0_0_res);
@@ -313,7 +361,7 @@ int main(void) {
   // ILP32: 2147483647L + -1L = 2147483646, which fits the destination range; stored result = 2147483646L and overflow = 0.
   // LP64: 9223372036854775807L + -1L = 9223372036854775806, which fits the destination range; stored result = 9223372036854775806L and
   // overflow = 0.
-  __VERIFIER_assert(saddl_max_m1_res == ((long int)((~0UL) >> 1)) - 1L);
+  __VERIFIER_assert(saddl_max_m1_res == saddl_max - 1L);
 
   __VERIFIER_assert(saddl_max_m1_ov == 0);
 
@@ -324,7 +372,7 @@ int main(void) {
 
   // ILP32: saddl_min + 1L = saddl_min + 1L, which fits the destination range; stored result = -2147483647L and overflow = 0.
   // LP64: saddl_min + 1L = saddl_min + 1L, which fits the destination range; stored result = -9223372036854775807L and overflow = 0.
-  __VERIFIER_assert(saddl_min_1_res == ((-((long int)((~0UL) >> 1)) - 1L)) + 1L);
+  __VERIFIER_assert(saddl_min_1_res == saddl_min + 1L);
 
   __VERIFIER_assert(saddl_min_1_ov == 0);
 
@@ -515,7 +563,7 @@ int main(void) {
 
   unsigned long int uaddl_maxm1_1_res;
   int uaddl_maxm1_1_ov;
-  uaddl_maxm1_1_ov = __builtin_uaddl_overflow((~0UL) - 1UL, 1UL, &uaddl_maxm1_1_res);
+  uaddl_maxm1_1_ov = __builtin_uaddl_overflow(uaddl_max - 1UL, 1UL, &uaddl_maxm1_1_res);
 
   // ILP32: 4294967294UL + 1UL = 4294967295, which fits the destination range; stored result = 4294967295UL and overflow = 0.
   // LP64: 18446744073709551614UL + 1UL = 18446744073709551615, which fits the destination range; stored result = 18446744073709551615UL and
@@ -554,9 +602,19 @@ int main(void) {
   // ILP32: 4294967295UL + 4294967295UL = 8589934590, outside the destination range; stored result = 4294967294UL and overflow = 1.
   // LP64: 18446744073709551615UL + 18446744073709551615UL = 36893488147419103230, outside the destination range; stored result =
   // 18446744073709551614UL and overflow = 1.
-  __VERIFIER_assert(uaddl_max_max_res == (~0UL) - 1UL);
+  __VERIFIER_assert(uaddl_max_max_res == uaddl_max - 1UL);
 
   __VERIFIER_assert(uaddl_max_max_ov == 1);
+
+
+  unsigned long int uaddl_negative_int_res;
+  int uaddl_negative_int_ov;
+  uaddl_negative_int_ov = __builtin_uaddl_overflow(4294967295UL, -1, &uaddl_negative_int_res);
+
+  // -1 converts to unsigned long before addition; the stored result is 4294967294UL.
+  __VERIFIER_assert(uaddl_negative_int_res == 4294967294UL);
+
+  __VERIFIER_assert(uaddl_negative_int_ov == 1);
 
 
   // Unsigned long long int addition overflow tests.

@@ -294,7 +294,7 @@ public class InvariantStrengthenings {
 
       if (!pProver.isUnsat()) {
         // Pop the invariant-violation assertions
-        IntStream.range(0, nPushedLiterals).forEach(i -> pProver.pop());
+        IntStream.range(0, nPushedLiterals).forEach(_ -> pProver.pop());
         return false;
       }
 
@@ -306,7 +306,7 @@ public class InvariantStrengthenings {
       }
 
       // Pop the invariant-violation assertions
-      IntStream.range(0, nPushedLiterals).forEach(i -> pProver.pop());
+      IntStream.range(0, nPushedLiterals).forEach(_ -> pProver.pop());
       return true;
     }
   }

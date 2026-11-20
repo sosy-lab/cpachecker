@@ -48,7 +48,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public UnmodifiableReachedSet asReachedSet() {
     return new UnmodifiableSubgraphReachedSetView(
-        path, s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
+        path, _ -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
     // TODO do we really need the target-precision for refinements and not the actual one?
   }
 
@@ -89,6 +89,24 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public void removeSubtree(ARGState state) throws InterruptedException {
     removeSubtree(state, ImmutableList.of(), ImmutableList.of());
+  }
+
+  /**
+   * We must not simply clear the reached set here, because the BAM caches would keep the removed
+   * states of the sub-reached-sets. Thus we remove the subtrees below the root one by one.
+   *
+   * <p>TODO: modify the cache directly?
+   */
+  @Override
+  public void removeAllExceptFirstStateWithPrecision(
+      List<Precision> pPrecisions, List<Predicate<? super Precision>> pPrecTypes)
+      throws InterruptedException {
+    ARGState root = path.getFirstState();
+    while (!root.getChildren().isEmpty()) {
+      ARGState child = root.getChildren().getFirst();
+      removeSubtree(child, pPrecisions, pPrecTypes);
+      assert child.isDestroyed() : "Removing the subtree of " + child + " did not remove the state";
+    }
   }
 
   @Override

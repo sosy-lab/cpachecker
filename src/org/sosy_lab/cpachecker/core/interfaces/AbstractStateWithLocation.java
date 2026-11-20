@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -43,5 +45,34 @@ public interface AbstractStateWithLocation extends AbstractStateWithLocations {
   @Override
   default Iterable<CFAEdge> getIncomingEdges() {
     return getLocationNode().getEnteringEdges();
+  }
+
+  @Override
+  default List<CFAEdge> getEdgesToChild(AbstractStateWithLocations pChild) {
+    if (pChild instanceof AbstractStateWithLocation child) {
+      return getEdgesToChild(child);
+    }
+    return ImmutableList.of();
+  }
+
+  /**
+   * Get the CFA edges to {@code pChild} by following the unique chain of leaving edges, or an empty
+   * list if both states are at the same location or no unique chain connects them.
+   */
+  default List<CFAEdge> getEdgesToChild(AbstractStateWithLocation pChild) {
+    ImmutableList.Builder<CFAEdge> allEdges = ImmutableList.builder();
+    CFANode currentLoc = getLocationNode();
+    CFANode childLoc = pChild.getLocationNode();
+
+    while (!currentLoc.equals(childLoc)) {
+      if (currentLoc.getNumLeavingEdges() != 1) {
+        return ImmutableList.of();
+      }
+
+      final CFAEdge leavingEdge = currentLoc.getLeavingEdge(0);
+      allEdges.add(leavingEdge);
+      currentLoc = leavingEdge.getSuccessor();
+    }
+    return allEdges.build();
   }
 }

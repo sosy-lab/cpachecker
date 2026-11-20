@@ -1457,8 +1457,34 @@ public class SMGState
     // Get all (global and local) variables
     PersistentMap<MemoryLocation, ValueAndValueSize> thisAllMemLocAndValues =
         memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap();
+    PersistentMap<MemoryLocation, ValueAndValueSize> otherAllMemLocAndValues =
+        pOther.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap();
+
+    // Compare concrete numeric values first. They are cheap to compare and often differ for states
+    // at the same location (e.g., loop counters), while pointers are compared by the shape of the
+    // memory they point to, which can traverse large parts of the heap.
     for (Entry<MemoryLocation, ValueAndValueSize> otherMemLocAndValue :
-        pOther.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
+        otherAllMemLocAndValues.entrySet()) {
+      Value otherValue = otherMemLocAndValue.getValue().getValue();
+      ValueAndValueSize thisValueAndType = thisAllMemLocAndValues.get(otherMemLocAndValue.getKey());
+      if (otherValue instanceof NumericValue
+          && thisValueAndType != null
+          && thisValueAndType.getValue() instanceof NumericValue
+          && !areValuesEqual(
+              this,
+              thisValueAndType.getValue(),
+              pOther,
+              otherValue,
+              equalityCache,
+              objectCache,
+              treatSymbolicsAsEqualWEqualConstrains(pOther, otherMemLocAndValue.getKey()),
+              trueEqualityCheck)) {
+        return false;
+      }
+    }
+
+    for (Entry<MemoryLocation, ValueAndValueSize> otherMemLocAndValue :
+        otherAllMemLocAndValues.entrySet()) {
       MemoryLocation otherMemLoc = otherMemLocAndValue.getKey();
       Value otherValue = otherMemLocAndValue.getValue().getValue();
       ValueAndValueSize thisValueAndType = thisAllMemLocAndValues.get(otherMemLoc);
@@ -1621,13 +1647,6 @@ public class SMGState
       return false;
     }
 
-    // We may not forget any errors already found
-    // TODO: simplify/reduce complexity for cases in which we know that the result is equal to input
-    if (!copyAndPruneUnreachable()
-        .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
-      return false;
-    }
-
     // Cache value equalities and object (shape) equalities that we already found
     EqualityCache<Value> equalityCache = EqualityCache.of();
     EqualityCache<SMGObject> objectCache = EqualityCache.of();
@@ -1641,7 +1660,16 @@ public class SMGState
     // pointers is lessOrEqual)
     // Validity is checked while checking values and the shape!
     // There might linger some invalidated memory with no connection and that's fine.
-    return checkEqualityOfMemoryForTwoStates(pOther, equalityCache, objectCache, false);
+    if (!checkEqualityOfMemoryForTwoStates(pOther, equalityCache, objectCache, false)) {
+      return false;
+    }
+
+    // We may not forget any errors already found.
+    // This is checked last, as pruning traverses the whole memory of both states, while the checks
+    // above usually reject states early.
+    // TODO: simplify/reduce complexity for cases in which we know that the result is equal to input
+    return copyAndPruneUnreachable()
+        .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable());
   }
 
   /**
@@ -1783,7 +1811,7 @@ public class SMGState
 
     // First, get all SMGValues for possible identifier
     for (Entry<Wrapper<Value>, SMGValue> mapping :
-        memoryModel.getValueToSMGValueMapping().entrySet()) {
+        memoryModel.getValueToSMGValueMapping().entries()) {
       Value value = mapping.getKey().get();
       SMGValue smgValue = mapping.getValue();
       if (memoryModel.getSmg().getNumberOfSMGValueUsages(smgValue) > 0) {
@@ -3268,24 +3296,16 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
-  /**
-   * I.e. int bla = *pointer; With pointer failing to dereference because it's pointing to 0.
-   *
-   * @param nullObject the {@link SMGObject} that is null and was tried to be dereferenced.
-   * @return A new SMGState with the error info.
-   */
-  public SMGState withNullPointerDereferenceWhenReading(SMGObject nullObject) {
+  /** I.e. int bla = *pointer; With pointer failing to dereference because it's pointing to 0. */
+  public SMGState withNullPointerDereferenceWhenReading(String additionalInfo) {
     // getValueForSMGValue(pValue)
     // Get the SMGValue and Value that lead to this null pointer dereference
     String errorMSG =
         "Null pointer dereference on read of object with the intent to read it: "
-            + nullObject
+            + additionalInfo
             + ".";
     SMGErrorInfo newErrorInfo =
-        SMGErrorInfo.of()
-            .withProperty(Property.INVALID_READ)
-            .withErrorMessage(errorMSG)
-            .withInvalidObjects(Collections.singleton(nullObject));
+        SMGErrorInfo.of().withProperty(Property.INVALID_READ).withErrorMessage(errorMSG);
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithNewErrorInfo(newErrorInfo);
@@ -4103,6 +4123,10 @@ public class SMGState
         // Float conversion is limited to the Java float types at the moment.
         // Larger float types are almost always unknown
         valueRead = castValueForUnionFloatConversion(valueRead, readType);
+      } else if (readType != null && isSymbolicFloatReinterpretation(valueRead, readType)) {
+        // Symbolic values can not express the reinterpretation of the bits of an integer as a
+        // floating-point number or vice versa, so the read value is unknown.
+        return ValueAndSMGState.of(getNewSymbolicValueForType(readType), this);
       }
       return ValueAndSMGState.of(valueRead, this);
 
@@ -4247,6 +4271,20 @@ public class SMGState
     } else {
       return false;
     }
+  }
+
+  /**
+   * Whether a symbolic value is read with a floating-point type although it was written with an
+   * integer type, or vice versa, e.g., through a union. Like {@link
+   * #doesRequireUnionFloatConversion(Value, CType)} for symbolic values.
+   */
+  private boolean isSymbolicFloatReinterpretation(Value valueRead, CType readType) {
+    return valueRead instanceof SymbolicExpression symbolicValue
+        && symbolicValue.getType() instanceof CType valueType
+        && valueType.getCanonicalType() instanceof CSimpleType
+        && readType.getCanonicalType() instanceof CSimpleType
+        && isFloatingPointType(valueType.getCanonicalType())
+            != isFloatingPointType(readType.getCanonicalType());
   }
 
   private boolean isFloatingPointType(CType pType) {
@@ -5222,8 +5260,24 @@ public class SMGState
     SatisfiabilityAndSMGState maybeAssignmentResultAndState;
     if (identsToReplace.size() == 1) {
       // Some nested variable is to be replaced
+
+      // The solver only checks the last added constraint and the constraints sharing symbolic
+      // identifiers with it, and its model only assigns identifiers of the checked constraints.
+      // To get the identifier into the model, we re-add an existing constraint over it. This does
+      // not change the set of constraints, but makes it the last added constraint so that the SAT
+      // check is based on it.
+      SymbolicIdentifier identToReplace = identsToReplace.iterator().next();
+      SMGState stateToCheck = this;
+      for (Constraint constraint : getConstraints()) {
+        if (memoryModel
+            .getSymbolicIdentifiersWithTypesForValue(constraint)
+            .containsKey(identToReplace)) {
+          stateToCheck = addConstraint(constraint);
+          break;
+        }
+      }
       // Add the parameters for the memory access and check sat to get a model
-      maybeAssignmentResultAndState = evaluator.checkIsUnsatWithCurrentConstraints(this);
+      maybeAssignmentResultAndState = evaluator.checkIsUnsatWithCurrentConstraints(stateToCheck);
       SMGState currentState = maybeAssignmentResultAndState.getState();
 
       if (maybeAssignmentResultAndState.isSAT()) {
@@ -5246,7 +5300,7 @@ public class SMGState
           }
         }
         // We allow only simple assignments to pure variables for the moment
-        if (assignments.size() > 1) {
+        if (assignments.size() != 1) {
           throw new SMGException(
               "Stop analysis because of symbolic offset in subscript expression that could not be"
                   + " assigned. "
@@ -5294,9 +5348,8 @@ public class SMGState
     boolean isNotConstraints = true;
     for (Constraint constraint : getConstraints()) {
       if (identsToReplace.stream()
-          .anyMatch(
-              i ->
-                  memoryModel.getSymbolicIdentifiersWithTypesForValue(constraint).containsKey(i))) {
+          .anyMatch(i ->
+              memoryModel.getSymbolicIdentifiersWithTypesForValue(constraint).containsKey(i))) {
         isNotConstraints = false;
         break;
       }
@@ -6849,15 +6902,16 @@ public class SMGState
    * Tries to read global and local (current function) variables and return the concrete values of
    * them from the SMG (memory-model), as long as the types are known (might be lost in the SMG). If
    * the type is not available, or the object is invalid, the variable is skipped and nothing is
-   * returned for it. Only returns values for simple types (int, long etc.) or null for pointers
-   * currently.
+   * returned for it. Only returns values for simple types (int, long, float etc.) or null for
+   * pointers currently. Values of floating-point variables are floating-point numbers, all other
+   * values are {@link BigInteger}s.
    */
-  public Map<MemoryLocation, BigInteger> getVariablesWithConcreteValues(
+  public Map<MemoryLocation, Number> getVariablesWithConcreteValues(
       List<ValueAssignment> modelToUse) {
     Map<SymbolicIdentifier, Value> solverAssignments =
         extractSolverAssignmentsFromModel(modelToUse);
 
-    ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<MemoryLocation, Number> memLocAndValueBuilder = ImmutableMap.builder();
 
     Map<MemoryLocation, Entry<CType, SMGObject>> globalVars =
         memoryModel.getGlobalVariablesWithTypes();
@@ -6877,10 +6931,10 @@ public class SMGState
    * to numeric values in struct fields of depth 1 (due to how the concrete error path states and
    * {@link MemoryLocation} work).
    */
-  public Map<MemoryLocation, BigInteger> getConcreteValuesFor(
+  public Map<MemoryLocation, Number> getConcreteValuesFor(
       Map<MemoryLocation, Entry<CType, SMGObject>> variablesToRead,
       Map<SymbolicIdentifier, Value> solverAssignmentsToApply) {
-    ImmutableMap.Builder<MemoryLocation, BigInteger> memLocAndValueBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<MemoryLocation, Number> memLocAndValueBuilder = ImmutableMap.builder();
 
     for (Entry<MemoryLocation, Entry<CType, SMGObject>> variableToRead :
         variablesToRead.entrySet()) {
@@ -6912,7 +6966,12 @@ public class SMGState
               if (baseMemoryLoc.isReference()) {
                 baseMemoryLoc = baseMemoryLoc.getReferenceStart();
               }
-              memLocAndValueBuilder.put(baseMemoryLoc, numValue.bigIntegerValue());
+              memLocAndValueBuilder.put(
+                  baseMemoryLoc,
+                  // A floating-point number would lose its value as integer, e.g., NaN would be 0
+                  simpleVariableType.getType().isFloatingPointType()
+                      ? numValue.getNumber()
+                      : numValue.bigIntegerValue());
             }
           }
 

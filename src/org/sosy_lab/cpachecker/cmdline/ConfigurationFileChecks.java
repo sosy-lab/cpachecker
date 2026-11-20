@@ -66,6 +66,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
@@ -154,6 +155,7 @@ public class ConfigurationFileChecks {
           "invariantGeneration.kInduction.async",
           "invariantGeneration.kInduction.guessCandidatesFromCFA",
           "invariantGeneration.kInduction.terminateOnCounterexample",
+          "termination.validation.wellFoundednessConfig",
           "counterexample.export.allowImpreciseCounterexamples", // refactor BMCAlgorithm for this
           // irrelevant if other solver is used
           "solver.z3.requireProofs",
@@ -418,7 +420,10 @@ public class ConfigurationFileChecks {
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
         || Ascii.toLowerCase(basePath.toString()).contains("termination")
         || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
-        || basePath.toString().contains("validation-termination")) {
+        || basePath.toString().contains("validation-termination")
+        // A config for the termination property has no property violation to look for
+        // and thus must not configure a specification.
+        || basePath.toString().endsWith("--termination.properties")) {
       assertThat(Strings.nullToEmpty(spec)).isEmpty();
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
@@ -509,10 +514,12 @@ public class ConfigurationFileChecks {
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
       config = configBuilder.build();
     }
+    boolean isComponentConfig =
+        configFile instanceof Path configFilePath
+            && Iterables.contains(configFilePath, Path.of("components"));
     if (Strings.isNullOrEmpty(config.getProperty(SPECIFICATION_OPTION))
         && configFile instanceof Path configFilePath
-        && (Iterables.contains(configFilePath, Path.of("components"))
-            || configFilePath.endsWith("ltl.properties"))) {
+        && (isComponentConfig || configFilePath.endsWith("ltl.properties"))) {
       // Some configs require a specification due to the use of $specification.
       // For config/components/ we do not want to hard-code a specification in the config file,
       // but we still want to instantiate the config for testing here. So provide a dummy spec.
@@ -553,15 +560,32 @@ public class ConfigurationFileChecks {
               Path.of("sequentializeProgram.properties"),
               Path.of("sequentialization-concurrency--memorysafety.properties"),
               Path.of("sequentialization-concurrency--overflow.properties"),
-              Path.of("sequentialization-concurrency.properties"));
+              Path.of("sequentialization-concurrency.properties"),
+              // interpret the property itself, so they reject the default specification
+              Path.of("orderingConsistency.properties"),
+              Path.of("orderingConsistency--overflow.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency--overflow.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency-z3-nla.properties"),
+              Path.of("svcomp27--concurrency-orderingConsistency.properties"),
+              Path.of("svcomp27--concurrency.properties"),
+              Path.of("svcomp27--concurrency-overflow.properties"),
+              Path.of("svcomp27--datarace.properties"));
     }
 
     CPAcheckerResult result;
     try {
+      if (isComponentConfig) {
+        // Component configs are not expected to be used for CFA creation,
+        // so if they have cfa options that do not match their subcomponents,
+        // it does not matter.
+        NestingAlgorithm.checkCfaOptionMisMatch = false;
+      }
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)));
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
       assumeNoException(e);
       throw new AssertionError(e);
+    } finally {
+      NestingAlgorithm.checkCfaOptionMisMatch = true;
     }
 
     assert_()
@@ -672,9 +696,8 @@ public class ConfigurationFileChecks {
             .map(LogRecord::getMessage)
             .filter(s -> !INDICATES_MISSING_FILES.matcher(s).matches())
             .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches())
-            .filter(
-                s ->
-                    MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS.matcher(s).matches());
+            .filter(s ->
+                MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS.matcher(s).matches());
 
     if (isUnmaintainedConfig()) {
       result = result.filter(s -> !UNMAINTAINED_CPA_WARNING.matcher(s).matches());

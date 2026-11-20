@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -46,6 +47,16 @@ public final class SubstitutingCAstNodeVisitor
    */
   public SubstitutingCAstNodeVisitor(Function<CAstNode, @Nullable CAstNode> pSubstitution) {
     substitution = checkNotNull(pSubstitution);
+  }
+
+  /**
+   * Returns the given expression, where each subexpression that is a key of the given map is
+   * replaced by its value. The subexpressions are compared with {@link Object#equals}, i.e., by
+   * their structure, and the substitutes are not visited.
+   */
+  public static CExpression substituteExpressions(
+      CExpression pExpression, Map<? extends CExpression, ? extends CExpression> pSubstitution) {
+    return (CExpression) pExpression.accept(new SubstitutingCAstNodeVisitor(pSubstitution::get));
   }
 
   /**

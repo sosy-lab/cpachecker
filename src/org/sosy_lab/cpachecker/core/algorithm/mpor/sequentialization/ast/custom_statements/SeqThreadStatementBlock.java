@@ -9,11 +9,25 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.custom_statements;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pointer_aliasing.SeqPointerAliasingMap;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFANodeForThread;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CCompoundStatementElement;
 import org.sosy_lab.cpachecker.util.cwriter.export.CExpressionWrapper;
@@ -124,6 +138,77 @@ public final class SeqThreadStatementBlock implements SeqExportStatement {
         "pStatements.size() must be equal to the existing statements.size()");
     return new SeqThreadStatementBlock(
         threadId, labelNumber, isLoopHead, pStatements, nextThreadLabel);
+  }
+
+  /**
+   * Injects the required {@link SeqInstrumentation} into the {@link SeqThreadStatement} of this
+   * {@link SeqThreadStatementBlock}. The required instrumentation does not depend on any {@link
+   * MPOROptions}, so it is always injected. This can be concurrency semantics that is not
+   * explicitly present in the input program but still has to be modeled in every output program.
+   */
+  public SeqThreadStatementBlock withRequiredInstrumentation(
+      MPORSubstitution pSubstitution,
+      ImmutableMap<CFAEdgeForThread, SubstituteEdge> pSubstituteEdges,
+      CFANodeForThread pThreadNode,
+      SeqPointerAliasingMap pPointerAliasingMap,
+      AstCfaRelation pAstCfaRelation,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    List<SeqInstrumentation> requiredInstrumentation = new ArrayList<>();
+
+    // instrument when exiting an init_routine specified in a call to pthread_once
+    Optional<SeqInstrumentation> onceUnlockInstrumentation =
+        SeqInstrumentationBuilder.tryBuildOnceUnlockInstrumentation(pSubstituteEdges, statements);
+    if (onceUnlockInstrumentation.isPresent()) {
+      requiredInstrumentation.add(onceUnlockInstrumentation.orElseThrow());
+    }
+
+    // instrument when a pointer points to a local stack variable on function return
+    Optional<SeqInstrumentation> resetDanglingPointerInstrumentation =
+        SeqInstrumentationBuilder.tryBuildResetDanglingPointerInstrumentation(
+            pThreadNode, pPointerAliasingMap, pBinaryExpressionBuilder);
+    if (resetDanglingPointerInstrumentation.isPresent()) {
+      checkIsValidPointerReset(statements);
+      requiredInstrumentation.add(resetDanglingPointerInstrumentation.orElseThrow());
+    }
+
+    // instrument when exiting a function or terminating a thread (pointer resets)
+    Optional<SeqInstrumentation> resetOutOfScopePointerInstrumentation =
+        SeqInstrumentationBuilder.tryBuildResetOutOfScopePointerInstrumentation(
+            pSubstitution, pThreadNode, pAstCfaRelation);
+    if (resetOutOfScopePointerInstrumentation.isPresent()) {
+      checkIsValidPointerReset(statements);
+      requiredInstrumentation.add(resetOutOfScopePointerInstrumentation.orElseThrow());
+    }
+
+    if (!requiredInstrumentation.isEmpty()) {
+      // the required instrumentation is only added if there is a single statement.
+      SeqThreadStatement instrumentedStatement =
+          Iterables.getOnlyElement(statements)
+              .withInstrumentation(ImmutableList.copyOf(requiredInstrumentation));
+      return new SeqThreadStatementBlock(
+          threadId,
+          labelNumber,
+          isLoopHead,
+          ImmutableList.of(instrumentedStatement),
+          nextThreadLabel);
+    }
+    return this;
+  }
+
+  private static void checkIsValidPointerReset(ImmutableList<SeqThreadStatement> pStatements) {
+    SeqThreadStatement statement = Iterables.getOnlyElement(pStatements);
+    checkState(
+        statement
+            .data()
+            .getType()
+            .in(
+                SeqThreadStatementType.GHOST_ONLY,
+                SeqThreadStatementType.FUNCTION_EXIT,
+                SeqThreadStatementType.THREAD_EXIT),
+        "Cannot append pointer resets to a statement of type %s",
+        statement.data().getType());
   }
 
   /** Whether this block begins with {@code __VERIFIER_atomic_begin();}. */

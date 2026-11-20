@@ -52,12 +52,13 @@ public final class SvLibIntegerConstantTerm implements SvLibConstantTerm {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return value.toString();
+    // SMT-LIB has no negative numerals, -1 would be a symbol
+    return value.signum() < 0 ? "(- " + value.negate() + ")" : value.toString();
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return value.toString();
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override

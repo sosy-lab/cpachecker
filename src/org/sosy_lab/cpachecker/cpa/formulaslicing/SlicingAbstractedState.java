@@ -174,13 +174,11 @@ final class SlicingAbstractedState extends SlicingState
       FormulaManagerView pManager, FunctionEntryNode pFunctionScope) {
     Collection<BooleanFormula> filteredLemmas =
         lemmas.stream()
-            .filter(
-                lemma ->
-                    pManager.extractVariableNames(lemma).stream()
-                        .allMatch(
-                            name ->
-                                !name.contains("::")
-                                    || name.startsWith(pFunctionScope.getFunctionName() + "::")))
+            .filter(lemma ->
+                pManager.extractVariableNames(lemma).stream()
+                    .allMatch(name ->
+                        !name.contains("::")
+                            || name.startsWith(pFunctionScope.getFunctionName() + "::")))
             .toList();
     if (filteredLemmas.isEmpty()) {
       return pManager.getBooleanFormulaManager().makeTrue();

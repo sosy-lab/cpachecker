@@ -164,7 +164,8 @@ public class ACSLTermToCExpressionVisitor
               boundIdentifier.getName(),
               boundIdentifier.getName(),
               boundIdentifier.getFunctionName() + "::" + boundIdentifier.getName(),
-              null);
+              null,
+              /* pHasThreadLocalStorage= */ false);
       result = new CIdExpression(FileLocation.DUMMY, declaration);
     }
     return result;
@@ -186,7 +187,8 @@ public class ACSLTermToCExpressionVisitor
   public CExpression visit(ACSLStringLiteral stringLiteral) {
     CExpression result = cache.get(stringLiteral);
     if (result == null) {
-      result = new CStringLiteralExpression(FileLocation.DUMMY, stringLiteral.getLiteral());
+      result =
+          CStringLiteralExpression.fromSourceCode(FileLocation.DUMMY, stringLiteral.getLiteral());
       cache.put(stringLiteral, result);
     }
     return result;

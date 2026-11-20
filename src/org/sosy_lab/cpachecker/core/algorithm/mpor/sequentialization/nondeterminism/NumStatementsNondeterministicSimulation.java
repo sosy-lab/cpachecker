@@ -73,8 +73,8 @@ class NumStatementsNondeterministicSimulation extends NondeterministicSimulation
             VerifierNondetFunctionType.buildNondetIntegerAssignment(
                 options, SeqIdExpressions.ROUND_MAX)));
 
-    // add instrumentation, if enabled
-    if (options.executeCommutingThreadsFirst()) {
+    // add CTF instrumentation, if enabled and if the input program is actually concurrent
+    if (options.executeCommutingThreadsFirst() && clauses.keySet().size() > 1) {
       ImmutableSet<MPORThread> otherThreads = MPORUtil.withoutElement(clauses.keySet(), pThread);
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses.get(pThread));

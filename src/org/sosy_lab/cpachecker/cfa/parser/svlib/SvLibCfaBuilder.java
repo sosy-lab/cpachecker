@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibCheckTrueTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibEnsuresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibLivenessTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
@@ -77,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareFunComm
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibDeclareSortCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibGetWitnessCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProcedureDefinitionCommand;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibProceduresRecDefinitionCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSelectTraceCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetInfoCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetLogicCommand;
@@ -84,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibSetOptionComma
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVariableDeclarationCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibVerifyCallCommand;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibHavocStatement;
+import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.statements.SvLibStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibAnyType;
 import org.sosy_lab.cpachecker.exceptions.SvLibParserException;
@@ -108,6 +112,8 @@ class SvLibCfaBuilder {
       new ImmutableSetMultimap.Builder<>();
   private final ImmutableSetMultimap.Builder<String, SvLibTagProperty> tagReferencesToAnnotations =
       ImmutableSetMultimap.builder();
+  private final ImmutableSetMultimap.Builder<SvLibTagReference, SvLibTagProperty>
+      tagReferenceToAnnotations = ImmutableSetMultimap.builder();
   private final ImmutableSetMultimap.Builder<CFANode, SvLibTagReference> nodesToTagReferences =
       ImmutableSetMultimap.builder();
 
@@ -186,7 +192,7 @@ class SvLibCfaBuilder {
                 transformedImmutableListCopy(
                     procedureDeclaration.getReturnValues(),
                     SvLibParsingParameterDeclaration::toVariableDeclaration)),
-            x -> {},
+            _ -> {},
             node -> allNodesCollector.add(node));
 
     FunctionExitNode functionExitNode = functionNodes.getSecondNotNull();
@@ -229,6 +235,7 @@ class SvLibCfaBuilder {
             functionExitNode,
             nodeToTagAnnotations,
             nodesToTagReferences,
+            tagReferenceToAnnotations,
             labelToNodesBuilder.buildOrThrow(),
             allNodesCollector,
             tagReferencesToAnnotations.build(),
@@ -258,14 +265,18 @@ class SvLibCfaBuilder {
         Sets.difference(allNodesCollector.build(), nodeCollectingCFAVisitor.getVisitedNodes())) {
       for (CFAEdge leavingEdge : unreachableNode.getLeavingEdges().toSet()) {
         if (nodeCollectingCFAVisitor.getVisitedNodes().contains(leavingEdge.getSuccessor())) {
-          logger.log(
-              Level.WARNING,
+          logger.logf(
+              Level.FINE,
               "Removing edge from unreachable node %s to reachable node %s",
               leavingEdge.getPredecessor(),
               leavingEdge.getSuccessor());
           leavingEdge.getPredecessor().removeLeavingEdge(leavingEdge);
           leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
         }
+      }
+      if (unreachableNode instanceof FunctionExitNode) {
+        logger.log(Level.FINE, "Removing unreachable function exit node", unreachableNode);
+        functionEntryNode.removeExitNode();
       }
     }
 
@@ -305,6 +316,7 @@ class SvLibCfaBuilder {
           new SvLibInvariantTag(
               pInvariantTag.getTerm().accept(variableInstantiation),
               pInvariantTag.getFileLocation());
+      case SvLibLivenessTag pLivenessTag -> pLivenessTag;
     };
   }
 
@@ -384,6 +396,33 @@ class SvLibCfaBuilder {
           functionToProcedureDeclaration.put(
               procedureDeclaration.toSimpleDeclaration(), procedureDeclaration);
         }
+        case SvLibProceduresRecDefinitionCommand proceduresRecDefinitionCommand -> {
+          List<ProcedureDefinition> procedureDefinitions =
+              Streams.zip(
+                      proceduresRecDefinitionCommand.getProcedureDeclarations().stream(),
+                      proceduresRecDefinitionCommand.getBodies().stream(),
+                      ProcedureDefinition::new)
+                  .toList();
+
+          for (ProcedureDefinition procedureDefinition : procedureDefinitions) {
+            SvLibProcedureDeclaration procedureDeclaration =
+                procedureDefinition.procedureDeclaration;
+            SvLibStatement body = procedureDefinition.body;
+
+            SvLibProcedureDefinitionCommand dummyProcedureDefinitionCommand =
+                new SvLibProcedureDefinitionCommand(FileLocation.DUMMY, procedureDeclaration, body);
+
+            Pair<FunctionEntryNode, Set<CFANode>> functionDefinitionParseResult =
+                parseProcedureDefinition(dummyProcedureDefinitionCommand);
+
+            String functionName = procedureDeclaration.getName();
+            functions.put(functionName, functionDefinitionParseResult.getFirstNotNull());
+            cfaNodes.putAll(functionName, functionDefinitionParseResult.getSecondNotNull());
+
+            functionToProcedureDeclaration.put(
+                procedureDeclaration.toSimpleDeclaration(), procedureDeclaration);
+          }
+        }
         case SvLibVerifyCallCommand pVerifyCallCommand -> {
           // In theory the idea behind SV-LIB is to have an interactive shell with the ability to
           // talk
@@ -437,17 +476,17 @@ class SvLibCfaBuilder {
             SvLibTagReference tagReference = entry.getValue();
             if (tagReference.getTagName().equals(tagName)) {
               for (SvLibTagProperty tagProperty : tagProperties) {
-                nodeToTagAnnotations.put(
-                    node,
+                SvLibTagProperty instantiatedProperty =
                     instantiateTagProperty(
-                        Objects.requireNonNull(tagReferenceToScope.get(tagReference)),
-                        tagProperty));
+                        Objects.requireNonNull(tagReferenceToScope.get(tagReference)), tagProperty);
+                nodeToTagAnnotations.put(node, instantiatedProperty);
+                tagReferenceToAnnotations.put(tagReference, instantiatedProperty);
               }
             }
           }
           tagReferencesToAnnotations.putAll(tagName, tagProperties);
         }
-        case SvLibGetWitnessCommand pSvLibGetWitnessCommand -> {
+        case SvLibGetWitnessCommand _ -> {
           logger.log(
               Level.WARNING,
               "Ignoring get-proof command, since there was no verify call command before.");
@@ -498,11 +537,11 @@ class SvLibCfaBuilder {
           // For all options we simply add them to the SMT-LIB commands.
           smtLibCommandsBuilder.add(pSvLibSetOptionCommand);
         }
-        case SvLibSelectTraceCommand pSvLibSelectTraceCommand -> {
+        case SvLibSelectTraceCommand _ -> {
           throw new SvLibParserException(
               "Select trace commands are not yet supported in CFA parsing.");
         }
-        case SvLibSetInfoCommand pSvLibSetInfoCommand -> {
+        case SvLibSetInfoCommand _ -> {
           // we ignore set-info commands for now
         }
         case SmtLibDefineFunCommand pSmtLibDefineFunCommand -> {
@@ -548,6 +587,15 @@ class SvLibCfaBuilder {
             nodesToActualProcedureDefinitionEnd.buildOrThrow(),
             nodesToActualHavocStatementEnd.buildOrThrow(),
             nodeToTagAnnotations.build(),
-            nodesToTagReferences.build()));
+            nodesToTagReferences.build(),
+            tagReferenceToAnnotations.build()));
+  }
+
+  private record ProcedureDefinition(
+      SvLibProcedureDeclaration procedureDeclaration, SvLibStatement body) {
+    private ProcedureDefinition {
+      Objects.requireNonNull(procedureDeclaration);
+      Objects.requireNonNull(body);
+    }
   }
 }

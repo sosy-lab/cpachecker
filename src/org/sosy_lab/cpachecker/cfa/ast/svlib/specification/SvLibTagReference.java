@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.svlib.specification;
 import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNodeVisitor;
 
 public final class SvLibTagReference implements SvLibTagAttribute {
@@ -35,12 +36,12 @@ public final class SvLibTagReference implements SvLibTagAttribute {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":tag " + tagName;
+    return ":tag " + SmtLibSymbols.quoteIfNeeded(tagName);
   }
 
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return ":tag " + tagName;
+    return ":tag " + SmtLibSymbols.quoteIfNeeded(tagName);
   }
 
   public @NonNull String getTagName() {

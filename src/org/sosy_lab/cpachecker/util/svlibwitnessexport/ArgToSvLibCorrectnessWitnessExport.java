@@ -10,16 +10,24 @@ package org.sosy_lab.cpachecker.util.svlibwitnessexport;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
+import com.google.common.graph.Traverser;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibBooleanConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTermReplacer;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibParameterDeclaration;
@@ -31,7 +39,10 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibInvariantTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRequiresTag;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
@@ -40,12 +51,16 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCom
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.CollectedARGStates;
 import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector.FunctionEntryExitPair;
 import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
 
 public class ArgToSvLibCorrectnessWitnessExport {
   private final SvLibCfaMetadata svLibMetadata;
+
+  private final ImmutableSet<CFANode> loopHeads;
+  private final ImmutableSet<String> recursiveFunctions;
 
   @SuppressWarnings("unused")
   private final LogManager logger;
@@ -55,11 +70,36 @@ public class ArgToSvLibCorrectnessWitnessExport {
         pCFA.getMetadata().getSvLibCfaMetadata().isPresent(),
         "SV-LIB metadata must be present in CFA in order to export a SV-LIB witness.");
     svLibMetadata = pCFA.getMetadata().getSvLibCfaMetadata().orElseThrow();
+    loopHeads = pCFA.getAllLoopHeads().orElse(ImmutableSet.of());
+    recursiveFunctions = recursiveFunctions(pCFA);
     logger = pLogger;
   }
 
+  /** The functions that can call themselves, directly or through other functions. */
+  private static ImmutableSet<String> recursiveFunctions(CFA pCFA) {
+    SetMultimap<String, String> callees = HashMultimap.create();
+    for (CFAEdge edge : CFAUtils.allEdges(pCFA).filter(FunctionCallEdge.class)) {
+      callees.put(edge.getPredecessor().getFunctionName(), edge.getSuccessor().getFunctionName());
+    }
+    ImmutableSet.Builder<String> recursive = ImmutableSet.builder();
+    for (String function : callees.keySet()) {
+      Set<String> reached = new HashSet<>();
+      Deque<String> waitlist = new ArrayDeque<>(callees.get(function));
+      while (!waitlist.isEmpty()) {
+        String callee = waitlist.pop();
+        if (reached.add(callee)) {
+          waitlist.addAll(callees.get(callee));
+        }
+      }
+      if (reached.contains(function)) {
+        recursive.add(function);
+      }
+    }
+    return recursive.build();
+  }
+
   protected SvLibTerm getOverapproximationOfStates(
-      Collection<ARGState> pArgStates, SvLibScope pScope) {
+      Collection<ARGState> pArgStates, SvLibScope pScope) throws InterruptedException {
     FluentIterable<SvLibTermReportingState> reportingStates =
         FluentIterable.from(pArgStates)
             .transformAndConcat(AbstractStates::asIterable)
@@ -84,7 +124,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   public SvLibAnnotateTagCommand createRequires(
-      Collection<ARGState> argStates, SvLibTagReference pTag) {
+      Collection<ARGState> argStates, SvLibTagReference pTag) throws InterruptedException {
     SvLibTerm precondition =
         getOverapproximationOfStates(argStates, svLibMetadata.tagReferenceToScope().get(pTag));
     return new SvLibAnnotateTagCommand(
@@ -95,7 +135,8 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   public SvLibAnnotateTagCommand createEnsures(
-      Collection<FunctionEntryExitPair> pArgStates, SvLibTagReference pTag) {
+      Collection<FunctionEntryExitPair> pArgStates, SvLibTagReference pTag)
+      throws InterruptedException {
     // Build state for precondition
     ImmutableSet.Builder<SvLibRelationalTerm> ensuresTerms = new ImmutableSet.Builder<>();
     for (FunctionEntryExitPair pair : pArgStates) {
@@ -135,7 +176,7 @@ public class ArgToSvLibCorrectnessWitnessExport {
 
   @NonNull
   private SvLibAnnotateTagCommand createLoopInvariant(
-      Collection<ARGState> argStates, SvLibTagReference pTag) {
+      Collection<ARGState> argStates, SvLibTagReference pTag) throws InterruptedException {
     return new SvLibAnnotateTagCommand(
         pTag.getTagName(),
         ImmutableList.of(
@@ -146,9 +187,10 @@ public class ArgToSvLibCorrectnessWitnessExport {
         FileLocation.DUMMY);
   }
 
-  public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState) {
+  public List<SvLibAnnotateTagCommand> generateWitnessCommands(ARGState pRootState)
+      throws InterruptedException {
     CollectedARGStates relevantStates =
-        new RootExplorationArgStateCollector().getRelevantStates(pRootState);
+        new RootExplorationArgStateCollector(loopHeads).getRelevantStates(pRootState);
 
     ImmutableList.Builder<SvLibAnnotateTagCommand> witnessCommands = ImmutableList.builder();
 
@@ -165,12 +207,41 @@ public class ArgToSvLibCorrectnessWitnessExport {
       }
     }
 
+    // A validator needs an invariant on each cycle, also on the ones that the ARG does not reach.
+    // These include cycles of labels in dead code, which the CFA does not contain.
+    ImmutableSet<CFANode> reachedNodes =
+        FluentIterable.from(
+                Traverser.forGraph(ARGState::getChildren).depthFirstPreOrder(pRootState))
+            .transform(AbstractStates::extractLocation)
+            .filter(Objects::nonNull)
+            .toSet();
+    for (CFANode node : svLibMetadata.tagReferences().keySet()) {
+      if ((loopHeads.contains(node) || node instanceof CFALabelNode)
+          && !reachedNodes.contains(node)) {
+        for (SvLibTagReference tag : svLibMetadata.tagReferences().get(node)) {
+          witnessCommands.add(
+              new SvLibAnnotateTagCommand(
+                  tag.getTagName(),
+                  ImmutableList.of(
+                      new SvLibInvariantTag(
+                          new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
+                          FileLocation.DUMMY)),
+                  FileLocation.DUMMY));
+        }
+      }
+    }
+
     // Handle the statement contracts
     Multimap<FunctionEntryNode, ARGState> functionContractRequires =
         relevantStates.functionContractRequires();
     Multimap<FunctionExitNode, FunctionEntryExitPair> functionContractEnsures =
         relevantStates.functionContractEnsures();
     for (FunctionEntryNode functionEntryNode : functionContractRequires.keySet()) {
+      // A validator inlines the call of a function without a contract, which is at least as
+      // precise as a contract from the abstract states, so only recursive functions get one
+      if (!recursiveFunctions.contains(functionEntryNode.getFunctionName())) {
+        continue;
+      }
       Collection<ARGState> requiresArgStates = functionContractRequires.get(functionEntryNode);
       Set<SvLibTagReference> correspondingTag =
           svLibMetadata.tagReferences().get(functionEntryNode);

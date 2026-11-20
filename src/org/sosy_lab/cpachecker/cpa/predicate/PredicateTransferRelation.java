@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibRelationalTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -454,12 +455,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
   private PredicateAbstractState strengthen(
       PredicateAbstractState pState, ThreadingState pThreadingState)
       throws CPATransferException, InterruptedException {
+    PredicateAbstractState state = pState;
     FunctionCallEdge function = pThreadingState.getEntryFunction();
-    if (function == null) {
-      return pState;
+    if (function != null) {
+      state = replacePathFormula(state, convertEdgeToPathFormula(state.getPathFormula(), function));
     }
-    PathFormula pathFormula = convertEdgeToPathFormula(pState.getPathFormula(), function);
-    return replacePathFormula(pState, pathFormula);
+    CStatementEdge resultEdge = pThreadingState.getResultEdge();
+    if (resultEdge != null) {
+      state =
+          replacePathFormula(state, convertEdgeToPathFormula(state.getPathFormula(), resultEdge));
+    }
+    return state;
   }
 
   private PredicateAbstractState strengthen(

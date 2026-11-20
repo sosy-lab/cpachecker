@@ -67,6 +67,8 @@ public final class DynamicMemoryHandler {
 
   private static final char MALLOC_INDEX_SEPARATOR = '#';
 
+  private static final String SIZE_PREFIX = "__SIZE_OF_";
+
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
@@ -252,28 +254,23 @@ public final class DynamicMemoryHandler {
                 errorConditions),
             constraints,
             edge);
+    final boolean isZeroing = conv.options.getSuccessfulZallocFunctionName().equals(functionName);
+    final PointerBase newBase;
     Formula address;
     if (newType != null) {
-      final PointerBase newBase = makeAllocBase(functionName, newType, pts.getFreshAllocationId());
-      address =
-          makeAllocation(
-              conv.options.getSuccessfulZallocFunctionName().equals(functionName),
-              newType,
-              newBase,
-              Optional.of(sizeExp));
+      newBase = makeAllocBase(functionName, newType, pts.getFreshAllocationId());
+      address = makeAllocation(isZeroing, newType, newBase, Optional.of(sizeExp));
     } else {
-      final PointerBase newBase =
-          makeAllocBase(functionName, CVoidType.VOID, pts.getFreshAllocationId());
+      newBase = makeAllocBase(functionName, CVoidType.VOID, pts.getFreshAllocationId());
       pts.addNextBaseAddressConstraints(newBase, null, sizeExp, true, constraints);
       pts.addTemporaryDeferredAllocation(
-          conv.options.getSuccessfulZallocFunctionName().equals(functionName),
+          isZeroing,
           Optional.ofNullable(size)
-              .map(
-                  s ->
-                      new CIntegerLiteralExpression(
-                          parameter.getFileLocation(),
-                          parameter.getExpressionType(),
-                          BigInteger.valueOf(s))),
+              .map(s ->
+                  new CIntegerLiteralExpression(
+                      parameter.getFileLocation(),
+                      parameter.getExpressionType(),
+                      BigInteger.valueOf(s))),
           newBase);
       address = conv.makeConstant(newBase.formulaEncoding(), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
@@ -285,7 +282,34 @@ public final class DynamicMemoryHandler {
       // Constraint is only necessary for correct error conditions
       constraints.addConstraint(conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(address), address));
     }
+
+    // The byte-level heap is shared by all types, so it needs no facts.
+    if (isZeroing
+        && conv.options.maxTrackedZeroedBlocks() > 0
+        && !conv.options.useQuantifiersOnArrays()
+        && !conv.options.useByteArrayForHeap()) {
+      addZeroedMemoryFact(newBase, address, sizeExp);
+    }
     return address;
+  }
+
+  /**
+   * Records that the newly allocated block is zero, which the zeroing in {@link #makeAllocation}
+   * does only for reads with the type of the allocation.
+   */
+  private void addZeroedMemoryFact(
+      final PointerBase base, final Formula address, final Formula size) {
+    // The variable is fresh and unique for the base, so it is unconstrained on paths without this
+    // allocation even after they are merged with this one.
+    final Formula sizeVariable =
+        conv.makeFreshVariable(SIZE_PREFIX + base.name(), conv.machineModel.getSizeType(), ssa);
+    constraints.addConstraint(conv.fmgr.assignment(sizeVariable, size));
+    pts.setZeroedMemoryFacts(
+        ZeroedMemoryFact.add(
+            pts.getZeroedMemoryFacts(),
+            address,
+            sizeVariable,
+            conv.options.maxTrackedZeroedBlocks()));
   }
 
   /**
@@ -667,15 +691,14 @@ public final class DynamicMemoryHandler {
                 // We can defer the allocation and start tracking the variable in the LHS
                 final Optional<PointerBase> lhsPointer =
                     lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
-                lhsPointer.ifPresent(
-                    s -> {
-                      pts.removeDeferredAllocationPointer(s)
-                          .forEach(d -> handleDeferredAllocationPointerRemoval(s));
-                      pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
-                      // And not the RHS, it was a dummy, not a code pointer approximation
-                      pts.removeDeferredAllocationPointer(variable)
-                          .forEach(d -> handleDeferredAllocationPointerRemoval(variable));
-                    });
+                lhsPointer.ifPresent(s -> {
+                  pts.removeDeferredAllocationPointer(s)
+                      .forEach(_ -> handleDeferredAllocationPointerRemoval(s));
+                  pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
+                  // And not the RHS, it was a dummy, not a code pointer approximation
+                  pts.removeDeferredAllocationPointer(variable)
+                      .forEach(_ -> handleDeferredAllocationPointerRemoval(variable));
+                });
                 if (!lhsPointer.isPresent()) {
                   conv.logger.logfOnce(
                       Level.WARNING,
@@ -684,7 +707,7 @@ public final class DynamicMemoryHandler {
                       lhs,
                       edge);
                   pts.removeDeferredAllocationPointer(variable)
-                      .forEach(d -> handleDeferredAllocationPointerRemoval(variable));
+                      .forEach(_ -> handleDeferredAllocationPointerRemoval(variable));
                 }
               }
               isAllocation = true;
@@ -773,7 +796,7 @@ public final class DynamicMemoryHandler {
     if (lhs instanceof CIdExpression cIdExpression) {
       // If LHS is a variable, remove previous points-to bindings containing it
       pts.removeDeferredAllocationPointer(new PointerBase(cIdExpression.getDeclaration()))
-          .forEach(d -> handleDeferredAllocationPointerRemoval(lhs));
+          .forEach(_ -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
       Optional<PointerBase> lhsPointer = lhs.accept(pointerApproximatingVisitor);

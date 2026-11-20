@@ -308,7 +308,7 @@ public class VariableClassification {
    */
   private Partition getPartitionForEdge(CFAEdge edge, int index) {
     checkNotNull(edge);
-    return edgeToPartitions.get(edge, index);
+    return edgeToPartitions.get(edge.getOriginal(), index);
   }
 
   /**
