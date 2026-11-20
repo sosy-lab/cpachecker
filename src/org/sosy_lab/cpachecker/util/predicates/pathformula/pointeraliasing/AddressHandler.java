@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -205,18 +206,18 @@ final class AddressHandler {
       final Expression expression, final CType type, final boolean isSafe) {
     return switch (expression.getKind()) {
       case ALIASED_LOCATION -> {
+        final Formula address = expression.asAliasedLocation().getAddress();
+        if (type.getCanonicalType() instanceof CFunctionType) {
+          yield Optional.of(address);
+        }
         MemoryRegion region = expression.asAliasedLocation().getMemoryRegion();
         if (region == null) {
           region = regionMgr.makeMemoryRegion(type);
         }
         if (isSafe) {
-          yield Optional.of(
-              conv.makeSafeDereference(
-                  type, expression.asAliasedLocation().getAddress(), ssa, region));
+          yield Optional.of(conv.makeSafeDereference(type, address, ssa, region));
         }
-        yield Optional.of(
-            conv.makeDereference(
-                type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
+        yield Optional.of(conv.makeDereference(type, address, ssa, errorConditions, region));
       }
       case UNALIASED_LOCATION ->
           Optional.of(

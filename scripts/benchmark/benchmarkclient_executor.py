@@ -33,11 +33,27 @@ def set_vcloud_jar_path(p):
     vcloud_jar = p
 
 
+def _list_result_files_recursively(directory):
+    """
+    Recursively lists all files in directory, as paths relative to directory
+    with forward slashes (matching the format used in vcloud-resultFileNames).
+    """
+    result = set()
+    for root, _dirs, files in os.walk(directory):
+        rel_root = os.path.relpath(root, directory)
+        for f in files:
+            path = f if rel_root == "." else os.path.join(rel_root, f)
+            result.add(path.replace(os.sep, "/"))
+    return result
+
+
 def init(config, benchmark):
     global _JustReprocessResults
     _JustReprocessResults = config.reprocessResults
+
     if not benchmark.rlimits.cputime_hard:
         sys.exit("A CPU-time limit is required when running on Cloud.")
+
     tool_locator = benchexec.tooladapter.create_tool_locator(config)
     benchmark.executable = benchmark.tool.executable(tool_locator)
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
@@ -108,8 +124,6 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine.extend(["--cgroupAccess", str(benchmark.config.cgroupAccess)])
         if benchmark.config.tryLessMemory:
             cmdLine.extend(["--try-less-memory", str(benchmark.config.tryLessMemory)])
-        if benchmark.config.debug:
-            cmdLine.extend(["--print-new-files", "true"])
         if benchmark.config.containerImage:
             cmdLine.extend(["--containerImage", str(benchmark.config.containerImage)])
 
@@ -311,7 +325,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             outputDir,
         )
 
-    # Write worker host informations in xml
+    # Write worker host information in xml
     parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
     # write results in runs and handle output after all runs are done
@@ -359,6 +373,23 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             rawPath = run.log_file[: -len(".log")]
             vcloudFilesDirectory = rawPath + ".files"
             benchexecFilesDirectory = run.result_files_folder
+
+            # Check if the number of result files matches the expected count
+            if os.path.isdir(vcloudFilesDirectory):
+                actual_result_files = _list_result_files_recursively(
+                    vcloudFilesDirectory
+                )
+                # The worker excludes submission-wide stdout/stderr capture files.
+                vcloudutil.check_result_files(
+                    values,
+                    actual_result_files,
+                    run.identifier,
+                    key_prefix="vcloud-",
+                    include_file=lambda name: (
+                        not name.startswith("cloudBenchmarkOutput-")
+                    ),
+                )
+
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
                 benchexecFilesDirectory
             ):

@@ -15,7 +15,7 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
 
   private final FunctionSummaryEdge summaryEdge;
 
-  protected FunctionReturnEdge(
+  public FunctionReturnEdge(
       FileLocation pFileLocation,
       FunctionExitNode pPredecessor,
       CFANode pSuccessor,

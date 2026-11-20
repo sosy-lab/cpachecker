@@ -993,7 +993,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                 declaration.getName(),
                 declaration.getOrigName(),
                 declaration.getQualifiedName(),
-                initializer);
+                initializer,
+                declaration.hasThreadLocalStorage());
       }
     }
 

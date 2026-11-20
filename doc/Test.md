@@ -58,9 +58,16 @@ Developers who wish to have a few basic integration tests
 written as JUnit tests for their convenience may also add them.
 However, in order to not let local execution or CI pipelines take too much time,
 such tests must be disabled by default by calling
-`CPATestRunner.skipUnlessExtendedTestsEnabled()` (ideally from a `@BeforeClass` method).
+`IntegrationTestRunner.skipUnlessExtendedTestsEnabled()`
+(ideally from a `@BeforeClass` method).
+As above, the test class should be named `*IntegrationTest`.
 One can run them by setting the system property `enableExtendedTests`,
 e.g., with `ant tests -DenableExtendedTests=true`.
+Note that integration tests added as JUnit based must not
+refer to programs in external repositories (like SV-Benchmarks)
+nor use a preprocessor,
+as both would cause problems in certain environments.
+Use BuildBot tests if you need these.
 
 Smoke tests that automatically run each CPAchecker configuration on a trivial program
 are executed with `ant configuration-checks` and in [GitLab CI][].
@@ -94,7 +101,7 @@ Structure of Tests
 - To run JUnit test cases automatically, the name of the class containing the test methods has to end with `Test`.
   No other classes should have such a name.
 
-- Utilities specifically for tests should be placed in the package util.test,
+- Utilities specifically for tests should be placed in the package `util.test`,
   if they are reusable. Feel free to add utilities there.
 
 
@@ -105,7 +112,7 @@ Hints for Writing JUnit Tests
   - `LogManager.createTestLogManager()` (with tests for correct logger usage)
   - `TestUtils.configurationForTest()` for `Configuration`
   - `ShutdownNotifier.createDummy()` for `ShutdownNotifier`
-  - `FileLocation.DUMMY?
+  - `FileLocation.DUMMY`
   - `CNumericTypes.*` for `CSimpleType` instances
   - `TestCfaUtils` has utilities for CFA and AST nodes.
   - For other types, look in the specific class.

@@ -52,7 +52,9 @@ public final class SvLibRealConstantTerm implements SvLibConstantTerm {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(/ " + value.getNum() + " " + value.getDen() + ")";
+    // SMT-LIB has no negative numerals, -1 would be a symbol
+    String absoluteValue = "(/ " + value.getNum().abs() + " " + value.getDen() + ")";
+    return value.getNum().signum() < 0 ? "(- " + absoluteValue + ")" : absoluteValue;
   }
 
   @Override

@@ -27,6 +27,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -48,6 +49,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.model.svlib.SvLibCfaMetadata;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.commands.SvLibAnnotateTagCommand;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -77,8 +79,12 @@ import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.pixelexport.GraphToPixelsWriter.PixelsWriterOptions;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.ArgToSvLibCorrectnessWitnessExport;
 import org.sosy_lab.cpachecker.util.svlibwitnessexport.WitnessExportUtils;
+import org.sosy_lab.cpachecker.util.witnesses.RelevantArgStatesCollector;
 import org.sosy_lab.cpachecker.util.witnesses.RootExplorationArgStateCollector;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToYAMLWitnessExport;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ARGToCorrectnessWitnessV2;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractARGToCorrectnessWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.ConcurrentARGToCorrectnessWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CorrectnessWitnessExportOptions;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -128,18 +134,6 @@ public class ARGStatistics implements Statistics {
 
   @Option(
       secure = true,
-      name = "yamlProofWitness",
-      description =
-          "The template from which the different "
-              + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate yamlWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("witness-%s.yml");
-
-  @Option(
-      secure = true,
       name = "svLibCorrectnessWitness",
       description =
           "The file into which to write the correctness "
@@ -147,16 +141,6 @@ public class ARGStatistics implements Statistics {
               + "If not set no witness will be exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path svLibCorrectnessWitnessPath = Path.of("witness.svlib");
-
-  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
-  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
-  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
-  // added to make it possible to deactivate the export.
-  @Option(
-      secure = true,
-      name = "exportYamlCorrectnessWitness",
-      description = "export correctness witness in YAML format")
-  private boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,
@@ -238,12 +222,13 @@ public class ARGStatistics implements Statistics {
   protected final CFA cfa;
 
   private final CEXExportOptions counterexampleOptions;
+  private final CorrectnessWitnessExportOptions correctnessWitnessOptions;
   private final PixelsWriterOptions argToBitmapExporterOptions;
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
-  private final ARGToYAMLWitnessExport argToWitnessWriter;
+  private final AbstractARGToCorrectnessWitness argToWitnessWriter;
   private final ArgToSvLibCorrectnessWitnessExport argToSvLibWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
@@ -260,6 +245,7 @@ public class ARGStatistics implements Statistics {
     config.inject(this, ARGStatistics.class); // needed for subclasses
 
     counterexampleOptions = new CEXExportOptions(config);
+    correctnessWitnessOptions = new CorrectnessWitnessExportOptions(config);
     argToBitmapExporterOptions = new PixelsWriterOptions(config);
     logger = pLogger;
     cpa = pCpa;
@@ -274,17 +260,36 @@ public class ARGStatistics implements Statistics {
         && proofWitnessDot == null
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))
-        && (!exportYamlCorrectnessWitness || yamlWitnessOutputFileTemplate == null)
+        && !correctnessWitnessOptions.hasYamlWitnessExport()
         && svLibCorrectnessWitnessPath == null) {
       exportARG = false;
     }
 
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, pCFA);
 
-    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      argToWitnessWriter =
-          new ARGToYAMLWitnessExport(
-              config, pCFA, pSpecification, pLogger, new RootExplorationArgStateCollector());
+    if (correctnessWitnessOptions.hasYamlWitnessExport()) {
+      RelevantArgStatesCollector argStatesCollector =
+          new RootExplorationArgStateCollector(
+              pCFA.getAstCfaRelation() != null && pCFA.getLoopStructure().isPresent()
+                  ? pCFA.getAstCfaRelation()
+                      .getLoopInvariantNodes(pCFA.getLoopStructure().orElseThrow())
+                  : ImmutableSet.of());
+      ProgramTransformation transformation = pCFA.getMetadata().getTransformation();
+      if (transformation != null && transformation.isSuccessful()) {
+        argToWitnessWriter =
+            transformation.createARGToCorrectnessWitness(
+                config, pCFA, pSpecification, pLogger, argStatesCollector);
+      } else {
+        // the concurrency analyses that need a specialized exporter, see there
+        Optional<AbstractARGToCorrectnessWitness> concurrentWitnessWriter =
+            ConcurrentARGToCorrectnessWitness.createIfNeeded(
+                config, pCFA, pSpecification, pLogger, pCpa);
+        argToWitnessWriter =
+            concurrentWitnessWriter.isPresent()
+                ? concurrentWitnessWriter.orElseThrow()
+                : new ARGToCorrectnessWitnessV2(
+                    config, pCFA, pSpecification, pLogger, argStatesCollector);
+      }
     } else {
       argToWitnessWriter = null;
     }
@@ -437,14 +442,34 @@ public class ARGStatistics implements Statistics {
             || AbstractStates.extractStateByType(pReached.getFirstState(), PartitionState.class)
                 != null;
 
+    final ImmutableSet<ARGState> allRoots = ARGUtils.getRootStates(pReached);
     final Set<ARGState> rootStates =
         partitionedArg
-            ? ARGUtils.getRootStates(pReached)
+            ? allRoots
             : Collections.singleton(
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState : rootStates) {
       exportARG0(rootState, pReached, BiPredicates.pairIn(allTargetPathEdges), pResult);
+    }
+
+    // A non-partitioned forest (e.g. the per-thread trees of the ordering-consistency analysis) has
+    // several roots that share no partition key, so the per-root writers above all target the same
+    // ARG file and only the last tree survives. Rewrite that file once over every reached state so
+    // the whole forest is shown. Single-root and partitioned analyses never enter this branch.
+    if (!partitionedArg && allRoots.size() > 1 && argFile != null) {
+      List<ARGState> allArgStates = new ArrayList<>();
+      for (AbstractState state : pReached) {
+        ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+        if (argState != null) {
+          allArgStates.add(argState);
+        }
+      }
+      try (Writer w = IO.openOutputFile(argFile, Charset.defaultCharset())) {
+        ARGToDotWriter.write(w, allArgStates, "ARG");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG forest to file");
+      }
     }
   }
 
@@ -462,10 +487,11 @@ public class ARGStatistics implements Statistics {
     if (pResult == Result.TRUE
         || (exportYamlWitnessesForUnknownVerdict && pResult == Result.UNKNOWN)) {
       try {
-        if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {
+        if (correctnessWitnessOptions.hasYamlWitnessExport() && argToWitnessWriter != null) {
           if (cfa.getMetadata().getInputLanguage() == Language.C) {
             try {
-              argToWitnessWriter.export(rootState, pReached, yamlWitnessOutputFileTemplate);
+              argToWitnessWriter.export(
+                  rootState, pReached, correctnessWitnessOptions.getYamlWitnessPathTemplate());
             } catch (IOException | ReportingMethodNotImplementedException e) {
               logger.logUserException(
                   Level.WARNING,

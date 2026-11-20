@@ -131,7 +131,8 @@ final class CfaSimplifications {
                       newVarName,
                       newVarName,
                       newVarQualifiedName,
-                      initializerExpression);
+                      initializerExpression,
+                      /* pHasThreadLocalStorage= */ false);
 
               CFAEdge newDeclarationEdge =
                   new CDeclarationEdge(

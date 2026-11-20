@@ -64,7 +64,9 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
     deserializeOperator = new DeserializeLocationState(locationCPA.getStateFactory(), pNodes);
     violationConditionOperator =
         new BackwardTransferViolationConditionOperator(
-            new LocationTransferRelationBackwards(locationCPA.getStateFactory()), locationCPA);
+            new LocationTransferRelationBackwards(locationCPA.getStateFactory()),
+            locationCPA,
+            serializeOperator);
     combinePrecisionOperator = new CombineSingletonPrecisionOperator();
     node = pNode;
     combineViolationConditionsOperator = new LocationStateCombineViolationConditionOperator();
@@ -150,7 +152,7 @@ public class DistributedLocationCPA implements ForwardingDistributedConfigurable
   }
 
   @Override
-  public int computeProgramPointHash(AbstractState pAbstractState) {
+  public Object computeProgramPointId(AbstractState pAbstractState) {
     Preconditions.checkArgument(doesOperateOn(pAbstractState.getClass()));
     CFANode cfaNode = AbstractStates.extractLocation(pAbstractState);
     Preconditions.checkNotNull(cfaNode, "LocationState should always have a location");

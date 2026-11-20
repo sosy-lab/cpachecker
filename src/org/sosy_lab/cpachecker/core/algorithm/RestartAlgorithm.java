@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -287,26 +288,19 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           currentCpa = currentAlg.cpa();
           currentReached = currentAlg.reached();
         } catch (InvalidConfigurationException e) {
-          // TODO: log/return the config that triggers this!
-          logger.logUserException(
-              Level.WARNING,
-              e,
-              "Skipping one analysis because the configuration file "
-                  + singleConfigFileName
-                  + " is invalid");
-          continue;
+          throw new CPAException(
+              "Cannot instantiate analysis %d from %s because config is invalid: %s"
+                  .formatted(stats.noOfAlgorithmsUsed + 1, singleConfigFileName, e.getMessage()),
+              e);
         } catch (IOException e) {
-          // TODO: log/return the config that triggers this!
-          String message =
-              "Skipping one analysis because the configuration file "
-                  + singleConfigFileName
-                  + " could not be read";
           if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
-            logger.log(Level.WARNING, message);
-          } else {
-            logger.logUserException(Level.WARNING, e, message);
+            logger.logDebugException(e);
+            shutdownNotifier.shutdownIfNecessary();
           }
-          continue;
+          throw new CPAException(
+              "Cannot instantiate analysis %d from %s because config file could not be read: %s"
+                  .formatted(stats.noOfAlgorithmsUsed + 1, singleConfigFileName, e.getMessage()),
+              e);
         }
 
         if (reached instanceof HistoryForwardingReachedSet historyForwardingReachedSet) {
@@ -367,7 +361,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               configFilesIterator,
               LastAnalysisResult.FAILED,
               e.getMessage().contains("recursion"),
-              e.getMessage().contains("pthread_create"));
+              ThreadingTransferRelation.FUNCTIONS_REQUIRING_THREADING.stream()
+                  .anyMatch(e.getMessage()::contains));
 
           if (e instanceof CounterexampleAnalysisFailed
               || e instanceof RefinementFailedException

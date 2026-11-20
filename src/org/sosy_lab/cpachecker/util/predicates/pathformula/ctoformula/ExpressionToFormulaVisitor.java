@@ -251,8 +251,18 @@ public class ExpressionToFormulaVisitor
 
         addModuloConstraints(exp, f1, f2, signed, ret);
       }
-      case BITWISE_AND -> ret = mgr.makeAnd(f1, f2);
-      case BITWISE_OR -> ret = mgr.makeOr(f1, f2);
+      case BITWISE_AND -> {
+        ret = mgr.makeAnd(f1, f2);
+        if (shouldApproximateBitwiseOperationLinearly(exp)) {
+          addBitwiseAndConstraints(f1, f2, signed, ret);
+        }
+      }
+      case BITWISE_OR -> {
+        ret = mgr.makeOr(f1, f2);
+        if (shouldApproximateBitwiseOperationLinearly(exp)) {
+          addBitwiseOrConstraints(f1, f2, signed, ret);
+        }
+      }
       case BITWISE_XOR -> ret = mgr.makeXor(f1, f2);
       case SHIFT_LEFT ->
           // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
@@ -297,7 +307,7 @@ public class ExpressionToFormulaVisitor
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
         && e1 instanceof CBinaryExpression or
-        && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BITWISE_OR) {
+        && or.getOperator() == BinaryOperator.BITWISE_OR) {
       // This is code like "(a | b) == 0".
       // According to LDV, GCC sometimes produces this during weaving,
       // but for non-bitprecise analysis it can be handled in a better way as (a == 0) || (b == 0).
@@ -370,6 +380,108 @@ public class ExpressionToFormulaVisitor
             bfmgr.and(signAndNumBound, denomBound));
 
     constraints.addConstraint(newConstraints);
+  }
+
+  /**
+   * Returns whether linear bounds should be added for the bitwise and or or in {@code exp}, i.e.,
+   * whether it is applied to integers and not used as a logical connective. The termination
+   * analysis, for example, combines the comparisons in its ranking relations with & and |. Bounds
+   * for these add little, but they make the formulas larger, which slows down the analysis.
+   */
+  private boolean shouldApproximateBitwiseOperationLinearly(CBinaryExpression exp) {
+    return conv.options.approximateBitwiseOperationsLinearly() && !isLogicalConnective(exp);
+  }
+
+  /** Returns whether both operands of the bitwise and or or in {@code exp} are truth values. */
+  private static boolean isLogicalConnective(CBinaryExpression exp) {
+    return isTruthValue(exp.getOperand1()) && isTruthValue(exp.getOperand2());
+  }
+
+  /**
+   * Returns whether {@code exp} is a truth value, i.e., the literal 0 or 1, a comparison, or a
+   * logical connective.
+   */
+  private static boolean isTruthValue(CExpression exp) {
+    if (exp instanceof CIntegerLiteralExpression literal) {
+      BigInteger value = literal.getValue();
+      return value.equals(BigInteger.ZERO) || value.equals(BigInteger.ONE);
+    }
+    if (exp instanceof CBinaryExpression binaryExpression) {
+      BinaryOperator operator = binaryExpression.getOperator();
+      return operator.isLogicalOperator()
+          || ((operator == BinaryOperator.BITWISE_AND || operator == BinaryOperator.BITWISE_OR)
+              && isLogicalConnective(binaryExpression));
+    }
+    return false;
+  }
+
+  /**
+   * Adds linear bounds for {@code ret = f1 & f2}, depending on the signs of the operands:
+   *
+   * <ul>
+   *   <li>both non-negative: {@code 0 <= ret <= min(f1, f2)},
+   *   <li>one non-negative and one negative: {@code 0 <= ret <= max(f1, f2)},
+   *   <li>both negative: {@code ret <= min(f1, f2)}, so ret is negative.
+   * </ul>
+   */
+  private void addBitwiseAndConstraints(
+      final Formula f1, final Formula f2, final boolean signed, final Formula ret) {
+    BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
+    Formula zero = mgr.makeNumber(mgr.getFormulaType(f1), 0L);
+    BooleanFormula f1Negative = mgr.makeLessThan(f1, zero, signed);
+    BooleanFormula f2Negative = mgr.makeLessThan(f2, zero, signed);
+
+    // Disjunctions instead of implications, which the lasso construction does not handle
+    constraints.addConstraint(
+        bfmgr.and(
+            bfmgr.or(f1Negative, mgr.makeRangeConstraint(ret, zero, f1, signed)),
+            bfmgr.or(f2Negative, mgr.makeRangeConstraint(ret, zero, f2, signed)),
+            bfmgr.or(
+                mgr.makeGreaterOrEqual(f1, zero, signed),
+                mgr.makeGreaterOrEqual(f2, zero, signed),
+                bfmgr.and(
+                    mgr.makeLessThan(ret, zero, signed),
+                    mgr.makeLessOrEqual(ret, f1, signed),
+                    mgr.makeLessOrEqual(ret, f2, signed)))));
+  }
+
+  /**
+   * Adds linear bounds for {@code ret = f1 | f2}, depending on the signs of the operands:
+   *
+   * <ul>
+   *   <li>both non-negative: {@code ret >= max(f1, f2)},
+   *   <li>one non-negative and one negative: {@code min(f1, f2) <= ret < 0},
+   *   <li>both negative: {@code max(f1, f2) <= ret < 0}.
+   * </ul>
+   *
+   * <p>The upper bound {@code f1 + f2} for non-negative operands is left out, since the sum may
+   * overflow with bitvectors.
+   */
+  private void addBitwiseOrConstraints(
+      final Formula f1, final Formula f2, final boolean signed, final Formula ret) {
+    BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
+    Formula zero = mgr.makeNumber(mgr.getFormulaType(f1), 0L);
+    BooleanFormula f1NonNegative = mgr.makeGreaterOrEqual(f1, zero, signed);
+    BooleanFormula f2NonNegative = mgr.makeGreaterOrEqual(f2, zero, signed);
+    BooleanFormula f1Negative = mgr.makeLessThan(f1, zero, signed);
+    BooleanFormula f2Negative = mgr.makeLessThan(f2, zero, signed);
+
+    constraints.addConstraint(
+        bfmgr.and(
+            bfmgr.or(
+                f1Negative,
+                f2Negative,
+                bfmgr.and(
+                    mgr.makeGreaterOrEqual(ret, f1, signed),
+                    mgr.makeGreaterOrEqual(ret, f2, signed))),
+            bfmgr.or(
+                f1NonNegative,
+                bfmgr.and(
+                    mgr.makeLessOrEqual(f1, ret, signed), mgr.makeLessThan(ret, zero, signed))),
+            bfmgr.or(
+                f2NonNegative,
+                bfmgr.and(
+                    mgr.makeLessOrEqual(f2, ret, signed), mgr.makeLessThan(ret, zero, signed)))));
   }
 
   @Override
@@ -479,7 +591,7 @@ public class ExpressionToFormulaVisitor
           ret = mgr.makeNegate(operandFormula);
         } else {
           assert op == UnaryOperator.TILDE : "This case should be impossible because of switch";
-          ret = mgr.makeNot(operandFormula);
+          ret = makeBitwiseNot(promoted, operandFormula);
         }
 
         CType returnType = exp.getExpressionType();
@@ -504,6 +616,24 @@ public class ExpressionToFormulaVisitor
       }
       case ALIGNOF -> handleAlignOf(exp, exp.getOperand().getExpressionType());
     };
+  }
+
+  /**
+   * Returns ~x. If bitwise operations are approximated linearly, it is encoded exactly as -1 - x
+   * for signed types and as 2^w - 1 - x for unsigned types of width w.
+   */
+  private Formula makeBitwiseNot(CType pType, Formula pOperand) {
+    FormulaType<?> formulaType = mgr.getFormulaType(pOperand);
+    if (conv.options.approximateBitwiseOperationsLinearly()
+        && pType instanceof CSimpleType simpleType
+        && formulaType instanceof BitvectorType bitvectorType) {
+      BigInteger allBitsSet =
+          conv.machineModel.isSigned(simpleType)
+              ? BigInteger.ONE.negate()
+              : BigInteger.ONE.shiftLeft(bitvectorType.getSize()).subtract(BigInteger.ONE);
+      return mgr.makeMinus(mgr.makeNumber(mgr.getFormulaType(pOperand), allBitsSet), pOperand);
+    }
+    return mgr.makeNot(pOperand);
   }
 
   @Override
@@ -647,8 +777,7 @@ public class ExpressionToFormulaVisitor
       functionName = cIdExpression.getName();
 
       if (conv.options.isNondetFunction(functionName)
-          || conv.options.isMemoryAllocationFunction(functionName)
-          || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
+          || conv.options.isMemoryAllocationFunction(functionName)) {
         // Function call like "random()".
         // Also "malloc()" etc. just return a random value, so handle them similarly.
         // Ignore parameters and just create a fresh variable for it.
@@ -692,6 +821,30 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFunctions.isPopcountFunction(functionName)) {
         return handlePopCount(functionName, returnType, parameters, e);
+      } else if (BuiltinFunctions.isIntegerAbsFunction(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = conv.getReturnType(e, edge);
+          if (!hasMatchingSingleParameterType(e.getDeclaration(), paramType)) {
+            throw new UnrecognizedCodeException(
+                "function " + functionName + " with unexpected declaration", edge, e);
+          }
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
+          if (formulaType.isBitvectorType() || formulaType.isIntegerType()) {
+            Formula param = processOperand(parameters.getFirst(), paramType, paramType);
+            Formula zero = mgr.makeNumber(formulaType, 0);
+
+            // `param` is already of type paramType (a signed type), even if the argument
+            // expression itself was another type, so signed=true is correct here.
+            BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
+            // Calling one of these functions on the type's minimum value is undefined behavior
+            // per the C standard (the result is not representable, cf. C11 7.22.6.1p2/7.8.2.1p2),
+            // so the standard does not mandate any particular value here. In that case,
+            // the SMT solver would decide the behavior.
+            return conv.bfmgr.ifThenElse(isNegative, mgr.makeNegate(param), param);
+          }
+        }
+
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
         if (parameters.isEmpty()) {
@@ -748,6 +901,23 @@ public class ExpressionToFormulaVisitor
 
             return conv.bfmgr.ifThenElse(
                 isNegative, mgr.makeNegate(param), conv.bfmgr.ifThenElse(isNan, nan, param));
+          }
+        }
+
+      } else if (BuiltinFloatFunctions.matchesSqrt(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param =
+                (FloatingPointFormula) processOperand(parameters.getFirst(), paramType, paramType);
+
+            // C11 7.12.7.5 "The sqrt functions"; Annex F.10.4.5 fully defers sqrt's behavior
+            // (rounding, domain error, special values) to IEC 60559 (IEEE 754), which fp.sqrt
+            // from the SMT FloatingPoint theory encodes exactly, so this is not an approximation.
+            return fpfmgr.sqrt(param);
           }
         }
 
@@ -1727,6 +1897,23 @@ public class ExpressionToFormulaVisitor
     }
 
     return null;
+  }
+
+  /**
+   * Checks whether the given function declaration (if any) has a single formal parameter of the
+   * given type. Returns {@code true} if there is no declaration to check against.
+   */
+  private static boolean hasMatchingSingleParameterType(
+      @Nullable CFunctionDeclaration functionDeclaration, CType expectedParamType) {
+    if (functionDeclaration == null) {
+      return true;
+    }
+    List<CType> formalParameters = functionDeclaration.getType().getParameters();
+    return formalParameters.size() != 1
+        || formalParameters
+            .getFirst()
+            .getCanonicalType()
+            .equals(expectedParamType.getCanonicalType());
   }
 
   /**

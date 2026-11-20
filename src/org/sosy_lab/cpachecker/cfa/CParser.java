@@ -158,6 +158,16 @@ public interface CParser extends Parser {
     @Option(secure = true, description = "Whether to collect ACSL annotations if present")
     private boolean collectACSLAnnotations = false;
 
+    @Option(
+        secure = true,
+        description =
+            "Whether to enable (experimental) support for the atomic type specifier"
+                + " '_Atomic(type-name)' by rewriting it to the equivalent '_Atomic' qualifier"
+                + " before parsing. Disadvantage: this rewriting is a purely textual replacement"
+                + " that is applied unconditionally to the whole input, including string literals"
+                + " and comments.")
+    private boolean handleAtomicTypeSpecifiers = false;
+
     protected ParserOptions() {}
 
     public Dialect getDialect() {
@@ -166,6 +176,10 @@ public interface CParser extends Parser {
 
     public boolean shouldCollectACSLAnnotations() {
       return collectACSLAnnotations;
+    }
+
+    public boolean shouldHandleAtomicTypeSpecifiers() {
+      return handleAtomicTypeSpecifiers;
     }
   }
 

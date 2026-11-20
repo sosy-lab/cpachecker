@@ -12,8 +12,22 @@ import SMTLIBv2;
 // Parser Rules
 
 script
-    : commandSvLib+
+    : commandSvLib+ EOF
     ;
+
+witnessFile: (witness)* EOF ;
+
+witness: correctnessWitness | violationWitness ;
+
+metadata: (ParOpen cmd_setInfo ParClose)* ;
+
+correctnessWitness
+    : ParOpen metadata command* annotateTagCommand* ParClose
+    ;
+
+violationWitness
+  : ParOpen metadata selectTraceCommand* ParClose
+  ;
 
 commandSvLib
     : ParOpen 'declare-var' symbol sort ParClose                      # DeclareVar
@@ -24,13 +38,26 @@ commandSvLib
             ParOpen procDeclarationArguments ParClose
                 statement
       ParClose                                                        # DefineProc
-    | ParOpen 'annotate-tag' symbol attributeSvLib+ ParClose               # AnnotateTag
-    | ParOpen 'select-trace' trace ParClose                           # SelectTrace
+    | ParOpen
+          'define-procs-rec'
+            procDeclaration+
+            (ParOpen statement ParClose)+
+      ParClose                                                        # DefineProcsRec
+    | annotateTagCommand                                              # AnnotateTag
+    | selectTraceCommand                                              # SelectTrace
     | ParOpen 'verify-call' symbol
             ParOpen term* ParClose
       ParClose                                                        # VerifyCall
     | ParOpen 'get-witness' ParClose                                  # GetWitness
     | command                                                         # SMTLIBv2Command
+    ;
+
+annotateTagCommand
+    : ParOpen 'annotate-tag' symbol attributeSvLib+ ParClose
+    ;
+
+selectTraceCommand
+    : ParOpen 'select-trace' trace ParClose
     ;
 
 statement
@@ -53,7 +80,7 @@ statement
     | ParOpen 'break' ParClose                                        # BreakStatement
     | ParOpen 'continue' ParClose                                     # ContinueStatement
     | ParOpen 'havoc' symbol+ ParClose                                # HavocStatement
-    | ParOpen 'choice' ParOpen statement+ ParClose ParClose           # ChoiceStatement
+    | ParOpen 'choice' statement+ ParClose                            # ChoiceStatement
     ;
 
 attributeSvLib
@@ -74,29 +101,75 @@ property
     ;
 
 
+traceVariableAssignment
+  : ParOpen symbol traceValue ParClose
+  ;
+
+// a value as SMT-LIB solvers write it in a model, arrays as constant arrays with stores,
+// and a symbol for a Boolean, a rounding mode or a constructor of a datatype
+traceValue
+  : spec_constant
+  | symbol
+  | ParOpen PS_Minus (numeral | decimal) ParClose
+  | realFraction
+  | ParOpen PS_Minus realFraction ParClose
+  | ParOpen GRW_Underscore symbol numeral ParClose
+  | ParOpen GRW_Underscore symbol numeral numeral ParClose
+  | ParOpen PS_Fp traceValue traceValue traceValue ParClose
+  | ParOpen ParOpen GRW_As PS_Const sort ParClose traceValue ParClose
+  | ParOpen PS_Store traceValue traceValue traceValue ParClose
+  ;
+
+// a fraction of numerals which are reals, or which to_real converts where numerals are integers
+realFraction
+  : ParOpen PS_Divide (numeral | ParOpen PS_Minus numeral ParClose) numeral ParClose
+  | ParOpen PS_Divide (realNumeral | ParOpen PS_Minus realNumeral ParClose) realNumeral ParClose
+  ;
+
+realNumeral
+  : ParOpen PS_ToReal numeral ParClose
+  ;
+
+globalVariableTraceAssignments
+  : ParOpen 'init-global-vars' (traceVariableAssignment)*  ParClose
+  ;
+
+modelReponseTrace
+  : ParOpen 'model' model_response* ParClose
+  ;
+
+entryProcedureTrace
+  : ParOpen 'entry-proc' symbol ParClose
+  ;
+
+usingAnnotationsTrace
+  : ParOpen 'using-annotation' symbol attributeSvLib+ ParClose
+  ;
+
 trace
-    :   ParOpen 'model' model_response* ParClose
-        ParOpen 'init-global-vars' (ParOpen symbol term ParClose)*  ParClose
-        (ParOpen 'entry-proc' symbol ParClose)
-        ParOpen 'steps' (step)* ParClose
-        violatedProperty
-        (ParOpen 'using-annotation' symbol attributeSvLib+ ParClose)*
-    ;
+  : modelReponseTrace
+    globalVariableTraceAssignments
+    entryProcedureTrace
+    ParOpen 'steps' (step)* ParClose
+    violatedProperty
+    (usingAnnotationsTrace)*
+  ;
 
 violatedProperty
     : ParOpen 'incorrect-annotation' symbol attributeSvLib+ ParClose
+    | ParOpen 'correct-annotation' symbol attributeSvLib+ ParClose
     | ParOpen 'invalid-step' step ParClose
     ;
 
 
 step
     : ParOpen 'init-proc-vars' symbol
-        (ParOpen symbol spec_constant ParClose)* ParClose             # ChooseLocalVariableValue
+        (traceVariableAssignment)* ParClose             # ChooseLocalVariableValue
     | ParOpen 'havoc'
-        (ParOpen symbol spec_constant ParClose)* ParClose             # ChooseHavocVariableValue
-    | ParOpen 'choice' Numeral ParClose                               # ChooseChoiceStatement
+        (traceVariableAssignment)* ParClose             # ChooseHavocVariableValue
+    | ParOpen 'choice' Numeral ParClose                 # ChooseChoiceStatement
     | ParOpen 'leap' symbol
-        (ParOpen symbol spec_constant ParClose)* ParClose             # LeapStep
+        (traceVariableAssignment)* ParClose             # LeapStep
     ;
 
 relationalTerm
@@ -104,6 +177,14 @@ relationalTerm
     | ParOpen 'old' term ParClose                                     # OldRelationalTerm
     | ParOpen qual_identifer term+ ParClose                           # ApplicationRelationalTerm
     // TODO: We need to handle the other constructors of terms here as well
+    ;
+
+procDeclaration
+    : ParOpen symbol
+          ParOpen procDeclarationArguments ParClose
+          ParOpen procDeclarationArguments ParClose
+          ParOpen procDeclarationArguments ParClose
+      ParClose
     ;
 
 procDeclarationArguments

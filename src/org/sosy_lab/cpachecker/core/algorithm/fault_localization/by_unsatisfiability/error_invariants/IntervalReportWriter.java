@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm.Interval;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
@@ -32,9 +33,9 @@ public class IntervalReportWriter extends FaultReportWriter {
   private final FormulaManagerView formulaManager;
   private final FormulaToCVisitor visitor;
 
-  public IntervalReportWriter(FormulaManagerView pFormulaManager) {
+  public IntervalReportWriter(FormulaManagerView pFormulaManager, MachineModel pMachineModel) {
     formulaManager = pFormulaManager;
-    visitor = new FormulaToCVisitor(formulaManager, Function.identity());
+    visitor = new FormulaToCVisitor(formulaManager, Function.identity(), pMachineModel);
   }
 
   @Override

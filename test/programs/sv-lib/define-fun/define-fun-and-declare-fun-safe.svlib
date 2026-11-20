@@ -1,0 +1,31 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic ALL)
+
+(set-info :format-version 1.0)
+
+(define-fun five () Int 5)
+
+(declare-fun address (Int) Int)
+
+(define-proc
+  main
+  ((x Int))
+  ()
+  ((y Int))
+  (! (sequence
+    (assign (y (+ five x)))
+    (! (sequence)
+      :tag check
+      :check-true (= y (+ x 5))
+      :check-true (= (address y) (address (+ x 5))))) :tag main-body))
+
+(declare-var x Int)
+(verify-call main (x))
+(get-witness)

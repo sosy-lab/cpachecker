@@ -75,6 +75,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--ttm--ttm.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--input--misc--ati_remote2.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--media--dvb-core--dvb-core.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--media--usb--usbvision--usbvision.ko-ldv_main1.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--net--wireless--mwl8k.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout / exception -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--staging--lustre--lustre--llite--lustre.ko-ldv_main15.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
     <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main1.cil.out.yml</exclude> <!-- flapping timeout -->

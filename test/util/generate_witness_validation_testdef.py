@@ -102,12 +102,14 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
         sys.exit(f"unknown tool {tool}")
 
     requiredfiles = etree.Element("requiredfiles")
+    requiredfiles.set("ifmissing", "skip-run")
     requiredfiles.text = (
         os.path.relpath(test_dir, os.path.dirname(testdef_path))
         + "/results/"
         + witness_file
     )
     rundef.append(requiredfiles)
+    etree.indent(rundef, level=1)
 
     # Remove the resultfiles tag
     _remove(benchmark.find("resultfiles"))

@@ -426,7 +426,8 @@ public interface TransformingCAstNodeVisitor<X extends Exception>
           pCVariableDeclaration.getName(),
           pCVariableDeclaration.getOrigName(),
           pCVariableDeclaration.getQualifiedName(),
-          newInitializer);
+          newInitializer,
+          pCVariableDeclaration.hasThreadLocalStorage());
     } else {
       return pCVariableDeclaration;
     }

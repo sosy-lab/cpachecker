@@ -15,7 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +85,8 @@ public class FunctionGraph {
   public static FunctionGraph from(BlockGraph graph) {
 
     ImmutableSet.Builder<BlockFunction> functions = ImmutableSet.builder();
-    Map<BlockFunction, ImmutableSet<CallEdge>> edges = new HashMap<>();
+    // Insertion order, because this map determines the order of the returned edge map
+    Map<BlockFunction, ImmutableSet<CallEdge>> edges = new LinkedHashMap<>();
 
     BlockFunction first = null;
 
@@ -111,6 +112,7 @@ public class FunctionGraph {
     }
     // We should have found at least one function
     assert first != null;
+
     ImmutableSet<BlockFunction> fs = functions.build();
 
     return new FunctionGraph(fs, first, convertCallEdgesToCalls(edges, fs));
@@ -118,7 +120,7 @@ public class FunctionGraph {
 
   private static ImmutableMap<BlockFunction, ImmutableSet<Call>> convertCallEdgesToCalls(
       Map<BlockFunction, ImmutableSet<CallEdge>> edges, ImmutableSet<BlockFunction> fs) {
-    Map<BlockNode, BlockFunction> headMap = new HashMap<>();
+    Map<BlockNode, BlockFunction> headMap = new LinkedHashMap<>();
 
     for (BlockFunction f : fs) {
       headMap.put(f.entryNode(), f);

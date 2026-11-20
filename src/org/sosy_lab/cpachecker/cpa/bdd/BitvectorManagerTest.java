@@ -26,6 +26,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 @RunWith(Parameterized.class)
 public class BitvectorManagerTest {
@@ -63,7 +64,7 @@ public class BitvectorManagerTest {
 
   @Before
   public void init() throws InvalidConfigurationException {
-    Configuration config = Configuration.defaultConfiguration();
+    Configuration config = TestUtils.configurationForTest().build();
     logger = LogManager.createTestLogManager();
 
     rmgr = new BDDManagerFactory(config, logger).createRegionManager();

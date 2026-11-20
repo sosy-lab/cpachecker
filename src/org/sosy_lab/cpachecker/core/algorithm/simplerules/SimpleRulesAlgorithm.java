@@ -1,0 +1,282 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.simplerules;
+
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+/**
+ * Checks a specification with simple rules: arguments that settle a proposition without reasoning
+ * about what the program computes, such as "a program without loops and without recursion
+ * terminates" or "a program that never allocates memory cannot leak memory".
+ *
+ * <p>The specification is a conjunction of propositions, so the analysis needs a rule for
+ * <em>every</em> proposition in order to answer TRUE, while one rule that refutes <em>one</em>
+ * proposition is enough to answer FALSE. Every rule may abstain, and the answer is UNKNOWN if the
+ * propositions are not settled, so a rule never has to guess.
+ *
+ * <p>All rules read the CFA, so the analysis is cheap and needs no CPA. Its purpose is to be the
+ * first component of a portfolio: an instant answer for the tasks that need no analysis leaves the
+ * time limit to the tasks that do.
+ */
+@Options(prefix = "simplerules")
+public class SimpleRulesAlgorithm implements Algorithm, StatisticsProvider {
+
+  @Option(
+      secure = true,
+      description =
+          "The simple rules to use, by name. The default lists every rule of this CPAchecker"
+              + " version, so switching a rule off or measuring a single rule means removing the"
+              + " others from this list. A rule is applied only if it can decide a proposition of"
+              + " the specification, and the statistics report which rules were applied. A new"
+              + " rule has to be added here as well, which SimpleRulesTest checks.")
+  private Set<String> rules =
+      ImmutableSet.of(
+          "no-reachable-target-location",
+          "violation-on-every-execution",
+          "no-reachable-loop",
+          "endless-loop-on-every-execution",
+          "no-signed-overflow-possible",
+          "signed-overflow-on-every-execution",
+          "no-memory-operation",
+          "no-heap-allocation",
+          "all-accesses-inside-their-object",
+          "access-outside-object-on-every-execution",
+          "free-of-non-heap-object-on-every-execution",
+          "single-threaded",
+          "program-does-nothing");
+
+  private static final Joiner COMMA = Joiner.on(", ");
+
+  /** The rule that decided the task, together with the answer it gave. */
+  private record Decision(SimpleRule rule, RuleVerdict verdict) {}
+
+  /**
+   * What the rules found out about the propositions of the specification.
+   *
+   * @param proven the propositions that hold, each with the rule that proved it first
+   * @param violation the rule that refuted a proposition, if there is one; a single violated
+   *     proposition violates the whole specification
+   */
+  private record Outcome(ImmutableMap<Property, SimpleRule> proven, @Nullable Decision violation) {}
+
+  private final CFA cfa;
+  private final Specification specification;
+  private final Configuration config;
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final ImmutableSet<Property> propositions;
+  private final SimpleRulesStatistics stats = new SimpleRulesStatistics();
+  private final SimpleRulesWitnessExporter witnessExporter;
+
+  public SimpleRulesAlgorithm(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Specification pSpecification)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+    checkRuleNames();
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
+    specification = pSpecification;
+    propositions =
+        pSpecification.getProperties().stream()
+            .filter(Property::isVerification)
+            .collect(toImmutableSet());
+    witnessExporter = new SimpleRulesWitnessExporter(pConfig, pCfa, pSpecification, pLogger);
+  }
+
+  @Override
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    if (propositions.isEmpty()) {
+      // The argument of a rule is about a proposition, so a rule cannot decide a specification
+      // whose propositions we do not know, i.e. a task that comes without a property file.
+      logger.log(
+          Level.INFO,
+          "The simple rules need to know which propositions to settle, which is stated by the"
+              + " property file of the task (e.g. '--spec unreach-call.prp'). The specification of"
+              + " this run contains no proposition, so there is nothing to decide.");
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+
+    ProgramFacts facts = new ProgramFacts(cfa, specification, config, logger, shutdownNotifier);
+    stats.setFacts(facts);
+    Outcome outcome = applyRules(facts);
+
+    if (outcome.violation() != null) {
+      return reportViolation(pReachedSet, outcome.violation(), outcome.proven().keySet());
+    }
+    if (outcome.proven().keySet().containsAll(propositions)) {
+      return reportProof(pReachedSet, outcome);
+    }
+
+    logger.logf(
+        Level.INFO,
+        "No simple rule decides %s",
+        describe(Sets.difference(propositions, outcome.proven().keySet())));
+    return unknown(pReachedSet);
+  }
+
+  /**
+   * Apply every rule that is enabled and that can settle a proposition of the specification, until
+   * one of them refutes a proposition or no rule is left.
+   */
+  private Outcome applyRules(ProgramFacts pFacts) throws CPAException, InterruptedException {
+    Map<Property, SimpleRule> proven = new LinkedHashMap<>();
+
+    stats.totalTime().start();
+    try {
+      for (SimpleRule rule : SimpleRules.all()) {
+        if (!isEnabled(rule) || Collections.disjoint(rule.decides(), propositions)) {
+          continue;
+        }
+        shutdownNotifier.shutdownIfNecessary();
+
+        RuleVerdict verdict = rule.check().apply(pFacts);
+        stats.recordVerdict(rule, verdict);
+        if (verdict.isAbstention()) {
+          continue;
+        }
+        if (verdict.isViolation()) {
+          settle(rule, verdict);
+          // One violated proposition violates the specification, so the task is decided.
+          return new Outcome(ImmutableMap.copyOf(proven), new Decision(rule, verdict));
+        }
+        for (Property proposition : Sets.intersection(rule.decides(), propositions)) {
+          if (proven.putIfAbsent(proposition, rule) == null) {
+            stats.settled(proposition, rule, verdict);
+          }
+        }
+      }
+    } finally {
+      stats.totalTime().stop();
+    }
+    return new Outcome(ImmutableMap.copyOf(proven), null);
+  }
+
+  /**
+   * Reject a name in the option {@code simplerules.rules} that belongs to no rule, because the rule
+   * would silently not be used otherwise.
+   */
+  private void checkRuleNames() throws InvalidConfigurationException {
+    ImmutableSet<String> known =
+        SimpleRules.all().stream().map(SimpleRule::name).collect(toImmutableSet());
+    Set<String> unknown = Sets.difference(rules, known);
+    if (!unknown.isEmpty()) {
+      throw new InvalidConfigurationException(
+          "There is no simple rule named "
+              + COMMA.join(unknown)
+              + ". The rules of this CPAchecker version are: "
+              + COMMA.join(known));
+    }
+  }
+
+  /** Whether the given rule is selected by the option {@code simplerules.rules}. */
+  private boolean isEnabled(SimpleRule pRule) {
+    return rules.contains(pRule.name());
+  }
+
+  /** Report all propositions of the given rule that the specification asks about. */
+  private void settle(SimpleRule pRule, RuleVerdict pVerdict) {
+    for (Property proposition : Sets.intersection(pRule.decides(), propositions)) {
+      stats.settled(proposition, pRule, pVerdict);
+    }
+  }
+
+  private AlgorithmStatus reportViolation(
+      ReachedSet pReachedSet, Decision pViolation, ImmutableSet<Property> pProven) {
+
+    // A rule that refutes a proposition which another rule has proven is a bug in one of them, and
+    // we must not report either answer.
+    if (!Collections.disjoint(pProven, pViolation.rule().decides())) {
+      logger.logf(
+          Level.SEVERE,
+          "Rule %s refutes a proposition that another rule has proven. This is a bug, please"
+              + " report it. The answer of the simple rules is UNKNOWN.",
+          pViolation.rule().name());
+      return unknown(pReachedSet);
+    }
+
+    logger.logf(
+        Level.INFO, "Simple rule %s: %s", pViolation.rule().name(), pViolation.verdict().reason());
+    witnessExporter.recordViolation(
+        pReachedSet,
+        pViolation.verdict().violatingEdgeOrThrow(),
+        DummyTargetState.withSimpleTargetInformation(targetDescription(pViolation)));
+    return AlgorithmStatus.SOUND_AND_PRECISE;
+  }
+
+  private AlgorithmStatus reportProof(ReachedSet pReachedSet, Outcome pOutcome) {
+    for (Map.Entry<Property, SimpleRule> entry : pOutcome.proven().entrySet()) {
+      logger.logf(
+          Level.INFO,
+          "Simple rule %s proves %s",
+          entry.getValue().name(),
+          SimpleRules.nameOf(entry.getKey()));
+    }
+    witnessExporter.recordProof(pReachedSet);
+    return AlgorithmStatus.SOUND_AND_PRECISE;
+  }
+
+  private AlgorithmStatus unknown(ReachedSet pReachedSet) {
+    pReachedSet.clear();
+    return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  /** The description of the violation, in the format that SV-COMP expects. */
+  private String targetDescription(Decision pViolation) {
+    return describe(Sets.intersection(pViolation.rule().decides(), propositions))
+        + ": "
+        + pViolation.verdict().reason();
+  }
+
+  /** The names that SV-COMP uses for the given propositions. */
+  private static String describe(Set<Property> pPropositions) {
+    if (pPropositions.isEmpty()) {
+      return "specification";
+    }
+    return COMMA.join(pPropositions.stream().map(SimpleRules::nameOf).iterator());
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+    pStatsCollection.add(witnessExporter);
+  }
+}

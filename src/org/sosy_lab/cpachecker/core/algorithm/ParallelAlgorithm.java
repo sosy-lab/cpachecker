@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -77,6 +79,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
+
+  // Time for waiting for threads on shutdown. Should be somewhat shorter than in
+  // ForceTerminationOnShutdown.
+  private static final Duration SHUTDOWN_GRACE_PERIOD = Duration.ofSeconds(8);
 
   @Option(
       secure = true,
@@ -167,8 +173,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       // Wait some time so that all threads are shut down and we have a happens-before relation
       // (necessary for statistics).
-      // Time limit here should be somewhat shorter than in ForceTerminationOnShutdown.
-      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 8, TimeUnit.SECONDS)) {
+      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, SHUTDOWN_GRACE_PERIOD)) {
         logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
       }
 
@@ -208,7 +213,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to recursion");
           }
-          if (cause.getMessage().contains("pthread_create")) {
+          if (ThreadingTransferRelation.FUNCTIONS_REQUIRING_THREADING.stream()
+              .anyMatch(cause.getMessage()::contains)) {
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to concurrency");
           }
@@ -244,7 +250,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final boolean supplyReached;
     final boolean refineAnalysis;
 
-    final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
+    final Configuration singleConfig = createSingleConfig(singleConfigFileName);
     if (singleConfig == null) {
       return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
     }
@@ -470,8 +476,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Nullable
-  private Configuration createSingleConfig(Path singleConfigFileName, LogManager pLogger) {
+  private Configuration createSingleConfig(Path singleConfigFileName)
+      throws InvalidConfigurationException {
     try {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(globalConfig);
@@ -483,15 +489,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       NestingAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
-    } catch (IOException | InvalidConfigurationException e) {
-      // TODO: log/return the config that triggers this!
-      pLogger.logUserException(
-          Level.WARNING,
-          e,
-          "Skipping one analysis in building a parallel analysis because the configuration file "
-              + singleConfigFileName
-              + " could not be read");
-      return null;
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("Configuration file could not be read", e);
     }
   }
 

@@ -201,7 +201,7 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
 
     List<SvLibSimpleParsingDeclaration> variables =
         transformedImmutableListCopy(
-            ctx.symbol(), x -> scope.getVariable(Objects.requireNonNull(x).getText()));
+            ctx.symbol(), x -> scope.getVariable(nameOf(Objects.requireNonNull(x))));
     FileLocation location = fileLocationFromContext(ctx);
     return new SvLibHavocStatement(location, properties, references, variables);
   }
@@ -211,7 +211,7 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
     List<SvLibTagProperty> properties = getTagAttributes();
     List<SvLibTagReference> references = getTagReferences();
 
-    String label = ctx.symbol().getText();
+    String label = nameOf(ctx.symbol());
     FileLocation location = fileLocationFromContext(ctx);
     return new SvLibGotoStatement(location, properties, references, label);
   }
@@ -221,7 +221,7 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
     List<SvLibTagProperty> properties = getTagAttributes();
     List<SvLibTagReference> references = getTagReferences();
 
-    String label = ctx.symbol().getText();
+    String label = nameOf(ctx.symbol());
     FileLocation location = fileLocationFromContext(ctx);
     return new SvLibLabelStatement(location, properties, references, label);
   }
@@ -235,7 +235,7 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
         ImmutableMap.builder();
     for (int i = 0; i < ctx.symbol().size(); i++) {
       SvLibSimpleParsingDeclaration leftHandSide =
-          scope.getVariable(Objects.requireNonNull(ctx.symbol(i)).getText());
+          scope.getVariable(nameOf(Objects.requireNonNull(ctx.symbol(i))));
       SvLibTerm rightHandSide = termToAstConverter.visit(Objects.requireNonNull(ctx.term(i)));
       assignments.put(leftHandSide, rightHandSide);
     }
@@ -264,14 +264,14 @@ class StatementToAstConverter extends AbstractAntlrToAstConverter<SvLibStatement
     List<SvLibTagProperty> properties = getTagAttributes();
     List<SvLibTagReference> references = getTagReferences();
     SvLibProcedureDeclaration procedureDeclaration =
-        scope.getProcedureDeclaration(pContext.symbol().getFirst().getText());
+        scope.getProcedureDeclaration(nameOf(pContext.symbol().getFirst()));
     List<SvLibTerm> arguments =
         transformedImmutableListCopy(
             pContext.term(), termContext -> termToAstConverter.visit(termContext));
     List<SvLibSimpleParsingDeclaration> returnVariables =
         transformedImmutableListCopy(
             pContext.symbol().subList(1, pContext.symbol().size()),
-            symbolContext -> scope.getVariable(Objects.requireNonNull(symbolContext).getText()));
+            symbolContext -> scope.getVariable(nameOf(Objects.requireNonNull(symbolContext))));
 
     return new SvLibProcedureCallStatement(
         fileLocationFromContext(pContext),

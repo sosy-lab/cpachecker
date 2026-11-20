@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
+import java.math.BigInteger;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -26,9 +27,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
@@ -39,8 +44,10 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpressio
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -60,8 +67,9 @@ public class CExpressionTransformer extends ExpressionTransformer
       final String pFunctionName,
       final ValueAnalysisState pValueState,
       final MachineModel pMachineModel,
-      final LogManagerWithoutDuplicates pLogger) {
-    super(pFunctionName, pValueState);
+      final LogManagerWithoutDuplicates pLogger,
+      final CFAEdge pCfaEdgeForDebugging) {
+    super(pFunctionName, pValueState, pCfaEdgeForDebugging);
 
     machineModel = pMachineModel;
     logger = pLogger;
@@ -124,12 +132,16 @@ public class CExpressionTransformer extends ExpressionTransformer
   private SymbolicExpression transformUnaryArithmetic(
       final CUnaryExpression.UnaryOperator pOperator,
       final SymbolicExpression pOperand,
-      final Type pExpressionType) {
+      final Type pExpressionType)
+      throws UnsupportedCodeException {
     return switch (pOperator) {
       case MINUS -> NegationExpression.of(pOperand, pExpressionType);
       case TILDE -> BinaryNotExpression.of(pOperand, pExpressionType);
       case AMPER -> AddressOfExpression.of(pOperand, pExpressionType);
-      default -> throw new AssertionError("No arithmetic operator: " + pOperator);
+      default ->
+          throw new UnsupportedCodeException(
+              "Constraints with arithmetic operator " + pOperator + " unsupported",
+              getCfaEdgeForDebugging());
     };
   }
 
@@ -166,19 +178,41 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CTypeIdExpression pIastTypeIdExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Type id expression invalid for constraint");
+    final TypeIdOperator idOperator = pIastTypeIdExpression.getOperator();
+    final CType innerType = pIastTypeIdExpression.getType();
+
+    return switch (idOperator) {
+      case ALIGNOF ->
+          ConstantSymbolicExpression.of(
+              new NumericValue(machineModel.getAlignof(innerType)), CNumericTypes.SIZE_T);
+      case SIZEOF -> {
+        if (innerType.hasKnownConstantSize()) {
+          BigInteger size = machineModel.getSizeof(innerType);
+          yield ConstantSymbolicExpression.of(new NumericValue(size), CNumericTypes.SIZE_T);
+        }
+        throw new UnsupportedCodeException(
+            "Type id expressions with variable size not supported", getCfaEdgeForDebugging());
+      }
+      default ->
+          // TODO support more operators
+          throw new UnsupportedCodeException(
+              "Type id operator " + idOperator + " not supported", getCfaEdgeForDebugging());
+    };
   }
 
   @Override
   public SymbolicExpression visit(final CImaginaryLiteralExpression pIastLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Imaginary literal invalid for constraint");
+    throw new UnsupportedCodeException(
+        "Imaginary literals unsupported in constraints", getCfaEdgeForDebugging());
   }
 
   @Override
   public SymbolicExpression visit(final CAddressOfLabelExpression pAddressOfLabelExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Address of label expression used in symbolic expression");
+    throw new UnsupportedCodeException(
+        "Address of label expression used in symbolic expression unsupported",
+        getCfaEdgeForDebugging());
   }
 
   @Override
@@ -232,7 +266,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(final CFunctionCallExpression pIastFunctionCallExpression)
       throws UnrecognizedCodeException {
     throw new UnsupportedOperationException(
-        "Function calls can't be transformed to ConstraintExpressions");
+        "Function call transformation to ConstraintExpressions unsupported");
   }
 
   @Override
@@ -251,6 +285,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CComplexCastExpression complexCastExpression)
       throws UnrecognizedCodeException {
-    throw new AssertionError("Complex cast not valid for constraint");
+    throw new UnsupportedCodeException(
+        "Complex cast unsupported for constraint", getCfaEdgeForDebugging());
   }
 }

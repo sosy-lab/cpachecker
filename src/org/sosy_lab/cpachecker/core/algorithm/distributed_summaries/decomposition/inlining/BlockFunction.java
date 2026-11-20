@@ -20,7 +20,7 @@ public record BlockFunction(
 
   @Override
   public int hashCode() {
-    return Objects.hash(entryNode);
+    return Objects.hashCode(entryNode);
   }
 
   /** simplified equality check: only compare the first block, as it is unique */

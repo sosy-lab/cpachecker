@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -226,6 +227,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
    * We check here whether an error occured in a CompletableFuture. We could also ignore this step,
    * but that might be dangerous and error-prone.
    */
+  @SuppressForbidden("time limit is intended here")
   private void collectExceptions(
       Map<ReachedSet, ReachedSetExecutor> pReachedSetMapping,
       List<Throwable> errors,

@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 import com.google.common.truth.Truth;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -46,6 +47,9 @@ public class DecompositionTestBase {
     "test/programs/dss/loop-multiple-condition.c",
     // bug in inlining: function call inside a 'val ? a : b' expression
     "test/programs/dss/inlining_trinary.c",
+    // bug in inlining: merging the copies of a function that is called twice created a block
+    // that passes its final location before its end
+    "test/programs/dss/inlining_repeated_call.c",
   };
 
   public static List<Object[]> getFiles() {
@@ -72,6 +76,38 @@ public class DecompositionTestBase {
     checkInternalEdges(graph, edgesCFA);
 
     graph.checkConsistency(ShutdownNotifier.createDummy());
+  }
+
+  /**
+   * Checks that the block analysis can reach every edge of every block. The analysis of a block
+   * stops at the first arrival at the final location of the block (see {@link
+   * org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation}), so a block must not pass its final
+   * location before its end. Unlike the other checks, this one also holds for the inlining
+   * decomposition, whose blocks share CFA nodes.
+   */
+  public static void checkFinalLocationReachedOnlyAtEnd(BlockGraph graph) {
+    for (BlockNode block : graph.getNodes()) {
+      Set<CFAEdge> reached = new LinkedHashSet<>();
+      List<CFANode> waitlist = new ArrayList<>();
+      waitlist.add(block.getInitialLocation());
+      while (!waitlist.isEmpty()) {
+        CFANode current = waitlist.removeLast();
+        for (CFAEdge edge : current.getLeavingEdges()) {
+          if (block.getEdges().contains(edge) && reached.add(edge)) {
+            if (!edge.getSuccessor().equals(block.getFinalLocation())) {
+              waitlist.add(edge.getSuccessor());
+            }
+          }
+        }
+      }
+
+      Truth.assertWithMessage(
+              "Block %s passes its final location %s before its end, so the block analysis"
+                  + " cannot reach these edges",
+              block.getId(), block.getFinalLocation())
+          .that(Sets.difference(block.getEdges(), reached))
+          .isEmpty();
+    }
   }
 
   /** checks if all block edges are between the same CFANode */

@@ -27,6 +27,7 @@ public class DssSingleWorkerStatistics implements Statistics {
 
   /** Keys defining the statistics that are collected for a single DSS analysis worker. */
   public enum StatisticsKey {
+    INITIALIZED_ANALYSES("number of initialized block analyses", false),
     SERIALIZATION_COUNT("number of serialized states", false),
     DESERIALIZATION_COUNT("number of deserialized states", false),
     PROCEED_COUNT("number of proceeded states", false),
@@ -39,7 +40,13 @@ public class DssSingleWorkerStatistics implements Statistics {
     STORE_PRECONDITION_STATES_TIME("time spent in storing precondition states", true),
     STORE_VIOLATION_CONDITION_STATES_COUNT("number of violation condition states stored", false),
     STORE_VIOLATION_CONDITION_STATES_TIME("time spent in storing violation condition states", true),
-    SERIALIZED_STATES_SIZE("serialized states size (chars)", false);
+    COVERAGE_COUNT("number of state comparisons", false),
+    COVERAGE_TIME("time spent comparing states", true),
+    VIOLATION_CONDITION_COUNT("number of violation conditions computed", false),
+    VIOLATION_CONDITION_TIME("time spent computing violation conditions", true),
+    SERIALIZED_STATES_SIZE("serialized states size (chars)", false),
+    REMOVE_COVERED_TIME("time spent removing covered summaries", true),
+    BUSY_CPU_TIME("worker busy CPU time", true);
 
     private final String label;
     private final boolean formatAsTime;
@@ -60,12 +67,25 @@ public class DssSingleWorkerStatistics implements Statistics {
 
   private final String blockId;
 
+  private final DssThreadCpuTimer serializationTime =
+      new DssThreadCpuTimer(StatisticsKey.SERIALIZATION_TIME.getLabel());
+  private final DssThreadCpuTimer deserializationTime =
+      new DssThreadCpuTimer(StatisticsKey.DESERIALIZATION_TIME.getLabel());
   private final DssThreadCpuTimer storeViolationConditionStatesTime =
       new DssThreadCpuTimer(StatisticsKey.STORE_VIOLATION_CONDITION_STATES_TIME.getLabel());
   private final DssThreadCpuTimer storePreconditionStatesTime =
       new DssThreadCpuTimer(StatisticsKey.STORE_PRECONDITION_STATES_TIME.getLabel());
   private final DssThreadCpuTimer blockAnalysisTime =
       new DssThreadCpuTimer(StatisticsKey.BLOCK_ANALYSIS_TIME.getLabel());
+  private final DssThreadCpuTimer coverageTime =
+      new DssThreadCpuTimer(StatisticsKey.COVERAGE_TIME.getLabel());
+  private final DssThreadCpuTimer violationConditionTime =
+      new DssThreadCpuTimer(StatisticsKey.VIOLATION_CONDITION_TIME.getLabel());
+  private final DssThreadCpuTimer removeCoveredTime =
+      new DssThreadCpuTimer(StatisticsKey.REMOVE_COVERED_TIME.getLabel());
+
+  private final DssThreadCpuTimer busyCpuTime =
+      new DssThreadCpuTimer(StatisticsKey.BUSY_CPU_TIME.getLabel());
 
   private @Nullable DssBlockAnalysisStatistics dcpaStatistics;
 
@@ -75,11 +95,40 @@ public class DssSingleWorkerStatistics implements Statistics {
       new StatCounter(StatisticsKey.STORE_PRECONDITION_STATES_COUNT.getLabel());
   private final StatCounter storeViolationConditionStatesCount =
       new StatCounter(StatisticsKey.STORE_VIOLATION_CONDITION_STATES_COUNT.getLabel());
+  private final StatCounter coverageCount =
+      new StatCounter(StatisticsKey.COVERAGE_COUNT.getLabel());
+  private final StatCounter violationConditionCount =
+      new StatCounter(StatisticsKey.VIOLATION_CONDITION_COUNT.getLabel());
   private final StatInt serializedStatesSize =
       new StatInt(StatKind.SUM, StatisticsKey.SERIALIZED_STATES_SIZE.getLabel());
 
+  private final boolean collectAnalysisStatistics;
+  private String analysisStatistics = "";
+
   public DssSingleWorkerStatistics(String pBlockId) {
+    this(pBlockId, false);
+  }
+
+  DssSingleWorkerStatistics(String pBlockId, boolean pCollectAnalysisStatistics) {
     blockId = pBlockId;
+    collectAnalysisStatistics = pCollectAnalysisStatistics;
+  }
+
+  public boolean shouldCollectAnalysisStatistics() {
+    return collectAnalysisStatistics;
+  }
+
+  /** A snapshot taken by the owning worker before its CPA and solver are closed. */
+  public void setAnalysisStatistics(String pAnalysisStatistics) {
+    analysisStatistics = pAnalysisStatistics;
+  }
+
+  public DssThreadCpuTimer getSerializationTimer() {
+    return serializationTime;
+  }
+
+  public DssThreadCpuTimer getDeserializationTimer() {
+    return deserializationTime;
   }
 
   public DssThreadCpuTimer getBlockAnalysisTimer() {
@@ -110,8 +159,36 @@ public class DssSingleWorkerStatistics implements Statistics {
     return storeViolationConditionStatesCount;
   }
 
+  public DssThreadCpuTimer getCoverageTimer() {
+    return coverageTime;
+  }
+
+  public StatCounter getCoverageCounter() {
+    return coverageCount;
+  }
+
+  public DssThreadCpuTimer getViolationConditionTimer() {
+    return violationConditionTime;
+  }
+
+  public StatCounter getViolationConditionCounter() {
+    return violationConditionCount;
+  }
+
   public StatInt getSerializedStatesSizeStats() {
     return serializedStatesSize;
+  }
+
+  public DssThreadCpuTimer getRemoveCoveredTimer() {
+    return removeCoveredTime;
+  }
+
+  public void startBusy() {
+    busyCpuTime.start();
+  }
+
+  public void stopBusy() {
+    busyCpuTime.stop();
   }
 
   public @Nullable DssBlockAnalysisStatistics getDcpaStatistics() {
@@ -120,16 +197,15 @@ public class DssSingleWorkerStatistics implements Statistics {
 
   public long getValue(StatisticsKey key) {
     return switch (key) {
+      case INITIALIZED_ANALYSES -> dcpaStatistics == null ? 0 : 1;
       case SERIALIZATION_COUNT ->
           dcpaStatistics != null ? dcpaStatistics.getSerializationCount().getUpdateCount() : 0;
       case DESERIALIZATION_COUNT ->
           dcpaStatistics != null ? dcpaStatistics.getDeserializationCount().getUpdateCount() : 0;
       case PROCEED_COUNT ->
           dcpaStatistics != null ? dcpaStatistics.getProceedCount().getUpdateCount() : 0;
-      case SERIALIZATION_TIME ->
-          dcpaStatistics != null ? dcpaStatistics.getSerializationTime().nanos() : 0;
-      case DESERIALIZATION_TIME ->
-          dcpaStatistics != null ? dcpaStatistics.getDeserializationTime().nanos() : 0;
+      case SERIALIZATION_TIME -> serializationTime.nanos();
+      case DESERIALIZATION_TIME -> deserializationTime.nanos();
       case PROCEED_TIME -> dcpaStatistics != null ? dcpaStatistics.getProceedTime().nanos() : 0;
       case BLOCK_ANALYSIS_COUNT -> blockAnalysisCount.getUpdateCount();
       case BLOCK_ANALYSIS_TIME -> blockAnalysisTime.nanos();
@@ -138,7 +214,13 @@ public class DssSingleWorkerStatistics implements Statistics {
       case STORE_VIOLATION_CONDITION_STATES_COUNT ->
           storeViolationConditionStatesCount.getUpdateCount();
       case STORE_VIOLATION_CONDITION_STATES_TIME -> storeViolationConditionStatesTime.nanos();
+      case COVERAGE_COUNT -> coverageCount.getUpdateCount();
+      case COVERAGE_TIME -> coverageTime.nanos();
+      case VIOLATION_CONDITION_COUNT -> violationConditionCount.getUpdateCount();
+      case VIOLATION_CONDITION_TIME -> violationConditionTime.nanos();
       case SERIALIZED_STATES_SIZE -> serializedStatesSize.getValueSum();
+      case REMOVE_COVERED_TIME -> removeCoveredTime.nanos();
+      case BUSY_CPU_TIME -> busyCpuTime.nanos();
     };
   }
 
@@ -161,17 +243,14 @@ public class DssSingleWorkerStatistics implements Statistics {
               StatisticsKey.PROCEED_COUNT.getLabel(),
               dcpaStatistics.getProceedCount().getUpdateCount())
           .put(
-              StatisticsKey.SERIALIZATION_TIME.getLabel(),
-              formatNanos(dcpaStatistics.getSerializationTime().nanos()))
-          .put(
-              StatisticsKey.DESERIALIZATION_TIME.getLabel(),
-              formatNanos(dcpaStatistics.getDeserializationTime().nanos()))
-          .put(
               StatisticsKey.PROCEED_TIME.getLabel(),
               formatNanos(dcpaStatistics.getProceedTime().nanos()));
     }
 
     writer
+        .put(StatisticsKey.SERIALIZATION_TIME.getLabel(), formatNanos(serializationTime.nanos()))
+        .put(
+            StatisticsKey.DESERIALIZATION_TIME.getLabel(), formatNanos(deserializationTime.nanos()))
         .put(StatisticsKey.BLOCK_ANALYSIS_COUNT.getLabel(), blockAnalysisCount.getUpdateCount())
         .put(StatisticsKey.BLOCK_ANALYSIS_TIME.getLabel(), formatNanos(blockAnalysisTime.nanos()))
         .put(
@@ -186,7 +265,18 @@ public class DssSingleWorkerStatistics implements Statistics {
         .put(
             StatisticsKey.STORE_VIOLATION_CONDITION_STATES_TIME.getLabel(),
             formatNanos(storeViolationConditionStatesTime.nanos()))
-        .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString());
+        .put(StatisticsKey.COVERAGE_COUNT.getLabel(), coverageCount.getUpdateCount())
+        .put(StatisticsKey.COVERAGE_TIME.getLabel(), formatNanos(coverageTime.nanos()))
+        .put(
+            StatisticsKey.VIOLATION_CONDITION_COUNT.getLabel(),
+            violationConditionCount.getUpdateCount())
+        .put(
+            StatisticsKey.VIOLATION_CONDITION_TIME.getLabel(),
+            formatNanos(violationConditionTime.nanos()))
+        .put(StatisticsKey.SERIALIZED_STATES_SIZE.getLabel(), serializedStatesSize.toString())
+        .put(StatisticsKey.REMOVE_COVERED_TIME.getLabel(), formatNanos(removeCoveredTime.nanos()))
+        .put(StatisticsKey.BUSY_CPU_TIME.getLabel(), formatNanos(busyCpuTime.nanos()));
+    out.print(analysisStatistics);
   }
 
   static String formatNanos(long nanos) {

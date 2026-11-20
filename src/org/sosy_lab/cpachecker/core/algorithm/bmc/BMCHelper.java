@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -251,8 +252,80 @@ public final class BMCHelper {
         .toSet();
   }
 
+  /**
+   * Filters the states whose (lowest) iteration is between the given bounds. For states with an
+   * iteration range, see {@link #filterIterationsOverlapping} and {@link #filterIterationsWithin}.
+   */
   public static FluentIterable<AbstractState> filterIterationsBetween(
       Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
+    return filterIterations(
+        pStates,
+        pMinIt,
+        pMaxIt,
+        pLoopHeads,
+        (fromIt, toIt, stateLowerIt, stateUpperIt) ->
+            fromIt <= stateLowerIt && stateLowerIt <= toIt);
+  }
+
+  /**
+   * Filters the states whose iteration range overlaps the given range.
+   *
+   * <p>A state can represent paths with different iteration counts if the analysis merges them; it
+   * then reports the range [lower, upper] of these counts (cf. {@link
+   * LoopIterationReportingState}). This method keeps a state if [lower, upper] and [pFromIt, pToIt]
+   * have at least one iteration in common, i.e., if <em>some</em> represented path may be in an
+   * iteration between pFromIt and pToIt. For states without a range (lower = upper), this is the
+   * same as {@link #filterIterationsBetween}.
+   *
+   * <p>Use it to select the states at which a property is <em>checked</em>: no path of the given
+   * iterations may be missed.
+   */
+  public static FluentIterable<AbstractState> filterIterationsOverlapping(
+      Iterable<AbstractState> pStates, int pFromIt, int pToIt, Set<CFANode> pLoopHeads) {
+    return filterIterations(
+        pStates,
+        pFromIt,
+        pToIt,
+        pLoopHeads,
+        (fromIt, toIt, stateLowerIt, stateUpperIt) ->
+            stateLowerIt <= toIt && fromIt <= stateUpperIt);
+  }
+
+  /**
+   * Filters the states whose iteration range lies within the given range.
+   *
+   * <p>A state can represent paths with different iteration counts if the analysis merges them; it
+   * then reports the range [lower, upper] of these counts (cf. {@link
+   * LoopIterationReportingState}). This method keeps a state if [lower, upper] is contained in
+   * [pFromIt, pToIt], i.e., if <em>all</em> represented paths are in an iteration between pFromIt
+   * and pToIt. For states without a range (lower = upper), this is the same as {@link
+   * #filterIterationsBetween}.
+   *
+   * <p>Use it to select the states at which a property is <em>assumed</em>: no path outside the
+   * given iterations may be constrained.
+   */
+  public static FluentIterable<AbstractState> filterIterationsWithin(
+      Iterable<AbstractState> pStates, int pFromIt, int pToIt, Set<CFANode> pLoopHeads) {
+    return filterIterations(
+        pStates,
+        pFromIt,
+        pToIt,
+        pLoopHeads,
+        (fromIt, toIt, stateLowerIt, stateUpperIt) ->
+            fromIt <= stateLowerIt && stateUpperIt <= toIt);
+  }
+
+  /** Decides whether a state's iteration range [lower, upper] matches the requested range. */
+  private interface IterationFilter {
+    boolean accepts(int pFromIt, int pToIt, int pStateLowerIt, int pStateUpperIt);
+  }
+
+  private static FluentIterable<AbstractState> filterIterations(
+      Iterable<AbstractState> pStates,
+      int pMinIt,
+      int pMaxIt,
+      Set<CFANode> pLoopHeads,
+      IterationFilter pFilter) {
     Objects.requireNonNull(pLoopHeads);
     if (pMinIt > pMaxIt) {
       throw new IllegalArgumentException(
@@ -271,9 +344,16 @@ public final class BMCHelper {
               }
               int minIt = convertIteration(pMinIt, state, pLoopHeads);
               int maxIt = convertIteration(pMaxIt, state, pLoopHeads);
-              int actualIt = ls.getDeepestIteration();
-              return minIt <= actualIt && actualIt <= maxIt;
+              return pFilter.accepts(
+                  minIt, maxIt, ls.getDeepestIteration(), ls.getDeepestIterationUpperBound());
             });
+  }
+
+  /** Returns whether the paths represented by the state may have different iteration counts. */
+  static boolean hasIterationRange(AbstractState pState) {
+    LoopIterationReportingState ls =
+        AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
+    return ls != null && ls.hasIterationRange();
   }
 
   public static FluentIterable<AbstractState> filterIterationsUpTo(
@@ -390,16 +470,16 @@ public final class BMCHelper {
 
   static FluentIterable<AbstractState> filterBmcChecked(
       Iterable<AbstractState> pStates, Set<Object> pCheckedKeys) {
-    return FluentIterable.from(pStates)
-        .filter(
-            pArg0 -> {
-              if (pArg0 == null) {
-                return false;
-              }
-              LoopIterationReportingState ls =
-                  AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
-              return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
-            });
+    return FluentIterable.from(pStates).filter(state -> isBmcChecked(state, pCheckedKeys));
+  }
+
+  static boolean isBmcChecked(@Nullable AbstractState pState, Set<Object> pCheckedKeys) {
+    if (pState == null) {
+      return false;
+    }
+    LoopIterationReportingState ls =
+        AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
+    return ls != null && pCheckedKeys.contains(ls.getPartitionKey());
   }
 
   /**
@@ -430,7 +510,7 @@ public final class BMCHelper {
       LoopIterationReportingState checkedState = (LoopIterationReportingState) key;
       boolean withinCheckedRange = true;
       for (Loop loop : pLoops) {
-        if (loopState.getIteration(loop) > checkedState.getIteration(loop)) {
+        if (loopState.getIterationUpperBound(loop) > checkedState.getIteration(loop)) {
           withinCheckedRange = false;
           break;
         }

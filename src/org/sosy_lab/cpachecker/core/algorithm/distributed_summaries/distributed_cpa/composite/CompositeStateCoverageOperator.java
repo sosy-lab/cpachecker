@@ -43,11 +43,33 @@ public class CompositeStateCoverageOperator implements CoverageOperator {
             dcpa.doesOperateOn(wrappedState1.getClass())
                 && dcpa.doesOperateOn(wrappedState2.getClass()),
             "Wrapped states must be compatible with the corresponding CPA.");
+
         if (!dcpa.getCoverageOperator().isSubsumed(wrappedState1, wrappedState2)) {
           return false;
         }
       }
       // TODO: Handle cases where the wrapped analysis does not implement CoverageOperator
+    }
+    return true;
+  }
+
+  @Override
+  public boolean areStatesSyntacticallyEqual(AbstractState state1, AbstractState state2)
+      throws CPAException, InterruptedException {
+    CompositeState compositeState1 = (CompositeState) state1;
+    CompositeState compositeState2 = (CompositeState) state2;
+    if (compositeState1.getWrappedStates().size() != compositeState2.getWrappedStates().size()
+        || compositeState1.getWrappedStates().size() != wrapped.size()) {
+      return false;
+    }
+    for (int i = 0; i < wrapped.size(); i++) {
+      if (wrapped.get(i) instanceof DistributedConfigurableProgramAnalysis dcpa
+          && !dcpa.getCoverageOperator()
+              .areStatesSyntacticallyEqual(
+                  compositeState1.getWrappedStates().get(i),
+                  compositeState2.getWrappedStates().get(i))) {
+        return false;
+      }
     }
     return true;
   }

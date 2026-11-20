@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
-import javax.management.JMException;
 import javax.xml.transform.TransformerException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -83,8 +82,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -511,17 +508,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       final AlgorithmContext pPreviousContext) {
 
     ShutdownManager localShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-    List<ResourceLimit> limits = new ArrayList<>();
-    try {
-      limits.add(ProcessCpuTimeLimit.create(TimeSpan.ofSeconds(pCurrentContext.getTimeLimit())));
-    } catch (JMException e) {
-      logger.log(
-          Level.SEVERE,
-          "Your Java VM does not support measuring the cpu time. Ignore time limit.",
-          e);
-    }
-
-    ResourceLimitChecker singleLimits = new ResourceLimitChecker(localShutdownManager, limits);
+    ResourceLimitChecker singleLimits =
+        ResourceLimitChecker.createCpuTimeLimitChecker(
+            logger, localShutdownManager, TimeSpan.ofSeconds(pCurrentContext.getTimeLimit()));
     singleLimits.start();
     localShutdownManager.getNotifier().register(logShutdownListener);
 

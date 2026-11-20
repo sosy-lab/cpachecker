@@ -6,6 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+extern void abort(void);
+extern void __assert_fail(const char *, const char *, unsigned int,
+                           const char *) __attribute__((__nothrow__, __leaf__))
+__attribute__((__noreturn__));
+
+void reach_error() {
+  __assert_fail("0", "gauss_unsafe.c", 17, "reach_error");
+}
+
 extern unsigned int __VERIFIER_nondet_uint();
 
 int main() {
@@ -14,8 +23,7 @@ int main() {
     sn = sn + i;
   }
   if (!(sn == (n * (n + 1)) / 2 || sn == 0)) {
-  ERROR:
-    return 1;
+    reach_error();
   }
   return 0;
 }

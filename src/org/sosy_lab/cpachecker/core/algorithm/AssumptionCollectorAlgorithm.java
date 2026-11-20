@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -353,7 +354,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             falseAssumptionStates,
             automatonBranchingThreshold,
             automatonIgnoreAssumptions,
-            automatonOrderedTransitions);
+            automatonOrderedTransitions,
+            cfa.getMachineModel());
   }
 
   private Automaton constructAutomatonFromFile() throws InvalidConfigurationException {
@@ -442,7 +444,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       Set<AbstractState> falseAssumptionStates,
       int branchingThreshold,
       boolean ignoreAssumptions,
-      boolean automatonOrderedTransitions)
+      boolean automatonOrderedTransitions,
+      MachineModel machineModel)
       throws IOException {
     int numProducedStates = 0;
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
@@ -544,7 +547,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               descriptionForInnerMultiEdges,
               assumptionChild,
               ignoreAssumptions,
-              AbstractStates.extractLocation(child));
+              AbstractStates.extractLocation(child),
+              machineModel);
           finishTransition(
               descriptionForInnerMultiEdges,
               child,
@@ -565,7 +569,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           AssumptionStorageState assumptionChild =
               AbstractStates.extractStateByType(child, AssumptionStorageState.class);
           addAssumption(
-              sb, assumptionChild, ignoreAssumptions, AbstractStates.extractLocation(child));
+              sb,
+              assumptionChild,
+              ignoreAssumptions,
+              AbstractStates.extractLocation(child),
+              machineModel);
           finishTransition(
               sb, child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
         }
@@ -584,7 +592,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       final Appendable writer,
       final AssumptionStorageState assumptionState,
       boolean ignoreAssumptions,
-      CFANode pCFANode)
+      CFANode pCFANode,
+      MachineModel machineModel)
       throws IOException {
     if (!ignoreAssumptions) {
       FormulaManagerView fmgr = assumptionState.getFormulaManager();
@@ -597,7 +606,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           ExpressionTree<Object> assumptionTree;
           try {
             assumptionTree =
-                ExpressionTrees.fromFormula(assumption, fmgr, pCFANode, Function.identity());
+                ExpressionTrees.fromFormula(
+                    assumption, fmgr, pCFANode, Function.identity(), machineModel);
           } catch (TranslationToExpressionTreeFailedException e) {
             // Keep consistency with the previous implementation
             assumptionTree = ExpressionTrees.getTrue();

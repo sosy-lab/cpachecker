@@ -236,7 +236,7 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
         || !options.ignoreIrrelevantFields()) {
       return true;
     }
-    CCompositeType compositeType = pCompositeType.withoutQualifiers();
+    CCompositeType compositeType = pCompositeType.asUnqualified();
     return variableClassification
         .orElseThrow()
         .getRelevantFields()
@@ -561,14 +561,15 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
               typeHandler.getPointerType(),
               fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
-
-      // In principle, we could add constraints that the addresses of all these string literals
-      // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
-      // package. But this is likely rarely useful in practice.
-      // But we have seen code that relies on the address being non-null, so encode that.
-      constraints.addConstraint(
-          fmgr.makeNot(fmgr.makeEqual(result, fmgr.makeNumber(typeHandler.getPointerType(), 0))));
     }
+
+    // In principle, we could add constraints that the addresses of all these string literals
+    // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
+    // package. But this is likely rarely useful in practice.
+    // But we have seen code that relies on the address being non-null, so encode that.
+    // The formula is cached, but every path formula that uses it needs the constraint.
+    constraints.addConstraint(
+        fmgr.makeNot(fmgr.makeEqual(result, fmgr.makeNumber(typeHandler.getPointerType(), 0))));
 
     return result;
   }
@@ -771,15 +772,11 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
-      final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
-      final Formula lowerBound =
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
-      final Formula upperBound =
-          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
 
       constraints.addConstraint(fmgr.makeDomainRangeConstraint(variable, signed));
-      constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
+      constraints.addConstraint(
+          CtoFormulaTypeUtils.makeRangeConstraint(fmgr, variable, sType, machineModel));
     }
   }
 

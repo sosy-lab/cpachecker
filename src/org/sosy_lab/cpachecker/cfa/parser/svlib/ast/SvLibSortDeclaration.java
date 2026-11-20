@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.ast;
 import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibCustomType;
 
@@ -57,7 +58,7 @@ public final class SvLibSortDeclaration implements SvLibParsingDeclaration {
 
   @Override
   public String toASTString() {
-    return name;
+    return SmtLibSymbols.quoteIfNeeded(name);
   }
 
   @Override

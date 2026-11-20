@@ -13,22 +13,22 @@ import com.google.common.base.Splitter;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackCPA;
 
 public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
-  private final CallstackCPA parentCPA;
+  private final DssCallstackCPA parentCPA;
   private final Function<Integer, CFANode> converter;
   private final BlockNode blockNode;
 
   public DeserializeCallstackStateOperator(
-      CallstackCPA pParentCPA, BlockNode pBlockNode, Function<Integer, CFANode> pConverter) {
+      DssCallstackCPA pParentCPA, BlockNode pBlockNode, Function<Integer, CFANode> pConverter) {
     parentCPA = pParentCPA;
     converter = pConverter;
     blockNode = pBlockNode;
@@ -36,22 +36,28 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) {
-    String stateJson = pMessage.getAbstractStateContent(CallstackState.class).get(STATE_KEY);
+    ContentReader content = pMessage.getAbstractStateContent(CallstackState.class);
+    String stateJson = content.get(STATE_KEY);
     assert stateJson != null;
+    // states of a block analysis that did not know its callstack must stay unrestricted
+    boolean canBeTopState =
+        Boolean.parseBoolean(
+            content.getOrDefault(DistributedCallstackCPA.CAN_BE_TOP_STATE_KEY, "false"));
     if (stateJson.isBlank()) {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);
-      return parentCPA.getInitialState(location, StateSpacePartition.getDefaultPartition());
+      return parentCPA.createState(null, location.getFunctionName(), location, canBeTopState);
     }
     List<String> parts = Splitter.on(DistributedCallstackCPA.DELIMITER).splitToList(stateJson);
-    CallstackState previous = null;
+    CallstackState current = null;
     for (String part : parts) {
       List<String> properties = Splitter.on(".").limit(2).splitToList(part);
-      previous =
-          new CallstackState(
-              previous,
+      current =
+          parentCPA.createState(
+              current,
               properties.get(1),
-              Objects.requireNonNull(converter.apply(Integer.parseInt(properties.getFirst()))));
+              Objects.requireNonNull(converter.apply(Integer.parseInt(properties.getFirst()))),
+              canBeTopState);
     }
-    return previous;
+    return current;
   }
 }

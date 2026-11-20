@@ -15,6 +15,7 @@ import java.io.Serial;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagProperty;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.specification.SvLibTagReference;
@@ -62,7 +63,9 @@ public final class SvLibIncorrectTagProperty extends SvLibViolatedProperty {
   @Override
   public String toASTString() {
     return "(incorrect-annotation "
-        + (svLibTagReference.isPresent() ? svLibTagReference.orElseThrow().getTagName() : "")
+        + (svLibTagReference.isPresent()
+            ? SmtLibSymbols.quoteIfNeeded(svLibTagReference.orElseThrow().getTagName())
+            : "")
         + " "
         + from(violatedProperties).transform(SvLibAstNode::toASTString).join(Joiner.on(" "))
         + ")";

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.svlibtoformula.SvLibToSmtConverterUtils.cleanVariableNameForJavaSMT;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -17,6 +18,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -29,6 +31,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibVariableDeclarationTuple;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -592,8 +596,20 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
   }
 
   private static boolean isReturnVar(String var, FunctionExitNode functionExitNode) {
-    return functionExitNode.getEntryNode().getReturnVariable().isPresent()
-        && functionExitNode.getEntryNode().getReturnVariable().get().getQualifiedName().equals(var);
+    Optional<? extends AVariableDeclaration> returnVariable =
+        functionExitNode.getEntryNode().getReturnVariable();
+    if (returnVariable.isEmpty()) {
+      return false;
+    }
+    // A procedure of SV-LIB returns a tuple of variables, and each of them is a variable of its own
+    // in the formulas.
+    if (returnVariable.orElseThrow() instanceof SvLibVariableDeclarationTuple tuple) {
+      return tuple.getDeclarations().stream()
+          .anyMatch(
+              declaration ->
+                  cleanVariableNameForJavaSMT(declaration.getQualifiedName()).equals(var));
+    }
+    return returnVariable.orElseThrow().getQualifiedName().equals(var);
   }
 
   /**

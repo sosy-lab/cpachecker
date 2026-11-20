@@ -45,6 +45,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -1224,7 +1225,9 @@ public class InvariantsState
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationAllVariablesInFunctionScope(
-      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode)
+      final FunctionEntryNode pFunctionEntryNode,
+      final CFANode pReferenceNode,
+      final MachineModel pMachineModel)
       throws TranslationToExpressionTreeFailedException {
 
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
@@ -1241,35 +1244,40 @@ public class InvariantsState
       FunctionEntryNode pFunctionScope,
       CFANode pLocation,
       AstCfaRelation pAstCfaRelation,
-      boolean useOldKeywordForVariables)
+      boolean useOldKeywordForVariables,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {
+    FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+        ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
         pFormula ->
             pFormula instanceof Variable
                 && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
-                    || !pAstCfaRelation
-                        .getVariablesAndParametersInScope(pLocation)
-                        .orElseThrow()
-                        .anyMatch(
-                            variableDeclaration ->
-                                variableDeclaration
-                                    .getQualifiedName()
-                                    .equals(
-                                        ((Variable<?>) pFormula)
-                                            .getMemoryLocation()
-                                            .getQualifiedName())));
+                    || !variablesInScope.anyMatch(
+                        variableDeclaration ->
+                            variableDeclaration
+                                .getQualifiedName()
+                                .equals(
+                                    ((Variable<?>) pFormula)
+                                        .getMemoryLocation()
+                                        .getQualifiedName())));
 
     return getFormulaApproximation(
         pFunctionScope,
         isInvalidVarFormulaApproximation,
-        varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
+        varName -> {
+          String name = pAstCfaRelation.getNameInInputProgram(pLocation, varName);
+          return useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name;
+        });
   }
 
   @Override
   public ExpressionTree<Object> getFormulaApproximationFunctionReturnVariableOnly(
-      FunctionEntryNode pFunctionScope, AIdExpression pFunctionReturnVariable)
+      FunctionEntryNode pFunctionScope,
+      AIdExpression pFunctionReturnVariable,
+      MachineModel pMachineModel)
       throws InterruptedException,
           ReportingMethodNotImplementedException,
           TranslationToExpressionTreeFailedException {

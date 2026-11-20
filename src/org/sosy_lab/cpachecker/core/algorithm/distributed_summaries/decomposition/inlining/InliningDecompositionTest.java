@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.inlining;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 import org.junit.Test;
@@ -16,17 +17,18 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.TestUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DecompositionTestBase;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.HorizontalMergeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.test.TestUtils;
+import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
 @RunWith(Parameterized.class)
 public class InliningDecompositionTest {
@@ -40,31 +42,41 @@ public class InliningDecompositionTest {
 
   @Test
   public void test() throws Exception {
-    CFA cfa = TestUtil.buildTestCFA(path);
+    CFA cfa = TestCfaUtils.makeCfaFromFile(path);
 
     DssBlockDecomposition decomposition = createDecomposition(cfa);
 
-    decomposition.decompose(cfa);
+    BlockGraph graph = decomposition.decompose(cfa);
 
     // TODO the assumptions for the normal decompositions no longer  hold -> find sensible checks?
+    DecompositionTestBase.checkFinalLocationReachedOnlyAtEnd(graph);
+  }
+
+  @Test
+  public void testMergedInliningDecomposition() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(path);
+
+    BlockGraph graph = createMergedDecomposition(cfa).decompose(cfa);
+
+    DecompositionTestBase.checkFinalLocationReachedOnlyAtEnd(graph);
   }
 
   private static DssBlockDecomposition createDecomposition(CFA cfa)
       throws InvalidConfigurationException, IOException {
-    BlockOperator blockOperator = new BlockOperator();
-    Configuration config =
-        TestUtils.configurationForTest().loadFromFile(TestUtil.DSS_CONFIGURATION_FILE).build();
-    config.inject(blockOperator);
-    try {
-      blockOperator.setCFA(cfa);
-    } catch (CPAException e) {
-      // if blockOperator.setCFA throws a CPAexception, this is because of an invalid
-      // configuration
-      throw new InvalidConfigurationException("Initialization of block operator failed", e);
-    }
-
-    Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
+    Predicate<CFANode> isBlockEnd = DssTestUtils.createBlockOperator(cfa);
 
     return new InliningDecomposition(new LinearBlockNodeDecomposition(isBlockEnd));
+  }
+
+  /** The decomposition that {@code decompositionType=INLINING_DECOMPOSITION} creates. */
+  private static DssBlockDecomposition createMergedDecomposition(CFA cfa)
+      throws InvalidConfigurationException, IOException {
+    return new MergeBlockNodesDecomposition(
+        createDecomposition(cfa),
+        2,
+        HorizontalMergeDecomposition.NO_MERGE_LIMIT,
+        Comparator.comparing(BlockNodeWithoutGraphInformation::getId),
+        false,
+        true);
   }
 }

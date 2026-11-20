@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -66,7 +67,8 @@ public class SeqPointerAliasingStartRoutineArgTest {
           "local_L1",
           "local_L1",
           "local_L1",
-          INT_0_INITIALIZER);
+          INT_0_INITIALIZER,
+          /* pHasThreadLocalStorage= */ false);
 
   private final class CParameterDeclarations {
     private final CParameterDeclaration START_ROUTINE_ARG_DECLARATION =
@@ -104,6 +106,7 @@ public class SeqPointerAliasingStartRoutineArgTest {
     // arg = &local_l1; i.e. start_routine arg assignment
     Optional<SeqPointerAssignment> parameterAssignment =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             START_ROUTINE_ARG_ID_EXPRESSION,
             LOCAL_L1_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,

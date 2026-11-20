@@ -21,8 +21,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata;
-import org.sosy_lab.cpachecker.cfa.CfaTransformationMetadata.ProgramTransformation;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -62,8 +60,10 @@ import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.instrumentation.SequentializationOperatorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MporPreprocessingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.MporSequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
+import org.sosy_lab.cpachecker.core.algorithm.oc.OrderingConsistencyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.simplerules.SimpleRulesAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
@@ -165,6 +166,14 @@ public class CoreComponentsFactory {
           "use a BMC like algorithm that checks for satisfiability "
               + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.OrderingConsistency",
+      description =
+          "use the ordering-consistency algorithm for concurrent programs, "
+              + "works only with the OrderingConsistencyCPA")
+  private boolean useOrderingConsistency = false;
 
   @Option(
       secure = true,
@@ -356,6 +365,15 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.simpleRules",
+      description =
+          "decide the specification with simple rules, i.e., with arguments that need no reasoning"
+              + " about what the program computes. This replaces the analysis that would otherwise"
+              + " run, so use a portfolio to combine the rules with another analysis.")
+  private boolean useSimpleRules = false;
+
+  @Option(
+      secure = true,
       name = "extractRequirements.customInstruction",
       description =
           "do analysis and then extract pre- and post conditions for custom instruction from"
@@ -513,9 +531,6 @@ public class CoreComponentsFactory {
 
     // Allow for deactivating pre-processing steps like the sequentialization in inner analyses
     // which do not need it.
-    CfaTransformationMetadata transformationMetadata =
-        cfa.getMetadata().getTransformationMetadata();
-
     // Whenever we want to use the original CFA instead of a pre-processed one, we retrieve it here.
     // This is necessary to pre-process the CFA only once, e.g., by sequentialization, but still
     // allow analyses which do not need the pre-processed CFA to use the original one. For example,
@@ -523,11 +538,9 @@ public class CoreComponentsFactory {
     // sequentialization in a parallel portfolio we want the analyses which natively support
     // concurrency to use the original CFA.
     if (preferOriginalCfaOverSequentialized
-        && transformationMetadata != null
-        && transformationMetadata
-            .transformation()
-            .equals(ProgramTransformation.SEQUENTIALIZATION_ATTEMPTED)) {
-      cfa = transformationMetadata.originalCfa();
+        && cfa.getMetadata().getTransformation()
+            instanceof MporSequentialization sequentialization) {
+      cfa = sequentialization.originalCfa();
     }
 
     if (useTerminationAlgorithm) {
@@ -587,6 +600,9 @@ public class CoreComponentsFactory {
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
       algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
+    } else if (useSimpleRules) {
+      logger.log(Level.INFO, "Using the simple rules");
+      algorithm = new SimpleRulesAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (analysisSequentializesCfa()) {
       // Wrap the inner algorithm into one which pre-processes the CFA with MPOR sequentialization.
       // Only in case the CFA is not already sequentialized, since in that case we are somewhere
@@ -731,6 +747,12 @@ public class CoreComponentsFactory {
                 aggregatedReachedSets);
       }
 
+      if (useOrderingConsistency) {
+        algorithm =
+            new OrderingConsistencyAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa, specification);
+      }
+
       if (useIMC) {
         verifyNotNull(shutdownManager);
         algorithm =
@@ -768,6 +790,7 @@ public class CoreComponentsFactory {
                 logger,
                 shutdownNotifier,
                 cfa,
+                oldCfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
                 algorithm,
@@ -783,8 +806,7 @@ public class CoreComponentsFactory {
                 config,
                 logger,
                 shutdownNotifier,
-                specification.getPathToSpecificationAutomata().keySet(),
-                specification);
+                specification.getPathToSpecificationAutomata().keySet());
       }
 
       if (checkCounterexamples) {
@@ -823,7 +845,9 @@ public class CoreComponentsFactory {
       }
 
       if (splitProgram) {
-        algorithm = new ProgramSplitAlgorithm(algorithm, cpa, config, logger, shutdownNotifier);
+        algorithm =
+            new ProgramSplitAlgorithm(
+                algorithm, cpa, config, logger, shutdownNotifier, cfa.getMachineModel());
       }
 
       if (usePropertyCheckingAlgorithm) {
@@ -976,6 +1000,7 @@ public class CoreComponentsFactory {
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
+        || useSimpleRules
         || constructProgramSlice
         || useFaultLocalizationWithDistanceMetrics
         || useArrayAbstraction
@@ -983,6 +1008,20 @@ public class CoreComponentsFactory {
         || analysisSequentializesCfa()) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
+    }
+
+    if (useOrderingConsistency) {
+      // The ordering-consistency analysis does its own, built-in target detection (it reads the
+      // property from the specification directly, see OrderingConsistencyAlgorithm). It has no
+      // CompositeCPA to hold a specification automaton, so the automata that a property file would
+      // otherwise contribute must not be inserted into its CPA; build it from the property-free
+      // specification, and let the algorithm interpret the property.
+      // keep the properties: the CPA gets no automaton from them, but the witness export
+      // needs them, e.g. to emit both racing accesses of a data race
+      return cpaFactory.buildCPAs(
+          cfa,
+          Specification.alwaysSatisfied().withAdditionalProperties(pSpecification.getProperties()),
+          aggregatedReachedSets);
     }
 
     return cpaFactory.buildCPAs(cfa, pSpecification, aggregatedReachedSets);

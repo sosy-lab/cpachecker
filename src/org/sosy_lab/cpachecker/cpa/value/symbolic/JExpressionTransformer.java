@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryNotExpression;
@@ -56,8 +57,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class JExpressionTransformer extends ExpressionTransformer
     implements JRightHandSideVisitor<SymbolicExpression, UnrecognizedCodeException> {
 
-  public JExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
-    super(pFunctionName, pValueState);
+  public JExpressionTransformer(
+      String pFunctionName, ValueAnalysisState pValueState, CFAEdge pCfaEdgeForDebugging) {
+    super(pFunctionName, pValueState, pCfaEdgeForDebugging);
   }
 
   public SymbolicExpression transform(JExpression pExpression) throws UnrecognizedCodeException {
