@@ -154,8 +154,19 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
     AcslAstNode result =
         switch (value) {
           case Boolean b -> new AcslBooleanLiteralPredicate(DUMMY_LOC, b);
-          case BigInteger i ->
-              new AcslIntegerLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.INTEGER, i);
+          case BigInteger i -> {
+            FormulaType<?> type = fmgr.getFormulaType(f);
+
+            BigInteger v = i;
+            if (type.isBitvectorType()) {
+              // TODO this is a bad simplification, but afaik there is currently no way to really
+              // know if the betvector used to be singned or unsigned in C
+              int bitWidth = ((FormulaType.BitvectorType) type).getSize();
+              v = toSigned(i, bitWidth);
+            }
+
+            yield new AcslIntegerLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.INTEGER, v);
+          }
           case BigDecimal d -> new AcslRealLiteralTerm(DUMMY_LOC, AcslBuiltinLogicType.REAL, d);
           default ->
               throw new UnsupportedOperationException(
@@ -450,5 +461,13 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
       return new AcslPointerType(elementType);
     }
     throw new UnsupportedOperationException("Cannot convert formula type to ACSL type: " + type);
+  }
+
+  private BigInteger toSigned(BigInteger value, int bitWidth) {
+    BigInteger maxValue = BigInteger.ONE.shiftLeft(bitWidth);
+    if (value.compareTo(maxValue.shiftRight(1)) >= 0) {
+      return value.subtract(maxValue);
+    }
+    return value;
   }
 }
