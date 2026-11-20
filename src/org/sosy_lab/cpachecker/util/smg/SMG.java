@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -91,6 +92,10 @@ public class SMG {
   private final PersistentMap<SMGObject, PersistentMap<SMGValue, Integer>>
       objectsAndPointersPointingAtThem;
   private final BigInteger sizeOfPointer;
+
+  // Cache for getAllValidAbstractedObjects(), which otherwise iterates over all objects.
+  // Computed from smgObjects only, which never changes for an instance.
+  @LazyInit private @Nullable ImmutableSet<SMGSinglyLinkedListSegment> validAbstractedObjects;
 
   /** Creates a new, empty SMG */
   public SMG(BigInteger pSizeOfPointer) {
@@ -488,13 +493,18 @@ public class SMG {
   }
 
   public Set<SMGSinglyLinkedListSegment> getAllValidAbstractedObjects() {
-    ImmutableSet.Builder<SMGSinglyLinkedListSegment> setBuilder = ImmutableSet.builder();
-    for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
-      if (obj.getValue() && obj.getKey() instanceof SMGSinglyLinkedListSegment ll) {
-        setBuilder.add(ll);
+    ImmutableSet<SMGSinglyLinkedListSegment> result = validAbstractedObjects;
+    if (result == null) {
+      ImmutableSet.Builder<SMGSinglyLinkedListSegment> setBuilder = ImmutableSet.builder();
+      for (Entry<SMGObject, Boolean> obj : smgObjects.entrySet()) {
+        if (obj.getValue() && obj.getKey() instanceof SMGSinglyLinkedListSegment ll) {
+          setBuilder.add(ll);
+        }
       }
+      result = setBuilder.build();
+      validAbstractedObjects = result;
     }
-    return setBuilder.build();
+    return result;
   }
 
   public int getNumberOfValueUsages(SMGValue value) {

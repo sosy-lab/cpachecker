@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.math.BigInteger;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayDeque;
@@ -160,6 +161,12 @@ public class SymbolicProgramConfiguration {
   private Set<SMGObject> readBlacklist;
 
   private final SMGOptions options;
+
+  // Cache for getMemoryLocationsAndValuesForSPCWithoutHeap(), which is computed from immutable
+  // fields only and requested repeatedly, e.g., for every comparison in the stop operator.
+  @LazyInit
+  private @Nullable PersistentMap<MemoryLocation, ValueAndValueSize>
+      memoryLocationsAndValuesWithoutHeap;
 
   private SymbolicProgramConfiguration(
       SMG pSmg,
@@ -4535,10 +4542,22 @@ public class SymbolicProgramConfiguration {
    * heap related memory. This does return pointers, but not the structure behind the pointers. Nor
    * the return value in a stack frame.
    *
+   * <p>Note: this method caches the found information in this {@link SymbolicProgramConfiguration},
+   * speeding up all further lookups.
+   *
    * @return a mapping of global/local program variables to their values and sizes by edges.
    */
   PersistentMap<MemoryLocation, ValueAndValueSize> getMemoryLocationsAndValuesForSPCWithoutHeap() {
+    PersistentMap<MemoryLocation, ValueAndValueSize> result = memoryLocationsAndValuesWithoutHeap;
+    if (result == null) {
+      result = computeMemoryLocationsAndValuesForSPCWithoutHeap();
+      memoryLocationsAndValuesWithoutHeap = result;
+    }
+    return result;
+  }
 
+  private PersistentMap<MemoryLocation, ValueAndValueSize>
+      computeMemoryLocationsAndValuesForSPCWithoutHeap() {
     PersistentMap<MemoryLocation, ValueAndValueSize> map = PathCopyingPersistentTreeMap.of();
 
     for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {

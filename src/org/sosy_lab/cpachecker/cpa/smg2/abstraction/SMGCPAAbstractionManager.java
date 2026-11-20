@@ -891,6 +891,12 @@ public class SMGCPAAbstractionManager {
    */
   List<Set<SMGCandidate>> findNestingOfCandidates(Set<SMGCandidate> allListCandidates)
       throws SMGException {
+    if (allListCandidates.isEmpty()) {
+      // Nothing to order. The traversal below visits every path through the heap, which is
+      // expensive for large heaps, e.g., hash tables with many elements.
+      return new ArrayList<>();
+    }
+
     // Search by traversing the SMG starting from non-heap objs
     Map<SMGCandidate, Integer> nestingMap = new HashMap<>();
     List<Set<SMGCandidate>> currentOrdering = new ArrayList<>();
@@ -962,9 +968,6 @@ public class SMGCPAAbstractionManager {
         Preconditions.checkNotNull(correctCandidate);
         // Don't count this candidate twice
         if (!alreadyFoundCandidates.contains(correctCandidate)) {
-          if (level == 0 && correctCandidate.getObject().toString().contains("SMGObject99")) {
-            alreadyFoundCandidates.add(correctCandidate);
-          }
           nestingMap.put(
               correctCandidate,
               Integer.max(nestingMap.getOrDefault(correctCandidate, level), level));
