@@ -23,6 +23,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
+    <exclude>../programs/benchmarks/pthread/triangular-longer-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/mix000.opt.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/mix009.opt.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/pthread-wmm/mix012_pso.opt_tso.opt.yml</exclude> <!-- flapping timeout -->

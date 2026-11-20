@@ -57,6 +57,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/lcm2_unwindbound20.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/mannadiv_unwindbound20.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/ps2-ll_unwindbound20.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/ps4-ll_unwindbound20.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>

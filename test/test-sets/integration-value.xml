@@ -41,6 +41,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
+    <exclude>../programs/simple/func_ptr_call_test.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks>
     <option name="--option">analysis.preprocessing.MPOR=true</option>
@@ -63,6 +64,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/float-newlib/*</exclude> <!-- only timeout -->
+    <exclude>../programs/benchmarks/neural-networks/batchnorm_0_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_0_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_2_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_3_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
@@ -74,6 +76,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c39_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c52_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c52_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c65_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c21_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c16_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c16_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->

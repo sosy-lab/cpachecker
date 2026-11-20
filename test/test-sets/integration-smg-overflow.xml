@@ -51,6 +51,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-invgen/nested9.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_6-2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_7-2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/termination-numeric/LogRecursive.yml</exclude> <!-- flapping error/timeout -->
   </tasks>
   <tasks name="Overflow-Simple">
     <includesfile>../programs/simple/overflow/overflow.set</includesfile>

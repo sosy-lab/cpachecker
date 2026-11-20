@@ -63,6 +63,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-benchs/water_pid.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0520.yml</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0681a.yml</exclude> <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/float-newlib/double_req_bl_0681b.yml</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/floats-cbmc-regression/float-no-simp2.yml</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c13_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->

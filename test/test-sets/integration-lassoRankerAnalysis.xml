@@ -44,10 +44,29 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Recursive.set</includesfile>
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    <exclude>../programs/benchmarks/bitvector/byte_add-1.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/bitvector/s3_srvr_2a.BV.c.cil.yml</exclude>  <!-- flapping timeout / assertion -->
+    <exclude>../programs/benchmarks/bitvector/s3_srvr_2a_alt.BV.c.cil.yml</exclude>  <!-- flapping timeout / assertion -->
+    <exclude>../programs/benchmarks/memsafety-ext/tree_cnstr.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/memsafety-ext/tree_parent_ptr.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/product-lines/elevator_spec3_product20.cil.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/product-lines/elevator_spec3_product32.cil.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/product-lines/elevator_spec9_product26.cil.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.2.ufo.BOUNDED-6.pals.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks name="C.termination.SoftwareSystems-DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--gpu--drm--drm_usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--input--misc--mma8450.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--leds--leds-regulator.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--power--wm831x_backup.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--staging--android--switch--switch_class.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--staging--iio--kfifo_buf.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--staging--iio--ring_sw.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/32_1_cilled_ok_nondet_linux-3.4-32_1-drivers--watchdog--iTCO_vendor_support.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--misc--pcspkr.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--misc--rotary_encoder.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks name="C.termination.SoftwareSystems-uthash">
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>

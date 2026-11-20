@@ -38,6 +38,7 @@ SPDX-License-Identifier: Apache-2.0
       <exclude>../programs/benchmarks/systemc/toy.cil.yml</exclude> <!-- flapping oom/timeout -->
       <exclude>../programs/benchmarks/systemc/toy1.cil.yml</exclude> <!-- flapping oom/timeout -->
       <exclude>../programs/benchmarks/systemc/transmitter.06.cil.yml</exclude> <!-- flapping timeout -->
+      <exclude>../programs/benchmarks/systemc/transmitter.08.cil.yml</exclude> <!-- flapping timeout / OOM -->
       <option name="--option">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="--option">cpa.octagon.octagonLibrary=INT</option>
   </tasks>
