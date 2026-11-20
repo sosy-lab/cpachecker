@@ -26,8 +26,8 @@ but sometimes SMT solvers have stricter requirements and require newer versions.
 We plan on raising the minimum required Java version roughly every two years,
 at the end of even years,
 and then require the Java LTS release that was released one year before.
-For example, in November 2029 we plan to raise the minimum required Java version
-to Java 29, expected to be released in September 2027.
+For example, in November 2028 we plan to raise the minimum required Java version
+to Java 29, which is expected to be released in September 2027.
 
 As an alternative our container images are available.
 
