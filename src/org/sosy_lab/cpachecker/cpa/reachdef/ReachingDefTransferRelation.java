@@ -231,7 +231,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
                       throws NoException {
                     return switch (pExp) {
                       case CLeftHandSide cLeftHandSide -> ImmutableList.of(cLeftHandSide);
-                      case CLiteralExpression unused -> ImmutableList.of();
+                      case CLiteralExpression _ -> ImmutableList.of();
                       case CBinaryExpression binExp -> {
                         Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
                         Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);

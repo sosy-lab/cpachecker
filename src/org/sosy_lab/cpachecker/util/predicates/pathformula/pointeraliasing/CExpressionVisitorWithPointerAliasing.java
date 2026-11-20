@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -44,7 +46,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -55,7 +59,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.OverflowAssumptionManager;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
+import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -64,8 +71,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Expression
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /** A visitor the handle C expressions with the support for pointer aliasing. */
 class CExpressionVisitorWithPointerAliasing
@@ -482,13 +491,15 @@ class CExpressionVisitorWithPointerAliasing
             final CCompositeType compositeType =
                 (CCompositeType) CTypeUtils.checkIsSimplified(pointerType.getType());
             usedFields.add(CompositeField.of(compositeType, fieldName));
+            if (typeHandler.getSimplifiedType(field) instanceof CBitFieldType) {
+              throw new UnrecognizedCodeException("Taking address of bit fields is not allowed", e);
+            }
             final long fieldOffset =
                 typeHandler
                     .getOffset(compositeType, fieldName)
-                    .orElseThrow(
-                        () ->
-                            new UnrecognizedCodeException(
-                                "Taking address of bit fields is not allowed", e));
+                    .orElseThrow(() ->
+                        new UnrecognizedCodeException(
+                            "Taking address of bit fields is not allowed", e));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset);
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
             addressHandler.addEqualBaseAddressConstraint(base, addressExpression.getAddress());
@@ -703,6 +714,9 @@ class CExpressionVisitorWithPointerAliasing
           }
           return Value.ofValue(f);
 
+        } else if (functionName.equals("strcpy")) {
+          return handleStrcpy(e);
+
         } else if (functionName.equals("memcmp")
             || functionName.equals("strcmp")
             || functionName.equals("strncmp")) {
@@ -738,11 +752,22 @@ class CExpressionVisitorWithPointerAliasing
           Formula destinationFormula = destinationAsAliasedLocation.getAddress();
           return Value.ofValue(destinationFormula);
 
-        } else if (functionName.equals("__VERIFIER_nondet_memory")) {
-          MemoryManipulationFunctionHandler memoryFunctionHandler =
-              new MemoryManipulationFunctionHandler(
-                  conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
-          memoryFunctionHandler.handleNondetMemoryAssignment(e);
+        } else if (functionName.equals(VerifierNondetFunctions.getFunctionNameNondetMemory())) {
+          // Setting each byte to a nondet value explicitly is expensive for large blocks,
+          // so we only do it if we have to.
+          // One case where we can avoid it:
+          // Fresh allocations (for example malloc(..)) already have unconstrained content in our
+          // encoding.
+          // So the havoc of an allocation that wasn't touched yet does not change the abstract
+          // program state
+          // and can be skipped.
+          if (!(edge instanceof CStatementEdge statementEdge)
+              || !isHavocOfFreshlyAllocatedMemory(statementEdge)) {
+            MemoryManipulationFunctionHandler memoryFunctionHandler =
+                new MemoryManipulationFunctionHandler(
+                    conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
+            memoryFunctionHandler.handleNondetMemoryAssignment(e);
+          }
 
         } else if (functionName.equals(THREAD_JOIN)) {
           // pthread_join(t, p) writes the result of thread t to *p. The encoding does not know
@@ -800,6 +825,14 @@ class CExpressionVisitorWithPointerAliasing
       }
     }
 
+    // An unknown function may write through its pointer arguments, which we do not encode, but it
+    // would make facts about equal strings and zeroed memory wrong.
+    if ((!pts.getStringFacts().isEmpty() || !pts.getZeroedMemoryFacts().isEmpty())
+        && mayWriteThroughPointerArguments(e)) {
+      pts.setStringFacts(PersistentLinkedList.of());
+      pts.setZeroedMemoryFacts(ImmutableList.of());
+    }
+
     // Pure functions returning composites are unsupported, return a nondet value
     final CType resultType = conv.getReturnType(e, edge);
     if (resultType instanceof CCompositeType
@@ -811,6 +844,15 @@ class CExpressionVisitorWithPointerAliasing
 
     // Delegate
     return Value.ofValue(delegate.visit(e));
+  }
+
+  private boolean isHavocOfFreshlyAllocatedMemory(CStatementEdge pEdge) {
+
+    return CFAUtils.isHavocOfUntouchedAllocation(
+        pEdge,
+        name ->
+            conv.options.isMemoryAllocationFunction(name)
+                && !conv.options.isMemoryAllocationFunctionWithZeroing(name));
   }
 
   /** This method provides approximations of the builtin functions memcmp, strcmp, and strncmp. */
@@ -911,10 +953,125 @@ class CExpressionVisitorWithPointerAliasing
       }
     }
 
-    constraints.addConstraint(conv.bfmgr.equivalence(resultIsPos, isGreater));
-    constraints.addConstraint(conv.bfmgr.equivalence(resultIsNeg, isLess));
+    BooleanFormula isGreaterConstraint = conv.bfmgr.equivalence(resultIsPos, isGreater);
+    BooleanFormula isLessConstraint = conv.bfmgr.equivalence(resultIsNeg, isLess);
+    if (checkStringEnd && !pts.getStringFacts().isEmpty()) {
+      // If a fact says that the strings are equal, the result is 0, otherwise we use the contents.
+      Formula s1Address = pointerValue(s1);
+      Formula s2Address = pointerValue(s2);
+      BooleanFormula equalByFact = conv.bfmgr.makeFalse();
+      for (StringEqualityFact fact : pts.getStringFacts()) {
+        equalByFact = conv.bfmgr.or(equalByFact, fact.equates(s1Address, s2Address, conv.fmgr));
+      }
+      constraints.addConstraint(
+          conv.bfmgr.implication(equalByFact, conv.fmgr.makeEqual(result, zero)));
+      isGreaterConstraint = conv.bfmgr.or(equalByFact, isGreaterConstraint);
+      isLessConstraint = conv.bfmgr.or(equalByFact, isLessConstraint);
+    }
+    constraints.addConstraint(isGreaterConstraint);
+    constraints.addConstraint(isLessConstraint);
 
     return Value.ofValue(result);
+  }
+
+  /**
+   * Whether a call to a function without body may write to memory through its arguments in a way
+   * that the encoding ignores.
+   */
+  private static boolean mayWriteThroughPointerArguments(final CFunctionCallExpression e) {
+    if (e.getFunctionNameExpression() instanceof CIdExpression idExpression) {
+      String name = idExpression.getName();
+      if (StandardFunctions.neverWritesThroughPointerArguments(name)
+          || BuiltinFloatFunctions.matchesModf(name) // write is encoded
+          || name.equals(VerifierNondetFunctions.getFunctionNameNondetMemory()) // write is encoded
+          || name.equals(THREAD_JOIN)) { // write is encoded
+        return false;
+      }
+    }
+    for (CExpression argument : e.getParameterExpressions()) {
+      CType type = argument.getExpressionType().getCanonicalType();
+      if (type instanceof CPointerType || type instanceof CArrayType) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** The address that a pointer-like expression (pointer or array) points to. */
+  private Formula pointerValue(final CExpression e) throws UnrecognizedCodeException {
+    return dereference(e, e.accept(this)).getAddress();
+  }
+
+  /**
+   * Encodes {@code strcpy(destination, source)}, which copies the string at source including its
+   * terminating null character to destination and returns destination.
+   *
+   * <p>We do not copy the characters but record a {@link StringEqualityFact}, which strcmp uses.
+   * Reading the characters of destination directly thus still yields its old contents. The fact
+   * only holds if source is terminated within the first {@link
+   * CFormulaEncodingWithPointerAliasingOptions#maxPreciseStrFunctionSize()} characters.
+   */
+  private Value handleStrcpy(final CFunctionCallExpression e) throws UnrecognizedCodeException {
+    final List<CExpression> parameters = e.getParameterExpressions();
+    verify(parameters.size() == 2);
+    final CExpression destination = parameters.getFirst();
+    final CExpression source = parameters.get(1);
+    final Formula destinationAddress = pointerValue(destination);
+    final Formula sourceAddress = pointerValue(source);
+    final BooleanFormulaManagerView bfmgr = conv.bfmgr;
+
+    // the length of source, which may itself only be known from a fact
+    final StringExtent sourceExtent =
+        getStringExtent(source, conv.fmgr.getFormulaType(sourceAddress));
+    Formula size = sourceExtent.size();
+    BooleanFormula terminated = sourceExtent.terminated();
+    for (StringEqualityFact fact : pts.getStringFacts()) {
+      BooleanFormula isAboutSource = fact.isAbout(sourceAddress, conv.fmgr);
+      size = bfmgr.ifThenElse(isAboutSource, fact.size(), size);
+      terminated = bfmgr.or(isAboutSource, terminated);
+    }
+
+    // strcpy writes size characters to destination, or arbitrarily many if not terminated
+    PersistentList<StringEqualityFact> facts =
+        StringEqualityFact.afterWrite(
+            pts.getStringFacts(), destinationAddress, size, terminated, conv.fmgr);
+    pts.setStringFacts(
+        facts.with(new StringEqualityFact(destinationAddress, sourceAddress, size, terminated)));
+
+    // strcpy returns destination
+    return Value.ofValue(destinationAddress);
+  }
+
+  /** The number of characters of a string including its terminator, as far as it is read. */
+  private record StringExtent(Formula size, BooleanFormula terminated) {}
+
+  /**
+   * Reads the string at the given expression up to {@link
+   * CFormulaEncodingWithPointerAliasingOptions#maxPreciseStrFunctionSize()} characters: size =
+   * (string[0]==0 ? 1 : (string[1]==0 ? 2 : ...)), terminated = some string[i]==0.
+   */
+  private StringExtent getStringExtent(final CExpression string, final FormulaType<?> sizeType)
+      throws UnrecognizedCodeException {
+    final BooleanFormulaManagerView bfmgr = conv.bfmgr;
+    final long maxChars = conv.options.maxPreciseStrFunctionSize() + 1L;
+    final Formula nullTerminator =
+        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.CHAR));
+    Formula size = conv.fmgr.makeNumber(sizeType, maxChars);
+    BooleanFormula terminated = bfmgr.makeFalse();
+    for (long i = maxChars - 1; i >= 0; i--) {
+      AliasedLocation charAtIndex =
+          this.visit(
+              new CArraySubscriptExpression(
+                  FileLocation.DUMMY,
+                  CNumericTypes.CHAR,
+                  string,
+                  CIntegerLiteralExpression.createDummyLiteral(i, CNumericTypes.UNSIGNED_INT)));
+      BooleanFormula endsAtIndex =
+          conv.fmgr.makeEqual(asValueFormula(charAtIndex, CNumericTypes.CHAR), nullTerminator);
+      size = bfmgr.ifThenElse(endsAtIndex, conv.fmgr.makeNumber(sizeType, i + 1), size);
+      terminated = bfmgr.or(endsAtIndex, terminated);
+    }
+    return new StringExtent(size, terminated);
   }
 
   /**

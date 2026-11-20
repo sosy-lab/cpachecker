@@ -67,7 +67,7 @@ final class DomInput<T> {
 
     // reverse order, e.g., [0,1,2] -> offset = 2 -> [|0-2|,|1-2|,|2-2|] -> [2,1,0]
     int offset = (postOrderIds.size() - 1);
-    postOrderIds.replaceAll((node, value) -> Math.abs(value - offset));
+    postOrderIds.replaceAll((_, value) -> Math.abs(value - offset));
 
     return ImmutableMap.copyOf(postOrderIds);
   }

@@ -77,10 +77,8 @@ public class GlobalAccessChecker {
     Optional<Set<String>> addressedVariables =
         pCfa.getVarClassification().map(VariableClassification::getAddressedVariables);
     globalAccessVisitor =
-        new GlobalAccessVisitor(
-            variable ->
-                addressedVariables.isEmpty()
-                    || addressedVariables.orElseThrow().contains(variable));
+        new GlobalAccessVisitor(variable ->
+            addressedVariables.isEmpty() || addressedVariables.orElseThrow().contains(variable));
   }
 
   /**
@@ -152,8 +150,8 @@ public class GlobalAccessChecker {
       case CFunctionDeclaration decl -> anyHasGlobalAccess(decl.getParameters());
       case CComplexTypeDeclaration decl -> decl.isGlobal();
       case CTypeDefDeclaration decl -> decl.isGlobal();
-      case CParameterDeclaration param -> false;
-      case CEnumerator enumerator -> false;
+      case CParameterDeclaration _ -> false;
+      case CEnumerator _ -> false;
 
       // CStatement
       case CFunctionCallAssignmentStatement stat ->
@@ -178,7 +176,7 @@ public class GlobalAccessChecker {
       case CArrayRangeDesignator cArrayRangeDesignator ->
           hasGlobalAccess(cArrayRangeDesignator.getFloorExpression())
               || hasGlobalAccess(cArrayRangeDesignator.getCeilExpression());
-      case CFieldDesignator fieldDesignator -> false;
+      case CFieldDesignator _ -> false;
 
       default -> throw new AssertionError("unhandled ASTNode " + ast + " of " + ast.getClass());
     };

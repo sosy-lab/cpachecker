@@ -93,16 +93,57 @@ public class InterpreterCPAIntegrationTest {
             "nonterminating.c",
             Result.UNKNOWN,
             ImmutableMap.of("limits.time.cpu", "10s")),
+        // The SMG analysis executes programs with pointers, and both outcomes of each allocation.
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "address-taken-loop-true.c",
+            Result.TRUE),
+        task("interpreter-smg--termination", "termination", "allocation-list-true.c", Result.TRUE),
+        new Task(
+            "interpreter-smg--termination",
+            "termination",
+            "allocation-failure-nonterminating.c",
+            Result.UNKNOWN,
+            ImmutableMap.of("limits.time.cpu", "10s")),
+        // Ignored side effects and undefined behavior make the execution unsound.
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "unknown-function-unknown.c",
+            Result.UNKNOWN),
+        task(
+            "interpreter-smg--termination",
+            "termination",
+            "use-after-free-unknown.c",
+            Result.UNKNOWN),
+        // Both outcomes of an allocation that may fail are executed.
+        new Task(
+            "interpreter-smg",
+            "unreach-call",
+            "allocation-failure-false.c",
+            Result.FALSE,
+            ImmutableMap.of("cpa.smg2.enableMallocFail", "true")),
         task("interpreter--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
         task("interpreter--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
+        task("interpreter-smg--overflow", "no-overflow", "terminating-loop-true.c", Result.TRUE),
+        task("interpreter-smg--overflow", "no-overflow", "signed-overflow-false.c", Result.FALSE),
+        // Both outcomes of each allocation are executed, so a program that allocates can be proven
+        // safe.
         task("interpreter--memorysafety", "valid-memsafety", "heap-recursion-true.i", Result.TRUE),
         task(
             "interpreter--memorysafety",
             "valid-memsafety",
             "heap-out-of-bounds-false.i",
             Result.FALSE),
+        // The memcleanup execution lets every allocation succeed, so it is not the only execution
+        // of
+        // a program that allocates and such a program cannot be proven safe, only unsafe.
         task(
-            "interpreter--memorycleanup", "valid-memcleanup", "heap-recursion-true.i", Result.TRUE),
+            "interpreter--memorycleanup",
+            "valid-memcleanup",
+            "heap-recursion-true.i",
+            Result.UNKNOWN),
         task("interpreter--memorycleanup", "valid-memcleanup", "heap-leak-false.i", Result.FALSE));
   }
 

@@ -246,6 +246,7 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
                 cloneAst(n.getFunctionDefinition()),
                 newExitNode,
                 returnVariable);
+        n.getKnownBehavior().ifPresent(entryNode::setKnownBehavior);
         if (newExitNode != null) {
           newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
         }
@@ -346,7 +347,7 @@ class FunctionCloner extends CAstCloner implements CFAVisitor {
       // convert members and set them
       List<CCompositeTypeMemberDeclaration> l = new ArrayList<>(type.getMembers().size());
       for (CCompositeTypeMemberDeclaration decl : type.getMembers()) {
-        l.add(new CCompositeTypeMemberDeclaration(decl.getType().accept(this), decl.getName()));
+        l.add(decl.withType(decl.getType().accept(this)));
       }
       comp.setMembers(l);
 

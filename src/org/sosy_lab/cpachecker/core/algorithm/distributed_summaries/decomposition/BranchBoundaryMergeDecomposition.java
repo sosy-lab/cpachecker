@@ -94,16 +94,15 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
     nodes.forEach(n -> renamed.put(n.getId(), ImmutableSet.of("ORIGINAL_" + n.getId())));
     nodes =
         nodes.stream()
-            .map(
-                n ->
-                    new BlockNode(
-                        "ORIGINAL_" + n.getId(),
-                        n.getInitialLocation(),
-                        n.getFinalLocation(),
-                        n.getNodes(),
-                        n.getEdges(),
-                        replace(n.getPredecessorIds(), renamed),
-                        replace(n.getSuccessorIds(), renamed)))
+            .map(n ->
+                new BlockNode(
+                    "ORIGINAL_" + n.getId(),
+                    n.getInitialLocation(),
+                    n.getFinalLocation(),
+                    n.getNodes(),
+                    n.getEdges(),
+                    replace(n.getPredecessorIds(), renamed),
+                    replace(n.getSuccessorIds(), renamed)))
             .toList();
     HorizontalMergeDecomposition horizontal =
         new HorizontalMergeDecomposition(child, 2, -1, null, true);
@@ -126,7 +125,7 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
     Map<Set<String>, List<BlockNode>> groups = new LinkedHashMap<>();
     for (BlockNode node : nodes) {
       byId.put(node.getId(), node);
-      groups.computeIfAbsent(node.getSuccessorIds(), unused -> new ArrayList<>()).add(node);
+      groups.computeIfAbsent(node.getSuccessorIds(), _ -> new ArrayList<>()).add(node);
     }
     // Disjoint compositions commute. Batch them so a large inlined graph does not require
     // rebuilding every block once for each individual boundary.
@@ -171,8 +170,8 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
       for (BlockNode p : incoming) {
         for (BlockNode s : outgoing) {
           String id = "MBR" + nextId++;
-          replacements.computeIfAbsent(p.getId(), unused -> new LinkedHashSet<>()).add(id);
-          replacements.computeIfAbsent(s.getId(), unused -> new LinkedHashSet<>()).add(id);
+          replacements.computeIfAbsent(p.getId(), _ -> new LinkedHashSet<>()).add(id);
+          replacements.computeIfAbsent(s.getId(), _ -> new LinkedHashSet<>()).add(id);
           result.add(
               new BlockNode(
                   id,
@@ -194,16 +193,15 @@ final class BranchBoundaryMergeDecomposition implements DssBlockDecomposition {
       }
     }
     return result.stream()
-        .map(
-            n ->
-                new BlockNode(
-                    n.getId(),
-                    n.getInitialLocation(),
-                    n.getFinalLocation(),
-                    n.getNodes(),
-                    n.getEdges(),
-                    replace(n.getPredecessorIds(), replacements),
-                    replace(n.getSuccessorIds(), replacements)))
+        .map(n ->
+            new BlockNode(
+                n.getId(),
+                n.getInitialLocation(),
+                n.getFinalLocation(),
+                n.getNodes(),
+                n.getEdges(),
+                replace(n.getPredecessorIds(), replacements),
+                replace(n.getSuccessorIds(), replacements)))
         .toList();
   }
 

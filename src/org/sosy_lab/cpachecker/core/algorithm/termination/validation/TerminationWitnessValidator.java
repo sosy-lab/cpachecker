@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
@@ -16,6 +18,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,6 +28,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -38,7 +43,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -46,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker.InvariantCheckResult;
@@ -66,6 +78,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -133,12 +146,14 @@ public class TerminationWitnessValidator implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
   private final NestedLoopSummarizer nestedLoopSummarizer;
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
   // The scope of the program, which is created in run()
   private CProgramScope programScope;
   // The scope and the checker for the loop whose transition invariant is checked, see
   // useScopeOfLoop
   private CProgramScope loopScope;
   private WellFoundednessChecker wellFoundednessChecker;
+  private ImmutableMap<CSimpleDeclaration, CExpression> loopExpressionVariables = ImmutableMap.of();
 
   // The invariants from the witness, which are used to summarize nested loops. They are set in
   // run().
@@ -173,6 +188,7 @@ public class TerminationWitnessValidator implements Algorithm {
     pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    binaryExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
     nestedLoopSummarizer = new NestedLoopSummarizer(fmgr, bfmgr, cfa);
 
     if (pWitnessPath.isEmpty()) {
@@ -188,6 +204,12 @@ public class TerminationWitnessValidator implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    // Only loops are checked, so a recursion could run forever.
+    if (!LoopStructure.getRecursions(cfa).isEmpty()) {
+      logger.log(Level.INFO, "The validation of termination witnesses does not support recursion.");
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    }
+
     Set<ExpressionTreeLocationInvariant> invariants;
     ImmutableCollection<LoopStructure.Loop> loops =
         cfa.getLoopStructure().orElseThrow().getAllLoops();
@@ -204,24 +226,34 @@ public class TerminationWitnessValidator implements Algorithm {
 
     programScope = new CProgramScope(cfa, logger);
 
-    ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
+    ImmutableMap<LoopStructure.Loop, InvariantFormulas> loopsToTransitionInvariants =
         mapTransitionInvariantsToLoops(loops, invariants);
-    ImmutableListMultimap<LoopStructure.Loop, BooleanFormula> loopsToSupportingInvariants =
+    ImmutableListMultimap<LoopStructure.Loop, InvariantFormulas> loopsToSupportingInvariants =
         mapSupportingInvariantsToLoops(loops, invariants);
     witnessInvariants = ImmutableSet.copyOf(invariants);
-    transitionInvariantsOfLoops = loopsToTransitionInvariants;
-    supportingInvariantsOfLoops = loopsToSupportingInvariants;
+    transitionInvariantsOfLoops =
+        ImmutableMap.copyOf(
+            Maps.transformValues(loopsToTransitionInvariants, InvariantFormulas::formula));
+    supportingInvariantsOfLoops =
+        ImmutableListMultimap.copyOf(
+            Multimaps.transformValues(loopsToSupportingInvariants, InvariantFormulas::formula));
 
     // Check the supporting invariants first
     logger.log(Level.FINE, "Checking the supporting invariants.");
-    if (hasSupportingInvariants(loopsToSupportingInvariants)) {
-      if (SupportingInvariantsChecker.checkInvariants(
-              supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier)
-          == InvariantCheckResult.INVALID) {
+    if (hasSupportingInvariants(supportingInvariantsOfLoops)) {
+      InvariantCheckResult result =
+          SupportingInvariantsChecker.checkInvariants(
+              supportingInvariantsConfig, witnessPath, cfa, logger, shutdownNotifier);
+      if (result == InvariantCheckResult.INVALID) {
         // Supporting invariants are not invariants
         pReachedSet.addNoWaitlist(
             DUMMY_TARGET_STATE, pReachedSet.getPrecision(pReachedSet.getFirstState()));
         return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+      // The checks of the transition invariants assume the supporting invariants
+      if (result == InvariantCheckResult.UNKNOWN) {
+        logger.log(Level.INFO, "The supporting invariants could not be proven.");
+        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       }
     }
 
@@ -238,8 +270,8 @@ public class TerminationWitnessValidator implements Algorithm {
       ReachedSet pReachedSet,
       ImmutableCollection<Loop> loops,
       Set<ExpressionTreeLocationInvariant> invariants,
-      ImmutableMap<Loop, BooleanFormula> loopsToTransitionInvariants,
-      ImmutableListMultimap<Loop, BooleanFormula> loopsToSupportingInvariants)
+      ImmutableMap<Loop, InvariantFormulas> loopsToTransitionInvariants,
+      ImmutableListMultimap<Loop, InvariantFormulas> loopsToSupportingInvariants)
       throws CPAException, InterruptedException {
     // Check that every candidate invariant is disjunctively well-founded and transition invariant
     for (LoopStructure.Loop loop : loops) {
@@ -248,16 +280,32 @@ public class TerminationWitnessValidator implements Algorithm {
         logger.log(Level.INFO, "A loop is not reachable !");
         continue;
       }
-      if (!loopsToTransitionInvariants.containsKey(loop)
-          && !loopsToSupportingInvariants.containsKey(loop)) {
-        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+      // E.g., the transition invariant of the witness could not be parsed. True is a transition
+      // invariant of every loop.
+      InvariantFormulas transitionInvariantFormulas = loopsToTransitionInvariants.get(loop);
+      if (transitionInvariantFormulas == null) {
+        logger.log(Level.INFO, "A loop has no transition invariant, so true is used.");
+        transitionInvariantFormulas = new InvariantFormulas(bfmgr.makeTrue(), bfmgr.makeTrue());
       }
 
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurrVars =
           joinPrevDeclarationMapsForLoop(loop, invariants);
-      useScopeOfLoop(loop, mapPrevVarsToCurrVars);
-      BooleanFormula invariant = loopsToTransitionInvariants.get(loop);
-      ImmutableList<BooleanFormula> supportingInvariants = loopsToSupportingInvariants.get(loop);
+      useScopeOfLoop(loop, mapPrevVarsToCurrVars, joinExpressionVariablesForLoop(loop, invariants));
+      BooleanFormula transitionInvariant = transitionInvariantFormulas.formula();
+      // The well-foundedness checks use the variables for the values of expressions
+      BooleanFormula invariant =
+          withoutLiteralsOutOfLoopScope(transitionInvariantFormulas.wellFoundednessFormula());
+      ImmutableList.Builder<BooleanFormula> supportingInvariantsBuilder = ImmutableList.builder();
+      ImmutableList.Builder<BooleanFormula> wellFoundednessSupportingInvariantsBuilder =
+          ImmutableList.builder();
+      for (InvariantFormulas supportingInvariant : loopsToSupportingInvariants.get(loop)) {
+        supportingInvariantsBuilder.add(supportingInvariant.formula());
+        wellFoundednessSupportingInvariantsBuilder.add(
+            withoutLiteralsOutOfLoopScope(supportingInvariant.wellFoundednessFormula()));
+      }
+      ImmutableList<BooleanFormula> supportingInvariants = supportingInvariantsBuilder.build();
+      ImmutableList<BooleanFormula> wellFoundednessSupportingInvariants =
+          wellFoundednessSupportingInvariantsBuilder.build();
 
       if (!checkWithInfiniteSpace) {
         logger.log(
@@ -268,10 +316,10 @@ public class TerminationWitnessValidator implements Algorithm {
       }
       // Check the proper well-foundedness of the formula and if it succeeds, check R => T
       if (wellFoundednessChecker.isWellFounded(
-              invariant, supportingInvariants, loop, mapPrevVarsToCurrVars)
+              invariant, wellFoundednessSupportingInvariants, loop, mapPrevVarsToCurrVars)
           && isCandidateInvariantTransitionInvariant(
               loop,
-              loopsToTransitionInvariants.get(loop),
+              transitionInvariant,
               supportingInvariants,
               mapPrevVarsToCurrVars,
               // k = 1, for R^1 => T check
@@ -284,7 +332,7 @@ public class TerminationWitnessValidator implements Algorithm {
       // And hence, we have to do check R^+ => T
       boolean isWellFounded =
           wellFoundednessChecker.isDisjunctivelyWellFounded(
-              invariant, supportingInvariants, loop, mapPrevVarsToCurrVars);
+              invariant, wellFoundednessSupportingInvariants, loop, mapPrevVarsToCurrVars);
       // Our termination analysis might be unsound because of a different possible division to
       // disjunctions. We divide the candidate transition invariant into a disjunction using
       // transformation to flat DNF. It might be, there exists another different division
@@ -306,11 +354,7 @@ public class TerminationWitnessValidator implements Algorithm {
         }
         // Base case of the induction, i.e. R^k(s,s') => T(s,s')
         if (!isCandidateInvariantTransitionInvariant(
-            loop,
-            loopsToTransitionInvariants.get(loop),
-            supportingInvariants,
-            mapPrevVarsToCurrVars,
-            k)) {
+            loop, transitionInvariant, supportingInvariants, mapPrevVarsToCurrVars, k)) {
           return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         }
 
@@ -318,11 +362,7 @@ public class TerminationWitnessValidator implements Algorithm {
         // T(s,t_0) && R(t_0,t_1) && ... && R(t_{k-1},t_k) && T(s,t_1) && ... && T(s,t_{k-1})
         //   => T(s,t_k)
         if (isCandidateInvariantInductiveTransitionInvariant(
-            loop,
-            loopsToTransitionInvariants.get(loop),
-            supportingInvariants,
-            mapPrevVarsToCurrVars,
-            k)) {
+            loop, transitionInvariant, supportingInvariants, mapPrevVarsToCurrVars, k)) {
           break;
         }
       }
@@ -336,6 +376,23 @@ public class TerminationWitnessValidator implements Algorithm {
     return AlgorithmStatus.SOUND_AND_IMPRECISE;
   }
 
+  /**
+   * Returns the formula without the literals with variables that are not in the scope of the loop,
+   * e.g., the heap of an access to the heap. The well-foundedness checks support only variables in
+   * scope. The formula in NNF without these literals is weaker.
+   */
+  private BooleanFormula withoutLiteralsOutOfLoopScope(BooleanFormula pFormula)
+      throws InterruptedException {
+    return fmgr.filterLiterals(
+        pFormula,
+        literal ->
+            fmgr.extractVariableNames(literal).stream()
+                .allMatch(variable ->
+                    loopScope.lookupVariable(
+                            TransitionInvariantUtils.removeFunctionFromVarsName(variable))
+                        != null));
+  }
+
   private boolean hasSupportingInvariants(
       ImmutableListMultimap<Loop, BooleanFormula> pLoopsToSupportingInvariants) {
     return !pLoopsToSupportingInvariants.keys().isEmpty();
@@ -345,20 +402,44 @@ public class TerminationWitnessValidator implements Algorithm {
    * Sets the scope and the well-foundedness checker for the given loop. The scope has the variables
    * in scope at the loop head, whose names without the function are distinct, also for variables
    * that CPAchecker renamed, e.g., to i__1, and the __PREV variables of the loop.
+   *
+   * <p>In the transition invariants of the loop, each expression e with a previous value \at(e,
+   * AnyPrev), e.g., x or *p, has a fresh variable for its value, e.g., __expression_0, and a fresh
+   * variable for its previous value, e.g., __expression_0__TransInv_PREV, see {@link
+   * ExpressionTreeLocationTransitionInvariant#getExpressionVariables()}.
+   *
+   * @param pMapPrevToCurrVars the variables for the previous values of the expressions in all
+   *     transition invariants of the loop, mapped to the variables for the values of these
+   *     expressions, e.g., __expression_0__TransInv_PREV to __expression_0
+   * @param pExpressionVariables the variables for the values of the expressions in all transition
+   *     invariants of the loop, mapped to these expressions, e.g., __expression_0 to x for \at(x,
+   *     AnyPrev) or to *p for \at(*p, AnyPrev). Its keys are the values of {@code
+   *     pMapPrevToCurrVars}.
    */
   private void useScopeOfLoop(
-      Loop pLoop, ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
+      Loop pLoop,
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
+      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables)
       throws CPAException {
     CFANode loopHead = pLoop.getLoopHeads().asList().getFirst();
+    loopExpressionVariables = pExpressionVariables;
     loopScope =
         TerminationArgumentsToWitnessUtils.getScopeAtNode(
                 programScope, loopHead, cfa.getAstCfaRelation())
-            .withAdditionalDeclarations(pMapPrevToCurrVars.keySet());
+            .withAdditionalDeclarations(pMapPrevToCurrVars.keySet())
+            .withAdditionalDeclarations(pExpressionVariables.keySet());
     if (checkWithInfiniteSpace) {
       try {
         wellFoundednessChecker =
             new ImplicitRankingChecker(
-                fmgr, bfmgr, logger, config, shutdownNotifier, loopScope, cfa);
+                fmgr,
+                bfmgr,
+                logger,
+                config,
+                shutdownNotifier,
+                loopScope,
+                cfa,
+                pExpressionVariables);
       } catch (InvalidConfigurationException e) {
         throw new CPAException("Invalid configuration of the well-foundedness check", e);
       }
@@ -372,35 +453,148 @@ public class TerminationWitnessValidator implements Algorithm {
     ImmutableMap.Builder<CSimpleDeclaration, CSimpleDeclaration> builder = ImmutableMap.builder();
 
     FluentIterable.from(invariants)
-        .filter(
-            invariant ->
-                invariant instanceof ExpressionTreeLocationTransitionInvariant
-                    && isTheInvariantLocationInLoop(pLoop, invariant.getLocation()))
+        .filter(invariant ->
+            invariant instanceof ExpressionTreeLocationTransitionInvariant
+                && isTheInvariantLocationInLoop(pLoop, invariant.getLocation()))
         .transform(ExpressionTreeLocationTransitionInvariant.class::cast)
         .transformAndConcat(inv -> inv.getMapPrevVarsToCurrent().entrySet())
         .forEach(e -> builder.put(e.getKey(), e.getValue()));
 
-    return builder.buildOrThrow();
+    // Several transition invariants at the loop can refer to the same previous variable
+    return builder.buildKeepingLast();
   }
 
-  private ImmutableListMultimap<Loop, BooleanFormula> mapSupportingInvariantsToLoops(
+  private ImmutableMap<CSimpleDeclaration, CExpression> joinExpressionVariablesForLoop(
+      Loop pLoop, Set<ExpressionTreeLocationInvariant> pInvariants) {
+    ImmutableMap.Builder<CSimpleDeclaration, CExpression> builder = ImmutableMap.builder();
+    FluentIterable.from(pInvariants)
+        .filter(ExpressionTreeLocationTransitionInvariant.class)
+        .filter(invariant -> isTheInvariantLocationInLoop(pLoop, invariant.getLocation()))
+        .transformAndConcat(invariant -> invariant.getExpressionVariables().entrySet())
+        .forEach(e -> builder.put(e.getKey(), e.getValue()));
+    return builder.buildKeepingLast();
+  }
+
+  /**
+   * Returns the invariant where the expressions with previous values, e.g., x for \at(x, AnyPrev)
+   * or *p for \at(*p, AnyPrev), are replaced by the variables for their values. If a transition
+   * invariant over these values is well-founded, so is the transition invariant, since each
+   * infinite sequence of states gives an infinite sequence of these values. The supporting
+   * invariants hold for these values in each state.
+   */
+  private static ExpressionTreeLocationInvariant withExpressionVariables(
+      ExpressionTreeLocationInvariant pInvariant,
+      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
+    if (pExpressionVariables.isEmpty()) {
+      return pInvariant;
+    }
+    ImmutableMap<CExpression, CExpression> substitution =
+        ExpressionSubstitution.substitutionByVariables(pExpressionVariables);
+    return new ExpressionTreeLocationInvariant(
+        "Invariant with variables for the values of expressions",
+        pInvariant.getLocation(),
+        ExpressionTrees.convert(
+            pInvariant.asExpressionTree(),
+            expression ->
+                SubstitutingCAstNodeVisitor.substituteExpressions(
+                    (CExpression) expression, substitution)),
+        new ConcurrentHashMap<>());
+  }
+
+  /**
+   * Returns the formula that the variables for the previous values of expressions, e.g., of x for
+   * \at(x, AnyPrev) or of *p for \at(*p, AnyPrev), have the values of these expressions in the
+   * state where the loop formula starts, i.e., where all variables have the initial SSA index like
+   * the previous variables.
+   *
+   * @param pExpressionVariables the variables for the values of the expressions, see {@link
+   *     ExpressionTreeLocationTransitionInvariant#getExpressionVariables()}
+   */
+  private BooleanFormula previousValuesOfExpressionsAtStart(
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars,
+      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables)
+      throws CPATransferException, InterruptedException {
+    BooleanFormula result = bfmgr.makeTrue();
+    for (Map.Entry<CSimpleDeclaration, CSimpleDeclaration> entry : pMapPrevToCurrVars.entrySet()) {
+      CExpression expression = pExpressionVariables.get(entry.getValue());
+      CExpression equality =
+          binaryExpressionBuilder.buildBinaryExpressionUnchecked(
+              new CIdExpression(FileLocation.DUMMY, entry.getKey()),
+              expression,
+              BinaryOperator.EQUALS);
+      CAssumeEdge edge =
+          new CAssumeEdge(
+              "",
+              FileLocation.DUMMY,
+              CFANode.newDummyCFANode(),
+              CFANode.newDummyCFANode(),
+              equality,
+              true);
+      result = bfmgr.and(result, pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(), edge).getFormula());
+    }
+    return result;
+  }
+
+  /**
+   * The formula of an invariant of a loop, and the formula for the well-foundedness checks, where
+   * the expressions with previous values of the transition invariants of the loop are replaced by
+   * the variables for their values, see {@link #withExpressionVariables}.
+   */
+  private record InvariantFormulas(BooleanFormula formula, BooleanFormula wellFoundednessFormula) {}
+
+  /**
+   * Returns the formulas of the given invariant in the context of the given path formula. If the
+   * invariant cannot be converted, both formulas are true: the formula for the well-foundedness
+   * checks has to be true too, since otherwise an invariant that was never checked against the loop
+   * could be confirmed.
+   */
+  private InvariantFormulas toInvariantFormulas(
+      ExpressionTreeLocationInvariant pInvariant,
+      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables,
+      PathFormula pContext)
+      throws InterruptedException {
+    BooleanFormula formula;
+    try {
+      formula = pInvariant.getFormula(fmgr, pfmgr, pContext);
+    } catch (CPATransferException e) {
+      logger.logfUserException(
+          Level.INFO,
+          e,
+          "The %s invariant %s cannot be converted to a formula, so true is used",
+          pInvariant instanceof ExpressionTreeLocationTransitionInvariant
+              ? "transition"
+              : "supporting",
+          pInvariant.asExpressionTree());
+      return new InvariantFormulas(bfmgr.makeTrue(), bfmgr.makeTrue());
+    }
+    BooleanFormula wellFoundednessFormula;
+    try {
+      wellFoundednessFormula =
+          withExpressionVariables(pInvariant, pExpressionVariables)
+              .getFormula(fmgr, pfmgr, pContext);
+    } catch (CPATransferException e) {
+      wellFoundednessFormula = bfmgr.makeTrue();
+    }
+    return new InvariantFormulas(formula, wellFoundednessFormula);
+  }
+
+  /** Returns the formulas of the supporting invariants of the loops. */
+  private ImmutableListMultimap<Loop, InvariantFormulas> mapSupportingInvariantsToLoops(
       ImmutableCollection<LoopStructure.Loop> pLoops,
       Set<ExpressionTreeLocationInvariant> pInvariants)
       throws InterruptedException {
-    ImmutableListMultimap.Builder<Loop, BooleanFormula> builder =
+    ImmutableListMultimap.Builder<Loop, InvariantFormulas> builder =
         new ImmutableListMultimap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
+      ImmutableMap<CSimpleDeclaration, CExpression> expressionVariables =
+          joinExpressionVariablesForLoop(loop, pInvariants);
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
           if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
-            BooleanFormula invariantFormula;
-            try {
-              invariantFormula = invariant.getFormula(fmgr, pfmgr, pfmgr.makeEmptyPathFormula());
-            } catch (CPATransferException e) {
-              invariantFormula = bfmgr.makeTrue();
-            }
-            builder.put(loop, invariantFormula);
+            builder.put(
+                loop,
+                toInvariantFormulas(invariant, expressionVariables, pfmgr.makeEmptyPathFormula()));
           }
         }
       }
@@ -408,39 +602,42 @@ public class TerminationWitnessValidator implements Algorithm {
     return builder.build();
   }
 
-  private ImmutableMap<LoopStructure.Loop, BooleanFormula> mapTransitionInvariantsToLoops(
+  /** Returns the formulas of the conjunctions of the transition invariants of the loops. */
+  private ImmutableMap<LoopStructure.Loop, InvariantFormulas> mapTransitionInvariantsToLoops(
       ImmutableCollection<LoopStructure.Loop> pLoops,
       Set<ExpressionTreeLocationInvariant> pInvariants)
       throws InterruptedException, CPATransferException {
-    ImmutableMap.Builder<LoopStructure.Loop, BooleanFormula> builder = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<LoopStructure.Loop, InvariantFormulas> builder =
+        new ImmutableMap.Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
+      ImmutableList<ExpressionTreeLocationInvariant> transitionInvariants =
+          FluentIterable.from(pInvariants)
+              .filter(invariant ->
+                  invariant instanceof ExpressionTreeLocationTransitionInvariant
+                      && isTheInvariantLocationInLoop(loop, invariant.getLocation()))
+              .toList();
+      if (transitionInvariants.isEmpty()) {
+        // The formula of the loop is not needed, and it cannot be created for every loop
+        continue;
+      }
+      ImmutableMap<CSimpleDeclaration, CExpression> expressionVariables =
+          joinExpressionVariablesForLoop(loop, pInvariants);
       BooleanFormula invariantForTheLoop = bfmgr.makeTrue();
-      boolean isTrivial = true;
+      BooleanFormula wellFoundednessInvariantForTheLoop = bfmgr.makeTrue();
       PathFormula loopFormula = pfmgr.makeFormulaForPath(loop.getInnerLoopEdges().asList());
-      for (ExpressionTreeLocationInvariant invariant : pInvariants) {
-        if (!(invariant instanceof ExpressionTreeLocationTransitionInvariant)) {
-          continue;
-        }
-
-        if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
-          BooleanFormula invariantFormula;
-          try {
-            if (invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
-              invariantFormula = bfmgr.makeTrue();
-            } else {
-              invariantFormula = invariant.getFormula(fmgr, pfmgr, loopFormula);
-            }
-          } catch (CPATransferException e) {
-            invariantFormula = bfmgr.makeTrue();
-          }
-          invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormula);
-          isTrivial = false;
+      for (ExpressionTreeLocationInvariant invariant : transitionInvariants) {
+        if (!invariant.asExpressionTree().equals(ExpressionTrees.getTrue())) {
+          InvariantFormulas invariantFormulas =
+              toInvariantFormulas(invariant, expressionVariables, loopFormula);
+          invariantForTheLoop = bfmgr.and(invariantForTheLoop, invariantFormulas.formula());
+          wellFoundednessInvariantForTheLoop =
+              bfmgr.and(
+                  wellFoundednessInvariantForTheLoop, invariantFormulas.wellFoundednessFormula());
         }
       }
-      if (!isTrivial) {
-        builder.put(loop, invariantForTheLoop);
-      }
+      builder.put(
+          loop, new InvariantFormulas(invariantForTheLoop, wellFoundednessInvariantForTheLoop));
     }
     return builder.buildOrThrow();
   }
@@ -490,31 +687,15 @@ public class TerminationWitnessValidator implements Algorithm {
                 loopScope,
                 pMapPrevToCurrVars),
             MapsDifference.ignoreMapsDifference());
-    SSAMap oneStepSSAMap =
-        TransitionInvariantUtils.setIndicesToDifferentValues(
-            pCandidateInvariant,
-            PrevStateIndices.INDEX_FIRST,
-            CurrStateIndices.INDEX_MIDDLE,
-            fmgr,
-            loopScope,
-            pMapPrevToCurrVars);
 
     pCandidateInvariant = fmgr.instantiate(pCandidateInvariant, fullSSAMap);
 
-    // Instantiate __PREV variables to match the SSA indices of the variables in the loop.
-    // In other words, add equivalences like x@1 = x__PREV@1
+    // The previous variables have the values of their expressions where the loop formula starts,
+    // e.g., __expression_0__TransInv_PREV@1 = x@1 for \at(x, AnyPrev)
     BooleanFormula booleanLoopFormula =
         bfmgr.and(
             loopFormula.getFormula(),
-            fmgr.instantiate(
-                fmgr.uninstantiate(
-                    TransitionInvariantUtils.makeStatesEquivalent(
-                        pCandidateInvariant,
-                        loopFormula.getFormula(),
-                        bfmgr,
-                        fmgr,
-                        pMapPrevToCurrVars)),
-                oneStepSSAMap));
+            previousValuesOfExpressionsAtStart(pMapPrevToCurrVars, loopExpressionVariables));
 
     boolean isTransitionInvariant;
     try {
@@ -592,69 +773,40 @@ public class TerminationWitnessValidator implements Algorithm {
 
   /**
    * Builds the formula I(s) && R(s,u), where s is the start state of a transition invariant T(s,t),
-   * which is given by the previous variables with the index {@link PrevStateIndices#INDEX_FIRST}.
-   * The variables that do not have a previous variable, and the variables of the successor u, are
-   * renamed to fresh variables.
+   * whose expressions with previous values have the values of the previous variables with the index
+   * {@link PrevStateIndices#INDEX_FIRST}. The variables and functions of s and u, e.g., of the
+   * heap, are renamed apart from the states of the loop formula, except for the previous variables
+   * and the symbols without SSA index, e.g., the addresses of variables.
    */
   private BooleanFormula buildStartStateConstraint(
       Loop pLoop,
       ImmutableList<BooleanFormula> pSupportingInvariants,
       ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars)
       throws CPATransferException, InterruptedException {
-    ImmutableMap.Builder<String, String> currentToPreviousBuilder = ImmutableMap.builder();
-    for (Map.Entry<CSimpleDeclaration, CSimpleDeclaration> entry : pMapPrevToCurrVars.entrySet()) {
-      currentToPreviousBuilder.put(
-          entry.getValue().getQualifiedName(), entry.getKey().getQualifiedName());
-    }
-    ImmutableMap<String, String> currentToPrevious = currentToPreviousBuilder.buildKeepingLast();
-
-    // R(s,u): the loop formula starts with the initial SSA index
+    // R(s,u), I(s), and the previous values in s: the state s has the initial SSA index
     PathFormula step =
         constructPathFormulaForLoop(
             pLoop, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet());
-    ImmutableMap.Builder<Formula, Formula> substitution = ImmutableMap.builder();
-    for (Map.Entry<String, Formula> variable :
-        fmgr.extractVariables(step.getFormula()).entrySet()) {
-      Pair<String, OptionalInt> nameAndIndex = FormulaManagerView.parseName(variable.getKey());
-      String name = nameAndIndex.getFirst();
-      OptionalInt index = nameAndIndex.getSecond();
-      FormulaType<Formula> type = fmgr.getFormulaType(variable.getValue());
-      Formula renamed;
-      if (index.isPresent()
-          && index.orElseThrow() == INITIAL_SSA_INDEX
-          && currentToPrevious.containsKey(name)) {
-        renamed =
-            fmgr.makeVariable(
-                type, currentToPrevious.get(name), PrevStateIndices.INDEX_FIRST.getIndex());
-      } else if (index.isPresent()) {
-        renamed = fmgr.makeVariable(type, name + START_STATE_SUFFIX, index.orElseThrow());
-      } else {
-        renamed = fmgr.makeVariable(type, name + START_STATE_SUFFIX);
-      }
-      substitution.put(variable.getValue(), renamed);
-    }
-    BooleanFormula constraint = fmgr.substitute(step.getFormula(), substitution.buildOrThrow());
+    BooleanFormula constraint =
+        bfmgr.and(
+            step.getFormula(),
+            instantiateAtStateOf(pSupportingInvariants, SSAMap.emptySSAMap()),
+            previousValuesOfExpressionsAtStart(pMapPrevToCurrVars, loopExpressionVariables));
 
-    // I(s)
-    for (BooleanFormula supportingInvariant : pSupportingInvariants) {
-      ImmutableMap.Builder<Formula, Formula> invariantSubstitution = ImmutableMap.builder();
-      for (Map.Entry<String, Formula> variable :
-          fmgr.extractVariables(supportingInvariant).entrySet()) {
-        String name = variable.getKey();
-        FormulaType<Formula> type = fmgr.getFormulaType(variable.getValue());
-        invariantSubstitution.put(
-            variable.getValue(),
-            currentToPrevious.containsKey(name)
-                ? fmgr.makeVariable(
-                    type, currentToPrevious.get(name), PrevStateIndices.INDEX_FIRST.getIndex())
-                : fmgr.makeVariable(type, name + START_STATE_SUFFIX, INITIAL_SSA_INDEX));
-      }
-      constraint =
-          bfmgr.and(
-              constraint,
-              fmgr.substitute(supportingInvariant, invariantSubstitution.buildOrThrow()));
-    }
-    return constraint;
+    ImmutableSet<String> previousVariables =
+        transformedImmutableSetCopy(
+            pMapPrevToCurrVars.keySet(), CSimpleDeclaration::getQualifiedName);
+    return fmgr.renameFreeVariablesAndUFs(
+        constraint,
+        name -> {
+          Pair<String, OptionalInt> nameAndIndex = FormulaManagerView.parseName(name);
+          return nameAndIndex.getSecond().isEmpty()
+                  || previousVariables.contains(nameAndIndex.getFirst())
+              ? name
+              : nameAndIndex.getFirst()
+                  + START_STATE_SUFFIX
+                  + nameAndIndex.getSecond().orElseThrow();
+        });
   }
 
   /**
@@ -765,9 +917,8 @@ public class TerminationWitnessValidator implements Algorithm {
             getInnerLoopEdgesWithSummaryEdges(pLoop), pLoop.getLoopHeads(), pLoop.getLoopHeads());
     ImmutableSet<Loop> nestedLoops =
         FluentIterable.from(cfa.getLoopStructure().orElseThrow().getAllLoops())
-            .filter(
-                loop ->
-                    !loop.equals(pLoop) && pLoop.getLoopNodes().containsAll(loop.getLoopHeads()))
+            .filter(loop ->
+                !loop.equals(pLoop) && pLoop.getLoopNodes().containsAll(loop.getLoopHeads()))
             .toSet();
     return constructFormulaForPaths(
         pContextSSAMap, pContextPointerSet, nestedLoops, listOfAllPaths);
@@ -897,8 +1048,6 @@ public class TerminationWitnessValidator implements Algorithm {
     BooleanFormula transitionInvariant = transitionInvariantsOfLoops.get(pNestedLoop);
     ImmutableList<BooleanFormula> supportingInvariants =
         supportingInvariantsOfLoops.get(pNestedLoop);
-    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurrVars =
-        joinPrevDeclarationMapsForLoop(pNestedLoop, witnessInvariants);
 
     // The state at the entry of the nested loop. Variables that are not used before get an index.
     SSAMap.SSAMapBuilder entryBuilder = pPath.getSsa().builder();
@@ -940,7 +1089,7 @@ public class TerminationWitnessValidator implements Algorithm {
         transitionInvariant == null
             ? bfmgr.makeTrue()
             : nestedLoopSummarizer.instantiateTransitionInvariant(
-                toTerminationToSafetyNaming(transitionInvariant, mapPrevToCurrVars),
+                toTerminationToSafetyNaming(transitionInvariant, pNestedLoop),
                 exits.buildOrThrow(),
                 entrySsa);
 
@@ -957,28 +1106,44 @@ public class TerminationWitnessValidator implements Algorithm {
   }
 
   /**
-   * Renames the variables of the transition invariant T(s,t) of the witness as in the transition
-   * invariants of TerminationToSafety, i.e., the variables of s and of t contain {@link
-   * TransitionInvariantUtils#PREV_KEYWORD} and {@link TransitionInvariantUtils#CURR_KEYWORD}.
+   * Renames the variables of the transition invariant T(s,t) of the given loop from the witness as
+   * in the transition invariants of TerminationToSafety, i.e., the variables of s and of t contain
+   * {@link TransitionInvariantUtils#PREV_KEYWORD} and {@link
+   * TransitionInvariantUtils#CURR_KEYWORD}. The previous variables are conjoined with the
+   * expressions whose values in s they have, see {@link #previousValuesOfExpressionsAtStart}, and
+   * get the names of the variables for the values of these expressions. These names do not contain
+   * the keywords, so the previous variables are existentially quantified.
    */
   private BooleanFormula toTerminationToSafetyNaming(
-      BooleanFormula pTransitionInvariant,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapPrevToCurrVars) {
-    Set<String> variables = fmgr.extractVariableNames(pTransitionInvariant);
+      BooleanFormula pTransitionInvariant, Loop pLoop)
+      throws CPATransferException, InterruptedException {
+    ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevToCurrVars =
+        joinPrevDeclarationMapsForLoop(pLoop, witnessInvariants);
+    ImmutableMap.Builder<String, String> quantifiedNamesBuilder = ImmutableMap.builder();
+    mapPrevToCurrVars.forEach((previous, current) ->
+        quantifiedNamesBuilder.put(previous.getQualifiedName(), current.getQualifiedName()));
+    ImmutableMap<String, String> quantifiedNames = quantifiedNamesBuilder.buildOrThrow();
+    BooleanFormula previousValues =
+        fmgr.uninstantiate(
+            previousValuesOfExpressionsAtStart(
+                mapPrevToCurrVars, joinExpressionVariablesForLoop(pLoop, witnessInvariants)));
+    return bfmgr.and(
+        renameVariables(
+            pTransitionInvariant,
+            name ->
+                quantifiedNames.getOrDefault(name, name + TransitionInvariantUtils.CURR_KEYWORD)),
+        renameVariables(
+            previousValues,
+            name ->
+                quantifiedNames.getOrDefault(name, name + TransitionInvariantUtils.PREV_KEYWORD)));
+  }
+
+  /** Renames the variables of the formula, but not its functions, e.g., of the heap. */
+  private BooleanFormula renameVariables(
+      BooleanFormula pFormula, Function<String, String> pRenaming) {
+    Set<String> variables = fmgr.extractVariableNames(pFormula);
     return fmgr.renameFreeVariablesAndUFs(
-        pTransitionInvariant,
-        name -> {
-          if (!variables.contains(name)) {
-            return name;
-          }
-          if (TransitionInvariantUtils.isPrevVariable(name, pMapPrevToCurrVars)) {
-            return pMapPrevToCurrVars
-                    .get(TransitionInvariantUtils.getPrevDeclaration(name, pMapPrevToCurrVars))
-                    .getQualifiedName()
-                + TransitionInvariantUtils.PREV_KEYWORD;
-          }
-          return name + TransitionInvariantUtils.CURR_KEYWORD;
-        });
+        pFormula, name -> variables.contains(name) ? pRenaming.apply(name) : name);
   }
 
   /** Variables that do not occur in a path formula yet have the {@link #INITIAL_SSA_INDEX}. */

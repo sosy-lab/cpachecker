@@ -267,9 +267,13 @@ public class ExpressionToFormulaVisitor
       case SHIFT_LEFT ->
           // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
           ret = mgr.makeShiftLeft(f1, f2);
-      case SHIFT_RIGHT ->
-          // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-          ret = mgr.makeShiftRight(f1, f2, signed);
+      case SHIFT_RIGHT -> {
+        // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+        ret = mgr.makeShiftRight(f1, f2, signed);
+        if (conv.options.approximateBitwiseOperationsLinearly()) {
+          addShiftRightConstraints(exp.getOperand2(), f1, signed, ret);
+        }
+      }
       case GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL, EQUALS, NOT_EQUALS -> {
         BooleanFormula result =
             switch (op) {
@@ -482,6 +486,30 @@ public class ExpressionToFormulaVisitor
                 f2NonNegative,
                 bfmgr.and(
                     mgr.makeLessOrEqual(f2, ret, signed), mgr.makeLessThan(ret, zero, signed)))));
+  }
+
+  /**
+   * Encodes {@code ret = f1 >> k} for a constant {@code k} exactly as {@code 0 <= f1 - 2^k * ret <=
+   * 2^k - 1}, i.e., as division rounded down.
+   */
+  private void addShiftRightConstraints(
+      final CExpression pShiftAmount, final Formula f1, final boolean signed, final Formula ret) {
+    FormulaType<?> formulaType = mgr.getFormulaType(f1);
+    if (!(pShiftAmount instanceof CIntegerLiteralExpression literal)
+        || !(formulaType instanceof BitvectorType bitvectorType)
+        || literal.getValue().signum() < 0
+        || literal.getValue().compareTo(BigInteger.valueOf(bitvectorType.getSize())) >= 0) {
+      return;
+    }
+    BigInteger divisor = BigInteger.ONE.shiftLeft(literal.getValue().intValueExact());
+    Formula remainder =
+        mgr.makeMinus(f1, mgr.makeMultiply(mgr.makeNumber(bitvectorType, divisor), ret));
+    constraints.addConstraint(
+        mgr.makeRangeConstraint(
+            remainder,
+            mgr.makeNumber(bitvectorType, 0L),
+            mgr.makeNumber(bitvectorType, divisor.subtract(BigInteger.ONE)),
+            signed));
   }
 
   @Override

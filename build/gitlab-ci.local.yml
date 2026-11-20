@@ -42,16 +42,6 @@ variables:
     reports:
       junit: "output/configuration-checks/TESTS-TestSuites.xml"
 
-configuration-checks:jdk-21:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-21
-  needs:
-    - build-dependencies
-    - build:jdk-21
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
-
 configuration-checks:jdk-25:
   <<: *configuration-checks
   dependencies:
@@ -61,6 +51,16 @@ configuration-checks:jdk-25:
     - build-dependencies
     - build:jdk-25
   image: ${CI_REGISTRY_IMAGE}/test:jdk-25
+
+configuration-checks:jdk-27:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-27
+  needs:
+    - build-dependencies
+    - build:jdk-27
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-27
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
     - if: $[[ inputs.tests_per_java_version ]] == true
@@ -93,7 +93,7 @@ forbidden-apis:
 check-code-patterns:
   extends: .check-without-dependencies
   script: "build/check-code-patterns.sh"
-  image: ubuntu:22.04
+  image: ubuntu:24.04
 
 
 python-unit-tests:
@@ -184,7 +184,7 @@ build-docker:release:
   extends: .build-docker-hub
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":4.2.2"
+    IMAGE: ":4.3"
   script:
     - !reference [.build-docker-hub, script]
     # also push image to :latest
@@ -220,7 +220,7 @@ javascript-e2e-tests:
 # Checks for Python code
 .base_ruff:
   extends: .check-without-dependencies
-  image: ghcr.io/astral-sh/ruff:0.16-alpine
+  image: ghcr.io/astral-sh/ruff:0.17-alpine
   before_script:
     - ruff --version
   cache:
@@ -269,7 +269,7 @@ deploy-docker:
 
 
 # Unit tests are split into basic and extended tests, and coverage is disabled.
-unit-tests:jdk-21:
+unit-tests:jdk-25:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     paths:
@@ -283,14 +283,14 @@ unit-tests:jdk-21:
       when: never
     - when: on_success
 
-unit-tests-extended:jdk-21:
-  extends: unit-tests:jdk-21
+unit-tests-extended:jdk-25:
+  extends: unit-tests:jdk-25
   script: "ant $ANT_PROPS_CHECKS unit-tests -DenableExtendedTests=true"
   rules:
     - if: $CI_MERGE_REQUEST_EVENT_TYPE == "merge_train"
     - if: $[[ inputs.extended_tests ]] == true
 
-unit-tests:jdk-25:
+unit-tests:jdk-27:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     paths:
@@ -311,20 +311,20 @@ unit-tests:jdk-25:
     reports:
       junit: "output/integration-tests/TESTS-TestSuites.xml"
 
-integration-tests:jdk-21:
-  extends:
-    - unit-tests:jdk-21
-    - .integration-tests
-
-integration-tests-extended:jdk-21:
-  extends:
-    - unit-tests-extended:jdk-21
-    - .integration-tests
-  script: "ant $ANT_PROPS_CHECKS integration-tests -DenableExtendedTests=true"
-
 integration-tests:jdk-25:
   extends:
     - unit-tests:jdk-25
+    - .integration-tests
+
+integration-tests-extended:jdk-25:
+  extends:
+    - unit-tests-extended:jdk-25
+    - .integration-tests
+  script: "ant $ANT_PROPS_CHECKS integration-tests -DenableExtendedTests=true"
+
+integration-tests:jdk-27:
+  extends:
+    - unit-tests:jdk-27
     - .integration-tests
 
 
@@ -336,18 +336,26 @@ refaster:
       - REFASTER_SOURCE_DIR: [common, guava, java, java_collection, truth]
   variables:
     REFASTER_SOURCE_PATTERN: "**/$REFASTER_SOURCE_DIR/**/*.java"
+  # Override Java version
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 
 # Override Java version for some jobs
-image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+image: ${CI_REGISTRY_IMAGE}/test:jdk-25
+
+check-format:
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
+
+checkstyle:
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
 .check-binaries-default-jdk:
   dependencies:
     - build-dependencies
-    - build:jdk-21
+    - build:jdk-25
   needs:
     - build-dependencies
-    - build:jdk-21
+    - build:jdk-25
 
 
 # Disable Java 17 jobs
@@ -364,6 +372,23 @@ build-ecj:jdk-17:
     - when: never
 
 unit-tests:jdk-17:
+  rules:
+    - when: never
+
+# Disable Java 21 jobs
+build-docker:test:jdk-21:
+  rules:
+    - when: never
+
+build:jdk-21:
+  rules:
+    - when: never
+
+build-ecj:jdk-21:
+  rules:
+    - when: never
+
+unit-tests:jdk-21:
   rules:
     - when: never
 

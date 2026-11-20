@@ -253,8 +253,11 @@ public final class ConcurrentEdgeCloner {
     CFunctionDeclaration clonedDeclaration = pCloner.cloneAst(pEntry.getFunctionDefinition());
     Optional<CVariableDeclaration> clonedReturnVariable =
         pEntry.getReturnVariable().map(pCloner::cloneAstLeftSide);
-    return new CFunctionEntryNode(
-        pEntry.getFileLocation(), clonedDeclaration, null, clonedReturnVariable);
+    CFunctionEntryNode clonedEntry =
+        new CFunctionEntryNode(
+            pEntry.getFileLocation(), clonedDeclaration, null, clonedReturnVariable);
+    pEntry.getKnownBehavior().ifPresent(clonedEntry::setKnownBehavior);
+    return clonedEntry;
   }
 
   /**

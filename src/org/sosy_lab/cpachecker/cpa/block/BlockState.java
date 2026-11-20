@@ -186,11 +186,8 @@ public class BlockState
   public void setViolationConditions(List<? extends AbstractState> pViolationConditions) {
     violationConditions =
         ImmutableList.sortedCopyOf(
-            Comparator.comparingInt(
-                v ->
-                    AbstractStates.extractStateByType(v, BlockState.class)
-                        .getWitness()
-                        .maxDecisions()),
+            Comparator.comparingInt(v ->
+                AbstractStates.extractStateByType(v, BlockState.class).getWitness().maxDecisions()),
             pViolationConditions);
   }
 

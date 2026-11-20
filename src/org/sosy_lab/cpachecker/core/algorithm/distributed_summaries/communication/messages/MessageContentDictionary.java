@@ -41,7 +41,7 @@ final class MessageContentDictionary {
     for (Entry<String, String> entry : content.entrySet()) {
       List<Integer> references = new ArrayList<>();
       for (String part : PARTS.split(entry.getValue())) {
-        references.add(definitions.computeIfAbsent(part, unused -> definitions.size()));
+        references.add(definitions.computeIfAbsent(part, _ -> definitions.size()));
       }
       encoded.put(CONTENT_PREFIX + entry.getKey(), Joiner.on(SEPARATOR).join(references));
     }

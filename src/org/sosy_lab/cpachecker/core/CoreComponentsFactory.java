@@ -487,6 +487,16 @@ public class CoreComponentsFactory {
               + " algorithms, each algorithm can claim  a copy of the original CFA to modify.")
   private boolean copyCFA = false;
 
+  @Option(
+      secure = true,
+      name = "reparseSpecification",
+      description =
+          "Parse the specification again with the options of this analysis instead of using the"
+              + " automata of the enclosing analysis. A nested analysis needs this if it sets"
+              + " options of the specification automata, e.g.,"
+              + " witness.checkInvariantsHoldForEveryPath.")
+  private boolean reparseSpecification = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -501,6 +511,11 @@ public class CoreComponentsFactory {
   private final CPABuilder cpaFactory;
   private final AggregatedReachedSets aggregatedReachedSets;
   private final @Nullable AggregatedReachedSetManager aggregatedReachedSetManager;
+
+  /** The last specification given to this factory and its result of {@link #specificationFor}. */
+  private @Nullable Specification givenSpecification = null;
+
+  private @Nullable Specification parsedSpecification = null;
 
   public CoreComponentsFactory(
       Configuration pConfig,
@@ -587,9 +602,10 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final Specification specification)
+      final ConfigurableProgramAnalysis cpa, final Specification pSpecification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
+    final Specification specification = specificationFor(pSpecification);
 
     if (disableAnalysis) {
       return NoopAlgorithm.INSTANCE;
@@ -1024,6 +1040,19 @@ public class CoreComponentsFactory {
           aggregatedReachedSets);
     }
 
-    return cpaFactory.buildCPAs(cfa, pSpecification, aggregatedReachedSets);
+    return cpaFactory.buildCPAs(cfa, specificationFor(pSpecification), aggregatedReachedSets);
+  }
+
+  /** The given specification, parsed again if {@link #reparseSpecification} is set. */
+  private Specification specificationFor(Specification pSpecification)
+      throws InvalidConfigurationException, InterruptedException {
+    if (!reparseSpecification) {
+      return pSpecification;
+    }
+    if (givenSpecification != pSpecification) {
+      parsedSpecification = pSpecification.parsedAgain(cfa, config, logger, shutdownNotifier);
+      givenSpecification = pSpecification;
+    }
+    return checkNotNull(parsedSpecification);
   }
 }

@@ -465,16 +465,16 @@ public class CPAchecker {
 
   private static void logErrorMessage(Exception e, LogManager pLogger) {
     switch (e) {
-      case IOException unused -> pLogger.logUserException(Level.SEVERE, e, "Could not read file");
-      case InvalidConfigurationException unused ->
+      case IOException _ -> pLogger.logUserException(Level.SEVERE, e, "Could not read file");
+      case InvalidConfigurationException _ ->
           pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
       case ParserException parserException -> handleParserException(parserException, pLogger);
-      case InterruptedException unused ->
+      case InterruptedException _ ->
           // CPAchecker must exit because it was asked to
           // we return normally instead of propagating the exception
           // so we can return the partial result we have so far
           pLogger.logUserException(Level.WARNING, e, "Analysis interrupted");
-      case CPAException unused -> pLogger.logUserException(Level.SEVERE, e, null);
+      case CPAException _ -> pLogger.logUserException(Level.SEVERE, e, null);
       default -> throw new AssertionError("unexpected exception type", e);
     }
   }

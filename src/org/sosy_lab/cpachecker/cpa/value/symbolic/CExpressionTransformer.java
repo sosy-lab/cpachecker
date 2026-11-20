@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.CastExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.NegationExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.PointerExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -248,14 +247,8 @@ public class CExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(final CPointerExpression pPointerExpression)
       throws UnrecognizedCodeException {
-    SymbolicExpression operand = pPointerExpression.getOperand().accept(this);
-
-    if (operand == null) {
-      return null;
-
-    } else {
-      return PointerExpression.of(operand, pPointerExpression.getExpressionType());
-    }
+    // Writes through pointers are not tracked, so a term *p would keep its value after *p = ...
+    return evaluateToValue(pPointerExpression);
   }
 
   private ExpressionValueVisitor getValueVisitor(final ValueAnalysisState pState) {

@@ -242,13 +242,12 @@ public final class BMCHelper {
     }
     LoopStructure loopStructure = pCFA.getLoopStructure().orElseThrow();
     return from(loopStructure.getAllLoops())
-        .transformAndConcat(
-            pLoop -> {
-              if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
-                return ImmutableSet.of();
-              }
-              return pLoop.getLoopHeads();
-            })
+        .transformAndConcat(pLoop -> {
+          if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
+            return ImmutableSet.of();
+          }
+          return pLoop.getLoopHeads();
+        })
         .toSet();
   }
 
@@ -263,8 +262,7 @@ public final class BMCHelper {
         pMinIt,
         pMaxIt,
         pLoopHeads,
-        (fromIt, toIt, stateLowerIt, stateUpperIt) ->
-            fromIt <= stateLowerIt && stateLowerIt <= toIt);
+        (fromIt, toIt, stateLowerIt, _) -> fromIt <= stateLowerIt && stateLowerIt <= toIt);
   }
 
   /**
@@ -332,21 +330,20 @@ public final class BMCHelper {
           String.format("Minimum (%d) not lower than maximum (%d)", pMinIt, pMaxIt));
     }
     return FluentIterable.from(pStates)
-        .filter(
-            state -> {
-              if (state == null) {
-                return false;
-              }
-              LoopIterationReportingState ls =
-                  AbstractStates.extractStateByType(state, LoopIterationReportingState.class);
-              if (ls == null) {
-                return false;
-              }
-              int minIt = convertIteration(pMinIt, state, pLoopHeads);
-              int maxIt = convertIteration(pMaxIt, state, pLoopHeads);
-              return pFilter.accepts(
-                  minIt, maxIt, ls.getDeepestIteration(), ls.getDeepestIterationUpperBound());
-            });
+        .filter(state -> {
+          if (state == null) {
+            return false;
+          }
+          LoopIterationReportingState ls =
+              AbstractStates.extractStateByType(state, LoopIterationReportingState.class);
+          if (ls == null) {
+            return false;
+          }
+          int minIt = convertIteration(pMinIt, state, pLoopHeads);
+          int maxIt = convertIteration(pMaxIt, state, pLoopHeads);
+          return pFilter.accepts(
+              minIt, maxIt, ls.getDeepestIteration(), ls.getDeepestIterationUpperBound());
+        });
   }
 
   /** Returns whether the paths represented by the state may have different iteration counts. */

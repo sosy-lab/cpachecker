@@ -10,7 +10,7 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <!-- Evaluation of certification which are partitioned and for which certificate reading and checking is interleaved.
      Rundefinitions execute for each program the verification with proof generation followed by certificate
      checking (reading of partitions and checking of another partition may be executed in parallel)

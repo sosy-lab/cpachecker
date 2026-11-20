@@ -90,7 +90,7 @@ public final class IfElement extends StatementElement {
         computeNodesConditionBoundaryNodes(
             conditionElement.edges(),
             thenElement.edges().isEmpty() ? Optional.empty() : Optional.of(thenElement.edges()),
-            maybeElseElement.isPresent()
+            maybeElseElement.isPresent() && !maybeElseElement.orElseThrow().edges().isEmpty()
                 ? Optional.of(maybeElseElement.orElseThrow().edges())
                 : Optional.empty());
 

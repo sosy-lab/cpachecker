@@ -20,9 +20,10 @@ arrays/*.yml
 nested_operators/*.yml
 builtin_overflow_functions/*.yml
 string_literals/*.yml
+string_functions/*.yml
+ctype/*.yml
 multipleCFiles/*.yml
 multipleCFiles/*/*.yml
-witness_output/*.yml
 witness_validation/*.yml
 type_tests/*.yml
 pointer_arithmetics/*.yml
@@ -31,4 +32,11 @@ verifier-nondet-memory-sanity/*.yml
 termination-nested/*.yml
 mathFunctions/*.yml
 memset/*.yml
+calloc/*.yml
+union_arrays/*.yml
+bitfields/*.yml
 scanf/*.yml
+setjmp/*.yml
+str_functions/*.yml
+explicit/symbolic/*.yml
+symbolic_array_subscript/*.yml

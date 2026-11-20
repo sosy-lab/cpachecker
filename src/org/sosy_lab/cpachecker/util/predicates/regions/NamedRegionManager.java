@@ -62,7 +62,7 @@ public class NamedRegionManager implements RegionManager {
    * @return A region representing a predicate
    */
   public Region createPredicate(String pName) {
-    return regionMap.computeIfAbsent(pName, ignoreArg -> delegate.createPredicate());
+    return regionMap.computeIfAbsent(pName, _ -> delegate.createPredicate());
   }
 
   @Override

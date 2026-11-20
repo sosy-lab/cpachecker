@@ -28,8 +28,7 @@ public class AlgorithmCompositionStrategyBuilder {
               + " analyses")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.composition")
   private AlgorithmCompositionStrategy.Factory strategy =
-      (config, logger, shutdownNotifier, cfa, spec) ->
-          new CircularCompositionStrategy(config, logger);
+      (config, logger, _, _, _) -> new CircularCompositionStrategy(config, logger);
 
   private AlgorithmCompositionStrategyBuilder() {}
 

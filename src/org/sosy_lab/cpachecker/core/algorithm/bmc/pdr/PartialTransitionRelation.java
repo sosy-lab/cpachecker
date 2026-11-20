@@ -133,12 +133,11 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     }
     currentEndStates =
         filterIterationsUpTo(reachedSet.getReachedSet(), desiredK)
-            .filter(
-                state ->
-                    BMCHelper.isEndState(state)
-                        || (BMCHelper.hasMatchingLocation(state, loopHeads)
-                            && !Iterables.isEmpty(
-                                filterIteration(Collections.singleton(state), desiredK))))
+            .filter(state ->
+                BMCHelper.isEndState(state)
+                    || (BMCHelper.hasMatchingLocation(state, loopHeads)
+                        && !Iterables.isEmpty(
+                            filterIteration(Collections.singleton(state), desiredK))))
             .toSet();
     currentVariables = null;
     lastK = desiredK;
@@ -247,19 +246,17 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     currentVariables =
         AbstractStates.projectToType(relevantStates, PredicateAbstractState.class).stream()
             .map(PartialTransitionRelation::getPathFormula)
-            .flatMap(
-                pathFormula -> {
-                  SSAMap ssaMap = pathFormula.getSsa();
-                  return ssaMap.allVariables().stream()
-                      .filter(name -> !name.startsWith("*"))
-                      .map(
-                          name ->
-                              pmgr.makeFormulaForUninstantiatedVariable(
-                                  name,
-                                  (CType) ssaMap.getType(name),
-                                  pathFormula.getPointerTargetSet(),
-                                  false));
-                })
+            .flatMap(pathFormula -> {
+              SSAMap ssaMap = pathFormula.getSsa();
+              return ssaMap.allVariables().stream()
+                  .filter(name -> !name.startsWith("*"))
+                  .map(name ->
+                      pmgr.makeFormulaForUninstantiatedVariable(
+                          name,
+                          (CType) ssaMap.getType(name),
+                          pathFormula.getPointerTargetSet(),
+                          false));
+            })
             .distinct()
             .collect(
                 ImmutableMap.toImmutableMap(

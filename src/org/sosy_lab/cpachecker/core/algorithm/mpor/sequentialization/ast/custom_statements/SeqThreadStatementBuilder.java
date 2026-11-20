@@ -180,7 +180,7 @@ public record SeqThreadStatementBuilder(
           ImmutableList.of(
               buildFunctionCallStatement(pThreadEdge, functionCallEdge, pSubstituteEdge, targetPc));
 
-      case CReturnStatementEdge ignore ->
+      case CReturnStatementEdge _ ->
           ImmutableList.of(
               buildReturnValueAssignmentStatement(pThreadEdge, pSubstituteEdge, targetPc));
 

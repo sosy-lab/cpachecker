@@ -206,7 +206,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       description = "Partitioning operator for multi-property verification.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpv.partition")
   private PartitioningOperator.@NonNull Factory partitioningOperatorFactory =
-      (pConfig, pLogger, pShutdownNotifier, pProperties, pCpuTimePerProperty) ->
+      (_, _, _, pProperties, pCpuTimePerProperty) ->
           new SeparatePartitioningOperator(pProperties, pCpuTimePerProperty);
 
   @Option(

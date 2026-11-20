@@ -153,7 +153,7 @@ public class SvLibToFormulaConverter extends LanguageToSmtConverter<SvLibType> {
     try {
       edgeFormula =
           switch (pEdge) {
-            case BlankEdge ignored -> bfmgr.makeTrue();
+            case BlankEdge _ -> bfmgr.makeTrue();
             case SvLibDeclarationEdge declarationEdge ->
                 makeDeclaration(declarationEdge, function, ssa, constraints, pErrorConditions);
             case SvLibFunctionCallEdge procedureCallEdge ->

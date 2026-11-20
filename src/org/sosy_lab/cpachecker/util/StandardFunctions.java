@@ -643,6 +643,44 @@ public final class StandardFunctions {
     return MEMORY_REALLOCATING_FUNCTION.equals(functionName);
   }
 
+  /** Functions from string.h that write to the memory that their pointer arguments point to */
+  private static final ImmutableSet<String> POINTER_ARGUMENT_WRITING_FUNCTIONS =
+      ImmutableSet.of("memcpy", "memmove", "memset", "strcat", "strcpy", "strncat", "strncpy");
+
+  /** Returns whether the function writes to the memory that its pointer arguments point to. */
+  public static boolean writesThroughPointerArguments(String pFunctionName) {
+    return POINTER_ARGUMENT_WRITING_FUNCTIONS.contains(pFunctionName)
+        || BuiltinAtomicFunctions.getSideEffectFunctionNames().contains(pFunctionName);
+  }
+
+  /**
+   * Functions that do not write to the memory that their pointer arguments point to. A shared list
+   * of all functions with side effects is planned in #1811.
+   */
+  private static final ImmutableSet<String> POINTER_ARGUMENT_NON_WRITING_FUNCTIONS =
+      ImmutableSet.of(
+          "__assert_fail",
+          "abort",
+          "exit",
+          "free",
+          "kfree",
+          "printf",
+          "printk",
+          "puts",
+          "strcasecmp",
+          "strchr",
+          "strncasecmp",
+          "strrchr",
+          "strstr");
+
+  /**
+   * Returns whether the function is known not to write to the memory that its pointer arguments
+   * point to. Other functions without a definition in the program have to be assumed to write.
+   */
+  public static boolean neverWritesThroughPointerArguments(String pFunctionName) {
+    return POINTER_ARGUMENT_NON_WRITING_FUNCTIONS.contains(pFunctionName);
+  }
+
   /* ############## C11 input/output functions by categories used in the standard ############## */
 
   // TODO: all below are already part of the functions above (or should be at least). Pull them out

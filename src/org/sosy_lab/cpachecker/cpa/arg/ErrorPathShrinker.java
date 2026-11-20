@@ -377,7 +377,7 @@ public final class ErrorPathShrinker {
    */
   private void addAllVarsInExpToSet(final @Nullable ARightHandSide exp) {
     switch (exp) {
-      case AFunctionCallExpression functionCall -> {}
+      case AFunctionCallExpression _ -> {}
       // exp is an Identifier, i.e. the "b" from "a = b"
       case AIdExpression aIdExpression -> track(aIdExpression);
       // (cast) b

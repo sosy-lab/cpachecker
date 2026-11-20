@@ -121,7 +121,7 @@ public final class CompositeGraphViolationConditionOperator {
       }
       for (Incoming incoming : pGraph.incoming(node)) {
         List<List<Part<?>>> atParent =
-            alternatives.computeIfAbsent(incoming.parent(), unused -> new ArrayList<>());
+            alternatives.computeIfAbsent(incoming.parent(), _ -> new ArrayList<>());
         for (List<Part<?>> alternative : atNode) {
           Optional<List<Part<?>>> prepended = prepend(alternative, incoming.edges());
           if (prepended.isPresent()) {

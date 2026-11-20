@@ -32,7 +32,7 @@ public class SplitterTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure = true, name = "heuristic", description = "Which program split heuristic to use")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.splitter.heuristics")
-  private SplitHeuristic.Factory factory = (pConfig, pLogger, pMaxSplits) -> new SplitAtAssumes();
+  private SplitHeuristic.Factory factory = (_, _, _) -> new SplitAtAssumes();
 
   private final SplitHeuristic split;
   private final LogManager logger;

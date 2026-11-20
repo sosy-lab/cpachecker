@@ -228,12 +228,11 @@ public class GraphUtils {
     pBlockedSet.remove(pCurrentState);
     pBlockedMap
         .get(pCurrentState)
-        .forEach(
-            state -> {
-              if (pBlockedSet.contains(state)) {
-                unblock(state, pBlockedSet, pBlockedMap);
-              }
-            });
+        .forEach(state -> {
+          if (pBlockedSet.contains(state)) {
+            unblock(state, pBlockedSet, pBlockedMap);
+          }
+        });
   }
 
   /**

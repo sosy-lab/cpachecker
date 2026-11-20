@@ -97,13 +97,12 @@ final class ConcurrentCfaCloner {
     cloner
         .nodeMap
         .values()
-        .forEach(
-            node -> {
-              nodes.put(node.getFunctionName(), node);
-              if (node instanceof FunctionEntryNode entry) {
-                functions.put(entry.getFunctionName(), entry);
-              }
-            });
+        .forEach(node -> {
+          nodes.put(node.getFunctionName(), node);
+          if (node instanceof FunctionEntryNode entry) {
+            functions.put(entry.getFunctionName(), entry);
+          }
+        });
 
     var mainFunction = functions.get(pCfa.getMainFunction().getFunctionName());
     var metadata = pCfa.getMetadata().withMainFunctionEntry(mainFunction);
@@ -289,6 +288,7 @@ final class ConcurrentCfaCloner {
         CFunctionEntryNode clonedEntry =
             new CFunctionEntryNode(
                 entryNode.getFileLocation(), clonedFuncDecl, clonedExitNode, clonedReturnVar);
+        entryNode.getKnownBehavior().ifPresent(clonedEntry::setKnownBehavior);
 
         if (entryNode.isLoopStart()) {
           clonedEntry.setLoopStart();
@@ -343,13 +343,12 @@ final class ConcurrentCfaCloner {
           && cloned instanceof CFunctionEntryNode clonedEntry) {
         origEntry
             .getExitNode()
-            .ifPresent(
-                origExit -> {
-                  CFANode clonedExit = nodeMap.get(origExit);
-                  if (clonedExit instanceof FunctionExitNode clonedFuncExit) {
-                    clonedFuncExit.setEntryNode(clonedEntry);
-                  }
-                });
+            .ifPresent(origExit -> {
+              CFANode clonedExit = nodeMap.get(origExit);
+              if (clonedExit instanceof FunctionExitNode clonedFuncExit) {
+                clonedFuncExit.setEntryNode(clonedEntry);
+              }
+            });
       }
     }
   }

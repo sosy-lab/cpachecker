@@ -114,7 +114,7 @@ final class DssCfaCopy {
               summary));
     }
 
-    CFA copy = CCfaTransformer.createCfa(pConfig, pLogger, pCfa, graph, (edge, ast) -> ast);
+    CFA copy = CCfaTransformer.createCfa(pConfig, pLogger, pCfa, graph, (_, ast) -> ast);
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
     TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
     for (CFANode node : copy.nodes()) {

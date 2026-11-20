@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -91,6 +94,7 @@ public final class WitnessV2ValidationTestUtils {
     // witnessValidation config it is necessary to use that particular one. This is to avoid
     // regressions which are not detected because the top-level config changed and now the
     // validation does no longer work.
+    Path outputPath = Files.createTempDirectory("witness-v2-validation-output");
     Configuration generationConfig =
         CPAMain.createConfiguration(
                 new String[] {
@@ -101,6 +105,8 @@ public final class WitnessV2ValidationTestUtils {
                   "--config",
                   "config/witnessValidation.properties",
                   "--no-output-files",
+                  "--output-path",
+                  outputPath.toString(),
                   pFilePath.toString(),
                 })
             .configuration();
@@ -109,5 +115,12 @@ public final class WitnessV2ValidationTestUtils {
         IntegrationTestRunner.run(generationConfig, pFilePath.toString());
 
     results.assertIs(pExpectedVerdict);
+
+    results.cpaCheckerResult().writeOutputFiles();
+    try (Stream<Path> files = Files.walk(outputPath)) {
+      assertWithMessage("Files written by witness validation with --no-output-files")
+          .that(files.filter(Files::isRegularFile).map(outputPath::relativize).toList())
+          .isEmpty();
+    }
   }
 }

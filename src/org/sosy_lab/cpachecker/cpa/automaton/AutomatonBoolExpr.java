@@ -117,6 +117,30 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
+  /** Matches the edges that return from a function to its call site. */
+  public static class CheckIsFunctionReturnEdge implements AutomatonBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return pArgs.getCfaEdge() instanceof FunctionReturnEdge ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "IS_FUNCTION_RETURN_EDGE";
+    }
+
+    @Override
+    public int hashCode() {
+      return 1;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckIsFunctionReturnEdge;
+    }
+  }
+
   public static class CheckCoversLines implements AutomatonBoolExpr {
     private final ImmutableSet<Integer> linesToCover;
 
@@ -244,20 +268,42 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  /** Checks if the current edge is contained within the ASTElement. */
+  /** The edges of the element that start at a node which no edge of the element leads to. */
+  private static ImmutableSet<CFAEdge> getIncomingFrontierEdges(ASTElement pElement) {
+    return FluentIterable.from(
+            Sets.difference(
+                transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
+                transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
+        .transformAndConcat(CFANode::getAllLeavingEdges)
+        .filter(edge -> pElement.edges().contains(edge))
+        .toSet();
+  }
+
+  /**
+   * Checks if the current edge is one of the first edges of the ASTElement, e.g., not an edge in
+   * the body of a loop.
+   */
   public static class CheckEntersElement implements AutomatonBoolExpr {
 
     private final ASTElement elementToEnter;
 
+    private final ImmutableSet<CFAEdge> firstEdges;
+
     public CheckEntersElement(ASTElement pElement) {
       elementToEnter = pElement;
+      // The predecessor of a return edge is in the called function
+      ImmutableSet<CFAEdge> frontierEdges =
+          FluentIterable.from(getIncomingFrontierEdges(pElement))
+              .filter(edge -> !(edge instanceof FunctionReturnEdge))
+              .toSet();
+      firstEdges = frontierEdges.isEmpty() ? pElement.edges() : frontierEdges;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (elementToEnter.edges().contains(edge.getOriginal())) {
+      if (firstEdges.contains(edge.getOriginal())) {
         return CONST_TRUE;
       }
       return CONST_FALSE;
@@ -292,14 +338,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     public CheckReachesElement(ASTElement pElement) {
       elementToEnter = pElement;
-      incomingFrontierEdges =
-          FluentIterable.from(
-                  Sets.difference(
-                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
-                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
-              .transformAndConcat(CFANode::getAllLeavingEdges)
-              .filter(edge -> pElement.edges().contains(edge))
-              .toSet();
+      incomingFrontierEdges = getIncomingFrontierEdges(pElement);
     }
 
     @Override
@@ -545,11 +584,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         if (edgeLocation.getNodeOffset() + edgeLocation.getNodeLength() < offsetToReach) {
           if (edge.getSuccessor()
               .getLeavingEdges()
-              .anyMatch(
-                  e ->
-                      offsetToReach
-                          <= e.getFileLocation().getNodeOffset()
-                              + e.getFileLocation().getNodeLength())) {
+              .anyMatch(e ->
+                  offsetToReach
+                      <= e.getFileLocation().getNodeOffset()
+                          + e.getFileLocation().getNodeLength())) {
 
             return CONST_TRUE;
           }
@@ -1448,12 +1486,11 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
               callEdge
                   .getReturnNode()
                   .getEnteringEdges()
-                  .filter(
-                      e ->
-                          (e instanceof AStatementEdge aStatementEdge
-                                  && call.equals(aStatementEdge.getStatement()))
-                              || (e instanceof FunctionReturnEdge functionReturnEdge
-                                  && summaryEdge.equals(functionReturnEdge.getSummaryEdge())));
+                  .filter(e ->
+                      (e instanceof AStatementEdge aStatementEdge
+                              && call.equals(aStatementEdge.getStatement()))
+                          || (e instanceof FunctionReturnEdge functionReturnEdge
+                              && summaryEdge.equals(functionReturnEdge.getSummaryEdge())));
           leavingEdges = Iterables.concat(leavingEdges, potentialFurtherMatches);
         }
       }
@@ -2126,7 +2163,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Boolean != */
   static class BoolNotEqTest extends BoolBinaryTest {
     public BoolNotEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      super(pA, pB, (a, b) -> !a.equals(b), "!=");
+      super(pA, pB, (boolA, boolB) -> !boolA.equals(boolB), "!=");
     }
   }
 }

@@ -72,11 +72,9 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
   Collection<BlockNode> mergeHorizontally(Collection<@NonNull BlockNode> pNodes) {
     Multimap<BlockScope, BlockNode> blockScopes =
         MultimapBuilder.linkedHashKeys(pNodes.size()).arrayListValues(2).build();
-    pNodes.forEach(
-        n ->
-            blockScopes.put(
-                new BlockScope(n.getPredecessorIds(), n.getSuccessorIds(), n.getFinalLocation()),
-                n));
+    pNodes.forEach(n ->
+        blockScopes.put(
+            new BlockScope(n.getPredecessorIds(), n.getSuccessorIds(), n.getFinalLocation()), n));
 
     MergeIDTracker idTracker =
         new MergeIDTracker(FluentIterable.from(pNodes).transform(n -> n.getId()));
@@ -118,10 +116,9 @@ public class HorizontalMergeDecomposition implements DssBlockDecomposition {
       Collection<@NonNull BlockNode> pCollection, BlockScope pScope) {
     Preconditions.checkArgument(
         pCollection.stream()
-            .allMatch(
-                b ->
-                    b.getSuccessorIds().equals(pScope.successors())
-                        && b.getPredecessorIds().equals(pScope.predecessors())),
+            .allMatch(b ->
+                b.getSuccessorIds().equals(pScope.successors())
+                    && b.getPredecessorIds().equals(pScope.predecessors())),
         "Some of the given nodes do not have the same scope.");
 
     BlockNode first = pCollection.iterator().next();

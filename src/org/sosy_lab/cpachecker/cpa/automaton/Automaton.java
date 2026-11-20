@@ -156,6 +156,18 @@ public class Automaton {
     return invariants;
   }
 
+  /** Whether a transition of this automaton has candidate transition invariants. */
+  public boolean hasCandidateTransitionInvariants() {
+    for (AutomatonInternalState state : states) {
+      for (AutomatonTransition transition : state.getTransitions()) {
+        if (!transition.getCandidateTransitionInvariants().equals(ExpressionTrees.getTrue())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /**
    * Assert this automaton fulfills the requirements of an ObserverAutomaton. This means the
    * Automaton does not modify other CPAs (Keyword MODIFY) and does not use the BOTTOM element

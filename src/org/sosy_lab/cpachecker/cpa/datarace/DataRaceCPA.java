@@ -49,10 +49,9 @@ public class DataRaceCPA extends AbstractCPA {
     expressionBuilder = new CBinaryExpressionBuilder(machineModel, pLogger);
     addressedVariables =
         pCfa.getVarClassification()
-            .orElseThrow(
-                () ->
-                    new InvalidConfigurationException(
-                        "DataRaceCPA needs the variable classification of the CFA"))
+            .orElseThrow(() ->
+                new InvalidConfigurationException(
+                    "DataRaceCPA needs the variable classification of the CFA"))
             .getAddressedVariables();
     pointerTargets = PointerTargets.compute(pCfa, addressedVariables);
   }
@@ -67,7 +66,7 @@ public class DataRaceCPA extends AbstractCPA {
   public StopOperator getStopOperator() {
     // A state with a data race must not be covered by (or merged into) one without, because the
     // specification only sees the data race in the next transfer.
-    return (state, reached, precision) -> {
+    return (state, reached, _) -> {
       boolean hasDataRace = ((DataRaceState) state).hasDataRace();
       return Iterables.any(
           reached, reachedState -> ((DataRaceState) reachedState).hasDataRace() == hasDataRace);

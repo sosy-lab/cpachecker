@@ -1061,7 +1061,7 @@ public class ValueAnalysisTransferRelation
 
         yield handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
       }
-      case APointerExpression unused -> {
+      case APointerExpression _ -> {
         // *a = ...
 
         if (isRelevant(op1, op2)) {
@@ -1084,7 +1084,7 @@ public class ValueAnalysisTransferRelation
         yield state;
       }
       // array cell
-      case CArraySubscriptExpression unused -> {
+      case CArraySubscriptExpression _ -> {
         ExpressionValueVisitor v = getVisitor();
 
         MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
@@ -1950,10 +1950,9 @@ public class ValueAnalysisTransferRelation
         String sideEffectsMsg = "";
 
         if (functionCall.getFunctionCallExpression().getParameterExpressions().stream()
-            .anyMatch(
-                p ->
-                    p.getExpressionType().getCanonicalType() instanceof CPointerType
-                        || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
+            .anyMatch(p ->
+                p.getExpressionType().getCanonicalType() instanceof CPointerType
+                    || p.getExpressionType().getCanonicalType() instanceof CArrayType)) {
           // It is UNSOUND to ignore these (in case of side effects)!!!!
           // It might be that the variable of the side effect is already overapproximated though.
           status = status.withSound(false);

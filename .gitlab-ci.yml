@@ -62,7 +62,7 @@ variables:
 
 auto-update-dependencies:
   stage: deploy
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-25
   script:
     - build/auto-update-dependencies.sh
   environment: repo/auto-update-dependencies

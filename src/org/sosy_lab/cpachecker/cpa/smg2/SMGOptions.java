@@ -129,8 +129,55 @@ public class SMGOptions {
   @Option(
       secure = true,
       name = "enableMallocFail",
-      description = "If this Option is enabled, failure of malloc is simulated")
+      description =
+          "If this Option is enabled, failure of malloc is simulated, i.e. it may return 0."
+              + " For calloc, see option enableCallocFail) and for realloc see option"
+              + " enableReallocFail.")
   private boolean enableMallocFailure = true;
+
+  @Option(
+      secure = true,
+      name = "enableCallocFail",
+      description =
+          "If this Option is enabled, failure of calloc is simulated, returning 0 on failure.")
+  private boolean enableCallocFailure = true;
+
+  @Option(
+      secure = true,
+      name = "enableReallocFail",
+      description =
+          "If this Option is enabled, failure of realloc is simulated, i.e. it may return 0 and"
+              + " leave the old memory given unchanged. This also applies to realloc with a null"
+              + " pointer, which otherwise behaves like malloc.")
+  private boolean enableReallocFailure = true;
+
+  @Option(
+      secure = true,
+      toUppercase = true,
+      name = "reallocWithZeroSize",
+      description =
+          "Sets how realloc(ptr, 0) with a valid ptr is handled, which is implementation-defined"
+              + " (C11 7.22.3 (1), C17 7.22.3.5 (3)) and undefined since C23.\n"
+              + "FREE_AND_ALLOCATE_ZERO_SIZE: the memory of ptr is freed and the result is that of"
+              + " an allocation with size 0 (see option mallocZeroReturnsZero), e.g. musl and BSD"
+              + " libc.\n"
+              + "FREE_AND_RETURN_ZERO: the memory of ptr is freed and 0 is returned, e.g. glibc.")
+  private ReallocZeroSizeHandling reallocWithZeroSize =
+      ReallocZeroSizeHandling.FREE_AND_ALLOCATE_ZERO_SIZE;
+
+  public enum ReallocZeroSizeHandling {
+    FREE_AND_ALLOCATE_ZERO_SIZE,
+    FREE_AND_RETURN_ZERO
+  }
+
+  @Option(
+      secure = true,
+      name = "callocSizeOverflowReturnsZero",
+      description =
+          "If this Option is enabled, calloc returns 0 if the product of its arguments can not be"
+              + " represented in size_t, as required by C23 and implemented by common C libraries."
+              + " Otherwise, the product is used as size of the allocation.")
+  private boolean callocSizeOverflowReturnsZero = false;
 
   @Option(
       secure = true,
@@ -650,6 +697,22 @@ public class SMGOptions {
 
   public boolean isEnableMallocFailure() {
     return enableMallocFailure;
+  }
+
+  public boolean isEnableCallocFailure() {
+    return enableCallocFailure;
+  }
+
+  public boolean isEnableReallocFailure() {
+    return enableReallocFailure;
+  }
+
+  public ReallocZeroSizeHandling getReallocWithZeroSize() {
+    return reallocWithZeroSize;
+  }
+
+  public boolean isCallocSizeOverflowReturnsZero() {
+    return callocSizeOverflowReturnsZero;
   }
 
   public boolean isPreciseSMGRead() {

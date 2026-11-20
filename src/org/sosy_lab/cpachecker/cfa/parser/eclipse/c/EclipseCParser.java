@@ -141,7 +141,7 @@ class EclipseCParser implements CParser {
         Lists.transform(pFilenames, name -> new FileToParse(Path.of(name))),
         new CSourceOriginMapping(),
         CProgramScope.empty(),
-        (pFileName, pContent) -> eclipseCdt.wrapFile(pFileName));
+        (pFileName, _) -> eclipseCdt.wrapFile(pFileName));
   }
 
   @Override

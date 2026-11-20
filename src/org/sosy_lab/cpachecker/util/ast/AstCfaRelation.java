@@ -16,11 +16,16 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -31,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
 /** Contains information relating the CFA to the AST of the program. */
@@ -196,17 +202,29 @@ public final class AstCfaRelation {
     return false;
   }
 
+  /**
+   * Returns the element with the shorter source range, or the first one for equal ranges. Several
+   * elements have the same key, e.g., an if statement in a statement expression in the condition of
+   * another one, or statements of different files at the same line and column.
+   */
+  private static <T> T tighter(T pFirst, T pSecond, Function<T, ASTElement> pElement) {
+    return pElement.apply(pSecond).location().getNodeLength()
+            < pElement.apply(pFirst).location().getNodeLength()
+        ? pSecond
+        : pFirst;
+  }
+
   private void initializeMapFromConditionEdgesToIfStructures() {
     if (conditionEdgesToIfStructure != null) {
       return;
     }
-    ImmutableMap.Builder<CFAEdge, IfElement> builder = new ImmutableMap.Builder<>();
+    Map<CFAEdge, IfElement> map = new HashMap<>();
     for (IfElement structure : ifElements) {
       for (CFAEdge edge : structure.getConditionElement().edges()) {
-        builder.put(edge, structure);
+        map.merge(edge, structure, (a, b) -> tighter(a, b, IfElement::getCompleteElement));
       }
     }
-    conditionEdgesToIfStructure = builder.buildOrThrow();
+    conditionEdgesToIfStructure = ImmutableMap.copyOf(map);
   }
 
   /**
@@ -241,9 +259,8 @@ public final class AstCfaRelation {
     Optional<IterationElement> result = Optional.empty();
     for (IterationElement structure : iterationStructures) {
       if (structure.getCompleteElement().edges().stream()
-          .anyMatch(
-              pEdge ->
-                  pEdge.getPredecessor() == originalNode || pEdge.getSuccessor() == originalNode)) {
+          .anyMatch(pEdge ->
+              pEdge.getPredecessor() == originalNode || pEdge.getSuccessor() == originalNode)) {
         if (result.isPresent()) {
           if (result
               .orElseThrow()
@@ -320,22 +337,25 @@ public final class AstCfaRelation {
       return Optional.empty();
     }
 
-    return statement.edges().stream().map(CFAEdge::getPredecessor).findFirst();
+    return statement.edges().stream()
+        // The predecessor of a return edge is in the called function
+        .filter(edge -> !(edge instanceof FunctionReturnEdge))
+        .map(CFAEdge::getPredecessor)
+        .findFirst();
   }
 
   private void initializeMapFromLineAndStartColumnToIfStructure() {
     if (lineAndStartColumnToIfStructure != null) {
       return;
     }
-    ImmutableSortedMap.Builder<StartingLocation, IfElement> builder =
-        new ImmutableSortedMap.Builder<>(StartingLocation::compareTo);
+    NavigableMap<StartingLocation, IfElement> map = new TreeMap<>();
     for (IfElement structure : ifElements) {
       FileLocation location = structure.getCompleteElement().location();
       StartingLocation key =
           new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
-      builder.put(key, structure);
+      map.merge(key, structure, (a, b) -> tighter(a, b, IfElement::getCompleteElement));
     }
-    lineAndStartColumnToIfStructure = builder.buildOrThrow();
+    lineAndStartColumnToIfStructure = ImmutableSortedMap.copyOfSorted(map);
   }
 
   /**
@@ -368,15 +388,14 @@ public final class AstCfaRelation {
     if (lineAndStartColumnToIterationStructure != null) {
       return;
     }
-    ImmutableSortedMap.Builder<StartingLocation, IterationElement> builder =
-        new ImmutableSortedMap.Builder<>(StartingLocation::compareTo);
+    NavigableMap<StartingLocation, IterationElement> map = new TreeMap<>();
     for (IterationElement structure : iterationStructures) {
       FileLocation location = structure.getCompleteElement().location();
       StartingLocation key =
           new StartingLocation(location.getStartColumnInLine(), location.getStartingLineInOrigin());
-      builder.put(key, structure);
+      map.merge(key, structure, (a, b) -> tighter(a, b, IterationElement::getCompleteElement));
     }
-    lineAndStartColumnToIterationStructure = builder.buildOrThrow();
+    lineAndStartColumnToIterationStructure = ImmutableSortedMap.copyOfSorted(map);
   }
 
   /**
@@ -423,16 +442,15 @@ public final class AstCfaRelation {
     if (startingLocationToTightestStatement != null) {
       return;
     }
-    ImmutableSortedMap.Builder<StartingLocation, ASTElement> builder =
-        ImmutableSortedMap.naturalOrder();
+    NavigableMap<StartingLocation, ASTElement> map = new TreeMap<>();
     for (StatementElement element : statementElements) {
       StartingLocation key =
           new StartingLocation(
               element.getCompleteElement().location().getStartColumnInLine(),
               element.getCompleteElement().location().getStartingLineInOrigin());
-      builder.put(key, element.getCompleteElement());
+      map.merge(key, element.getCompleteElement(), (a, b) -> tighter(a, b, Function.identity()));
     }
-    startingLocationToTightestStatement = builder.buildOrThrow();
+    startingLocationToTightestStatement = ImmutableSortedMap.copyOfSorted(map);
   }
 
   public Optional<ASTElement> getTightestStatementForStarting(int pLine, OptionalInt pColumn) {
@@ -525,17 +543,32 @@ public final class AstCfaRelation {
 
     return FluentIterable.from(statements.build())
         .transformAndConcat(ASTElement::edges)
-        .filter(
-            edge ->
-                getCalledFunction(edge)
-                    .flatMap(this::getClosingParenthesisOfFunctionCall)
-                    .filter(
-                        parenthesis ->
-                            parenthesis.getStartingLineInOrigin() == pLine
-                                && (pColumn.isEmpty()
-                                    || parenthesis.getStartColumnInLine() == pColumn.orElseThrow()))
-                    .isPresent())
+        .filter(edge ->
+            getCalledFunction(edge)
+                .flatMap(this::getClosingParenthesisOfFunctionCall)
+                .filter(parenthesis ->
+                    parenthesis.getStartingLineInOrigin() == pLine
+                        && (pColumn.isEmpty()
+                            || parenthesis.getStartColumnInLine() == pColumn.orElseThrow()))
+                .isPresent())
         .toSet();
+  }
+
+  /**
+   * Returns the column of the first closing parenthesis of a function call in the given line, which
+   * is where a waypoint at a call without a column points to.
+   */
+  public OptionalInt getColumnOfFirstCallInLine(int pLine) {
+    return FluentIterable.from(getEdgesOfCallsWithClosingParenthesisAt(pLine, OptionalInt.empty()))
+        .transform(AstCfaRelation::getCalledFunction)
+        .filter(Optional::isPresent)
+        .transform(call -> getClosingParenthesisOfFunctionCall(call.orElseThrow()))
+        .filter(Optional::isPresent)
+        .transform(Optional::orElseThrow)
+        .filter(parenthesis -> parenthesis.getStartingLineInOrigin() == pLine)
+        .stream()
+        .mapToInt(FileLocation::getStartColumnInLine)
+        .min();
   }
 
   /** Returns the tightest statement that contains the given line and column. */
@@ -623,9 +656,8 @@ public final class AstCfaRelation {
    */
   public String getNameInInputProgram(CFANode pNode, String pName) {
     return getVariablesAndParametersInScope(pNode)
-        .flatMap(
-            variables ->
-                variables.firstMatch(variable -> variable.getName().equals(pName)).toJavaUtil())
+        .flatMap(variables ->
+            variables.firstMatch(variable -> variable.getName().equals(pName)).toJavaUtil())
         .map(AbstractSimpleDeclaration::getOrigName)
         .orElse(pName);
   }
@@ -708,14 +740,13 @@ public final class AstCfaRelation {
    */
   public Optional<FileLocation> getStatementStartingAtNode(CFANode pNode) {
     return getStatementFileLocationForNode(pNode)
-        .filter(
-            location -> {
-              ASTElement statement =
-                  startingLocationToTightestStatement.get(
-                      new StartingLocation(
-                          location.getStartColumnInLine(), location.getStartingLineInOrigin()));
-              return statement != null && statement.startNodes().contains(pNode);
-            });
+        .filter(location -> {
+          ASTElement statement =
+              startingLocationToTightestStatement.get(
+                  new StartingLocation(
+                      location.getStartColumnInLine(), location.getStartingLineInOrigin()));
+          return statement != null && statement.startNodes().contains(pNode);
+        });
   }
 
   public Optional<ImmutableSet<AVariableDeclaration>> getGlobalVariables() {

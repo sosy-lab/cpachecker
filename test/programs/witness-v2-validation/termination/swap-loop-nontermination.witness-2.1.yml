@@ -1,0 +1,58 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.1"
+    uuid: "bc5ce021-670b-4f6a-83fd-d708db7c37cc"
+    creation_time: "2026-11-16T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/swap-loop-nontermination.c"
+      input_file_hashes:
+        "../../simple/witness_validation/swap-loop-nontermination.c": "19a1b9bb2b159482a1f43b08f8eb2c7e11a4bef35ff5e1d404a7c0291ebde3aa"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "assumption"
+            action: "follow"
+            constraint:
+              value: "x != y"
+              format: "c_expression"
+            location:
+              file_name: "../../simple/witness_validation/swap-loop-nontermination.c"
+              line: 14
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/swap-loop-nontermination.c"
+              line: 14
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "false"
+            location:
+              file_name: "../../simple/witness_validation/swap-loop-nontermination.c"
+              line: 18
+              column: 5
+              function: "main"

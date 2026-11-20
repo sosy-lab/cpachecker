@@ -195,13 +195,12 @@ public class ConcurrentCPA extends AbstractSingleWrapperCPA {
                       s -> checkNotNull((ConcurrentState) s).getWrappedState(), stateProjection),
                   fullState);
 
-          return result.map(
-              r ->
-                  new PrecisionAdjustmentResult(
-                      pConcurrentState.withWrappedState(r.abstractState()),
-                      pConcurrentPrecision.replaceWrappedPrecision(
-                          r.precision(), Predicates.instanceOf(r.precision().getClass())),
-                      r.action()));
+          return result.map(r ->
+              new PrecisionAdjustmentResult(
+                  pConcurrentState.withWrappedState(r.abstractState()),
+                  pConcurrentPrecision.replaceWrappedPrecision(
+                      r.precision(), Predicates.instanceOf(r.precision().getClass())),
+                  r.action()));
         };
   }
 

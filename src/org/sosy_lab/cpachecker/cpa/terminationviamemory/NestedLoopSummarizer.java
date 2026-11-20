@@ -114,7 +114,7 @@ public class NestedLoopSummarizer {
    * iterated loop and the path reaches the iterated head first.
    */
   private boolean leavesLoopAfter(
-      ImmutableList<LoopHeadVisit> pVisits, int pVisit, int pLast, ImmutableList<CFANode> pPath) {
+      ImmutableList<LoopHeadVisit> pVisits, int pVisit, int pLast, PathSequence pPath) {
     LoopHeadVisit visit = pVisits.get(pVisit);
     Set<CFANode> loopNodes =
         from(cfa.getLoopStructure()
@@ -124,7 +124,8 @@ public class NestedLoopSummarizer {
             .toSet();
     for (int i = pVisit + 1; i <= pLast; i++) {
       if (pVisits.get(i).loopHead().equals(visit.loopHead())) {
-        return !loopNodes.containsAll(pPath.subList(visit.pathIndex(), pVisits.get(i).pathIndex()));
+        return !pPath.allNodesMatch(
+            visit.pathIndex(), pVisits.get(i).pathIndex(), loopNodes::contains);
       }
     }
     return true;
@@ -201,15 +202,14 @@ public class NestedLoopSummarizer {
       Set<String> pEndsInSummary,
       String pSummary) {
     ImmutableMap.Builder<String, Formula> exits = ImmutableMap.builder();
-    pModifiedVariables.forEach(
-        (variable, type) -> {
-          int endIndex = getIndex(pEnd, variable);
-          exits.put(
-              variable,
-              getIndex(pEntry, variable) == endIndex && pEndsInSummary.add(variable)
-                  ? fmgr.makeVariable(type, variable, endIndex + 1)
-                  : fmgr.makeVariable(type, getExitName(variable, pSummary)));
-        });
+    pModifiedVariables.forEach((variable, type) -> {
+      int endIndex = getIndex(pEnd, variable);
+      exits.put(
+          variable,
+          getIndex(pEntry, variable) == endIndex && pEndsInSummary.add(variable)
+              ? fmgr.makeVariable(type, variable, endIndex + 1)
+              : fmgr.makeVariable(type, getExitName(variable, pSummary)));
+    });
     return exits.buildOrThrow();
   }
 
@@ -270,9 +270,8 @@ public class NestedLoopSummarizer {
       Set<String> pModifiedProgramVariables,
       String pSummary) {
     Map<Formula, Formula> entryToExit = new HashMap<>();
-    pExits.forEach(
-        (variable, exit) ->
-            entryToExit.put(makeEntryVariable(variable, fmgr.getFormulaType(exit), pEntry), exit));
+    pExits.forEach((variable, exit) ->
+        entryToExit.put(makeEntryVariable(variable, fmgr.getFormulaType(exit), pEntry), exit));
     // The substitution covers only variables, so UFs, e.g., of a heap without SMT arrays, are
     // renamed
     return fmgr.renameFreeVariablesAndUFs(

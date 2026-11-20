@@ -25,7 +25,7 @@
       <option value="org.checkerframework.checker.nullness.qual.NonNull" />
     </instrumentedNotNulls>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_21" project-jdk-name="21" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_25" project-jdk-name="25" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/classes" />
   </component>
   <component name="SvnBranchConfigurationManager">

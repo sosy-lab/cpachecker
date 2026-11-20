@@ -182,26 +182,24 @@ public class FunctionGraph {
                 .filter(e -> current.getEdges().contains(e)) // all call edges in this block
                 .transformAndConcat(e -> e.getPredecessor().getAllLeavingEdges())
                 .filter(e -> e instanceof CFunctionSummaryEdge) // the corresponding summary edges
-                .transformAndConcat(
-                    se ->
-                        se.getSuccessor()
-                            .getAllEnteringEdges()
-                            .filter(re -> !(re instanceof CFunctionSummaryEdge)))
+                .transformAndConcat(se ->
+                    se.getSuccessor()
+                        .getAllEnteringEdges()
+                        .filter(re -> !(re instanceof CFunctionSummaryEdge)))
                 .toSet(); // the corresponding return edge
 
         // visit all the blocks that contain such an edge
         Iterables.addAll(
             waitlist,
             FluentIterable.from(graph.getNodes())
-                .filter(
-                    n -> {
-                      for (CFAEdge e : returnEdges) {
-                        if (n.getEdges().contains(e)) {
-                          return true;
-                        }
-                      }
-                      return false;
-                    }));
+                .filter(n -> {
+                  for (CFAEdge e : returnEdges) {
+                    if (n.getEdges().contains(e)) {
+                      return true;
+                    }
+                  }
+                  return false;
+                }));
 
       } else {
         Iterables.addAll(waitlist, graph.getSuccessorsOf(current));

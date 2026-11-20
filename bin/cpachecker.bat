@@ -74,10 +74,10 @@ IF NOT [%1]==[] (
     SET JAVA_STACK_SIZE=%2
     SHIFT
   ) ELSE IF [%1]==[--jvm-debug] (
-    SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
+    SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
   ) ELSE IF [%1]==[-debug] (
     ECHO Argument '-debug' is deprecated, we recommend replacing with '--jvm-debug'.
-    SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
+    SET "JAVA_VM_ARGUMENTS=%JAVA_VM_ARGUMENTS% -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
   ) ELSE IF [%1]==[--disable-java-assertions] (
     SET JAVA_ASSERTIONS=-da
   ) ELSE IF [%1]==[-disable-java-assertions] (

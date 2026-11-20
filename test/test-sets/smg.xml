@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 This run-collection defines run-definitions for all important CPAchecker SMG based configurations
 on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memcleanup and/or no-overflow. 
 -->
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900s" hardtimelimit="1000s" memlimit="15GB" cpuCores="4">
 
   <option name="--heap">10000M</option>
@@ -51,7 +51,6 @@ on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memclea
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
@@ -144,7 +143,6 @@ on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memclea
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
@@ -237,7 +235,6 @@ on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memclea
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
@@ -331,7 +328,6 @@ on SV-COMP 2027 tasks defining verdicts for valid-memsafety and/or valid-memclea
     </tasks>
     <tasks name="C.unreach-call.ControlFlow">
       <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-      <includesfile>../programs/benchmarks/Sanity.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="C.unreach-call.ECA">
