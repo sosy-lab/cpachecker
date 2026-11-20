@@ -1339,6 +1339,20 @@ def _handle_result(
 
     handle_special_files(resultZipFile, files, output_path)
 
+    missing_result_files = vcloudutil.find_missing_result_files(
+        expected_result_file_names,
+        files,
+    )
+    if missing_result_files:
+        logging.error(
+            "Run %s: %d result file(s) missing: %s",
+            run_identifier,
+            len(missing_result_files),
+            sorted(missing_result_files),
+        )
+        if handle_missing_result_files:
+            handle_missing_result_files(missing_result_files)
+
     # extract result files:
     if result_files_patterns:
         result_files = set()
@@ -1348,21 +1362,6 @@ def _handle_result(
 
         if result_files:
             resultZipFile.extractall(output_path, result_files)
-
-        missing_result_files = vcloudutil.find_missing_result_files(
-            expected_result_file_names,
-            result_files,
-            include_file=lambda name: name not in SPECIAL_RESULT_FILES,
-        )
-        if missing_result_files:
-            logging.error(
-                "Run %s: %d result file(s) missing: %s",
-                run_identifier,
-                len(missing_result_files),
-                sorted(missing_result_files),
-            )
-            if handle_missing_result_files:
-                handle_missing_result_files(missing_result_files)
 
     return return_value
 

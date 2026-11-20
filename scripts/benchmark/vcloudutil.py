@@ -16,27 +16,20 @@ sys.dont_write_bytecode = True  # prevent creation of .pyc files
 RESULT_FILE_NAMES = "resultFileNames"
 
 
-def find_missing_result_files(expected_names, actual_files, *, include_file=None):
+def find_missing_result_files(expected_names, actual_files):
     """Determine which of the expected result files of a run were not received.
 
     @param expected_names: the value of the run attribute RESULT_FILE_NAMES, i.e.,
         the comma-separated names of the result files that the worker collected,
         or None if the worker did not report it
     @param actual_files: the names of the received result files (any iterable)
-    @param include_file: optional predicate that returns False for expected names
-        that the caller handles separately and that are thus not part of actual_files
     @return: the set of missing file names (empty if all files were received),
-        or None if the check is not possible. Older workers report only the number
-        of result files, which is not reliable for this purpose because it also
-        counts files that are stored separately by the client.
+        or None if the check is not possible.
     """
     if expected_names is None:
         return None
-    expected_files = {
-        name
-        for name in expected_names.split(",")
-        if name and (include_file is None or include_file(name))
-    }
+    expected_files = set(expected_names.split(","))
+    expected_files.discard("")
     return expected_files.difference(actual_files)
 
 

@@ -257,7 +257,13 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     def _handle_run_info(values):
         nonlocal run_info_present
         run_info_present = True
-        result_values.update(vcloudutil.parse_vcloud_run_result(values.items()))
+        result_values.update(
+            vcloudutil.parse_vcloud_run_result(
+                (key, value)
+                for key, value in values.items()
+                if key != vcloudutil.RESULT_FILE_NAMES
+            )
+        )
 
     def _handle_host_info(values):
         nonlocal host_info_present
