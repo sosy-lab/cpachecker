@@ -99,7 +99,7 @@ while [ $# -gt 0 ]; do
        echo "Argument '-debug' is deprecated, we recommend replacing with '--jvm-debug'."
        ;&
    "--jvm-debug")
-       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
        ;;
    "-disable-java-assertions")
        echo "Argument '-disable-java-assertions' is deprecated, we recommend replacing with '--disable-java-assertions'."
