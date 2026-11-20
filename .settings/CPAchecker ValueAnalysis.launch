@@ -20,5 +20,5 @@ SPDX-License-Identifier: Apache-2.0
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="--valueAnalysis&#10;&quot;${file_prompt:the C program to verify:${workspace_loc}/${project_path}/doc/examples/example.c}&quot;"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Xmx1200m"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;--enable-native-access=ALL-UNNAMED&#10;-Xmx1200m"/>
 </launchConfiguration>
