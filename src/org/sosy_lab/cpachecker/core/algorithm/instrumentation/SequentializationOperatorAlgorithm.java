@@ -480,11 +480,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     ImmutableSet<CFANode> loopHeads = pLoop.getLoopHeads();
     return loopHeads.stream().anyMatch(head -> head instanceof CFALabelNode)
         && !pLoop.getIncomingEdges().stream()
-            .allMatch(
-                edge ->
-                    edge.getSuccessor() instanceof CFALabelNode labelNode
-                        && loopHeads.contains(labelNode)
-                        && isEdgeOfLabel(edge, labelNode));
+            .allMatch(edge ->
+                edge.getSuccessor() instanceof CFALabelNode labelNode
+                    && loopHeads.contains(labelNode)
+                    && isEdgeOfLabel(edge, labelNode));
   }
 
   private static int getLineAfterFunctionHead(CFANode pNode) {
@@ -845,24 +844,22 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     // The parts of the statement computed by earlier edges, e.g., calls in 'return f(x);'
     boolean computedBefore =
         pReturnEdge.getPredecessor().getEnteringEdges().stream()
-            .anyMatch(
-                edge ->
-                    !(edge instanceof BlankEdge)
-                        && edge.getFileLocation().isRealLocation()
-                        && edge.getFileLocation().getStartingLineInOrigin() == line);
+            .anyMatch(edge ->
+                !(edge instanceof BlankEdge)
+                    && edge.getFileLocation().isRealLocation()
+                    && edge.getFileLocation().getStartingLineInOrigin() == line);
     boolean accessesMemory =
         pReturnEdge.getRawAST().orElse(null) instanceof CReturnStatement returnStatement
             && returnStatement.getReturnValue().isPresent()
             && CFAUtils.traverseRecursively(returnStatement.getReturnValue().orElseThrow())
-                .anyMatch(
-                    node ->
-                        node instanceof CPointerExpression
-                            || node instanceof CArraySubscriptExpression
-                            || (node instanceof CFieldReference fieldReference
-                                && fieldReference.isPointerDereference())
-                            // Function calls are replaced by temporary variables
-                            || (node instanceof CIdExpression idExpression
-                                && idExpression.getName().contains("__CPAchecker_TMP")));
+                .anyMatch(node ->
+                    node instanceof CPointerExpression
+                        || node instanceof CArraySubscriptExpression
+                        || (node instanceof CFieldReference fieldReference
+                            && fieldReference.isPointerDereference())
+                        // Function calls are replaced by temporary variables
+                        || (node instanceof CIdExpression idExpression
+                            && idExpression.getName().contains("__CPAchecker_TMP")));
     if (!computedBefore && !accessesMemory) {
       return Optional.empty();
     }
@@ -914,9 +911,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
             && declaration.getCStorageClass() == CStorageClass.AUTO
             && !declaration.getName().contains("__CPAchecker_TMP")) {
           getScopeOfDeclaration(edge)
-              .ifPresent(
-                  scope ->
-                      candidates.put(declaration.getQualifiedName(), Pair.of(declaration, scope)));
+              .ifPresent(scope ->
+                  candidates.put(declaration.getQualifiedName(), Pair.of(declaration, scope)));
         }
       }
     }
@@ -1288,7 +1284,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     for (NormalLoopInfo info : pLoopInfos) {
       Map<String, String> liveVariablesOfFunction =
           liveVariablesOfFunctions.computeIfAbsent(
-              getFunctionOfLoop(info), function -> new LinkedHashMap<>());
+              getFunctionOfLoop(info), _ -> new LinkedHashMap<>());
       info.liveVariablesAndTypes().forEach(liveVariablesOfFunction::putIfAbsent);
     }
     return ImmutableMap.copyOf(

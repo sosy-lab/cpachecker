@@ -95,10 +95,9 @@ public class LoopInfoUtils {
         }
       }
       liveVariables.removeAll(variablesDeclaredInsideLoop);
-      liveVariables.removeIf(
-          e ->
-              e.contains("::")
-                  && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
+      liveVariables.removeIf(e ->
+          e.contains("::")
+              && Iterables.get(Splitter.on("::").split(e), 1).startsWith("__CPAchecker_TMP_"));
 
       // If there are multiple for-loops with multiple declarations of the same loop variable,
       // for example, i, calling pCProgramScope.lookupVariable(i) throws an exception.
@@ -390,11 +389,9 @@ public class LoopInfoUtils {
       decomposedStructs
           .get(pPreprocessedType)
           .entrySet()
-          .forEach(
-              e ->
-                  temp.put(
-                      e.getKey().replace(EXPRESSION_PLACEHOLDER, pPreprocessedVariable),
-                      e.getValue()));
+          .forEach(e ->
+              temp.put(
+                  e.getKey().replace(EXPRESSION_PLACEHOLDER, pPreprocessedVariable), e.getValue()));
     }
 
     return expandArrays(ImmutableMap.copyOf(temp));

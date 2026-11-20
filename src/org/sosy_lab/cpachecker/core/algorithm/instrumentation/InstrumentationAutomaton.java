@@ -158,14 +158,13 @@ public class InstrumentationAutomaton {
     return operation.replace(
         "__INSTR_init_read_write_vars();",
         liveVariablesAndTypes.entrySet().stream()
-            .map(
-                (entry) ->
-                    "int read_INSTR_"
-                        + entry.getKey()
-                        + " = 0; "
-                        + "int write_INSTR_"
-                        + entry.getKey()
-                        + " = 0; ")
+            .map(entry ->
+                "int read_INSTR_"
+                    + entry.getKey()
+                    + " = 0; "
+                    + "int write_INSTR_"
+                    + entry.getKey()
+                    + " = 0; ")
             .collect(Collectors.joining("; ")));
   }
 
@@ -188,18 +187,17 @@ public class InstrumentationAutomaton {
         operation.replace(
             "__INSTR_init_in_scope();",
             variables.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            entry.getValue()
-                                + " __INSTR_"
-                                + entry.getKey()
-                                + "_"
-                                + index
-                                + (initializeGhostVars
-                                    ? (" = "
-                                        + getDereferencesForPointer(entry.getValue())
-                                        + entry.getKey())
-                                    : ""))
+                    .map(entry ->
+                        entry.getValue()
+                            + " __INSTR_"
+                            + entry.getKey()
+                            + "_"
+                            + index
+                            + (initializeGhostVars
+                                ? (" = "
+                                    + getDereferencesForPointer(entry.getValue())
+                                    + entry.getKey())
+                                : ""))
                     .collect(Collectors.joining("; "))
                 + (!variables.isEmpty() ? "; " : ""));
     return operation;
@@ -219,17 +217,16 @@ public class InstrumentationAutomaton {
         operation.replace(
             "__INSTR_assume_in_scope()",
             liveVariablesAndTypes.entrySet().stream()
-                .map(
-                    (entry) ->
-                        "("
-                            + getDereferencesForPointer(entry.getValue())
-                            + entry.getKey()
-                            + " != __INSTR_"
-                            + getDereferencesForPointer(entry.getValue())
-                            + entry.getKey()
-                            + "_"
-                            + index
-                            + ")")
+                .map(entry ->
+                    "("
+                        + getDereferencesForPointer(entry.getValue())
+                        + entry.getKey()
+                        + " != __INSTR_"
+                        + getDereferencesForPointer(entry.getValue())
+                        + entry.getKey()
+                        + "_"
+                        + index
+                        + ")")
                 .collect(Collectors.joining("||")));
     return operation;
   }
@@ -248,15 +245,14 @@ public class InstrumentationAutomaton {
         operation.replace(
             "__INSTR_assign_in_scope();",
             liveVariablesAndTypes.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            " __INSTR_"
-                                + entry.getKey()
-                                + "_"
-                                + index
-                                + " = "
-                                + getDereferencesForPointer(entry.getValue())
-                                + entry.getKey())
+                    .map(entry ->
+                        " __INSTR_"
+                            + entry.getKey()
+                            + "_"
+                            + index
+                            + " = "
+                            + getDereferencesForPointer(entry.getValue())
+                            + entry.getKey())
                     .collect(Collectors.joining("; "))
                 + (!liveVariablesAndTypes.isEmpty() ? ";" : ""));
     return operation;
