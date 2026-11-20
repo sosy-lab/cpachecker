@@ -1,0 +1,1221 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.automaton;
+
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.THREAD_ID_VAR_NAME;
+import static org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.getThreadIdAssignment;
+
+import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Optionals;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.ALLCPAQuery;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckClosestFullExpressionMatchesColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEntersElement;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckMatchesColumnAndLine;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesElement;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CParserUtils;
+import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
+import org.sosy_lab.cpachecker.util.ast.IfElement;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
+
+/**
+ * Parser building a witness automaton from a violation witness in one of the YAML witness format
+ * versions 2.0, 2.1 or 2.2.
+ *
+ * <p>The three versions differ only by a handful of features. Instead of modelling each version
+ * with its own subclass, this parser stores the {@link YAMLWitnessVersion} it was created for and
+ * asks a set of {@code supports...} feature predicates whether a given feature may be used. This
+ * keeps the shared logic in a single place and makes the version-specific behavior explicit at the
+ * point where it matters.
+ *
+ * <p><pMore information about the witness format can be found in the <a
+ * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/user-guide/Witness-Format.md">Witnesses
+ * Format</a>.
+ *
+ * <p>In addition, the properties supported by each witness version are primarily relevant for the
+ * SV-COMP competition and therefore kept track in the SV-COMP documentation: <a
+ * href="https://sv-comp.sosy-lab.org/2027/rules.php">SV-COMP 2027 Rules</a>.
+ */
+public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
+
+  private final YAMLWitnessVersion version;
+  private final CParser cparser;
+  private final ParserTools parserTools;
+
+  public static String THREAD_ID_QUERY = "checkCurrentThreadId==";
+
+  AutomatonWitnessViolationV2Parser(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA,
+      YAMLWitnessVersion pVersion)
+      throws InvalidConfigurationException {
+    super(pConfig, pLogger, pShutdownNotifier, pCFA);
+    version = pVersion;
+    cparser =
+        CParser.Factory.getParser(
+            /*
+             * FIXME: Use normal logger as soon as CParser supports parsing
+             * expression trees natively, such that we can remove the workaround
+             * with the undefined __CPAchecker_ACSL_return dummy function that
+             * causes warnings to be logged.
+             */
+            LogManager.createNullLogManager(),
+            CParser.Factory.getOptions(pConfig),
+            pCFA.getMachineModel(),
+            pShutdownNotifier);
+    parserTools = ParserTools.create(ExpressionTrees.newFactory(), pCFA.getMachineModel(), pLogger);
+  }
+
+  // ===========================================================================
+  // Feature predicates: which features of the YAML witness format are supported
+  // by the witness version this parser was created for.
+  // ===========================================================================
+
+  /**
+   * Cycle (lasso) waypoints, used to describe liveness violations, are available from witness
+   * version 2.1 on. Without them a witness can only describe a single reachability target.
+   */
+  private boolean supportsCycleWaypoints() {
+    return version != YAMLWitnessVersion.V2;
+  }
+
+  /**
+   * Multiple target waypoints in a single segment are used to describe data races, where two memory
+   * accesses have to be reached without a fixed order. This is a witness version 2.2 feature.
+   */
+  private boolean supportsMultipleTargetWaypoints() {
+    return version == YAMLWitnessVersion.V2d2;
+  }
+
+  /**
+   * Function-enter waypoints are required to validate violation witnesses for concurrent programs,
+   * since e.g. {@code pthread_create} needs a dedicated action to track the created thread. This is
+   * a witness version 2.2 feature.
+   */
+  private boolean supportsFunctionEnterWaypoints() {
+    return version == YAMLWitnessVersion.V2d2;
+  }
+
+  /**
+   * Per-waypoint thread identifiers, used to validate violation witnesses for concurrent programs,
+   * are a witness version 2.2 feature.
+   */
+  private boolean supportsThreadIdentifiers() {
+    return version == YAMLWitnessVersion.V2d2;
+  }
+
+  // ===========================================================================
+  // Waypoint handlers
+  // ===========================================================================
+
+  /**
+   * Restricts the given trigger of a waypoint to the thread the waypoint belongs to. Waypoints
+   * without a thread identifier, and witnesses whose version does not {@link
+   * #supportsThreadIdentifiers() know about thread identifiers} at all, are returned unchanged.
+   *
+   * <p>Which thread is currently active is not something the witness automaton can decide by
+   * looking at the CFA edge, so the check is delegated to the {@link
+   * org.sosy_lab.cpachecker.cpa.threading.ThreadingCPA} by querying it. As a consequence, an
+   * analysis that does not track threads at all cannot evaluate the resulting expression. This is
+   * intentional: it is how {@link org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm} learns
+   * that the task is concurrent and that it needs to continue with a configuration which can handle
+   * concurrency.
+   *
+   * <p>The location is checked first, so that edges which do not match the waypoint at all are
+   * rejected without waiting for the states of the other CPAs.
+   */
+  private AutomatonBoolExpr restrictToThread(AutomatonBoolExpr pTrigger, OptionalInt pThreadId) {
+    if (!supportsThreadIdentifiers() || pThreadId.isEmpty()) {
+      return pTrigger;
+    }
+    return new And(pTrigger, new ALLCPAQuery(THREAD_ID_QUERY + pThreadId.orElseThrow()));
+  }
+
+  /**
+   * The waitlist strategy behind {@code analysis.traversal.byAutomatonVariable} pops the state with
+   * the <em>highest</em> value of the variable first, so the value has to grow as the witness is
+   * followed. We therefore store the negated distance, just like {@link AutomatonGraphmlParser}
+   * does.
+   */
+  protected AutomatonAction distanceToViolationAction(int pDistanceToViolation) {
+    return new AutomatonAction.Assignment(
+        AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+        new AutomatonIntExpr.Constant(-pDistanceToViolation));
+  }
+
+  protected AutomatonTransition.Builder distanceToViolation(
+      AutomatonTransition.Builder pBuilder, int pDistance) {
+    return pBuilder.withActions(ImmutableList.of(distanceToViolationAction(pDistance)));
+  }
+
+  /**
+   * Handles a target waypoint
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param threadId the thread the target belongs to, if the witness names one
+   * @param pDistanceToViolation the distance to the violation
+   * @param transitions of the automaton that we extended by transition for given waypoint
+   * @param automatonStates that we extended by the target state
+   */
+  protected void handleTarget(
+      String nextStateId,
+      Integer followLine,
+      OptionalInt followColumn,
+      OptionalInt threadId,
+      Integer pDistanceToViolation,
+      String currentStateId,
+      ImmutableList.Builder<AutomatonTransition> transitions,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates) {
+    // The violation points to the largest full expression which produces the error.
+    //
+    // TODO: Currently we only deal with statements as targets. In the future we may want to
+    //  consider the full expression more closely.
+    ASTElement tightestStatementForStarting =
+        cfa.getAstCfaRelation()
+            .getTightestStatementForStarting(followLine, followColumn)
+            .orElseThrow();
+    AutomatonBoolExpr expr =
+        restrictToThread(
+            new Or(
+                new CheckMatchesColumnAndLine(
+                    tightestStatementForStarting.location().getStartColumnInLine(), followLine),
+                new CheckClosestFullExpressionMatchesColumnAndLine(
+                    followColumn, followLine, cfa.getAstCfaRelation())),
+            threadId);
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
+
+    // When we match the target state we want to enter the error location immediately
+    transitionBuilder = transitionBuilder.withAssertion(createViolationAssertion());
+
+    // We need to copy the target information such that CPAchecker returns the correct information
+    // for the violated property. If this is not set it will return "WitnessAutomaton"
+    AutomatonTransition transition =
+        new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(transitionBuilder);
+
+    transitions.add(transition);
+    // Add the state directly, since we are exiting the loop afterward
+    automatonStates.add(
+        new AutomatonInternalState(
+            currentStateId,
+            transitions.build(),
+            /* pIsTarget= */ false,
+            /* pAllTransitions= */ false,
+            /* pIsCycleStart= */ false));
+  }
+
+  /**
+   * Handle a state which is not the last in the automaton the same way a target state is handled.
+   * This is useful when dealing with data-race witnesses which have multi-target segments.
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param threadId the thread the target belongs to, if the witness names one
+   * @param pDistanceToViolation the distance to the violation
+   * @param transitions of the automaton that we extended by transition for given waypoint
+   */
+  protected void handleIntermediateTarget(
+      String nextStateId,
+      Integer followLine,
+      OptionalInt followColumn,
+      OptionalInt threadId,
+      Integer pDistanceToViolation,
+      ImmutableList.Builder<AutomatonTransition> transitions) {
+    // The violation points to the largest full expression which produces the error.
+    //
+    // TODO: Currently we only deal with statements as targets. In the future we may want to
+    //  consider the full expression more closely.
+    ASTElement tightestStatementForStarting =
+        cfa.getAstCfaRelation()
+            .getTightestStatementForStarting(followLine, followColumn)
+            .orElseThrow();
+    AutomatonBoolExpr expr =
+        restrictToThread(
+            new Or(
+                new CheckMatchesColumnAndLine(
+                    tightestStatementForStarting.location().getStartColumnInLine(), followLine),
+                new CheckClosestFullExpressionMatchesColumnAndLine(
+                    // Check the full expression location
+                    followColumn, followLine, cfa.getAstCfaRelation())),
+            threadId);
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
+
+    // We need to copy the target information such that CPAchecker returns the correct information
+    // for the violated property. If this is not set it will return "WitnessAutomaton"
+    transitions.add(transitionBuilder.build());
+  }
+
+  /**
+   * Create automaton transitions matching an assumption waypoint
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param enterElement the element in the AST that should be entered in order to pass this
+   *     waypoint
+   * @param function the function in which the waypoint is valid
+   * @param pDistanceToViolation the distance to the violation
+   * @param constraint the constraint
+   * @param transitions of the automaton that we extended by transition for given waypoint
+   * @throws InterruptedException if the function call is interrupted
+   * @throws WitnessParseException if the constraint cannot be parsed
+   */
+  protected void handleAssumption(
+      String nextStateId,
+      ASTElement enterElement,
+      int followLine,
+      OptionalInt threadId,
+      String function,
+      Integer pDistanceToViolation,
+      String constraint,
+      ImmutableList.Builder<AutomatonTransition> transitions)
+      throws InterruptedException, WitnessParseException {
+
+    // The semantics of the witnesses V2 imply that every assumption waypoint should be
+    // valid before the sequence statement it points to. Due to the semantics of the format:
+    // "An assumption waypoint is evaluated at the sequence point immediately before the
+    // waypoint location. The waypoint is passed if the given constraint evaluates to true."
+    // Therefore, we need the Reaches Offset guard.
+    //
+    // Since it can happen that an assumption is directly after a function return
+    // like for the witness `test/programs/concurrency/concurrent-unreach.witness-2.2.yml`
+    // it can happen that reaches is not evaluated correctly and is never passed.
+    // For such a case we have the enters as a backup which puts the assumption after the edge.
+    //
+    // Note that this will be problematic if there is an assumption and a branching
+    // waypoint at the same location directly after a function call.
+    AutomatonBoolExpr expr =
+        restrictToThread(
+            new AutomatonBoolExpr.Or(
+                new CheckReachesElement(enterElement), new CheckEntersElement(enterElement)),
+            threadId);
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
+
+    handleConstraint(constraint, Optional.ofNullable(function), followLine, transitionBuilder);
+
+    transitions.add(transitionBuilder.build());
+  }
+
+  /**
+   * Transform a branching waypoint into automata transitions
+   *
+   * @param pAstCfaRelation the relation between the CFA and ast to find out which if statement is
+   *     being considered
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param pDistanceToViolation the distance to the violation
+   * @param pBranchToFollow which branch to follow, if true the if branch is followed
+   * @param transitions of the automaton that we extended by transition for given waypoint
+   */
+  protected void handleFollowWaypointAtStatement(
+      AstCfaRelation pAstCfaRelation,
+      String nextStateId,
+      OptionalInt followColumn,
+      Integer followLine,
+      OptionalInt threadId,
+      Integer pDistanceToViolation,
+      Boolean pBranchToFollow,
+      ImmutableList.Builder<AutomatonTransition> transitions)
+      throws WitnessParseException {
+    Verify.verifyNotNull(pAstCfaRelation);
+    Optional<IfElement> optionalIfStructure =
+        pAstCfaRelation.getIfStructureFollowingColumnAtTheSameLine(followLine, followColumn);
+    Optional<IterationElement> optionalIterationStructure =
+        pAstCfaRelation.getIterationStructureFollowingColumnAtTheSameLine(followColumn, followLine);
+
+    // This is the case for ternary operators, which are expressions and therefore not covered by if
+    // or iteration structures which only cover statements.
+    Optional<ASTElement> astElement =
+        pAstCfaRelation.getTightestStatementForStarting(followLine, followColumn);
+
+    Optional<List<AutomatonTransition>> newTransitions;
+    if (optionalIfStructure.isEmpty()
+        && optionalIterationStructure.isEmpty()
+        && astElement.isEmpty()) {
+      logger.log(
+          Level.INFO, "Could not find an element corresponding to the waypoint, skipping it");
+      return;
+    }
+
+    Set<CFANode> nodesCondition;
+    Set<CFANode> nodesThenBranch;
+    Set<CFANode> nodesElseBranch;
+
+    if (optionalIfStructure.isPresent()) {
+      IfElement ifElement = optionalIfStructure.orElseThrow();
+      nodesCondition = ifElement.getConditionNodes().toSet();
+      try {
+        nodesThenBranch = ifElement.getNodesBetweenConditionAndThenBranch();
+        nodesElseBranch = ifElement.getNodesBetweenConditionAndElseBranch();
+      } catch (BoundaryNodesComputationFailed e) {
+        logger.logDebugException(e, "Could not compute the nodes between the condition and branch");
+        return;
+      }
+
+    } else if (optionalIterationStructure.isPresent()) {
+      IterationElement iterationElement = optionalIterationStructure.orElseThrow();
+      nodesCondition = iterationElement.getControllingExpressionNodes().toSet();
+      try {
+        nodesThenBranch = iterationElement.getNodesBetweenConditionAndBody();
+        nodesElseBranch = iterationElement.getNodesBetweenConditionAndExit();
+      } catch (BoundaryNodesComputationFailed e) {
+        logger.logDebugException(e, "Could not compute the nodes between the condition and branch");
+        return;
+      }
+    } else if (astElement.isPresent()) {
+      // Ternary operator case, we cannot currently distinguish between then and else branch.
+      // Therefore, we first check if we are really in a ternary operator, by checking if we
+      // have assume edges at this location, and if so, we throw an exception that we cannot
+      // support this.
+      //
+      // Else we could not find a proper if or iteration structure, but we have a statement
+      // here, to continue with validating the witness we just log this and skip the waypoint.
+      // This does not conform to the witness spec, but will be complete, i.e., we will not
+      // miss violations due to this.
+      ImmutableList<CAssumeEdge> edges =
+          FluentIterable.from(astElement.orElseThrow().edges()).filter(CAssumeEdge.class).toList();
+
+      if (edges.isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "Could not find a "
+                + "statement corresponding to the location at line "
+                + followLine
+                + " and column "
+                + followColumn
+                + " of the statement, skipping it");
+        return;
+      }
+
+      throw new WitnessParseException(
+          "Ternary operators as branching waypoints are currently not supported!");
+
+    } else {
+      throw new AssertionError("This should never happen");
+    }
+
+    // When the condition is empty we still want to be able to pass the waypoint
+    Set<CFANode> adaptedNodesCondition =
+        nodesCondition.isEmpty()
+            ? FluentIterable.from(nodesThenBranch)
+                .append(nodesElseBranch)
+                .transformAndConcat(CFAUtils::allPredecessorsOf)
+                .toSet()
+            : nodesCondition;
+
+    AutomatonBoolExpr condition =
+        restrictToThread(
+            new CheckPassesThroughNodes(
+                adaptedNodesCondition, pBranchToFollow ? nodesThenBranch : nodesElseBranch),
+            threadId);
+    AutomatonTransition followBranchTransition =
+        distanceToViolation(
+                new AutomatonTransition.Builder(condition, nextStateId), pDistanceToViolation)
+            .build();
+
+    // Add break state for the other branch, since we don't want to explore it.
+    // This is restricted to the same thread as well, since another thread taking the other branch
+    // must not cut off the path described by the witness.
+    AutomatonBoolExpr negatedCondition =
+        restrictToThread(
+            new CheckPassesThroughNodes(
+                adaptedNodesCondition, !pBranchToFollow ? nodesThenBranch : nodesElseBranch),
+            threadId);
+    AutomatonTransition avoidBranchTransition =
+        new AutomatonTransition.Builder(negatedCondition, AutomatonInternalState.BOTTOM).build();
+
+    newTransitions = Optional.of(ImmutableList.of(followBranchTransition, avoidBranchTransition));
+    if (newTransitions.orElseThrow().isEmpty()) {
+      logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
+      return;
+    }
+    transitions.addAll(newTransitions.orElseThrow());
+  }
+
+  /**
+   * Transform a function enter into automata transitions.
+   *
+   * <p>Function-enter waypoints are only supported by witnesses that {@link
+   * #supportsFunctionEnterWaypoints() support them}; for older versions this method always throws.
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param threadId the thread that performs the call, if the witness names one
+   * @param pPthreadFunctionEnterWaypoint the identifier that the created thread has in the witness
+   * @param pDistanceToViolation the distance to the violation
+   * @param startLineToCFAEdge a mapping from the start line to the CFA edge
+   * @throws WitnessParseException if this waypoint is not supported
+   */
+  protected void handleFunctionEnter(
+      String nextStateId,
+      Integer followLine,
+      OptionalInt followColumn,
+      OptionalInt threadId,
+      Integer pPthreadFunctionEnterWaypoint,
+      Integer pDistanceToViolation,
+      Multimap<Integer, CFAEdge> startLineToCFAEdge,
+      ImmutableList.Builder<AutomatonTransition> transitions)
+      throws WitnessParseException {
+    if (!supportsFunctionEnterWaypoints()) {
+      throw new WitnessParseException("We currently do not support function enter waypoints.");
+    }
+
+    // Find out the edge which corresponds to this statement, it can either be a CFunctionCallEdge
+    // or a CStatementEdge
+    ImmutableSet<CFAEdge> inputEdges =
+        findFunctionEnterEdge(
+            followLine, followColumn, startLineToCFAEdge, cfa.getAstCfaRelation());
+
+    if (inputEdges.isEmpty()) {
+      throw new WitnessParseException(
+          "No CFAEdge could be matched for the function enter waypoint passing line "
+              + followLine
+              + " and column "
+              + followColumn);
+    }
+
+    // If we are matching a `pthread_create` function call we need to handle this specially
+    // to be able to correctly validate violation witnesses for concurrent programs,
+    // since they need to have an action to set the thread id of the creating thread.
+    // Note that the value of that variable only records how far the witness has progressed; the
+    // identifiers that the thread check below compares against are derived from the order in which
+    // threads are created, cf. ThreadingTransferRelation#strengthen.
+    AutomatonBoolExpr expr =
+        restrictToThread(
+            new CheckPassesThroughNodes(
+                transformedImmutableSetCopy(inputEdges, CFAEdge::getPredecessor),
+                transformedImmutableSetCopy(inputEdges, CFAEdge::getSuccessor)),
+            threadId);
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder.withActions(
+        ImmutableList.of(
+            getThreadIdAssignment(pPthreadFunctionEnterWaypoint),
+            distanceToViolationAction(pDistanceToViolation)));
+
+    transitions.add(transitionBuilder.build());
+  }
+
+  /**
+   * Finds the CFA edge corresponding to a function-enter waypoint.
+   *
+   * <p>The matching edge is either a {@link FunctionCallEdge} or an {@link AStatementEdge}
+   * containing a function call. The edges on the given line are sorted by their column so that the
+   * first one matching the requested column is returned.
+   *
+   * @param followLine the line the waypoint should pass through
+   * @param followColumn the column the waypoint should pass through, if given
+   * @param startLineToCFAEdge mapping from start lines to the CFA edges starting there
+   * @param pAstCfaRelation the relation between the CFA and the AST, used to locate the call
+   * @return the matching edge, or {@link Optional#empty()} if no edge matches
+   */
+  private static ImmutableSet<CFAEdge> findFunctionEnterEdge(
+      Integer followLine,
+      OptionalInt followColumn,
+      Multimap<Integer, CFAEdge> startLineToCFAEdge,
+      AstCfaRelation pAstCfaRelation) {
+    // We sort the edges by their column, so we can take the first one which matches the given
+    // column
+    ImmutableSet.Builder<CFAEdge> foundEdges = ImmutableSet.builder();
+    for (CFAEdge edge :
+        FluentIterable.from(startLineToCFAEdge.get(followLine))
+            .toSortedList(
+                Comparator.comparingInt(
+                    pCFAEdge -> pCFAEdge.getFileLocation().getStartColumnInLine()))) {
+      // Not a function call so we skip it
+      Optional<AFunctionCallExpression> functionCall = getCalledFunction(edge);
+      if (functionCall.isEmpty()) {
+        continue;
+      }
+
+      // If the column does not match we continue by not matching this edge
+      if (followColumn.isPresent()) {
+        OptionalInt columnOfCall =
+            pAstCfaRelation.getColumnOfFunctionCallParenthesis(functionCall.orElseThrow());
+        if (columnOfCall.isEmpty() || columnOfCall.orElseThrow() != followColumn.orElseThrow()) {
+          continue;
+        }
+      }
+
+      foundEdges.add(edge);
+    }
+
+    return foundEdges.build();
+  }
+
+  /** Returns the function called by the given edge, if it is a function call at all. */
+  private static Optional<AFunctionCallExpression> getCalledFunction(CFAEdge pEdge) {
+    return switch (pEdge) {
+      case FunctionCallEdge functionCallEdge ->
+          Optional.of(functionCallEdge.getFunctionCallExpression());
+      case AStatementEdge statementEdge
+          when statementEdge.getStatement() instanceof AFunctionCall functionCall ->
+          Optional.of(functionCall.getFunctionCallExpression());
+      default -> Optional.empty();
+    };
+  }
+
+  /**
+   * Transform a function return into automata transitions
+   *
+   * @param nextStateId the id of the next state in the automaton being constructed
+   * @param followLine the line at which the target is
+   * @param followColumn the column at which the target is
+   * @param pDistanceToViolation the distance to the violation
+   * @param constraint the constraint on the return value of the function. It can be null, which
+   *     means that returning from the function is the relevant aspect
+   * @param startLineToCFAEdge a mapping from the start line to the CFA edge
+   * @throws InterruptedException if the function call is interrupted
+   */
+  protected void handleFunctionReturn(
+      String nextStateId,
+      Integer followLine,
+      OptionalInt followColumn,
+      OptionalInt threadId,
+      Integer pDistanceToViolation,
+      @Nullable String constraint,
+      Multimap<Integer, CFAEdge> startLineToCFAEdge,
+      ImmutableList.Builder<AutomatonTransition> transitions)
+      throws InterruptedException {
+
+    // TODO: Handle missing columns properly here
+    AutomatonBoolExpr expr =
+        restrictToThread(
+            new And(
+                new CheckCoversColumnAndLine(followColumn.orElseThrow(), followLine),
+                // Edges which correspond to blocks in the code, like function declaration edges and
+                // iteration statement edges may fulfill the condition, but are not always desired.
+                new IsStatementEdge()),
+            threadId);
+
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(expr, nextStateId);
+    transitionBuilder = distanceToViolation(transitionBuilder, pDistanceToViolation);
+
+    // This is basically a special case of an assumption waypoint.
+    for (AStatementEdge edge :
+        FluentIterable.from(startLineToCFAEdge.get(followLine)).filter(AStatementEdge.class)) {
+      // The syntax of the witness V2 describes that the return statement must point to the
+      // closing bracket of the function whose return statement is being considered
+      AStatement statement = edge.getStatement();
+      FileLocation statementLocation = statement.getFileLocation();
+      int columnOfClosingBracketInFunctionCall = statementLocation.getEndColumnInLine() - 1;
+      if (columnOfClosingBracketInFunctionCall != followColumn.orElseThrow()
+          || statement.getFileLocation().getEndingLineInOrigin() != followLine) {
+        continue;
+      }
+
+      if (statement instanceof AFunctionCallAssignmentStatement functionCallStatement) {
+        Set<String> constraints = new HashSet<>();
+        if (constraint != null) {
+          constraints.add(constraint);
+        }
+
+        Scope scope =
+            switch (cfa.getLanguage()) {
+              case C -> new CProgramScope(cfa, logger);
+              default -> DummyScope.getInstance();
+            };
+
+        List<AExpression> expressions;
+        try {
+          expressions =
+              CParserUtils.convertStatementsToAssumptions(
+                  CParserUtils.parseStatements(
+                      constraints,
+                      Optional.ofNullable(
+                          functionCallStatement
+                              .getRightHandSide()
+                              .getFunctionNameExpression()
+                              .toString()),
+                      cparser,
+                      scope,
+                      parserTools),
+                  cfa.getMachineModel(),
+                  logger);
+        } catch (InvalidAutomatonException e) {
+          logger.logDebugException(e, "Could not parse the constraint for the function return");
+          continue;
+        }
+        transitionBuilder.withAssumptions(expressions);
+        break;
+      }
+    }
+
+    transitions.add(transitionBuilder.build());
+  }
+
+  // ===========================================================================
+  // Segmentation and validity checks
+  // ===========================================================================
+
+  /**
+   * Separate the entries into segments whose waypoints should be passed one after the other.
+   *
+   * <p>Witnesses that {@link #supportsMultipleTargetWaypoints() support multiple targets per
+   * segment} may group several follow waypoints into a single segment, all others allow at most one
+   * follow or cycle waypoint per segment.
+   *
+   * @param pViolationEntry the violation entry to segmentize
+   * @return the segmentized entries
+   */
+  @Override
+  ImmutableList<PartitionedWaypoints> segmentize(ViolationSequenceEntry pViolationEntry)
+      throws InvalidYAMLWitnessException {
+    if (supportsMultipleTargetWaypoints()) {
+      return segmentizeAllowingMultipleFollows(pViolationEntry);
+    }
+    return super.segmentize(pViolationEntry);
+  }
+
+  private ImmutableList<PartitionedWaypoints> segmentizeAllowingMultipleFollows(
+      ViolationSequenceEntry pViolationEntry) throws InvalidYAMLWitnessException {
+    ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
+
+    for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
+      boolean containsCycle = false;
+      boolean containsFollowOrCycle = false;
+      ImmutableList.Builder<WaypointRecord> avoids = new ImmutableList.Builder<>();
+      ImmutableList.Builder<WaypointRecord> follows = new ImmutableList.Builder<>();
+      for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+        if (waypoint.getAction().equals(WaypointAction.AVOID)) {
+          avoids.add(waypoint);
+        } else {
+          if (containsCycle) {
+            throw new InvalidYAMLWitnessException(
+                "Witnesses in version 2.2 can contain at most one follow or cycle waypoint per"
+                    + " segment!");
+          }
+          containsFollowOrCycle = true;
+          if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
+            follows.add(waypoint);
+          } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
+            containsCycle = true;
+            // TODO: It is a bug to build it here, since there may be avoid
+            //  waypoints which are not collected
+            segments.add(new PartitionedWaypoints(avoids.build(), waypoint));
+          }
+        }
+      }
+      if (!containsFollowOrCycle) {
+        throw new InvalidYAMLWitnessException(
+            "Every segment in witness version 2.1 must contain follow or cycle waypoint!");
+      }
+      segments.add(new PartitionedWaypoints(follows.build(), avoids.build()));
+    }
+    return segments.build();
+  }
+
+  @Override
+  protected void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
+      throws InvalidYAMLWitnessException {
+    if (!supportsMultipleTargetWaypoints()) {
+      super.checkTargetIsAtEnd(pLatest, pNumTargetWaypoints);
+      return;
+    }
+
+    // Witnesses supporting multiple targets per segment (data races) may contain up to two target
+    // waypoints, which both have to be at the end of the witness.
+    switch (pNumTargetWaypoints) {
+      case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
+      case 1, 2 -> {
+        if (pLatest != null && !pLatest.getType().equals(WaypointType.TARGET)) {
+          throw new InvalidYAMLWitnessException("Target waypoint is not at the end in witness V2!");
+        }
+      }
+      default ->
+          throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
+    }
+  }
+
+  /**
+   * Separate the entries into segments and check whether the witness is valid for its version.
+   *
+   * @param pEntries the entries to segmentize
+   * @return the segmentized entries
+   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
+   */
+  private ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
+      throws InvalidYAMLWitnessException {
+    ViolationSequenceEntry violationEntry = getViolationSequence(pEntries);
+    ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
+    if (supportsCycleWaypoints()) {
+      checkCycleOrTargetAtEnd(violationEntry);
+    } else {
+      checkTarget(violationEntry);
+    }
+    return segmentizedEntries;
+  }
+
+  protected ViolationSequenceEntry getViolationSequence(List<AbstractEntry> pEntries)
+      throws InvalidYAMLWitnessException {
+    if (pEntries.size() != 1) {
+      throw new InvalidYAMLWitnessException(
+          "A witness in YAML format can have only one violation sequence !");
+    }
+    return (ViolationSequenceEntry) pEntries.getFirst();
+  }
+
+  // ===========================================================================
+  // Automaton construction
+  // ===========================================================================
+
+  protected void handleMultiTargetWaypoints(
+      List<WaypointRecord> pWaypointRecords,
+      String nextStateId,
+      String currentStateId,
+      Integer pDistanceToViolation,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates) {
+    // Formally there is no ordering between the waypoints at the same segment.
+    // However, since CPAchecker is an interleaving based tool, all the interleavings
+    // are explicitly set in the ARG. Therefore, we can just check the multi-follow
+    // target waypoints, by first checking one, and then the other, so we need
+    // to branch in the automaton for this.
+
+    WaypointRecord firstWaypoint = pWaypointRecords.getFirst();
+    WaypointRecord secondWaypoint = pWaypointRecords.get(1);
+
+    ImmutableList.Builder<AutomatonTransition> currentStateTransitions =
+        new ImmutableList.Builder<>();
+
+    // First do waypoint1 then waypoint2
+    followFirstWaypointWithSecondAsTarget(
+        nextStateId,
+        pDistanceToViolation,
+        automatonStates,
+        "SI1-" + nextStateId,
+        firstWaypoint,
+        secondWaypoint,
+        currentStateTransitions);
+
+    // then do waypoint2 then waypoint1
+    followFirstWaypointWithSecondAsTarget(
+        nextStateId,
+        pDistanceToViolation,
+        automatonStates,
+        "SI2-" + nextStateId,
+        secondWaypoint,
+        firstWaypoint,
+        currentStateTransitions);
+
+    automatonStates.add(
+        new AutomatonInternalState(
+            currentStateId,
+            currentStateTransitions.build(),
+            /* pIsTarget= */ false,
+            /* pAllTransitions= */ false,
+            /* pIsCycleStart= */ false));
+  }
+
+  private void followFirstWaypointWithSecondAsTarget(
+      String pNextStateId,
+      Integer pDistanceToViolation,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates,
+      String pIntermediateState,
+      WaypointRecord firstWaypoint,
+      WaypointRecord secondWaypoint,
+      ImmutableList.Builder<AutomatonTransition> currentStateTransitions) {
+
+    // The two waypoints of a multi-follow segment are unordered, so there must be no preference
+    // between the two.
+    handleIntermediateTarget(
+        pIntermediateState,
+        firstWaypoint.getLocation().getLine(),
+        firstWaypoint.getLocation().getColumn(),
+        firstWaypoint.getThread(),
+        pDistanceToViolation + 1,
+        currentStateTransitions);
+
+    handleTarget(
+        pNextStateId,
+        secondWaypoint.getLocation().getLine(),
+        secondWaypoint.getLocation().getColumn(),
+        secondWaypoint.getThread(),
+        pDistanceToViolation,
+        pIntermediateState,
+        new ImmutableList.Builder<>(),
+        automatonStates);
+  }
+
+  /** Whether any waypoint of the witness names the thread it belongs to. */
+  private static boolean referencesThreads(List<PartitionedWaypoints> pSegments) {
+    for (PartitionedWaypoints segment : pSegments) {
+      if (FluentIterable.concat(
+              segment.follow().orElse(ImmutableList.of()),
+              Optionals.asSet(segment.cycle()),
+              segment.avoids())
+          .anyMatch(w -> w.getThread().isPresent())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
+      throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
+    List<PartitionedWaypoints> segments = segmentizeAndCheck(pEntries);
+    // this needs to be called exactly WitnessAutomaton for the option
+    // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
+    final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
+
+    int stateCounter = 0;
+    final String initState = getStateName(stateCounter++);
+
+    final ImmutableList.Builder<AutomatonInternalState> automatonStates =
+        new ImmutableList.Builder<>();
+
+    // Add the bottom state so that avoid waypoints, which enter it by name, can be resolved.
+    automatonStates.add(AutomatonInternalState.BOTTOM);
+
+    String currentStateId = initState;
+
+    int distance = segments.size() - 1;
+    Optional<String> cycleHeadName = Optional.empty();
+    Integer pthreadFunctionEnterWaypoint = 1;
+
+    ImmutableMap.Builder<String, AutomatonVariable> automatonVariablesBuilder =
+        new ImmutableMap.Builder<>();
+    automatonVariablesBuilder.put(
+        AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+        AutomatonVariable.createAutomatonVariable(
+            /* pType= */ "int",
+            AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+            // negated, cf. distanceToViolationAction; the initial state is the farthest away
+            Integer.toString(-segments.size())));
+
+    // Declaring this variable is what tells the ThreadingCPA to keep track of the identifiers by
+    // which the witness refers to threads, cf. ThreadingTransferRelation#strengthen. It has to be
+    // decided for the witness as a whole, since a waypoint naming a thread may appear in any
+    // segment, including the last one.
+    if (supportsThreadIdentifiers() && referencesThreads(segments)) {
+      automatonVariablesBuilder.put(
+          THREAD_ID_VAR_NAME,
+          AutomatonVariable.createAutomatonVariable(
+              "int",
+              THREAD_ID_VAR_NAME,
+              // The initial thread always gets the identifier `0`
+              Integer.toString(0)));
+    }
+
+    for (PartitionedWaypoints entry : segments) {
+      ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
+      // We call flow waypoint either cycle or follow waypoint as they ensure flow in the execution
+      List<WaypointRecord> followWaypoints =
+          entry.follow().isPresent()
+              ? entry.follow().orElseThrow()
+              : ImmutableList.of(entry.cycle().orElseThrow());
+      String nextStateId = getStateName(stateCounter++);
+
+      if (followWaypoints.size() > 1) {
+        if (!FluentIterable.from(followWaypoints)
+            .transform(WaypointRecord::getType)
+            .allMatch(type -> type.equals(WaypointType.TARGET))) {
+          throw new WitnessParseException(
+              "Currently we cannot handle multiple non-target follow waypoints in the same"
+                  + " segment.");
+        }
+
+        handleMultiTargetWaypoints(followWaypoints, "X", currentStateId, distance, automatonStates);
+
+        currentStateId = "X";
+        break;
+      }
+
+      WaypointRecord followWaypoint = Iterables.getOnlyElement(followWaypoints);
+      pthreadFunctionEnterWaypoint =
+          handleWaypoints(
+              entry,
+              followWaypoint,
+              transitions,
+              automatonStates,
+              distance,
+              pthreadFunctionEnterWaypoint,
+              nextStateId,
+              currentStateId);
+
+      if (followWaypoint.getType().equals(WaypointType.TARGET)) {
+        if (stateCounter != segments.size() + 1) {
+          throw new WitnessParseException(
+              "In the violation witness the target waypoint is not the last waypoint");
+        }
+        currentStateId = "X";
+        break;
+      }
+
+      if (followWaypoint.getAction().equals(WaypointAction.CYCLE) && cycleHeadName.isEmpty()) {
+        cycleHeadName = Optional.of(currentStateId);
+      }
+
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              transitions.build(),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ currentStateId.equals(
+                  cycleHeadName.isPresent() ? cycleHeadName.orElseThrow() : "")));
+
+      distance--;
+      currentStateId = nextStateId;
+    }
+
+    // If there is no cycle in the witness, it is a reachability witness
+    if (cycleHeadName.isEmpty()) {
+      // add last state and stutter in it:
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                  new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
+                          .withAssertion(createViolationAssertion()))),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    } else {
+      // add last state and a transition to enclose the cycle
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                  new AutomatonTransition.Builder(
+                          AutomatonBoolExpr.TRUE, cycleHeadName.orElseThrow())
+                      .build()),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    }
+
+    Automaton automaton;
+    try {
+      automaton =
+          new Automaton(
+              automatonName,
+              automatonVariablesBuilder.buildKeepingLast(),
+              automatonStates.build(),
+              initState);
+    } catch (InvalidAutomatonException e) {
+      throw new WitnessParseException(
+          "The witness automaton generated from the provided Witness V2 is invalid!", e);
+    }
+
+    automaton =
+        getInvariantsSpecAutomaton().build(automaton, config, logger, shutdownNotifier, cfa);
+
+    dumpAutomatonIfRequested(automaton);
+
+    return automaton;
+  }
+
+  protected Integer handleWaypoints(
+      PartitionedWaypoints pEntry,
+      WaypointRecord follow,
+      ImmutableList.Builder<AutomatonTransition> transitions,
+      ImmutableList.Builder<AutomatonInternalState> automatonStates,
+      int distance,
+      Integer pPthreadFunctionEnterWaypoint,
+      String nextStateId,
+      String currentStateId)
+      throws InterruptedException, WitnessParseException {
+    // TODO: It may be worthwhile to refactor this into the CFA
+    ImmutableListMultimap<Integer, @NonNull CFAEdge> startLineToCFAEdge =
+        FluentIterable.from(cfa.edges())
+            .index(edge -> edge.getFileLocation().getStartingLineInOrigin());
+
+    Integer followLine = follow.getLocation().getLine();
+    OptionalInt followColumn = follow.getLocation().getColumn();
+
+    for (WaypointRecord avoid : pEntry.avoids()) {
+      // Handle all avoid waypoints. They can be handled similarly to follow waypoints, but
+      // instead of going to the next state, they go to the bottom state.
+      switch (avoid.getType()) {
+        case WaypointType.ASSUMPTION ->
+            handleAssumption(
+                AutomatonInternalState.BOTTOM.getName(),
+                cfa.getAstCfaRelation()
+                    .getTightestStatementForStarting(
+                        avoid.getLocation().getLine(), avoid.getLocation().getColumn())
+                    .orElseThrow(),
+                avoid.getLocation().getLine(),
+                avoid.getThread(),
+                avoid.getLocation().getFunction(),
+                distance,
+                avoid.getConstraint().getValue(),
+                transitions);
+        case WaypointType.BRANCHING ->
+            handleFollowWaypointAtStatement(
+                cfa.getAstCfaRelation(),
+                currentStateId,
+                avoid.getLocation().getColumn(),
+                avoid.getLocation().getLine(),
+                avoid.getThread(),
+                distance,
+                // We negate to remain in the same state, the actual branch we want to avoid lands
+                // in the bottom state automatically due to how we handle branching waypoints
+                !Boolean.parseBoolean(avoid.getConstraint().getValue()),
+                transitions);
+        case WaypointType.FUNCTION_RETURN -> {
+          handleFunctionReturn(
+              currentStateId,
+              avoid.getLocation().getLine(),
+              avoid.getLocation().getColumn(),
+              avoid.getThread(),
+              distance,
+              "!(" + avoid.getConstraint().getValue() + ")",
+              startLineToCFAEdge,
+              transitions);
+        }
+        case FUNCTION_ENTER ->
+            // A thread creation that has to be avoided never happens on the path described by the
+            // witness, so it neither advances the automaton nor hands out an identifier for a
+            // thread. The counter is therefore deliberately left untouched.
+            handleFunctionEnter(
+                AutomatonInternalState.BOTTOM.getName(),
+                avoid.getLocation().getLine(),
+                avoid.getLocation().getColumn(),
+                avoid.getThread(),
+                pPthreadFunctionEnterWaypoint,
+                distance,
+                startLineToCFAEdge,
+                transitions);
+        case TARGET ->
+            throw new WitnessParseException("Avoid waypoints of type target are invalid.");
+      }
+    }
+
+    switch (follow.getType()) {
+      case WaypointType.TARGET ->
+          handleTarget(
+              "X",
+              followLine,
+              followColumn,
+              follow.getThread(),
+              distance,
+              currentStateId,
+              transitions,
+              automatonStates);
+      case WaypointType.ASSUMPTION ->
+          handleAssumption(
+              nextStateId,
+              cfa.getAstCfaRelation()
+                  .getTightestStatementForStarting(followLine, followColumn)
+                  .orElseThrow(),
+              followLine,
+              follow.getThread(),
+              follow.getLocation().getFunction(),
+              distance,
+              follow.getConstraint().getValue(),
+              transitions);
+      case WaypointType.BRANCHING ->
+          handleFollowWaypointAtStatement(
+              cfa.getAstCfaRelation(),
+              nextStateId,
+              followColumn,
+              followLine,
+              follow.getThread(),
+              distance,
+              Boolean.parseBoolean(follow.getConstraint().getValue()),
+              transitions);
+      case FUNCTION_ENTER -> {
+        handleFunctionEnter(
+            nextStateId,
+            followLine,
+            followColumn,
+            follow.getThread(),
+            pPthreadFunctionEnterWaypoint,
+            distance,
+            startLineToCFAEdge,
+            transitions);
+        // The thread created here is the next one the witness refers to.
+        pPthreadFunctionEnterWaypoint++;
+      }
+      case WaypointType.FUNCTION_RETURN ->
+          handleFunctionReturn(
+              nextStateId,
+              followLine,
+              followColumn,
+              follow.getThread(),
+              distance,
+              follow.getConstraint().getValue(),
+              startLineToCFAEdge,
+              transitions);
+    }
+    return pPthreadFunctionEnterWaypoint;
+  }
+}

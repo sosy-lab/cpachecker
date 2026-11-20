@@ -7,6 +7,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+extern void abort(void);
+extern void __assert_fail(const char *, const char *, unsigned int,
+                           const char *) __attribute__((__nothrow__, __leaf__))
+__attribute__((__noreturn__));
+
+void reach_error() {
+  __assert_fail("0", "goto_loop_unsafe.c", 16, "reach_error");
+}
+
 int main() {
 
   int x = 5;
@@ -15,9 +24,7 @@ int main() {
     LOOP:
       x--;
     }
-    goto ERROR;
+    reach_error();
   }
   goto LOOP;
-ERROR:
-  return 1;
 }

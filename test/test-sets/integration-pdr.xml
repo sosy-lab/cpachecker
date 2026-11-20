@@ -52,8 +52,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_14.cil.yml</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
@@ -65,8 +63,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-sets/test_add-1.yml</exclude> <!-- flapping timeout -->
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
@@ -88,8 +84,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/*</exclude> <!-- mostly timeouts -->
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
@@ -107,7 +101,5 @@ SPDX-License-Identifier: Apache-2.0
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="--skip-recursion"/>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 </benchmark>

@@ -1,0 +1,86 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Regression test for avoid waypoints of type `function_enter`: this is the data-race
+# witness of `concurrent-data-race.c` with an additional avoid waypoint for the thread
+# creation of the *previous* segment. That creation has already been passed when the
+# segment is entered, so the avoid waypoint can never be reached again and the witness
+# still has to be confirmed. An avoid waypoint that is matched against the location of
+# the follow waypoint of its own segment instead of against its own location would
+# match the second thread creation and wrongly reject this witness.
+
+- entry_type: violation_sequence
+  metadata:
+    format_version: "2.2"
+    uuid: "b2c3d4e5-f6a7-4890-8bcd-ef0123456789"
+    creation_time: "2026-08-21T12:00:00Z"
+    producer:
+      name: "Handcrafted"
+      version: "1.0"
+    task:
+      input_files:
+        - "./concurrent-data-race.c"
+      input_file_hashes:
+        "./concurrent-data-race.c": "85fd508d1da6f285eb1111c4796c8bcbfa117ac42ac8d541cba2a956bd2ae7ca"
+      specification: "G ! data-race"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            # registers t1_func as thread 1 (1st function_enter'd pthread_create)
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 27
+              column: 19
+              function: "main"
+    - segment:
+        - waypoint:
+            # t1_func has already been created in the previous segment, so this
+            # waypoint can never be matched again
+            type: function_enter
+            action: avoid
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 27
+              column: 19
+              function: "main"
+        - waypoint:
+            # registers t2_func as thread 2 (2nd function_enter'd pthread_create)
+            type: function_enter
+            action: follow
+            thread_id: 0
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 28
+              column: 19
+              function: "main"
+    - segment:
+        # multi-follow final segment: the two conflicting accesses (both targets)
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 1
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 16
+              column: 5
+              function: "t1_func"
+        - waypoint:
+            type: target
+            action: follow
+            thread_id: 2
+            location:
+              file_name: "./concurrent-data-race.c"
+              line: 21
+              column: 5
+              function: "t2_func"

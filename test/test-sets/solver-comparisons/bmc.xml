@@ -20,8 +20,6 @@ This tests each solver for their performance in regards to incremental SAT check
 
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
-   <!-- SV-Comp files assume that malloc always succeeds -->
-  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <option name="--bmc"/>
   

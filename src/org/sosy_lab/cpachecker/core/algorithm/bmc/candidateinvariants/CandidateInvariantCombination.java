@@ -262,7 +262,7 @@ public class CandidateInvariantCombination {
             });
   }
 
-  public static Iterable<CandidateInvariant> getConjunctiveParts(
+  public static Set<CandidateInvariant> getConjunctiveParts(
       CandidateInvariant pCandidateInvariant) {
     if (pCandidateInvariant instanceof Combination combination && combination.isConjunction()) {
       return combination.getOperands();

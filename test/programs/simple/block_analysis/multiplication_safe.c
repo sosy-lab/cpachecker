@@ -20,6 +20,9 @@ int __VERIFIER_nondet_int();
 
 int main() {
   int n = __VERIFIER_nondet_int();
+  if(n < 0){
+    return 0;
+  }
   int r = 0;
   for (int i = 1; i <= n; i++) {
     r = r + 2;

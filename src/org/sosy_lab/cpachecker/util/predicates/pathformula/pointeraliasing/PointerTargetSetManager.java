@@ -645,6 +645,10 @@ class PointerTargetSetManager {
 
     // Add alignment constraint
     // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
+    // Note: pType is always a simplified type here (qualifiers removed, cf.
+    // TypeHandlerWithPointerAliasing#simplifyType), so if the original (unsimplified) type was
+    // atomic, the stricter alignment required by C11 for some atomic types (see
+    // MachineModel#getAlignof) is not reflected in this constraint. This is a known imprecision.
     int alignment = 0;
     if (pIsDynamicAllocation) {
       alignment = conv.machineModel.getAlignofMalloc();

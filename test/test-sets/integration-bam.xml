@@ -28,8 +28,6 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="--no-output-files"/>
   <option name="--heap">1500M</option>
-  <!-- SV-Comp files assume that malloc always succeeds -->
-  <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <rundefinition/> <!-- BuildBot does not like names! -->
 
@@ -81,6 +79,20 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">cpa.predicate.refinement.strategy=tree_wellscoped</option>
     <option name="--option">solver.solver=mathsat5</option>
     <option name="--predicateAnalysis-bam-rec"/>
+  </tasks>
+
+
+  <!-- recursive programs for which no state at the exit node of main is computed, cf. #1539 -->
+  <tasks name="predicate_without_main_exit">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+    <option name="--predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_without_main_exit_overflow">
+    <include>../programs/simple/recursion/*.yml</include>
+    <propertyfile>../config/properties/no-overflow.prp</propertyfile>
+    <option name="--predicateAnalysis-bam-rec--overflow"/>
   </tasks>
 
 

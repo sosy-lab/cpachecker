@@ -153,12 +153,12 @@ public record AbortCommutingContextSwitchesInjector(
   }
 
   private ImmutableList<CExpressionAssignmentStatement> buildDensePrevBitVectorUpdates() {
-    return switch (options.partialOrderReductionMode()) {
+    return switch (options.partialOrderReductionPrecision()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build updates for partialOrderReductionMode %s",
-                  options.partialOrderReductionMode()));
+                  "cannot build updates for partialOrderReductionPrecision %s",
+                  options.partialOrderReductionPrecision()));
       case ACCESS_ONLY -> buildDensePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()
@@ -169,12 +169,12 @@ public record AbortCommutingContextSwitchesInjector(
   }
 
   private ImmutableList<CExpressionAssignmentStatement> buildSparsePrevBitVectorUpdates() {
-    return switch (options.partialOrderReductionMode()) {
+    return switch (options.partialOrderReductionPrecision()) {
       case NONE ->
           throw new IllegalArgumentException(
               String.format(
-                  "cannot build updates for partialOrderReductionMode %s",
-                  options.partialOrderReductionMode()));
+                  "cannot build updates for partialOrderReductionPrecision %s",
+                  options.partialOrderReductionPrecision()));
       case ACCESS_ONLY -> buildSparsePrevBitVectorUpdatesByAccessType(SeqMemoryAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<CExpressionAssignmentStatement>builder()

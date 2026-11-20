@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -106,7 +107,11 @@ public record SeqMemoryLocation(
     }
 
     if (functionCallExpression.isPresent()) {
-      name.append("_").append(functionCallExpression.orElseThrow().toASTString());
+      // use the function name since the function call expression contains
+      // invalid characters for a variable name such as the brackets '(...)'
+      CExpression functionNameExpression =
+          functionCallExpression.orElseThrow().getFunctionNameExpression();
+      name.append("_").append(functionNameExpression.toASTString());
     }
 
     return name.toString();
@@ -137,13 +142,15 @@ public record SeqMemoryLocation(
   }
 
   private static CType unwrapPointerAndArrayType(CType pType) {
-    if (pType instanceof CPointerType pointerType) {
+    // canonical types are required so that typedefs of pointers and arrays are unwrapped too
+    CType canonicalType = pType.getCanonicalType();
+    if (canonicalType instanceof CPointerType pointerType) {
       return unwrapPointerAndArrayType(pointerType.getType());
     }
-    if (pType instanceof CArrayType arrayType) {
+    if (canonicalType instanceof CArrayType arrayType) {
       return unwrapPointerAndArrayType(arrayType.getType());
     }
-    return pType;
+    return canonicalType;
   }
 
   public SeqMemoryLocation getFieldOwnerMemoryLocation() {
