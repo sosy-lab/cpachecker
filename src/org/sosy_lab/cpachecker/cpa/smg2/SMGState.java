@@ -7277,7 +7277,8 @@ public class SMGState
       return this;
     }
 
-    // Values not equal, pointer offsets not equal, pointer in between elements, continue traverse
+    // Values not equal, pointer offsets not equal, pointer in between elements, outside pointers
+    // into nested memory, continue traverse
     EqualityCache<Value> eqCache = EqualityCache.of();
     EqualityCache<SMGObject> objectCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
@@ -7300,7 +7301,8 @@ public class SMGState
             nfo,
             nextPointerTargetOffset,
             Optional.of(pfo),
-            Optional.of(prevPointerTargetOffset))) {
+            Optional.of(prevPointerTargetOffset))
+        || !nestedMemoryHasEqualOutsidePointers(root, nextObj, nfo, Optional.of(pfo))) {
       // split lists 3+ -> concrete -> 3+ -> 0 are detected by the abstraction finder and abstracted
       // in 2 calls to this
       return this;
@@ -7506,7 +7508,8 @@ public class SMGState
       return this;
     }
 
-    // Values not equal, ptr offset not equal, or outside pointers to next, continue traverse
+    // Values not equal, ptr offset not equal, or outside pointers to next or into its nested
+    // memory, continue traverse
     EqualityCache<Value> eqCache = EqualityCache.of();
     EqualityCache<SMGObject> objectCache = EqualityCache.of();
     if (!checkEqualValuesForTwoStatesWithExemptions(
@@ -7523,7 +7526,8 @@ public class SMGState
             true)
         || !isPointerTargetOffsetEqualTo(root, nfo, nextPointerTargetOffset)
         || listElementsHaveOutsidePointerInBetween(
-            root, nextObj, nfo, nextPointerTargetOffset, Optional.empty(), Optional.empty())) {
+            root, nextObj, nfo, nextPointerTargetOffset, Optional.empty(), Optional.empty())
+        || !nestedMemoryHasEqualOutsidePointers(root, nextObj, nfo, Optional.empty())) {
       // split lists 3+ -> concrete -> 3+ -> 0 are detected by the abstraction finder and abstracted
       // in 2 calls to this
       return this;
