@@ -804,7 +804,7 @@ class AssignmentQuantifierHandler {
           case SliceConstantIndexModifier constantModifier ->
               fmgr.makeNumber(
                   conv.getFormulaTypeFromType(pointerAsUnsignedIntType), constantModifier.index());
-          case SliceVariableIndexModifier unresolvedModifier ->
+          case SliceVariableIndexModifier _ ->
               throw new IllegalStateException("Cannot apply unresolved modifier to resolved slice");
         };
 

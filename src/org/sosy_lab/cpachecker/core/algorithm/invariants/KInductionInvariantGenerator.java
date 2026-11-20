@@ -200,7 +200,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener =
-      pReason -> invariantGenerationFuture.cancel(true);
+      _ -> invariantGenerationFuture.cancel(true);
 
   public static KInductionInvariantGenerator create(
       final Configuration pConfig,

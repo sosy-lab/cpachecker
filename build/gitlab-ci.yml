@@ -2,7 +2,7 @@
 # a collection of common files and build definitions for Java projects:
 # https://gitlab.com/sosy-lab/software/java-project-template
 #
-# SPDX-FileCopyrightText: 2018-2025 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2018-2026 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -64,6 +64,10 @@ build:jdk-25:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
+build:jdk-27:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-27
+
 
 # For checks that need the binaries
 .check-binaries: &binary_check
@@ -110,9 +114,15 @@ build-ecj:jdk-25:
   <<: *build-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-25
 
+build-ecj:jdk-27:
+  <<: *build-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-27
+
 
 check-format:
   <<: *source_check
+  # google-java-format 1.29.0 and newer need Java 21+
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-21
   script: "ant $ANT_PROPS_CHECKS format-source && git diff -s --exit-code"
 
 checkstyle:
@@ -175,6 +185,13 @@ unit-tests:jdk-25:
     - build-dependencies
     - build:jdk-25
   image: ${CI_REGISTRY_IMAGE}/test:jdk-25
+
+unit-tests:jdk-27:
+  <<: *unit-tests
+  needs:
+    - build-dependencies
+    - build:jdk-27
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-27
 
 
 refaster:
@@ -270,3 +287,9 @@ build-docker:test:jdk-25:
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-25
     IMAGE: /test:jdk-25
+
+build-docker:test:jdk-27:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-27
+    IMAGE: /test:jdk-27

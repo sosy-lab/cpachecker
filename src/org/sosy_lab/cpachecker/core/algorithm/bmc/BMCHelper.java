@@ -262,8 +262,7 @@ public final class BMCHelper {
         pMinIt,
         pMaxIt,
         pLoopHeads,
-        (fromIt, toIt, stateLowerIt, stateUpperIt) ->
-            fromIt <= stateLowerIt && stateLowerIt <= toIt);
+        (fromIt, toIt, stateLowerIt, _) -> fromIt <= stateLowerIt && stateLowerIt <= toIt);
   }
 
   /**

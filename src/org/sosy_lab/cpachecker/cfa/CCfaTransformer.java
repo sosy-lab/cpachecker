@@ -102,7 +102,7 @@ public final class CCfaTransformer {
         pOriginalCfa,
         pCfaMutableNetwork,
         pCfaEdgeAstNodeSubstitution,
-        (cfaNode, astNode) -> astNode);
+        (_, astNode) -> astNode);
   }
 
   /**

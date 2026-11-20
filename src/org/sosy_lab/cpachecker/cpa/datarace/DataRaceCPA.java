@@ -66,7 +66,7 @@ public class DataRaceCPA extends AbstractCPA {
   public StopOperator getStopOperator() {
     // A state with a data race must not be covered by (or merged into) one without, because the
     // specification only sees the data race in the next transfer.
-    return (state, reached, precision) -> {
+    return (state, reached, _) -> {
       boolean hasDataRace = ((DataRaceState) state).hasDataRace();
       return Iterables.any(
           reached, reachedState -> ((DataRaceState) reachedState).hasDataRace() == hasDataRace);

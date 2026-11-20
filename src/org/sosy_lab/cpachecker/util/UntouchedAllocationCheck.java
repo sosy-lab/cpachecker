@@ -178,10 +178,10 @@ final class UntouchedAllocationCheck {
       }
       CFAEdge edge = enteringEdges.first().get();
       switch (backwardsStep(edge, state)) {
-        case DirtyPath foundDirtyPath -> {
+        case DirtyPath _ -> {
           return false;
         }
-        case ConfirmedCleanPath confirmedCleanPath -> {
+        case ConfirmedCleanPath _ -> {
           // Only one path is considered clean yet. We do not need to continue
           // this path, but still have to consider the other paths in the waitlist
         }

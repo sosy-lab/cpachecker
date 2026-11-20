@@ -192,13 +192,13 @@ public final class EdgeDefUseData {
     @Override
     public EdgeDefUseData extract(CFAEdge pEdge) {
       return cache.computeIfAbsent(
-          Equivalence.identity().wrap(pEdge), key -> delegateExtractor.extract(pEdge));
+          Equivalence.identity().wrap(pEdge), _ -> delegateExtractor.extract(pEdge));
     }
 
     @Override
     public EdgeDefUseData extract(CAstNode pAstNode) {
       return cache.computeIfAbsent(
-          Equivalence.identity().wrap(pAstNode), key -> delegateExtractor.extract(pAstNode));
+          Equivalence.identity().wrap(pAstNode), _ -> delegateExtractor.extract(pAstNode));
     }
   }
 

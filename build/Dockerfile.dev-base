@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libfontconfig1 libharfbuzz0b \
   libgomp1 \
   locales \
-  openjdk-21-jre-headless \
+  openjdk-25-jre-headless \
   python3 \
   && rm -rf /var/lib/apt/lists/*
 

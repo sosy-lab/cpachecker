@@ -385,9 +385,7 @@ class PointerTargetSetManager {
     } else {
       mergedTargets =
           merge(
-              pts1.getTargets(),
-              pts2.getTargets(),
-              (key, list1, list2) -> mergeLists(list1, list2));
+              pts1.getTargets(), pts2.getTargets(), (_, list1, list2) -> mergeLists(list1, list2));
     }
     shutdownNotifier.shutdownIfNecessary();
 

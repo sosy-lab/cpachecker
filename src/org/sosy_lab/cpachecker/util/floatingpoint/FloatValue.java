@@ -174,7 +174,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   private FloatValue lookupSqrtT1() {
     return CONSTANTS.computeIfAbsent(
         new ConstantsKey(format, ConstantsName.SQRT_INITIAL_T, 1),
-        (ConstantsKey val) -> fromInteger(format, 48).divideSlow(fromInteger(format, 17)));
+        _ -> fromInteger(format, 48).divideSlow(fromInteger(format, 17)));
   }
 
   /**
@@ -185,7 +185,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   private FloatValue lookupSqrtT2() {
     return CONSTANTS.computeIfAbsent(
         new ConstantsKey(format, ConstantsName.SQRT_INITIAL_T, 2),
-        (ConstantsKey val) -> fromInteger(format, 32).divideSlow(fromInteger(format, 17)));
+        _ -> fromInteger(format, 32).divideSlow(fromInteger(format, 17)));
   }
 
   /**
@@ -2057,7 +2057,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   private static BigInteger factorial(int k, Map<Integer, BigInteger> pFacMap) {
     return pFacMap.computeIfAbsent(
         k,
-        (Integer arg1) -> {
+        _ -> {
           if (k == 0 || k == 1) {
             return BigInteger.ONE;
           }

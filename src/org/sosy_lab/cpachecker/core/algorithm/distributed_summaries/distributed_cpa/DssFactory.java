@@ -219,7 +219,7 @@ public class DssFactory {
               pCFA,
               pOptions.callStackStateRequiresStateReset(),
               TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
-      case CallstackCPA ignored ->
+      case CallstackCPA _ ->
           throw new IllegalArgumentException(
               "Distributed summary synthesis requires DssCallstackCPA instead of CallstackCPA");
       case FunctionPointerCPA functionPointerCPA -> distribute(functionPointerCPA, pBlockNode);
@@ -247,7 +247,7 @@ public class DssFactory {
       case LocationCPA locationCPA ->
           distribute(
               locationCPA, pBlockNode, TypeAndLocationCache.getOrCreateLocationMapping(pCFA));
-      case ControlAutomatonCPA ignored -> null;
+      case ControlAutomatonCPA _ -> null;
       default ->
           throw new IllegalArgumentException(
               "Unsupported CPA type for distribution: " + pCPA.getClass().getCanonicalName());

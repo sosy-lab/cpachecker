@@ -83,7 +83,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
 
       for (CExpression assumption : assumptions) {
         overflowingEdges
-            .computeIfAbsent(mkNot(assumption), unused -> ImmutableSet.builder())
+            .computeIfAbsent(mkNot(assumption), _ -> ImmutableSet.builder())
             .add(nextEdge);
       }
 

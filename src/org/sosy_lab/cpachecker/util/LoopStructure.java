@@ -253,13 +253,13 @@ public final class LoopStructure {
           }
           case CFunctionReturnEdge e when e.getFunctionCall() instanceof CAssignment assignment ->
               getAssignedVariable(assignment.getLeftHandSide()).ifPresent(variables::add);
-          case BlankEdge e -> {}
-          case CAssumeEdge e -> {}
-          case CDeclarationEdge e -> {}
-          case CStatementEdge e -> {}
-          case CFunctionReturnEdge e -> {}
+          case BlankEdge _ -> {}
+          case CAssumeEdge _ -> {}
+          case CDeclarationEdge _ -> {}
+          case CStatementEdge _ -> {}
+          case CFunctionReturnEdge _ -> {}
           // The effects of a call are on its function-call and function-return edges
-          case CFunctionSummaryEdge e -> {}
+          case CFunctionSummaryEdge _ -> {}
           default -> throw new AssertionError("unexpected edge: " + edge);
         }
       }
@@ -276,11 +276,11 @@ public final class LoopStructure {
         case CIdExpression id -> throw new AssertionError("unexpected assignment to " + id);
         case CFieldReference field when !field.isPointerDereference() ->
             getAssignedVariable((CLeftHandSide) field.getFieldOwner());
-        case CFieldReference field -> Optional.empty();
+        case CFieldReference _ -> Optional.empty();
         // TODO: return the variable for arrays that are not parameters once #297 is resolved
-        case CArraySubscriptExpression subscript -> Optional.empty();
+        case CArraySubscriptExpression _ -> Optional.empty();
         case CComplexCastExpression cast -> getAssignedVariable((CLeftHandSide) cast.getOperand());
-        case CPointerExpression pointer -> Optional.empty();
+        case CPointerExpression _ -> Optional.empty();
       };
     }
 

@@ -585,7 +585,7 @@ public class OrderingConsistencyAlgorithm implements Algorithm, StatisticsProvid
       for (MemoryEvent event : pEncoder.getEvents()) {
         if (Boolean.TRUE.equals(model.evaluate(pEncoder.getFullGuard(event)))) {
           enabled.add(event.id());
-          byInstance.computeIfAbsent(event.instanceId(), k -> new ArrayList<>()).add(event);
+          byInstance.computeIfAbsent(event.instanceId(), _ -> new ArrayList<>()).add(event);
         }
       }
 

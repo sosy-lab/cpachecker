@@ -123,7 +123,7 @@ public record NumericValue(Number number) implements Value {
    */
   public BigInteger bigIntegerValue() {
     return switch (number) {
-      case Number unused when hasIntegerType() -> getIntegerValue();
+      case Number _ when hasIntegerType() -> getIntegerValue();
       case Rational rationalValue -> rationalValue.getNum().divide(rationalValue.getDen());
       case Double doubleValue -> FloatValue.fromDouble(doubleValue).integerValue();
       case Float floatValue -> FloatValue.fromFloat(floatValue).integerValue();

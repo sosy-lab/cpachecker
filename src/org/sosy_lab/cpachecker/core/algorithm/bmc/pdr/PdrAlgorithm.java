@@ -825,7 +825,7 @@ public class PdrAlgorithm implements Algorithm {
     if (success) {
       AssertCandidate assertKPredecessors = p -> pTransitionRelation.getPredecessorAssertion(p);
       AssertCandidate assertSuccessorViolation =
-          candidate -> {
+          _ -> {
             Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
                 pTransitionRelation.getSuccessorViolationAssertions(pCandidateInvariant);
             BooleanFormula succViolation =

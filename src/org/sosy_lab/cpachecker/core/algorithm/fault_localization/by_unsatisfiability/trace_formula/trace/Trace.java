@@ -89,7 +89,7 @@ public class Trace extends ForwardingList<TraceAtom> {
           .getSolver()
           .getFormulaManager()
           .extractVariables(traceAtom.formula)
-          .forEach((name, variable) -> {
+          .forEach((name, _) -> {
             Pair<String, OptionalInt> pair = FormulaManagerView.parseName(name);
             if (Objects.requireNonNull(pair.getSecond()).isPresent()
                 && traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())) != null) {
