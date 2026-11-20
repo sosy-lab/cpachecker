@@ -147,6 +147,12 @@ class LoopPatternFinder {
         return Optional.empty();
       }
 
+      if (store.orElseThrow().value().equals(update.orElseThrow().var())) {
+        // the loop variable changes its value in the loop body, we cannot handle it as
+        // initialization value safely for now
+        return Optional.empty();
+      }
+
       // try to extract the bounds of the initialization we found
       AcslPredicate condition = loopCondPredicate.orElseThrow();
       AcslIdTerm index = store.orElseThrow().index();
@@ -256,10 +262,10 @@ class LoopPatternFinder {
   }
 
   private Optional<ArrayStore> extractArrayStore(AcslTerm lhs, AcslTerm rhs) {
-    if (rhs instanceof AcslLiteralTerm
-        && lhs instanceof AcslArraySubscriptTerm arraySubstriptTerm) {
-      if (arraySubstriptTerm.getSubscriptExpression() instanceof AcslIdTerm idt) {
-        return Optional.of(new ArrayStore(arraySubstriptTerm.getArrayExpression(), idt, rhs));
+    if ((rhs instanceof AcslLiteralTerm || rhs instanceof AcslIdTerm)
+        && lhs instanceof AcslArraySubscriptTerm arraySubscriptTerm) {
+      if (arraySubscriptTerm.getSubscriptExpression() instanceof AcslIdTerm idt) {
+        return Optional.of(new ArrayStore(arraySubscriptTerm.getArrayExpression(), idt, rhs));
       }
     }
     return Optional.empty();

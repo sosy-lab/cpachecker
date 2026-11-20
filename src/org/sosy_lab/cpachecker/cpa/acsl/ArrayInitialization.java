@@ -105,7 +105,7 @@ public record ArrayInitialization(
             AcslBinaryPredicateOperator.AND);
     AcslPredicate arrayPred =
         new AcslBinaryTermPredicate(
-            pLoc, arrayAtIndex, value, AcslBinaryTermExpressionOperator.EQUALS);
+            pLoc, arrayAtIndex, value.accept(ssaRemover), AcslBinaryTermExpressionOperator.EQUALS);
 
     AcslPredicate body =
         new AcslBinaryPredicate(
