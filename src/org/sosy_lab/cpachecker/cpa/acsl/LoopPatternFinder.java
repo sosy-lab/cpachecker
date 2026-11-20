@@ -238,12 +238,12 @@ class LoopPatternFinder {
     if (p instanceof AcslBinaryTermPredicate acslP
         && loopCondition instanceof CBinaryExpression cBinaryEx) {
 
-      // TODO find a cleaner way to get rid of SSA indices
-      String o1 = Splitter.on("@").splitToList(acslP.getOperand1().toString()).getFirst();
-      String o2 = Splitter.on("@").splitToList(acslP.getOperand2().toString()).getFirst();
+      AcslRemoveSsaIndexVisitor remover = new AcslRemoveSsaIndexVisitor();
+      String o1 = acslP.getOperand1().accept(remover).toASTString();
+      String o2 = acslP.getOperand2().accept(remover).toASTString();
 
-      if (!(o1.equals(cBinaryEx.getOperand1().toString())
-          && o2.equals(cBinaryEx.getOperand2().toString()))) {
+      if (!(o1.equals(cBinaryEx.getOperand1().toASTString())
+          && o2.equals(cBinaryEx.getOperand2().toASTString()))) {
         return false; // Operands do not match
       }
 
