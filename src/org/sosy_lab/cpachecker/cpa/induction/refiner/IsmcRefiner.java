@@ -207,7 +207,7 @@ public final class IsmcRefiner extends InductionRefiner {
    * abstraction share one sequence, whose last formula is the disjunction of their blocks.
    */
   private void addToFrames(List<ARGState> pSearchTargets)
-      throws CPAException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException {
     ListMultimap<ARGState, ARGState> targetsBehind = ArrayListMultimap.create();
     Map<ARGState, Integer> deepest = new LinkedHashMap<>();
     for (ARGState target : pSearchTargets) {
