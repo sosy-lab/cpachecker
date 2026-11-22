@@ -142,8 +142,7 @@ class LoopPatternFinder {
     if (store.isEmpty() || update.isEmpty() || loopCondPredicate.isEmpty()) {
       return Optional.empty();
     } else {
-      if (!indexMatchesEveryWhere(
-          store.orElseThrow(), update.orElseThrow(), loopCondPredicate.orElseThrow())) {
+      if (!indexMatchesEveryWhere(store.orElseThrow(), update.orElseThrow())) {
         return Optional.empty();
       }
 
@@ -194,8 +193,7 @@ class LoopPatternFinder {
     }
   }
 
-  private boolean indexMatchesEveryWhere(
-      ArrayStore pArrayStore, ScalarUpdate pScalarUpdate, AcslPredicate pAcslPredicate) {
+  private boolean indexMatchesEveryWhere(ArrayStore pArrayStore, ScalarUpdate pScalarUpdate) {
     if (!isSameVariable(pArrayStore.index(), pScalarUpdate.var())) {
       return false;
     }
@@ -239,8 +237,7 @@ class LoopPatternFinder {
 
   private boolean predicateMatchesLoopCondition(AcslPredicate p, CExpression loopCondition) {
     // TODO: I know these checks on a String level are ugly but there is no translation between
-    // CExpressions and Acsl that I know of and I cannot be bothered to write that, too until I have
-    // a proof of concept that works
+    // CExpressions and Acsl that I know of
     if (p instanceof AcslBinaryTermPredicate acslP
         && loopCondition instanceof CBinaryExpression cBinaryEx) {
 
