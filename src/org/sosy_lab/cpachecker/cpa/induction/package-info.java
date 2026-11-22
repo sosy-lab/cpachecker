@@ -9,7 +9,7 @@
 /**
  * A CPA that decides at which loop-head visits the predicate analysis abstracts and where induction
  * steps start, so that refiners can express BMC, k-induction, IMC, ISMC, PDR, predicate analysis
- * and PredK as instances of one CEGAR loop.
+ * and ReCEGAR as instances of one CEGAR loop.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

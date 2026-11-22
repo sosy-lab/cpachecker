@@ -13,7 +13,7 @@
 ; The loop is left with x being 15 if y is even and 16 if it is odd, so the check
 ; is violated in both cases. The amount of loop iterations which are needed to
 ; reach the violation is not a multiple of the induction k, which makes this task
-; a regression test for the induction step of predk: it may only assume an error
+; a regression test for the induction step of ReCEGAR: it may only assume an error
 ; away if the error is checked at some other point of the induction.
 
 (set-logic QF_NIA)

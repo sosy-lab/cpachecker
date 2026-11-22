@@ -85,7 +85,7 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * The common part of the refiners of the PredK framework. The refiner gets everything the
+ * The common part of the refiners of the ReCEGAR framework. The refiner gets everything the
  * exploration reached and checks the targets and cut-offs in batches of SAT queries, as the native
  * algorithms do. Only if neither a counterexample is found nor the states are unreachable, the
  * concrete refiner changes the precision, always lazily.

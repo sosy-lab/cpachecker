@@ -2428,16 +2428,16 @@ cpa.induction.refinement.pdr.bmcFallback = false
 # check the targets whose paths contain no abstraction at a loop head with
 # one SAT query, as BMC does, and remove the unreachable ones without
 # interpolation
-cpa.induction.refinement.predk.checkConcreteTargetsAsBmc = false
+cpa.induction.refinement.recegar.checkConcreteTargetsAsBmc = false
 
 # refine a spurious target of an induction step by interpolation. Otherwise,
 # the induction step gets longer, as in k-induction.
-cpa.induction.refinement.predk.interpolateInductionSteps = true
+cpa.induction.refinement.recegar.interpolateInductionSteps = true
 
 # raise k at a loop head whose predicates mostly describe single visits,
 # which moves its abstractions apart. Otherwise, the refinement only adds the
 # predicates.
-cpa.induction.refinement.predk.moveApartForSingleVisits = true
+cpa.induction.refinement.recegar.moveApartForSingleVisits = true
 
 # let the predicate analysis allocate the memory again at every abstraction
 # in an induction step, as the step case of native k-induction starts with an
