@@ -7,6 +7,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # add new commits on top
+bd60745fb0b4f7b02d004fcf2f947165129672bc # Rename PredK into ReCEGAR
 9ff5a4b1b0f0db0cfa9d23a372a98653e4c2e18c # reformat with Google Java Format 2.0
 84c3cfc9ae30a51c662e9d0258a71183f946e61f # Move SMT-LIB related code into its own package
 fc6386038c8706477a939cc9340b5b2f2c28ab18 # Move specification ast classes for SV-LIB into another package
