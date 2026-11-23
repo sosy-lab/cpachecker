@@ -71,7 +71,7 @@ public final class LogicalNot<ConstantType> implements BooleanFormula<ConstantTy
     if (this == o) {
       return true;
     }
-    return o instanceof LogicalNot && getNegated().equals(((LogicalNot<?>) o).getNegated());
+    return o instanceof LogicalNot<?> logicalNot && getNegated().equals(logicalNot.getNegated());
   }
 
   @Override

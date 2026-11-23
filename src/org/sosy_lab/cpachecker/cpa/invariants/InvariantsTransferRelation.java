@@ -513,8 +513,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         CExpression actualParam = actualParamIterator.next();
         NumeralFormula<CompoundInterval> actualParamFormula =
             actualParam.accept(getExpressionToFormulaVisitor(summaryEdge, pElement));
-        if (actualParamFormula instanceof Variable) {
-          MemoryLocation actualParamName = ((Variable<?>) actualParamFormula).getMemoryLocation();
+        if (actualParamFormula instanceof Variable<?> variable) {
+          MemoryLocation actualParamName = variable.getMemoryLocation();
           String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
           String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
           for (Entry<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> entry :

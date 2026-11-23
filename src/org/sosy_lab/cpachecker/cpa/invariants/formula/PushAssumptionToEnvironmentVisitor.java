@@ -139,8 +139,8 @@ public class PushAssumptionToEnvironmentVisitor
     if (pParameter.getValue()) {
       NumeralFormula<CompoundInterval> op1 = pEqual.getOperand1();
       NumeralFormula<CompoundInterval> op2 = pEqual.getOperand2();
-      if (op1 instanceof Variable) {
-        MemoryLocation memoryLocation = ((Variable<?>) op1).getMemoryLocation();
+      if (op1 instanceof Variable<?> variable) {
+        MemoryLocation memoryLocation = variable.getMemoryLocation();
         NumeralFormula<CompoundInterval> previous = environment.get(memoryLocation);
         environment.put(memoryLocation, op2);
         if (previous != null
@@ -149,8 +149,8 @@ public class PushAssumptionToEnvironmentVisitor
           environment.put(memoryLocation, previous);
         }
       }
-      if (op2 instanceof Variable) {
-        MemoryLocation memoryLocation = ((Variable<?>) op2).getMemoryLocation();
+      if (op2 instanceof Variable<?> variable) {
+        MemoryLocation memoryLocation = variable.getMemoryLocation();
         NumeralFormula<CompoundInterval> previous = environment.get(memoryLocation);
         environment.put(memoryLocation, op1);
         if (previous != null
@@ -167,12 +167,12 @@ public class PushAssumptionToEnvironmentVisitor
     // Try to push an exclusion
     NumeralFormula<CompoundInterval> op1 = pEqual.getOperand1();
     NumeralFormula<CompoundInterval> op2 = pEqual.getOperand2();
-    if (op1 instanceof Variable) {
-      MemoryLocation memoryLocation = ((Variable<?>) op1).getMemoryLocation();
+    if (op1 instanceof Variable<?> variable) {
+      MemoryLocation memoryLocation = variable.getMemoryLocation();
       environment.putIfAbsent(memoryLocation, compoundIntervalFormulaManager.exclude(op2));
     }
-    if (op2 instanceof Variable) {
-      MemoryLocation memoryLocation = ((Variable<?>) op2).getMemoryLocation();
+    if (op2 instanceof Variable<?> variable) {
+      MemoryLocation memoryLocation = variable.getMemoryLocation();
       environment.putIfAbsent(memoryLocation, compoundIntervalFormulaManager.exclude(op1));
     }
 

@@ -1867,9 +1867,9 @@ public class AutomatonGraphmlParser {
       throws UnrecognizedCodeException {
 
     CExpression cExpr = pInvariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
-    if (pInvariant instanceof LeafExpression<?>) {
+    if (pInvariant instanceof LeafExpression<?> leafExpression) {
       // we must swap the c expression when assume truth is false
-      if (!((LeafExpression<?>) pInvariant).assumeTruth()) {
+      if (!leafExpression.assumeTruth()) {
         cExpr =
             new CBinaryExpressionBuilder(cfa.getMachineModel(), logger)
                 .negateExpressionAndSimplify(cExpr);

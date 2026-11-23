@@ -128,9 +128,8 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   private void addStatistics(Waitlist pWaitlist) {
-    if (pWaitlist instanceof AbstractSortedWaitlist) {
-      Map<String, StatInt> delegCount =
-          ((AbstractSortedWaitlist<?>) pWaitlist).getDelegationCounts();
+    if (pWaitlist instanceof AbstractSortedWaitlist<?> abstractSortedWaitlist) {
+      Map<String, StatInt> delegCount = abstractSortedWaitlist.getDelegationCounts();
 
       for (Entry<String, StatInt> e : delegCount.entrySet()) {
         String key = e.getKey();

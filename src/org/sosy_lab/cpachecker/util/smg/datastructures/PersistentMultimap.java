@@ -106,8 +106,8 @@ public class PersistentMultimap<K, V> implements Serializable {
 
   @Override
   public boolean equals(Object o) {
-    return o instanceof PersistentMultimap
-        && delegate.equals(((PersistentMultimap<?, ?>) o).delegate);
+    return o instanceof PersistentMultimap<?, ?> persistentMultimap
+        && delegate.equals(persistentMultimap.delegate);
   }
 
   @Override

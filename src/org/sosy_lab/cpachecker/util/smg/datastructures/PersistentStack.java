@@ -83,7 +83,8 @@ public class PersistentStack<T> implements Iterable<T>, Serializable {
 
   @Override
   public boolean equals(Object o) {
-    return o instanceof PersistentStack && delegate.equals(((PersistentStack<?>) o).delegate);
+    return o instanceof PersistentStack<?> persistentStack
+        && delegate.equals(persistentStack.delegate);
   }
 
   @Override
