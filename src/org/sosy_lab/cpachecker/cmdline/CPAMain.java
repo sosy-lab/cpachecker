@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verifyNotNull;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -203,6 +204,100 @@ public class CPAMain {
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
   public static final String APPROACH_NAME_OPTION = "analysis.name";
+
+  @VisibleForTesting
+  @SuppressWarnings("deprecation")
+  static boolean hasPortfolioOptionConfigured(Configuration config) {
+    return !Strings.isNullOrEmpty(config.getProperty("restartAlgorithm.configFiles"))
+        || !Strings.isNullOrEmpty(config.getProperty("parallelAlgorithm.configFiles"))
+        || !Strings.isNullOrEmpty(config.getProperty("mpiAlgorithm.configFiles"))
+        || !Strings.isNullOrEmpty(config.getProperty("compositionAlgorithm.configFiles"))
+        || !Strings.isNullOrEmpty(config.getProperty("heuristicSelection.loopConfig"));
+  }
+
+  @VisibleForTesting
+  static boolean specificationMismatch(
+      @Nullable String cmdLineSpec, @Nullable String configFileOwnSpec, Path configFileDir) {
+    if (cmdLineSpec == null || configFileOwnSpec == null) {
+      return false;
+    }
+
+    Optional<ImmutableSet<Path>> cmdLineFiles =
+        resolveSpecificationFileSet(cmdLineSpec, Path.of("").toAbsolutePath());
+    Optional<ImmutableSet<Path>> configFiles =
+        resolveSpecificationFileSet(configFileOwnSpec, configFileDir);
+
+    if (cmdLineFiles.isEmpty() || configFiles.isEmpty()) {
+      return false;
+    }
+
+    return !cmdLineFiles.orElseThrow().equals(configFiles.orElseThrow());
+  }
+
+  private static Optional<ImmutableSet<Path>> resolveSpecificationFileSet(
+      String commaSeparatedSpec, Path baseDir) {
+    ImmutableSet.Builder<Path> builder = ImmutableSet.builder();
+    for (String spec :
+        Splitter.on(',').trimResults().omitEmptyStrings().split(commaSeparatedSpec)) {
+      Path path = Path.of(spec);
+      if (!path.isAbsolute()) {
+        path = baseDir.resolve(spec);
+      }
+      try {
+        builder.add(path.toRealPath());
+      } catch (IOException e) {
+        return Optional.empty();
+      }
+    }
+    return Optional.of(builder.build());
+  }
+
+  /**
+   * The value {@code specification} resolves to in every shipped config that does not set it
+   * itself, but merely inherits it through an {@code #include} chain. A literal-string comparison,
+   * not a {@code Files.isSameFile} check like Tier 1 uses -- this would miss an absolute-path
+   * spelling of the same file, but every shipped config in this project spells it exactly this way.
+   */
+  private static final String DEFAULT_SPEC_PROPERTY_VALUE = "specification/default.spc";
+
+  @VisibleForTesting
+  static Optional<String> specificationMismatchMessageIfApplicable(
+      @Nullable String cmdLineSpec,
+      @Nullable String configFileOwnSpec,
+      @Nullable Path configFileOwnSpecDir,
+      @Nullable String specBeforeHandlers,
+      @Nullable String specAfterHandlers,
+      Configuration finalConfig,
+      boolean propertyFileGiven,
+      boolean languageSubconfigConfigured,
+      String configFileDisplayName) {
+    if (configFileOwnSpec == null) {
+      return Optional.empty();
+    }
+    if (configFileOwnSpec.trim().equals(DEFAULT_SPEC_PROPERTY_VALUE)) {
+      // The config file does not hard-code anything of its own; it merely inherits the project's
+      // default specification through an #include chain, so there is nothing distinctive to flag.
+      return Optional.empty();
+    }
+    if (!Objects.equals(specBeforeHandlers, specAfterHandlers)
+        || hasPortfolioOptionConfigured(finalConfig)
+        || propertyFileGiven
+        || languageSubconfigConfigured) {
+      return Optional.empty();
+    }
+    if (!specificationMismatch(cmdLineSpec, configFileOwnSpec, configFileOwnSpecDir)) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        String.format(
+            "Configuration file %s hard-codes specification '%s', but the specification '%s'"
+                + " given explicitly via --spec takes precedence and will be used.",
+            configFileDisplayName, configFileOwnSpec, cmdLineSpec));
+  }
+
+  private static @Nullable String blankToNull(@Nullable String value) {
+    return (value == null || value.isBlank()) ? null : value;
+  }
 
   @VisibleForTesting
   @Options
@@ -391,6 +486,18 @@ public class CPAMain {
           CommonVerificationProperty.VALID_MEMTRACK);
 
   /**
+   * Reads the raw text of the {@code specification} option directly off a {@link Configuration}
+   * object, bypassing the usual {@code @Option}-injection mechanism. This is needed (only) for the
+   * Tier 2 specification-mismatch check in {@link #createConfiguration}, which must compare a
+   * config file's own un-overridden text against the user's cmdline text -- something that
+   * mechanism cannot do, since it only ever sees the final, already-merged value.
+   */
+  @SuppressWarnings("deprecation") // Configuration.getProperty is deprecated API
+  private static @Nullable String getSpecificationProperty(Configuration config) {
+    return config.getProperty(SPECIFICATION_OPTION);
+  }
+
+  /**
    * Parse the command line, read the configuration file, and set up the program-wide base paths.
    *
    * @return A Configuration object, the output directory, and the specification properties.
@@ -403,6 +510,7 @@ public class CPAMain {
           InterruptedException {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
+    String cmdLineSpec = cmdLineOptions.get(SPECIFICATION_OPTION);
 
     boolean secureMode = cmdLineOptions.remove(CmdLineArguments.SECURE_MODE_OPTION) != null;
     if (secureMode) {
@@ -418,6 +526,18 @@ public class CPAMain {
     // and remove this from the list of options (it's not a real option)
     Optional<String> configFile =
         Optional.ofNullable(cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION));
+
+    // Parse the config file on its own (independent of configBuilder/config below) to learn
+    // which specification, if any, it hard-codes itself, for the mismatch check at the end of
+    // this method.
+    String configFileOwnSpec = null;
+    Path configFileOwnSpecDir = null;
+    if (configFile.isPresent()) {
+      Configuration fileOnlyConfig =
+          Configuration.builder().loadFromFile(configFile.orElseThrow()).build();
+      configFileOwnSpec = getSpecificationProperty(fileOnlyConfig);
+      configFileOwnSpecDir = Path.of(configFile.orElseThrow()).toAbsolutePath().getParent();
+    }
 
     // create initial configuration
     // from default values, config file, and command-line arguments
@@ -461,6 +581,8 @@ public class CPAMain {
           "Please specify a program to analyze on the command line.");
     }
 
+    String specBeforeHandlers = getSpecificationProperty(config);
+
     // Handle frontend-language-specific subconfig if necessary
     config = handleFrontendLanguageOptions(logManager, config, langOptions, cmdLineOptions);
 
@@ -469,6 +591,29 @@ public class CPAMain {
 
     // Switch to appropriate config depending on property (if necessary)
     config = handlePropertyOptions(logManager, config, cmdLineOptions, properties);
+
+    String specAfterHandlers = getSpecificationProperty(config);
+    if (configFile.isPresent()) {
+      boolean languageSubconfigConfigured =
+          langOptions.cConfig != null
+              || langOptions.javaConfig != null
+              || langOptions.llvmConfig != null
+              || langOptions.svlibConfig != null;
+      Optional<String> mismatchMessage =
+          specificationMismatchMessageIfApplicable(
+              blankToNull(cmdLineSpec),
+              blankToNull(configFileOwnSpec),
+              configFileOwnSpecDir,
+              specBeforeHandlers,
+              specAfterHandlers,
+              config,
+              !properties.isEmpty(),
+              languageSubconfigConfigured,
+              configFile.orElseThrow());
+      if (mismatchMessage.isPresent()) {
+        logManager.log(Level.INFO, mismatchMessage.orElseThrow());
+      }
+    }
 
     // cleanup
     config = cleanupBootstrapOptions(config);

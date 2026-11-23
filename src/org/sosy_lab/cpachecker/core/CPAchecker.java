@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
@@ -511,6 +511,14 @@ public class CPAchecker {
   }
 
   private void logAboutSpecification() {
+    if (specificationFiles.isEmpty()) {
+      logger.log(
+          Level.INFO,
+          "No specification is configured for this analysis; "
+              + "no correctness property will be checked.");
+      return;
+    }
+
     try {
       Path defaultSpec =
           Classes.getCodeLocation(CPAchecker.class)
@@ -520,11 +528,26 @@ public class CPAchecker {
         logger.log(
             Level.INFO,
             "Using default specification, which checks for assertion failures and error labels.");
+        return;
       }
     } catch (IOException e) {
       // This method only logs, we do not want this to disturb CPAchecker execution on failure.
       logger.logDebugException(e, "Failed to check whether given spec is default spec.");
     }
+
+    logger.logf(
+        Level.INFO,
+        "Using specification file(s): %s",
+        Joiner.on(", ").join(Lists.transform(specificationFiles, CPAchecker::displaySpecFile)));
+  }
+
+  private static String displaySpecFile(Path file) {
+    Path absoluteFile = file.toAbsolutePath().normalize();
+    Path configDir = Classes.getCodeLocation(CPAchecker.class).resolveSibling("config");
+    if (absoluteFile.startsWith(configDir)) {
+      return configDir.relativize(absoluteFile).toString();
+    }
+    return absoluteFile.toString();
   }
 
   private AlgorithmStatus runAlgorithm(

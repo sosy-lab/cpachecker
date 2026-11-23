@@ -303,6 +303,40 @@ public class CPAcheckerIntegrationTest {
   }
 
   @Test
+  public void testLogsDefaultSpecificationMessage_WhenUsingDefaultSpec() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C);
+    IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_C);
+    assertThat(result.log())
+        .contains(
+            "Using default specification, which checks for assertion failures and error"
+                + " labels.");
+  }
+
+  @Test
+  public void testLogsSpecificationFile_WhenUsingNonDefaultSpec() throws Exception {
+    Configuration config =
+        getConfigWithOutputFiles(CONFIGURATION_FILE_JAVA, Language.JAVA, SPECIFICATION_JAVA);
+    IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_JAVA);
+    assertThat(result.log())
+        .contains("Using specification file(s): specification/JavaAssertion.spc");
+  }
+
+  @Test
+  public void testLogsNoSpecificationMessage_WhenSpecificationIsEmpty() throws Exception {
+    Configuration config =
+        Configuration.builder()
+            .copyFrom(getConfigWithOutputFiles(CONFIGURATION_FILE_C, Language.C, SPECIFICATION_C))
+            .setOption("specification", "")
+            .build();
+    IntegrationTestResult result = IntegrationTestRunner.run(config, SAFE_PROGRAM_C);
+    assertThat(result.log())
+        .contains(
+            "No specification is configured for this analysis; "
+                + "no correctness property will be checked.");
+  }
+
+  @Test
   @Deprecated
   @Ignore("cf. issue #1356")
   public void testRunForSafeLlvmProgram() throws Exception {
