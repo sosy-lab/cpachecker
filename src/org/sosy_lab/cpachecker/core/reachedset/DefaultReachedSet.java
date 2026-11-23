@@ -299,8 +299,8 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public ImmutableMap<String, AbstractStatValue> getStatistics() {
-    if (waitlist instanceof AbstractSortedWaitlist) {
-      return ImmutableMap.copyOf(((AbstractSortedWaitlist<?>) waitlist).getDelegationCounts());
+    if (waitlist instanceof AbstractSortedWaitlist<?> abstractSortedWaitlist) {
+      return ImmutableMap.copyOf(abstractSortedWaitlist.getDelegationCounts());
 
     } else {
       return ImmutableMap.of();

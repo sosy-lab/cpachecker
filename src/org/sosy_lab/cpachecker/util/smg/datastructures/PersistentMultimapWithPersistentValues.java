@@ -103,8 +103,10 @@ public class PersistentMultimapWithPersistentValues<
 
   @Override
   public boolean equals(Object o) {
-    return o instanceof PersistentMultimapWithPersistentValues
-        && delegate.equals(((PersistentMultimapWithPersistentValues<?, ?>) o).delegate);
+    return o
+            instanceof
+            PersistentMultimapWithPersistentValues<?, ?> persistentMultimapWithPersistentValues
+        && delegate.equals(persistentMultimapWithPersistentValues.delegate);
   }
 
   @Override

@@ -128,9 +128,9 @@ public enum InvariantsSpecificationAutomatonBuilder {
           ExpressionTree<AExpression> inv =
               (ExpressionTree<AExpression>) (ExpressionTree<?>) invariant.asExpressionTree();
           CExpression cExpr = inv.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
-          if (inv instanceof LeafExpression<?>) {
+          if (inv instanceof LeafExpression<?> leafExpression) {
             // we must swap the c expression when assume truth is false
-            if (!((LeafExpression<?>) inv).assumeTruth()) {
+            if (!leafExpression.assumeTruth()) {
               cExpr =
                   new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger)
                       .negateExpressionAndSimplify(cExpr);
@@ -263,9 +263,9 @@ public enum InvariantsSpecificationAutomatonBuilder {
         throws UnrecognizedCodeException {
       CExpression cExpr =
           pInvariant.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
-      if (pInvariant instanceof LeafExpression<?>) {
+      if (pInvariant instanceof LeafExpression<?> leafExpression) {
         // we must swap the c expression when assume truth is false
-        if (!((LeafExpression<?>) pInvariant).assumeTruth()) {
+        if (!leafExpression.assumeTruth()) {
           cExpr =
               new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger)
                   .negateExpressionAndSimplify(cExpr);

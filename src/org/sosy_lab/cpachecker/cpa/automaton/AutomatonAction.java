@@ -179,12 +179,12 @@ abstract class AutomatonAction {
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
         AutomatonVariable automatonVariable = vars.get(varId);
-        if (automatonVariable instanceof AutomatonSetVariable) {
+        if (automatonVariable instanceof AutomatonSetVariable<?> automatonSetVariable) {
           String substitutedValue = pArgs.replaceVariables(value);
           if (action) {
-            ((AutomatonSetVariable<?>) automatonVariable).add(substitutedValue);
+            automatonSetVariable.add(substitutedValue);
           } else {
-            ((AutomatonSetVariable<?>) automatonVariable).remove(substitutedValue);
+            automatonSetVariable.remove(substitutedValue);
           }
         } else {
           throw new CPATransferException(

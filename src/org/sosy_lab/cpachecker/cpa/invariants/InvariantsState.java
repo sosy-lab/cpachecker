@@ -366,8 +366,8 @@ public class InvariantsState
         result = result.assign(memoryLocation, allPossibleValuesFormula(varTypeInfo));
       }
     }
-    if (value instanceof Variable<?>) {
-      MemoryLocation valueMemoryLocation = ((Variable<?>) value).getMemoryLocation();
+    if (value instanceof Variable<?> variable) {
+      MemoryLocation valueMemoryLocation = variable.getMemoryLocation();
       if (valueMemoryLocation
               .getExtendedQualifiedName()
               .startsWith(pMemoryLocation.getExtendedQualifiedName() + "->")
@@ -1126,9 +1126,8 @@ public class InvariantsState
         new ToBitvectorFormulaVisitor(pManager, getFormulaResolver(), false);
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
         pFormula ->
-            pFormula instanceof Variable
-                && !isExportableInScope(
-                    ((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope);
+            pFormula instanceof Variable<?> variable
+                && !isExportableInScope(variable.getMemoryLocation(), pFunctionScope);
 
     SequencedSet<BooleanFormula<CompoundInterval>> filteredApproximations = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
@@ -1169,8 +1168,8 @@ public class InvariantsState
         Predicates.or(
             pIsInvalidVarApproximationFormulas,
             pFormula -> {
-              if (pFormula instanceof Variable) {
-                return !safePointers.contains(((Variable<?>) pFormula).getMemoryLocation());
+              if (pFormula instanceof Variable<?> variable) {
+                return !safePointers.contains(variable.getMemoryLocation());
               }
               return !Iterables.any(pFormula.accept(COLLECT_VARS_VISITOR), this::isPointerOrArray);
             });
@@ -1232,8 +1231,8 @@ public class InvariantsState
 
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
         pFormula ->
-            pFormula instanceof Variable
-                && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
+            pFormula instanceof Variable<?> variable
+                && !isExportable(variable.getMemoryLocation(), pFunctionEntryNode);
 
     return getFormulaApproximation(
         pFunctionEntryNode, isInvalidVarFormulaApproximation, Function.identity());
@@ -1253,13 +1252,12 @@ public class InvariantsState
         ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
         pFormula ->
-            pFormula instanceof Variable
-                && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
+            pFormula instanceof Variable<?> variable
+                && (!isExportable(variable.getMemoryLocation(), pFunctionScope)
                     || !variablesInScope.anyMatch(variableDeclaration ->
                         variableDeclaration
                             .getQualifiedName()
-                            .equals(
-                                ((Variable<?>) pFormula).getMemoryLocation().getQualifiedName())));
+                            .equals(variable.getMemoryLocation().getQualifiedName())));
 
     return getFormulaApproximation(
         pFunctionScope,
@@ -1280,12 +1278,12 @@ public class InvariantsState
           TranslationToExpressionTreeFailedException {
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVarFormulaApproximation =
         pFormula ->
-            pFormula instanceof Variable
-                && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
+            pFormula instanceof Variable<?> variable
+                && (!isExportable(variable.getMemoryLocation(), pFunctionScope)
                     || !pFunctionReturnVariable
                         .getDeclaration()
                         .getQualifiedName()
-                        .equals(((Variable<?>) pFormula).getMemoryLocation().getQualifiedName()));
+                        .equals(variable.getMemoryLocation().getQualifiedName()));
 
     return getFormulaApproximation(
         pFunctionScope, isInvalidVarFormulaApproximation, Function.identity());
@@ -1310,8 +1308,8 @@ public class InvariantsState
       final Predicate<NumeralFormula<CompoundInterval>> pIsAlwaysInvalid) {
     final Predicate<NumeralFormula<CompoundInterval>> pIsPointerOrArray =
         pFormula1 ->
-            pFormula1 instanceof Variable
-                && isPointerOrArray(((Variable<?>) pFormula1).getMemoryLocation());
+            pFormula1 instanceof Variable<?> variable
+                && isPointerOrArray(variable.getMemoryLocation());
 
     if (pFormula instanceof LogicalAnd) {
       LogicalAnd<CompoundInterval> and = (LogicalAnd<CompoundInterval>) pFormula;
@@ -1361,12 +1359,12 @@ public class InvariantsState
       return pFormula;
     }
     CompoundInterval evaluated = pFormula.accept(tools.evaluationVisitor, environment);
-    if (!evaluated.isSingleton() && pFormula instanceof Variable) {
+    if (!evaluated.isSingleton() && pFormula instanceof Variable<?> variable) {
       // Try and replace the variable by a fitting value
       ReplaceVisitor<CompoundInterval> evaluateInvalidVars =
           new ReplaceVisitor<>(pIsInvalid, f -> replaceOrEvaluateInvalid(f, pIsInvalid));
 
-      MemoryLocation memoryLocation = ((Variable<?>) pFormula).getMemoryLocation();
+      MemoryLocation memoryLocation = variable.getMemoryLocation();
       NumeralFormula<CompoundInterval> value =
           getEnvironmentValue(pFormula.getTypeInfo(), memoryLocation);
       value = value.accept(evaluateInvalidVars);
@@ -1476,9 +1474,8 @@ public class InvariantsState
                     pInput -> {
                       MemoryLocation memoryLocation = pInput.getKey();
                       NumeralFormula<?> value = pInput.getValue();
-                      if (value instanceof Exclusion) {
-                        return String.format(
-                            "%s\u2260%s", memoryLocation, ((Exclusion<?>) value).getExcluded());
+                      if (value instanceof Exclusion<?> exclusion) {
+                        return String.format("%s\u2260%s", memoryLocation, exclusion.getExcluded());
                       }
                       return String.format("%s=%s", memoryLocation, value);
                     }),
@@ -1872,8 +1869,8 @@ public class InvariantsState
     final SequencedSet<Variable<CompoundInterval>> result = new LinkedHashSet<>();
     Predicate<NumeralFormula<CompoundInterval>> pCondition =
         pFormula -> {
-          if (pFormula instanceof Variable) {
-            Variable<?> variable = (Variable<?>) pFormula;
+          if (pFormula instanceof Variable<?> variable) {
+
             MemoryLocation memoryLocation = variable.getMemoryLocation();
             return pMemoryLocationPredicate.apply(memoryLocation) && !result.contains(variable);
           }
