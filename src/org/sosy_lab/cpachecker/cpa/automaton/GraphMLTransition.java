@@ -9,196 +9,55 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-class GraphMLTransition {
+record GraphMLTransition(
+    GraphMLState source,
+    GraphMLState target,
+    Optional<String> functionEntry,
+    Optional<String> functionExit,
+    Optional<Predicate<FileLocation>> offsetMatcherPredicate,
+    Optional<Predicate<FileLocation>> lineMatcherPredicate,
+    AutomatonBoolExpr assumeCaseMatcher,
+    GraphMLThread thread,
+    Optional<AutomatonAction> threadAssignment,
+    Set<String> assumptions,
+    Optional<String> explicitAssumptionScope,
+    Optional<String> explicitAssumptionResultFunction,
+    boolean entersLoopHead) {
 
-  private final GraphMLState source;
-
-  private final GraphMLState target;
-
-  private final Optional<String> functionEntry;
-
-  private final Optional<String> functionExit;
-
-  private final Optional<Predicate<FileLocation>> offsetMatcherPredicate;
-
-  private final Optional<Predicate<FileLocation>> lineMatcherPredicate;
-
-  private final AutomatonBoolExpr assumeCaseMatcher;
-
-  private final GraphMLThread thread;
-
-  private final Optional<AutomatonAction> threadAssignment;
-
-  private final Set<String> assumptions;
-
-  private final Optional<String> explicitAssumptionScope;
-
-  private final Optional<String> explicitAssumptionResultFunction;
-
-  private final boolean entersLoopHead;
-
-  public GraphMLTransition(
-      GraphMLState pSource,
-      GraphMLState pTarget,
-      Optional<String> pFunctionEntry,
-      Optional<String> pFunctionExit,
-      Optional<Predicate<FileLocation>> pOffsetMatcherPredicate,
-      Optional<Predicate<FileLocation>> pLineMatcherPredicate,
-      AutomatonBoolExpr pAssumeCaseMatcher,
-      GraphMLThread pThread,
-      Optional<AutomatonAction> pThreadAssignment,
-      Set<String> pAssumptions,
-      Optional<String> pExplicitAssumptionScope,
-      Optional<String> pAssumptionResultFunction,
-      boolean pEntersLoopHead) {
-    source = Objects.requireNonNull(pSource);
-    target = Objects.requireNonNull(pTarget);
-    functionEntry = Objects.requireNonNull(pFunctionEntry);
-    functionExit = Objects.requireNonNull(pFunctionExit);
-    offsetMatcherPredicate = Objects.requireNonNull(pOffsetMatcherPredicate);
-    lineMatcherPredicate = Objects.requireNonNull(pLineMatcherPredicate);
-    assumeCaseMatcher = Objects.requireNonNull(pAssumeCaseMatcher);
-    thread = Objects.requireNonNull(pThread);
-    threadAssignment = Objects.requireNonNull(pThreadAssignment);
-    assumptions = ImmutableSet.copyOf(pAssumptions);
-    explicitAssumptionScope = Objects.requireNonNull(pExplicitAssumptionScope);
-    explicitAssumptionResultFunction = Objects.requireNonNull(pAssumptionResultFunction);
-    entersLoopHead = pEntersLoopHead;
-  }
-
-  @Override
-  public boolean equals(Object pOther) {
-    if (this == pOther) {
-      return true;
-    }
-    return pOther instanceof GraphMLTransition other
-        && getSource().equals(other.getSource())
-        && getTarget().equals(other.getTarget())
-        && getFunctionEntry().equals(other.getFunctionEntry())
-        && getFunctionExit().equals(other.getFunctionExit())
-        && getOffsetMatcherPredicate().equals(other.getOffsetMatcherPredicate())
-        && getLineMatcherPredicate().equals(other.getLineMatcherPredicate())
-        && getAssumeCaseMatcher().equals(other.getAssumeCaseMatcher())
-        && getThread().equals(other.getThread())
-        && getThreadAssignment().equals(other.getThreadAssignment())
-        && getAssumptions().equals(other.getAssumptions())
-        && getExplicitAssumptionScope().equals(other.getExplicitAssumptionScope())
-        && getExplicitAssumptionResultFunction().equals(other.getExplicitAssumptionResultFunction())
-        && entersLoopHead() == other.entersLoopHead();
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
-        getSource(),
-        getTarget(),
-        getFunctionEntry(),
-        getFunctionExit(),
-        getOffsetMatcherPredicate(),
-        getLineMatcherPredicate(),
-        getAssumeCaseMatcher(),
-        getThread(),
-        getThreadAssignment(),
-        getAssumptions(),
-        getExplicitAssumptionScope(),
-        getExplicitAssumptionResultFunction(),
-        entersLoopHead());
+  GraphMLTransition {
+    Objects.requireNonNull(source);
+    Objects.requireNonNull(target);
+    Objects.requireNonNull(functionEntry);
+    Objects.requireNonNull(functionExit);
+    Objects.requireNonNull(offsetMatcherPredicate);
+    Objects.requireNonNull(lineMatcherPredicate);
+    Objects.requireNonNull(assumeCaseMatcher);
+    Objects.requireNonNull(thread);
+    Objects.requireNonNull(threadAssignment);
+    Objects.requireNonNull(assumptions);
+    Objects.requireNonNull(explicitAssumptionScope);
+    Objects.requireNonNull(explicitAssumptionResultFunction);
   }
 
   @Override
   public String toString() {
-    return String.format("(%s -> %s)", getSource(), getTarget());
-  }
-
-  public GraphMLState getSource() {
-    return source;
-  }
-
-  public GraphMLState getTarget() {
-    return target;
-  }
-
-  public Optional<String> getFunctionEntry() {
-    return functionEntry;
-  }
-
-  public Optional<String> getFunctionExit() {
-    return functionExit;
-  }
-
-  public Optional<Predicate<FileLocation>> getOffsetMatcherPredicate() {
-    return offsetMatcherPredicate;
-  }
-
-  public Optional<Predicate<FileLocation>> getLineMatcherPredicate() {
-    return lineMatcherPredicate;
-  }
-
-  public AutomatonBoolExpr getAssumeCaseMatcher() {
-    return assumeCaseMatcher;
-  }
-
-  public GraphMLThread getThread() {
-    return thread;
-  }
-
-  public Optional<AutomatonAction> getThreadAssignment() {
-    return threadAssignment;
-  }
-
-  public Set<String> getAssumptions() {
-    return assumptions;
-  }
-
-  public Optional<String> getExplicitAssumptionScope() {
-    return explicitAssumptionScope;
-  }
-
-  public Optional<String> getExplicitAssumptionResultFunction() {
-    return explicitAssumptionResultFunction;
-  }
-
-  public boolean entersLoopHead() {
-    return entersLoopHead;
+    return String.format("(%s -> %s)", source(), target());
   }
 
   static GraphMLThread createThread(int pId, String pName) {
     return new GraphMLThread(pId, pName);
   }
 
-  static class GraphMLThread implements Comparable<GraphMLThread> {
+  record GraphMLThread(int id, String name) implements Comparable<GraphMLThread> {
 
-    private final int id;
-
-    private final String name;
-
-    private GraphMLThread(int pId, String pName) {
-      id = pId;
-      name = Objects.requireNonNull(pName);
-    }
-
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      return pOther instanceof GraphMLThread other && id == other.id && name.equals(other.name);
-    }
-
-    @Override
-    public int hashCode() {
-      return id;
-    }
-
-    public int getId() {
-      return id;
+    GraphMLThread {
+      Objects.requireNonNull(name);
     }
 
     @Override

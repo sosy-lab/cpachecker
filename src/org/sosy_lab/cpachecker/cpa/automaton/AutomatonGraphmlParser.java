@@ -318,7 +318,7 @@ public final class AutomatonGraphmlParser {
               graphMLParserState.getAutomatonName(),
               graphMLParserState.getAutomatonVariables(),
               automatonStates,
-              graphMLParserState.getEntryState().getId());
+              graphMLParserState.getEntryState().id());
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
     }
@@ -417,7 +417,7 @@ public final class AutomatonGraphmlParser {
     }
 
     AutomatonInternalState automatonState =
-        new AutomatonInternalState(pState.getId(), transitions, false, true, pState.isCycleHead());
+        new AutomatonInternalState(pState.id(), transitions, false, true, pState.isCycleHead());
     return automatonState;
   }
 
@@ -451,7 +451,7 @@ public final class AutomatonGraphmlParser {
 
       // Collect all successor transitions that were not parsed yet and add them to the wait list
       Iterable<GraphMLTransition> successorTransitions =
-          pGraphMLParserState.getLeavingTransitions().get(transition.getTarget());
+          pGraphMLParserState.getLeavingTransitions().get(transition.target());
       for (GraphMLTransition successorTransition : successorTransitions) {
         if (visitedTransitions.add(successorTransition)) {
           waitingTransitions.add(successorTransition);
@@ -474,14 +474,14 @@ public final class AutomatonGraphmlParser {
       GraphMLTransition pTransition)
       throws WitnessParseException, InterruptedException {
     if (pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS
-        && pTransition.getTarget().isSinkState()) {
+        && pTransition.target().isSinkState()) {
       throw new WitnessParseException("Proof witnesses do not allow sink nodes.");
     }
 
     final List<AutomatonAction> actions = getTransitionActions(pGraphMLParserState, pTransition);
 
     List<AutomatonTransition> transitions =
-        pGraphMLParserState.getStateTransitions(pTransition.getSource());
+        pGraphMLParserState.getStateTransitions(pTransition.source());
 
     // Handle call stack
     Deque<String> newStack = handleCallStack(pGraphMLParserState, pTransition);
@@ -496,7 +496,7 @@ public final class AutomatonGraphmlParser {
       throw new WitnessParseException("Assumptions are not allowed for correctness witnesses.");
     }
 
-    GraphMLThread thread = pTransition.getThread();
+    GraphMLThread thread = pTransition.thread();
 
     // Parse the invariants of the witness
     ExpressionTree<AExpression> candidateInvariants =
@@ -517,46 +517,45 @@ public final class AutomatonGraphmlParser {
     // Add a source-code guard for specified line numbers
     if (matchOriginLine) {
       conditionTransformations.add(
-          condition -> and(condition, getLocationMatcher(pTransition.getLineMatcherPredicate())));
+          condition -> and(condition, getLocationMatcher(pTransition.lineMatcherPredicate())));
     }
 
     // Add a source-code guard for specified character offsets
     if (matchOffset) {
       conditionTransformations.add(
-          condition -> and(condition, getLocationMatcher(pTransition.getOffsetMatcherPredicate())));
+          condition -> and(condition, getLocationMatcher(pTransition.offsetMatcherPredicate())));
     }
 
     // Add a source-code guard for function-call statements if an explicit result function is
     // specified
     if (pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-        && pTransition.getExplicitAssumptionResultFunction().isPresent()) {
+        && pTransition.explicitAssumptionResultFunction().isPresent()) {
       String resultFunctionName =
-          getFunction(
-                  pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction())
+          getFunction(pGraphMLParserState, thread, pTransition.explicitAssumptionResultFunction())
               .orElseThrow();
       conditionTransformations.add(condition ->
           and(condition, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName)));
     }
 
     // Add a source-code guard for specified function exits
-    if (pTransition.getFunctionExit().isPresent()) {
+    if (pTransition.functionExit().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit()).orElseThrow();
+          getFunction(pGraphMLParserState, thread, pTransition.functionExit()).orElseThrow();
       conditionTransformations.add(condition -> and(condition, getFunctionExitMatcher(function)));
     }
 
     // Add a source-code guard for specified function entries
     Function<AutomatonBoolExpr, AutomatonBoolExpr> applyMatchFunctionEntry = Function.identity();
-    if (pTransition.getFunctionEntry().isPresent()) {
+    if (pTransition.functionEntry().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).orElseThrow();
+          getFunction(pGraphMLParserState, thread, pTransition.functionEntry()).orElseThrow();
       applyMatchFunctionEntry = condition -> and(condition, getFunctionCallMatcher(function));
       conditionTransformations.add(applyMatchFunctionEntry);
     }
 
     // Add a source-code guard for specified branching information
     if (matchAssumeCase) {
-      conditionTransformations.add(condition -> and(condition, pTransition.getAssumeCaseMatcher()));
+      conditionTransformations.add(condition -> and(condition, pTransition.assumeCaseMatcher()));
     }
 
     // Add a source-code guard for a specified loop head
@@ -572,7 +571,7 @@ public final class AutomatonGraphmlParser {
                 condition,
                 AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
                     AutomatonBoolExpr.MatchLoopStart.INSTANCE, true));
-        if (pTransition.getTarget().getInvariants().isEmpty()) {
+        if (pTransition.target().invariants().isEmpty()) {
           return conditionA;
         }
         AutomatonBoolExpr conditionB =
@@ -607,15 +606,15 @@ public final class AutomatonGraphmlParser {
     // in case it is a function pointer call,
     // where we can eliminate the other branch
     AutomatonBoolExpr fpElseTrigger = null;
-    if (pTransition.getFunctionEntry().isPresent()
+    if (pTransition.functionEntry().isPresent()
         && pGraphMLParserState.getWitnessType() != WitnessType.CORRECTNESS_WITNESS) {
       fpElseTrigger =
           and(
               transitionConditionWithoutFunctionEntry,
               getFunctionPointerAssumeCaseMatcher(
-                  getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry())
+                  getFunction(pGraphMLParserState, thread, pTransition.functionEntry())
                       .orElseThrow(),
-                  pTransition.getTarget().isSinkState()));
+                  pTransition.target().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
               fpElseTrigger, ImmutableList.of(), actions, false, stopNotBreakAtSinkStates));
@@ -625,7 +624,7 @@ public final class AutomatonGraphmlParser {
     // so we need to build the stutter condition
     // as the conjoined negations of the transition conditions.
     AutomatonBoolExpr stutterCondition =
-        pGraphMLParserState.getStutterConditions().get(pTransition.getSource());
+        pGraphMLParserState.getStutterConditions().get(pTransition.source());
     AutomatonBoolExpr additionalStutterCondition = not(transitionCondition);
     if (fpElseTrigger != null) {
       additionalStutterCondition = and(additionalStutterCondition, not(fpElseTrigger));
@@ -635,7 +634,7 @@ public final class AutomatonGraphmlParser {
     } else {
       stutterCondition = and(stutterCondition, additionalStutterCondition);
     }
-    pGraphMLParserState.getStutterConditions().put(pTransition.getSource(), stutterCondition);
+    pGraphMLParserState.getStutterConditions().put(pTransition.source(), stutterCondition);
 
     if (invariantsSpecAutomaton == InvariantsSpecificationAutomatonBuilder.WITNESSBASED_ISA
         && pGraphMLParserState.getWitnessType() == WitnessType.CORRECTNESS_WITNESS) {
@@ -650,13 +649,13 @@ public final class AutomatonGraphmlParser {
               transitionCondition,
               actions,
               candidateInvariants,
-              pTransition.getSource(),
-              pTransition.getTarget());
+              pTransition.source(),
+              pTransition.target());
           // Use conjunction of the invariants which should hold for the same state
           ExpressionTree<AExpression> stateInvariantsMapEntry = ExpressionTrees.getTrue();
           for (Map.Entry<GraphMLState, ExpressionTree<AExpression>> entry :
               stateInvariantsMap.entrySet()) {
-            if (entry.getKey().equals(pTransition.getTarget())) {
+            if (entry.getKey().equals(pTransition.target())) {
               ExpressionTree<AExpression> invariantAtTargetState =
                   stateInvariantsMap.get(entry.getKey());
               if (invariantAtTargetState != null
@@ -666,7 +665,7 @@ public final class AutomatonGraphmlParser {
             }
           }
           stateInvariantsMap.put(
-              pTransition.getTarget(), And.of(stateInvariantsMapEntry, candidateInvariants));
+              pTransition.target(), And.of(stateInvariantsMapEntry, candidateInvariants));
           return;
         } catch (UnrecognizedCodeException e) {
           throw new WitnessParseException("Unable to parse invariants to CExpressions");
@@ -683,8 +682,8 @@ public final class AutomatonGraphmlParser {
             assumptions,
             candidateInvariants,
             actions,
-            pTransition.getTarget(),
-            pTransition.getTarget().isViolationState(),
+            pTransition.target(),
+            pTransition.target().isViolationState(),
             stopNotBreakAtSinkStates));
 
     // Multiple CFA edges in a sequence might match the triggers,
@@ -692,8 +691,8 @@ public final class AutomatonGraphmlParser {
     if (!assumptions.isEmpty()
         || !actions.isEmpty()
         || !candidateInvariants.equals(ExpressionTrees.getTrue())
-        || pTransition.getTarget().isViolationState()) {
-      boolean sourceIsViolationNode = pTransition.getSource().isViolationState();
+        || pTransition.target().isViolationState()) {
+      boolean sourceIsViolationNode = pTransition.source().isViolationState();
       transitions.add(
           createAutomatonTransition(
               and(
@@ -703,7 +702,7 @@ public final class AutomatonGraphmlParser {
               ImmutableList.of(),
               ExpressionTrees.getTrue(),
               ImmutableList.of(),
-              pTransition.getSource(),
+              pTransition.source(),
               sourceIsViolationNode,
               stopNotBreakAtSinkStates));
     }
@@ -725,22 +724,20 @@ public final class AutomatonGraphmlParser {
       GraphMLTransition pTransition,
       Deque<String> pCallstack)
       throws WitnessParseException, InterruptedException {
-    if (!pTransition.getTarget().getInvariants().isEmpty()) {
-      GraphMLThread thread = pTransition.getThread();
+    if (!pTransition.target().invariants().isEmpty()) {
+      GraphMLThread thread = pTransition.thread();
       Optional<String> explicitInvariantScope =
-          getFunction(
-              pGraphMLParserState, thread, pTransition.getTarget().getExplicitInvariantScope());
+          getFunction(pGraphMLParserState, thread, pTransition.target().explicitInvariantScope());
       Scope candidateScope =
           determineScope(
               explicitInvariantScope, pCallstack, getLocationMatcherPredicate(pTransition));
       Optional<String> explicitAssumptionResultFunction =
-          getFunction(
-              pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
+          getFunction(pGraphMLParserState, thread, pTransition.explicitAssumptionResultFunction());
       Optional<String> resultFunction =
           determineResultFunction(explicitAssumptionResultFunction, scope);
       ExpressionTree<AExpression> invariant =
           CParserUtils.parseStatementsAsExpressionTree(
-              pTransition.getTarget().getInvariants(),
+              pTransition.target().invariants(),
               resultFunction,
               pCParser,
               candidateScope,
@@ -768,22 +765,21 @@ public final class AutomatonGraphmlParser {
       Deque<String> pCallstack)
       throws WitnessParseException, InterruptedException {
     if (considerAssumptions) {
-      GraphMLThread thread = pTransition.getThread();
+      GraphMLThread thread = pTransition.thread();
       Optional<String> explicitAssumptionScope =
-          getFunction(pGraphMLParserState, thread, pTransition.getExplicitAssumptionScope());
+          getFunction(pGraphMLParserState, thread, pTransition.explicitAssumptionScope());
       Scope assumptionScope =
           determineScope(
               explicitAssumptionScope, pCallstack, getLocationMatcherPredicate(pTransition));
       Optional<String> explicitAssumptionResultFunction =
-          getFunction(
-              pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
+          getFunction(pGraphMLParserState, thread, pTransition.explicitAssumptionResultFunction());
       Optional<String> assumptionResultFunction =
           determineResultFunction(explicitAssumptionResultFunction, assumptionScope);
       try {
         List<AExpression> assumptions =
             CParserUtils.convertStatementsToAssumptions(
                 CParserUtils.parseStatements(
-                    pTransition.getAssumptions(),
+                    pTransition.assumptions(),
                     assumptionResultFunction,
                     pCParser,
                     assumptionScope,
@@ -795,7 +791,7 @@ public final class AutomatonGraphmlParser {
         String reason = e.getMessage();
         if (e.getCause() instanceof ParserException) {
           reason =
-              String.format("Cannot parse <%s>", Joiner.on(" ").join(pTransition.getAssumptions()));
+              String.format("Cannot parse <%s>", Joiner.on(" ").join(pTransition.assumptions()));
         }
         throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE + " Reason: " + reason, e);
       }
@@ -898,15 +894,14 @@ public final class AutomatonGraphmlParser {
     Predicate<FileLocation> locationMatcherPredicate = Predicates.alwaysTrue();
     if (matchOffset) {
       Optional<Predicate<FileLocation>> offsetMatcherPredicate =
-          pTransition.getOffsetMatcherPredicate();
+          pTransition.offsetMatcherPredicate();
       if (offsetMatcherPredicate.isPresent()) {
         locationMatcherPredicate =
             locationMatcherPredicate.and(offsetMatcherPredicate.orElseThrow());
       }
     }
     if (matchOriginLine) {
-      Optional<Predicate<FileLocation>> lineMatcherPredicate =
-          pTransition.getLineMatcherPredicate();
+      Optional<Predicate<FileLocation>> lineMatcherPredicate = pTransition.lineMatcherPredicate();
       if (lineMatcherPredicate.isPresent()) {
         locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.orElseThrow());
       }
@@ -925,20 +920,19 @@ public final class AutomatonGraphmlParser {
   private Deque<String> handleCallStack(
       AutomatonGraphmlParserState pGraphMLParserState, GraphMLTransition pTransition)
       throws WitnessParseException {
-    GraphMLTransition.GraphMLThread thread = pTransition.getThread();
-    Deque<String> currentStack =
-        pGraphMLParserState.getOrCreateStack(thread, pTransition.getSource());
+    GraphMLTransition.GraphMLThread thread = pTransition.thread();
+    Deque<String> currentStack = pGraphMLParserState.getOrCreateStack(thread, pTransition.source());
     Deque<String> newStack = currentStack;
 
     Optional<String> functionEntry =
-        getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry());
-    if (!functionEntry.isPresent() && pTransition.getSource().isEntryState()) {
+        getFunction(pGraphMLParserState, thread, pTransition.functionEntry());
+    if (!functionEntry.isPresent() && pTransition.source().isEntryState()) {
       functionEntry =
           getFunction(
               pGraphMLParserState, thread, Optional.of(cfa.getMainFunction().getFunctionName()));
     }
     Optional<String> functionExit =
-        getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit());
+        getFunction(pGraphMLParserState, thread, pTransition.functionExit());
 
     // If the same function is entered and exited, the stack remains unchanged.
     // Otherwise, adjust the stack accordingly:
@@ -972,7 +966,7 @@ public final class AutomatonGraphmlParser {
       }
     }
     // Store the stack in its state after the edge is applied
-    pGraphMLParserState.putStack(thread, pTransition.getTarget(), newStack);
+    pGraphMLParserState.putStack(thread, pTransition.target(), newStack);
 
     // If the edge enters and exits the same function, assume this function for this edge only
     if (functionEntry.isPresent()
@@ -998,10 +992,10 @@ public final class AutomatonGraphmlParser {
           new AutomatonAction.Assignment(
               DISTANCE_TO_VIOLATION,
               new AutomatonIntExpr.Constant(
-                  -pGraphMLParserState.getDistance(pTransition.getTarget()))));
+                  -pGraphMLParserState.getDistance(pTransition.target()))));
     }
 
-    Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
+    Optional<AutomatonAction> threadAssignment = pTransition.threadAssignment();
     if (threadAssignment.isPresent()) {
       actionBuilder.add(threadAssignment.orElseThrow());
     }
@@ -1085,7 +1079,7 @@ public final class AutomatonGraphmlParser {
 
     // Define thread-id variable, if any assignments to it exist
     if (state.getLeavingTransitions().values().stream()
-        .anyMatch(t -> t.getThreadAssignment().isPresent())) {
+        .anyMatch(t -> t.threadAssignment().isPresent())) {
       state
           .getAutomatonVariables()
           .put(
@@ -1445,7 +1439,7 @@ public final class AutomatonGraphmlParser {
         getThread(pTransition, pNumericThreadIdProvider);
     Optional<AutomatonAction> threadIdAssignment =
         thread.isPresent()
-            ? Optional.of(getThreadIdAssignment(thread.orElseThrow().getId()))
+            ? Optional.of(getThreadIdAssignment(thread.orElseThrow().id()))
             : Optional.empty();
 
     GraphMLTransition transition =
@@ -1539,7 +1533,11 @@ public final class AutomatonGraphmlParser {
             "At most one explicit invariant scope must be provided for a state.");
 
     result =
-        new GraphMLState(pStateId, candidates, candidateScope, pDocDat.getNodeFlags(stateNode));
+        new GraphMLState(
+            pStateId,
+            ImmutableSet.copyOf(candidates),
+            candidateScope,
+            pDocDat.getNodeFlags(stateNode));
 
     pStates.put(pStateId, result);
 
@@ -1809,7 +1807,7 @@ public final class AutomatonGraphmlParser {
           pTriggers, pAssertions, pActions, pLeadsToViolationNode, pSinkAsBottomNotBreak);
     }
     AutomatonTransition.Builder builder =
-        new AutomatonTransition.Builder(pTriggers, pTargetState.getId())
+        new AutomatonTransition.Builder(pTriggers, pTargetState.id())
             .withAssertions(
                 pLeadsToViolationNode
                     ? listAndElement(pAssertions, createViolationAssertion())
@@ -1818,7 +1816,7 @@ public final class AutomatonGraphmlParser {
             .withCandidateInvariants(pCandidateInvariants)
             .withActions(pActions);
 
-    if (!pTargetState.getInvariants().isEmpty()) {
+    if (!pTargetState.invariants().isEmpty()) {
       builder.withNonDefaultCandidateInvariants();
     }
     if (pLeadsToViolationNode) {
@@ -1904,7 +1902,7 @@ public final class AutomatonGraphmlParser {
             createAutomatonInvariantErrorTransition(changingTransition, assumptionWithNegCExpr));
       }
 
-      if (pSourceState.getInvariants().equals(pTargetState.getInvariants())) {
+      if (pSourceState.invariants().equals(pTargetState.invariants())) {
         // if we stay in the invariant state on an edge that could change the data state, we need to
         // assume the invariant again:
         pTransitions.add(
@@ -1936,7 +1934,7 @@ public final class AutomatonGraphmlParser {
       pTransitions.add(
           createAutomatonInvariantErrorTransition(pTransitionCondition, assumptionWithNegCExpr));
     }
-    if (!optimizeISA || !pSourceState.getInvariants().equals(pTargetState.getInvariants())) {
+    if (!optimizeISA || !pSourceState.invariants().equals(pTargetState.invariants())) {
       pTransitions.add(
           createAutomatonTransition(
               pTransitionCondition,

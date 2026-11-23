@@ -149,11 +149,11 @@ final class AutomatonGraphmlParserState {
       GraphMLState current = waitlist.poll();
       int newDistance = distances.get(current) + 1;
       for (GraphMLTransition enteringTransition : pEnteringTransitions.get(current)) {
-        GraphMLState sourceState = enteringTransition.getSource();
+        GraphMLState sourceState = enteringTransition.source();
         Integer oldDistance = distances.get(sourceState);
         if (oldDistance == null || oldDistance > newDistance) {
-          distances.put(enteringTransition.getSource(), newDistance);
-          waitlist.offer(enteringTransition.getSource());
+          distances.put(enteringTransition.source(), newDistance);
+          waitlist.offer(enteringTransition.source());
         }
       }
     }
