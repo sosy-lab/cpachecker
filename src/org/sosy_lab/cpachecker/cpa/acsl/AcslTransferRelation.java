@@ -35,7 +35,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFA cfa;
   private final LogManager logger;
-  private final LoopPatternFinder loopPatternFinder;
+  private final ArrayInitDetector arrayInitDetector;
   private final FormulaToAcslConverter formulaConverter;
   private final FormulaManagerView fmgr;
   private final boolean hasNestedLoop;
@@ -48,7 +48,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       FormulaManagerView pFmgr) {
     this.cfa = pCFA;
     this.logger = pLogManager;
-    this.loopPatternFinder = new LoopPatternFinder(logger, pFormulaConverter);
+    this.arrayInitDetector = new ArrayInitDetector(logger, pFormulaConverter);
     this.formulaConverter = pFormulaConverter;
     this.fmgr = pFmgr;
     if (cfa.getLoopStructure().isEmpty()) {
@@ -104,7 +104,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
               "Skipping detection of array initialization, as one already exists for the node.");
         } else {
           Optional<ArrayInitialization> detected =
-              loopPatternFinder.detect(cfaEdge, cfa.getLoopStructure(), predicateState);
+              arrayInitDetector.detect(cfaEdge, cfa.getLoopStructure(), predicateState);
 
           if (detected.isPresent()) {
             ArrayInitialization init = detected.orElseThrow();

@@ -37,18 +37,19 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * Detect if a loop follows a certain pattern that makes it possible to infer an ACSL invariant. For
  * now the goal is to detect only one pattern: array initialization with a constant value.
  */
-class LoopPatternFinder {
+class ArrayInitDetector implements AcslLoopInvariantDetector {
 
   private final LogManager logger;
   private final FormulaToAcslConverter formulaConverter;
   private final Level logLevel = Level.FINER; // TODO change to INFO for debugging
   private PredicateAbstractState predStateAtLoopEntry;
 
-  LoopPatternFinder(LogManager pLogger, FormulaToAcslConverter pFormulaConverter) {
+  ArrayInitDetector(LogManager pLogger, FormulaToAcslConverter pFormulaConverter) {
     this.logger = pLogger;
     this.formulaConverter = pFormulaConverter;
   }
 
+  @Override
   public Optional<ArrayInitialization> detect(
       CFAEdge edge, Optional<LoopStructure> loopStruct, PredicateAbstractState predState) {
 
