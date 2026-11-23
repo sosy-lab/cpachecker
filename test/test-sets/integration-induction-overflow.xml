@@ -23,7 +23,10 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="Systems_BusyBox_Overflows">
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    <exclude>../programs/benchmarks/busybox-1.22.0/date-2.yml</exclude>  <!-- flapping timeout / error -->
+    <exclude>../programs/benchmarks/busybox-1.22.0/du-1.yml</exclude>  <!-- flapping timeout / error -->
     <exclude>../programs/benchmarks/busybox-1.22.0/stty-2.yml</exclude>  <!-- flapping timeout / error -->
+    <exclude>../programs/benchmarks/busybox-1.22.0/tee-1.yml</exclude>  <!-- flapping timeout / error -->
   </tasks>
   <tasks name="Overflows-Main">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>

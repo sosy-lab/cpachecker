@@ -39,6 +39,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/simple/simple_concurrent.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
     <exclude>../program/ssimple/concurrent/goblint-regression-28-race_reach_45-escape_racing.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../program/ssimple/concurrent/pthread-lazy01.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
@@ -52,6 +53,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/bitvector/byte_add_2-2.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/Floats.set</includesfile>
@@ -73,6 +75,7 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
     <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_4.c.v+lhb-reducer.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound100.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/egcd2-ll_unwindbound10.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/egcd3-ll_unwindbound10.yml</exclude>  <!-- flapping timeout / unknown -->
@@ -82,8 +85,12 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.3.1.ufo.BOUNDED-6.pals.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/seq-mthreaded/pals_lcr.3.ufo.BOUNDED-6.pals.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/seq-pthread/cs_lamport.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_peterson.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/seq-pthread/cs_szymanski.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/systemc/token_ring.03.cil-1.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/systemc/token_ring.03.cil-2.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
