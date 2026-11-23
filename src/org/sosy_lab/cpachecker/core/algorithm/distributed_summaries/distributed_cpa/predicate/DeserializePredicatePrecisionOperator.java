@@ -60,18 +60,17 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
       ImmutableList<DssLocationInstancePredicatesPayload> pLocalInstances) {
     ImmutableListMultimap.Builder<LocationInstance, AbstractionPredicate> locationInstances =
         ImmutableListMultimap.builder();
-    pLocalInstances.forEach(
-        entry -> {
-          DssLocationInstancePayload locationInstancePayload = entry.locationInstance();
-          ImmutableSet<String> serializedPredicates = ImmutableSet.copyOf(entry.predicates());
-          LocationInstance locationInstance =
-              new LocationInstance(
-                  nodeMapping.apply(locationInstancePayload.nodeId()),
-                  locationInstancePayload.instance());
-          for (String precision : serializedPredicates) {
-            locationInstances.put(locationInstance, parsedPredicates.getUnchecked(precision));
-          }
-        });
+    pLocalInstances.forEach(entry -> {
+      DssLocationInstancePayload locationInstancePayload = entry.locationInstance();
+      ImmutableSet<String> serializedPredicates = ImmutableSet.copyOf(entry.predicates());
+      LocationInstance locationInstance =
+          new LocationInstance(
+              nodeMapping.apply(locationInstancePayload.nodeId()),
+              locationInstancePayload.instance());
+      for (String precision : serializedPredicates) {
+        locationInstances.put(locationInstance, parsedPredicates.getUnchecked(precision));
+      }
+    });
     return locationInstances.build();
   }
 
@@ -79,14 +78,13 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
       ImmutableMap<Integer, ImmutableSet<String>> pLocalPredicates) {
     ImmutableListMultimap.Builder<CFANode, AbstractionPredicate> localPredicates =
         ImmutableListMultimap.builder();
-    pLocalPredicates.forEach(
-        (location, serializedPrecisions) -> {
-          for (String precision : serializedPrecisions) {
-            localPredicates.put(
-                Objects.requireNonNull(nodeMapping.apply(location)),
-                parsedPredicates.getUnchecked(precision));
-          }
-        });
+    pLocalPredicates.forEach((location, serializedPrecisions) -> {
+      for (String precision : serializedPrecisions) {
+        localPredicates.put(
+            Objects.requireNonNull(nodeMapping.apply(location)),
+            parsedPredicates.getUnchecked(precision));
+      }
+    });
     return localPredicates.build();
   }
 
@@ -94,12 +92,11 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
       ImmutableMap<String, ImmutableSet<String>> pFunctionPredicates) {
     ImmutableListMultimap.Builder<String, AbstractionPredicate> functionPredicates =
         ImmutableListMultimap.builder();
-    pFunctionPredicates.forEach(
-        (function, serializedPredicates) -> {
-          for (String predicate : serializedPredicates) {
-            functionPredicates.put(function, parsedPredicates.getUnchecked(predicate));
-          }
-        });
+    pFunctionPredicates.forEach((function, serializedPredicates) -> {
+      for (String predicate : serializedPredicates) {
+        functionPredicates.put(function, parsedPredicates.getUnchecked(predicate));
+      }
+    });
     return functionPredicates.build();
   }
 

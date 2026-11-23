@@ -62,26 +62,23 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
         LinkedHashMultimap.create();
     predicatePrecision
         .getLocationInstancePredicates()
-        .forEach(
-            (l, p) ->
-                locationInstancePredicatesMultimap.put(
-                    new DssLocationInstancePayload(nodeToId.get(l.getLocation()), l.getInstance()),
-                    serializeAbstractionPredicate(p)));
+        .forEach((l, p) ->
+            locationInstancePredicatesMultimap.put(
+                new DssLocationInstancePayload(nodeToId.get(l.getLocation()), l.getInstance()),
+                serializeAbstractionPredicate(p)));
     ImmutableList.Builder<DssLocationInstancePredicatesPayload> locationInstancePredicates =
         ImmutableList.builder();
     locationInstancePredicatesMultimap
         .asMap()
-        .forEach(
-            (l, p) ->
-                locationInstancePredicates.add(
-                    new DssLocationInstancePredicatesPayload(l, ImmutableList.copyOf(p))));
+        .forEach((l, p) ->
+            locationInstancePredicates.add(
+                new DssLocationInstancePredicatesPayload(l, ImmutableList.copyOf(p))));
 
     Multimap<Integer, String> localPredicatesMultimap = LinkedHashMultimap.create();
     predicatePrecision
         .getLocalPredicates()
-        .forEach(
-            (l, p) ->
-                localPredicatesMultimap.put(nodeToId.get(l), serializeAbstractionPredicate(p)));
+        .forEach((l, p) ->
+            localPredicatesMultimap.put(nodeToId.get(l), serializeAbstractionPredicate(p)));
     ImmutableMap.Builder<Integer, ImmutableSet<String>> localPredicates = ImmutableMap.builder();
     localPredicatesMultimap
         .asMap()
