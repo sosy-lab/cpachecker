@@ -97,7 +97,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
  * SV-COMP competition and therefore kept track in the SV-COMP documentation: <a
  * href="https://sv-comp.sosy-lab.org/2027/rules.php">SV-COMP 2027 Rules</a>.
  */
-public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
+public final class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
   private final CParser cparser;
   private final ParserTools parserTools;

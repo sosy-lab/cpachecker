@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
-public class AutomatonWitnessV2ParserUtils {
+public final class AutomatonWitnessV2ParserUtils {
 
-  public static class InvalidYAMLWitnessException extends InvalidConfigurationException {
+  public static final class InvalidYAMLWitnessException extends InvalidConfigurationException {
     @Serial private static final long serialVersionUID = -5647551194742587246L;
 
     public InvalidYAMLWitnessException(String pReason) {

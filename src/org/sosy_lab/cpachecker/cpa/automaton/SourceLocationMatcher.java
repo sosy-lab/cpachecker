@@ -16,9 +16,9 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-class SourceLocationMatcher {
+final class SourceLocationMatcher {
 
-  private abstract static class BaseFileNameMatcher implements Predicate<FileLocation> {
+  private abstract static sealed class BaseFileNameMatcher implements Predicate<FileLocation> {
 
     private final Optional<String> originFileName;
 
@@ -60,7 +60,7 @@ class SourceLocationMatcher {
     }
   }
 
-  static class LineMatcher extends BaseFileNameMatcher {
+  static final class LineMatcher extends BaseFileNameMatcher {
 
     private final int startLineNumber;
 
@@ -122,7 +122,7 @@ class SourceLocationMatcher {
     }
   }
 
-  static class OffsetMatcher extends BaseFileNameMatcher {
+  static final class OffsetMatcher extends BaseFileNameMatcher {
 
     private final int startOffset;
 

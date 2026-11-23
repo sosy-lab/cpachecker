@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
  * This class combines an AutomatonInternal State with a variable Configuration. Instances of this
  * class are passed to the CPAchecker as AbstractState.
  */
-public class AutomatonState
+public sealed class AutomatonState
     implements AbstractQueryableState,
         Targetable,
         Serializable,
@@ -52,7 +52,7 @@ public class AutomatonState
 
   static final String INTERNAL_STATE_IS_TARGET_PROPERTY = "internalStateIsTarget";
 
-  static class TOP extends AutomatonState {
+  static final class TOP extends AutomatonState {
     @Serial private static final long serialVersionUID = -7848577870312049023L;
 
     public TOP(Automaton pAutomaton, boolean pTreatErrorsAsTarget) {
@@ -80,7 +80,7 @@ public class AutomatonState
     }
   }
 
-  static class BOTTOM extends AutomatonState {
+  static final class BOTTOM extends AutomatonState {
     @Serial private static final long serialVersionUID = -401794748742705212L;
 
     public BOTTOM(Automaton pAutomaton, boolean pTreatErrorsAsTarget) {

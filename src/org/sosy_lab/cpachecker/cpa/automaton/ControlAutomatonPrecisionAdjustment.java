@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
+final class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
   private final @Nullable PrecisionAdjustment wrappedPrec;
   private final AutomatonState topState;

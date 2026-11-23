@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  * The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState} and
  * strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-public class AutomatonTransferRelation implements TransferRelation {
+public final class AutomatonTransferRelation implements TransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;

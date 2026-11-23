@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
  * correctness or a violation witness and which format version they use, and hands them to {@link
  * AutomatonWitnessCorrectnessV2Parser} or {@link AutomatonWitnessViolationV2Parser} respectively.
  */
-public class AutomatonWitnessV2Parser {
+public final class AutomatonWitnessV2Parser {
 
   private final LogManager logger;
   private final Configuration config;

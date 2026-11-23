@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class InterpolationAutomaton {
+public final class InterpolationAutomaton {
 
   private static final boolean TARGET = true;
 
@@ -155,7 +155,7 @@ public class InterpolationAutomaton {
     return str.toString();
   }
 
-  private static class ItpAutomatonState {
+  private static sealed class ItpAutomatonState {
 
     private final InterpolationAutomaton itpAutomaton;
 
@@ -311,14 +311,14 @@ public class InterpolationAutomaton {
     }
   }
 
-  private class InitState extends ItpAutomatonState {
+  private final class InitState extends ItpAutomatonState {
 
     private InitState(InterpolationAutomaton pItpAutomaton) {
       super(pItpAutomaton, "init_state", fMgrView.getBooleanFormulaManager().makeTrue(), TARGET);
     }
   }
 
-  private class FinalState extends ItpAutomatonState {
+  private final class FinalState extends ItpAutomatonState {
 
     private FinalState(InterpolationAutomaton pItpAutomaton) {
       super(pItpAutomaton, "final_state", fMgrView.getBooleanFormulaManager().makeFalse(), !TARGET);

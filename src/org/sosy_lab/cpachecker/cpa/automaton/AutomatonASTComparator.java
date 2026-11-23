@@ -408,7 +408,7 @@ class AutomatonASTComparator {
     }
   }
 
-  private static class NumberedJokerMatcher implements ASTMatcher {
+  private static final class NumberedJokerMatcher implements ASTMatcher {
 
     private final int number;
 

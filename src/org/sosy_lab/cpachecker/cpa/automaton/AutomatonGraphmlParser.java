@@ -120,7 +120,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 @Options(prefix = "witness")
-public class AutomatonGraphmlParser {
+public final class AutomatonGraphmlParser {
 
   private static final Pattern VALID_HASH_PATTERN =
       Pattern.compile("([\\da-f]{40})|([\\da-f]{64})");
@@ -1959,7 +1959,8 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  public static class TargetInformationCopyingAutomatonTransition extends AutomatonTransition {
+  public static final class TargetInformationCopyingAutomatonTransition
+      extends AutomatonTransition {
 
     public TargetInformationCopyingAutomatonTransition(Builder pBuilder) {
       super(pBuilder);
@@ -1993,7 +1994,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  public static class GraphMLDocumentData {
+  public static final class GraphMLDocumentData {
 
     private final Node graph;
 
@@ -2245,7 +2246,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  public static class WitnessParseException extends InvalidConfigurationException {
+  public static final class WitnessParseException extends InvalidConfigurationException {
 
     private static final String PARSE_EXCEPTION_MESSAGE_PREFIX = "Cannot parse witness: ";
 

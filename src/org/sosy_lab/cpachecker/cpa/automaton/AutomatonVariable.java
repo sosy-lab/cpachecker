@@ -16,7 +16,7 @@ import java.util.Set;
 
 /** Represents a local variable of the automaton. So far only integer variables are supported. */
 @SuppressWarnings("checkstyle:NoClone") // should be refactored
-public abstract class AutomatonVariable implements Cloneable, Serializable {
+public abstract sealed class AutomatonVariable implements Cloneable, Serializable {
   @Serial private static final long serialVersionUID = -6765794863680244559L;
   protected final String name;
 

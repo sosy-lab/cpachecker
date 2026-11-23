@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class InterpolationAutomatonBuilder {
+public final class InterpolationAutomatonBuilder {
 
   private static final String ITP_AUTOMATON_NAME = "ItpAut";
 

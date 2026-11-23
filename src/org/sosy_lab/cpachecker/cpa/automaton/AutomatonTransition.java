@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
@@ -48,7 +49,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
  * A transition in the automaton implements one of the pattern matching methods. This determines if
  * the transition matches on a certain {@link CFAEdge}.
  */
-class AutomatonTransition {
+sealed class AutomatonTransition permits TargetInformationCopyingAutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
 
@@ -96,7 +97,7 @@ class AutomatonTransition {
 
   private AutomatonInternalState followState = null;
 
-  static class Builder {
+  static final class Builder {
     private AutomatonBoolExpr trigger;
     private List<AutomatonBoolExpr> assertions;
     private List<AExpression> assumptions;

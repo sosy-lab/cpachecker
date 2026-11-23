@@ -13,7 +13,7 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
-class AutomatonTargetInformation implements TargetInformation {
+final class AutomatonTargetInformation implements TargetInformation {
 
   private final @NonNull Automaton automaton;
   private final @NonNull AutomatonTransition automatonTrans;

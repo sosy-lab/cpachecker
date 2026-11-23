@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
  * href="https://gitlab.com/sosy-lab/benchmarking/sv-witnesses/-/blob/main/user-guide/Witness-Format.md">Witnesses
  * Format</a>.
  */
-class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon {
+final class AutomatonWitnessCorrectnessV2Parser extends AutomatonWitnessV2ParserCommon {
 
   private static final String ENTRY_STATE_ID = "singleState";
 

@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.Serial;
 
-public class InvalidAutomatonException extends Exception {
+public final class InvalidAutomatonException extends Exception {
 
   @Serial private static final long serialVersionUID = 4881083051895812266L;
 
