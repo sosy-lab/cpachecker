@@ -12,7 +12,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public interface AcslInvariantProvider {
-  public AcslPredicate toInvariant(CProgramScope pScope, FileLocation pLoc, LogManager pLog);
+  CFANode loopHead();
+
+  AcslPredicate toInvariant(CProgramScope pScope, FileLocation pLoc, LogManager pLog);
 }

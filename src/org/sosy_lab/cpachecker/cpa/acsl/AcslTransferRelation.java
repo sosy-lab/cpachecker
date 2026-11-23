@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -35,7 +34,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFA cfa;
   private final LogManager logger;
-  private final ArrayInitDetector arrayInitDetector;
+  private final AcslLoopInvariantDetectorManager detectorManager;
   private final FormulaToAcslConverter formulaConverter;
   private final FormulaManagerView fmgr;
   private final boolean hasNestedLoop;
@@ -48,7 +47,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       FormulaManagerView pFmgr) {
     this.cfa = pCFA;
     this.logger = pLogManager;
-    this.arrayInitDetector = new ArrayInitDetector(logger, pFormulaConverter);
+    this.detectorManager = new AcslLoopInvariantDetectorManager(logger, pFormulaConverter);
     this.formulaConverter = pFormulaConverter;
     this.fmgr = pFmgr;
     if (cfa.getLoopStructure().isEmpty()) {
@@ -103,30 +102,28 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
               logLevel,
               "Skipping detection of array initialization, as one already exists for the node.");
         } else {
-          Optional<ArrayInitialization> detected =
-              arrayInitDetector.detect(cfaEdge, cfa.getLoopStructure(), predicateState);
+          ImmutableList<AcslInvariantProvider> detected =
+              detectorManager.detect(cfaEdge, cfa.getLoopStructure(), predicateState);
 
-          if (detected.isPresent()) {
-            ArrayInitialization init = detected.orElseThrow();
-            logger.log(Level.INFO, "SUCCESS: Detected array initialization: " + init);
+          for (AcslInvariantProvider invariant : detected) {
+            logger.log(Level.INFO, "SUCCESS: Detected ACSL invariant: " + invariant);
 
             CProgramScope scope = new CProgramScope(cfa, logger);
-            AcslPredicate inv =
-                detected.orElseThrow().toInvariant(scope, FileLocation.DUMMY, logger);
+            AcslPredicate inv = invariant.toInvariant(scope, FileLocation.DUMMY, logger);
             logger.log(Level.INFO, "Generated ACSL invariant: " + inv);
 
             if (updatedState instanceof AcslState acslState) {
               ImmutableList<CFANode> exitNodes =
-                  getExitNodes(cfa.getLoopStructure().orElseThrow(), init.loopHead());
+                  getExitNodes(cfa.getLoopStructure().orElseThrow(), invariant.loopHead());
               if (exitNodes.isEmpty()) {
-                updatedState = acslState.withAddedInvariant(init.loopHead(), init);
+                updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
                 logger.log(
                     Level.WARNING,
                     "Cound not determine the node(s) after the loop, storing invariant for loop"
                         + " head instead!");
               } else {
                 // TODO clean this up if it works
-                updatedState = acslState.withAddedInvariant(init.loopHead(), init);
+                updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
               }
             }
           }
