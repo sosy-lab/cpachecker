@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-class AutomatonExpressionArguments {
+final class AutomatonExpressionArguments {
 
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
@@ -257,7 +257,7 @@ class AutomatonExpressionArguments {
         String subscriptExpr = expr.getSubscriptExpression().toASTString();
         AutomatonVariable automatonVariable = getAutomatonVariable(arrayExpr);
         if (automatonVariable != null) {
-          if (automatonVariable instanceof AutomatonSetVariable) {
+          if (automatonVariable instanceof AutomatonSetVariable<?> automatonSetVariable) {
             String name = subscriptExpr;
             CAstNode transitionVariable = getTransitionVariable(subscriptExpr);
             if (transitionVariable != null) {
@@ -266,8 +266,7 @@ class AutomatonExpressionArguments {
             return new CIntegerLiteralExpression(
                 pNode.getFileLocation(),
                 CNumericTypes.INT,
-                BigInteger.valueOf(
-                    ((AutomatonSetVariable<?>) automatonVariable).contains(name) ? 1 : 0));
+                BigInteger.valueOf(automatonSetVariable.contains(name) ? 1 : 0));
           }
         }
       }
@@ -301,13 +300,12 @@ class AutomatonExpressionArguments {
         String fieldName = expr.getFieldName();
         AutomatonVariable automatonVariable = getAutomatonVariable(fieldOwner);
         if (automatonVariable != null) {
-          if (automatonVariable instanceof AutomatonSetVariable) {
+          if (automatonVariable instanceof AutomatonSetVariable<?> automatonSetVariable) {
             if (fieldName.equalsIgnoreCase("empty")) {
               return new CIntegerLiteralExpression(
                   pNode.getFileLocation(),
                   CNumericTypes.INT,
-                  BigInteger.valueOf(
-                      ((AutomatonSetVariable<?>) automatonVariable).isEmpty() ? 1 : 0));
+                  BigInteger.valueOf(automatonSetVariable.isEmpty() ? 1 : 0));
             }
           }
         }

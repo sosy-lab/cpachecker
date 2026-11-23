@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cpa.threading;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -51,7 +54,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * This static analyzer for edges checks whether there exists read- or write-access to global
@@ -61,6 +66,20 @@ public class GlobalAccessChecker {
 
   /** cache elements, edges and their content never change. */
   private final IdentityHashMap<AAstNode, Boolean> astCache = new IdentityHashMap<>();
+
+  private final GlobalAccessVisitor globalAccessVisitor;
+
+  /**
+   * @param pCfa the CFA, whose variable classification tells which local variables have their
+   *     address taken and may thus be accessed by other threads
+   */
+  GlobalAccessChecker(CFA pCfa) {
+    Optional<Set<String>> addressedVariables =
+        pCfa.getVarClassification().map(VariableClassification::getAddressedVariables);
+    globalAccessVisitor =
+        new GlobalAccessVisitor(variable ->
+            addressedVariables.isEmpty() || addressedVariables.orElseThrow().contains(variable));
+  }
 
   /**
    * check, whether the edge might have a write- or read-access to global variables or shared
@@ -112,7 +131,7 @@ public class GlobalAccessChecker {
   private Boolean hasGlobalAccessDirect(AAstNode ast) {
     return switch (ast) {
       // CRightHandSide
-      case CExpression cExpression -> cExpression.accept(GlobalAccessVisitor.INSTANCE);
+      case CExpression cExpression -> cExpression.accept(globalAccessVisitor);
       case CFunctionCallExpression func -> anyHasGlobalAccess(func.getParameterExpressions());
 
       // CInitializer
@@ -124,12 +143,15 @@ public class GlobalAccessChecker {
           anyHasGlobalAccess(di.getDesignators()) || hasGlobalAccess(di.getRightHandSide());
 
       // CSimpleDeclaration
-      case CVariableDeclaration decl -> decl.isGlobal() || hasGlobalAccess(decl.getInitializer());
+      case CVariableDeclaration decl ->
+          decl.isGlobal()
+              || globalAccessVisitor.mayBeShared(decl)
+              || hasGlobalAccess(decl.getInitializer());
       case CFunctionDeclaration decl -> anyHasGlobalAccess(decl.getParameters());
       case CComplexTypeDeclaration decl -> decl.isGlobal();
       case CTypeDefDeclaration decl -> decl.isGlobal();
-      case CParameterDeclaration param -> false;
-      case CEnumerator enumerator -> false;
+      case CParameterDeclaration _ -> false;
+      case CEnumerator _ -> false;
 
       // CStatement
       case CFunctionCallAssignmentStatement stat ->
@@ -154,29 +176,45 @@ public class GlobalAccessChecker {
       case CArrayRangeDesignator cArrayRangeDesignator ->
           hasGlobalAccess(cArrayRangeDesignator.getFloorExpression())
               || hasGlobalAccess(cArrayRangeDesignator.getCeilExpression());
-      case CFieldDesignator fieldDesignator -> false;
+      case CFieldDesignator _ -> false;
 
       default -> throw new AssertionError("unhandled ASTNode " + ast + " of " + ast.getClass());
     };
   }
 
-  /** returns whether there might be a read- or write-access to global variables. */
+  /**
+   * returns whether there might be a read- or write-access to global variables or shared memory.
+   * Memory accessed through a pointer may be shared, and so may a local variable whose address is
+   * taken or that is an array (which is converted to a pointer without taking its address).
+   */
   private static class GlobalAccessVisitor extends DefaultCExpressionVisitor<Boolean, NoException>
       implements CRightHandSideVisitor<Boolean, NoException> {
 
-    // we can use singleton, because there is no internal storage or state.
-    static final GlobalAccessVisitor INSTANCE = new GlobalAccessVisitor();
+    private final Predicate<String> isAddressed;
+
+    GlobalAccessVisitor(Predicate<String> pIsAddressed) {
+      isAddressed = pIsAddressed;
+    }
+
+    private boolean mayBeShared(CSimpleDeclaration pDeclaration) {
+      return pDeclaration.getType().getCanonicalType() instanceof CArrayType
+          || isAddressed.test(pDeclaration.getQualifiedName());
+    }
 
     @Override
     public Boolean visit(CIdExpression pE) {
       CSimpleDeclaration decl = pE.getDeclaration();
-      return decl instanceof AbstractDeclaration abstractDeclaration
-          && abstractDeclaration.isGlobal();
+      return (decl instanceof AbstractDeclaration abstractDeclaration
+              && abstractDeclaration.isGlobal())
+          || ((decl instanceof CVariableDeclaration || decl instanceof CParameterDeclaration)
+              && mayBeShared(decl));
     }
 
     @Override
     public Boolean visit(CArraySubscriptExpression pE) {
-      return pE.getArrayExpression().accept(this) || pE.getSubscriptExpression().accept(this);
+      return !(pE.getArrayExpression().getExpressionType().getCanonicalType() instanceof CArrayType)
+          || pE.getArrayExpression().accept(this)
+          || pE.getSubscriptExpression().accept(this);
     }
 
     @Override
@@ -196,7 +234,7 @@ public class GlobalAccessChecker {
 
     @Override
     public Boolean visit(CFieldReference pE) {
-      return pE.getFieldOwner().accept(this);
+      return pE.isPointerDereference() || pE.getFieldOwner().accept(this);
     }
 
     @Override
@@ -219,7 +257,7 @@ public class GlobalAccessChecker {
 
     @Override
     public Boolean visit(CPointerExpression pE) {
-      return pE.getOperand().accept(this);
+      return true;
     }
 
     @Override

@@ -12,8 +12,11 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -22,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.test.TestCfaUtils;
 
@@ -47,6 +51,16 @@ public class CFAUtilsTest {
     assertThat(expressionLocation.getStartColumnInLine()).isEqualTo(pExpectedStartColumnInLine);
     assertThat(expressionLocation.getEndingLineNumber()).isEqualTo(pExpectedEndingLine);
     assertThat(expressionLocation.getEndColumnInLine()).isEqualTo(pExpectedEndColumnInLine);
+  }
+
+  /** The assignment in the first operand of {@code ||} is not part of the loop condition. */
+  @Test
+  public void loopConditionWithSideEffectInOperand() throws Exception {
+    CFA cfa =
+        TestCfaUtils.makeCfaFromFile(
+            "test/programs/simple/witness_validation/loop-with-side-effect-in-operand.c");
+    CFANode loopHead = Iterables.getOnlyElement(cfa.getAllLoopHeads().orElseThrow());
+    assertThat(CFAUtils.computeLoopCondition(loopHead, cfa.getAstCfaRelation())).isEmpty();
   }
 
   /**
@@ -282,5 +296,211 @@ public class CFAUtilsTest {
     Set<CFANode> nodes =
         FluentIterable.from(edges.build()).transformAndConcat(CFAUtils::nodes).toSet();
     assertThat(CFAUtils.isConnected(nodes)).isTrue();
+  }
+
+  @SafeVarargs
+  @SuppressWarnings("varargs") // only passed on to another @SafeVarargs method
+  private static boolean isHavocOfUntouchedMallocBlock(
+      String pProgram, String pHavocArgument, Map.Entry<String, String>... pCfaOptions)
+      throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromString(pProgram, pCfaOptions);
+    String nondetMemoryFunction = VerifierNondetFunctions.getFunctionNameNondetMemory();
+    CStatementEdge havocEdge =
+        (CStatementEdge)
+            TestCfaUtils.getEdge(nondetMemoryFunction + "(" + pHavocArgument + ",", cfa);
+    return CFAUtils.isHavocOfUntouchedAllocation(havocEdge, "malloc"::equals);
+  }
+
+  @Test
+  @Ignore("The check returns false at nodes with more than one predecessor, to keep it cheap")
+  public void testHavocOfUntouchedAllocationAcrossBranches() throws Exception {
+    String program =
+        """
+        extern void *malloc(unsigned long);
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        extern int __VERIFIER_nondet_int(void);
+        int main() {
+          int x;
+          void *p;
+          p = malloc(8);
+          if (__VERIFIER_nondet_int()) {
+            x = 1;
+          } else {
+            x = 2;
+          }
+          __VERIFIER_nondet_memory(p, 8);
+          return x;
+        }
+        """;
+    assertThat(isHavocOfUntouchedMallocBlock(program, "p")).isTrue();
+  }
+
+  @Test
+  public void testHavocOfUntouchedAllocationThroughWrappers() throws Exception {
+    String program =
+        """
+        extern void *malloc(unsigned long);
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        extern void abort(void);
+        extern int __VERIFIER_nondet_int(void);
+        void *g;
+        void assume(int c) {
+          if (!c) {
+            abort();
+          }
+        }
+        void *alloc_wrapper(unsigned long size) {
+          void *ptr = malloc(size);
+          assume(ptr != 0);
+          return ptr;
+        }
+        void havoc_wrapper(void *dest) {
+          __VERIFIER_nondet_memory(dest, 8);
+        }
+        int main() {
+          assume(__VERIFIER_nondet_int());
+          g = alloc_wrapper(8);
+          havoc_wrapper(g);
+          return 0;
+        }
+        """;
+    assertThat(isHavocOfUntouchedMallocBlock(program, "dest")).isTrue();
+  }
+
+  @Test
+  public void testHavocAfterUnknownFunctionWithPointerArgument() throws Exception {
+    String program =
+        """
+        extern void *malloc(unsigned long);
+        extern void *memset(void *, int, unsigned long);
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        int main() {
+          void *p;
+          p = malloc(8);
+          memset(p, 0, 8);
+          __VERIFIER_nondet_memory(p, 8);
+          return 0;
+        }
+        """;
+    assertThat(isHavocOfUntouchedMallocBlock(program, "p")).isFalse();
+  }
+
+  @Test
+  public void testHavocWithOneCallerWritingInCallee() throws Exception {
+    String program =
+        """
+        extern void *malloc(unsigned long);
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        void init(char *q) {
+          *q = 0;
+        }
+        void havoc_wrapper(void *dest) {
+          __VERIFIER_nondet_memory(dest, 8);
+        }
+        int main() {
+          char *a;
+          char *b;
+          b = malloc(8);
+          init(b);
+          havoc_wrapper(b);
+          a = malloc(8);
+          havoc_wrapper(a);
+          return 0;
+        }
+        """;
+    assertThat(isHavocOfUntouchedMallocBlock(program, "dest")).isFalse();
+  }
+
+  @Test
+  public void testHavocAfterPointerIsRebound() throws Exception {
+    String program =
+        """
+        extern void *malloc(unsigned long);
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        int main() {
+          int x;
+          void *p;
+          p = malloc(8);
+          p = &x;
+          __VERIFIER_nondet_memory(p, 8);
+          return x;
+        }
+        """;
+    assertThat(isHavocOfUntouchedMallocBlock(program, "p")).isFalse();
+  }
+
+  @Test
+  public void testHavocOfUntouchedAllocationWithSummaryEdges() throws Exception {
+    String program =
+        """
+        extern void *malloc(unsigned long);
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        void *alloc_wrapper() {
+          void *ptr = malloc(8);
+          return ptr;
+        }
+        int main() {
+          void *p;
+          p = alloc_wrapper();
+          __VERIFIER_nondet_memory(p, 8);
+          return 0;
+        }
+        """;
+    // The SV-COMP configuration adds a summary statement edge parallel to each function call.
+    assertThat(
+            isHavocOfUntouchedMallocBlock(program, "p", Map.entry("analysis.summaryEdges", "true")))
+        .isTrue();
+  }
+
+  @Test
+  public void testHavocOfUntouchedAllocationWithAccessAtOtherCallSite() throws Exception {
+    String program =
+        """
+        extern void *malloc(unsigned long);
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        int g;
+        void check(int c) {}
+        void *alloc_wrapper() {
+          void *ptr = malloc(8);
+          check(ptr != 0);
+          return ptr;
+        }
+        int main() {
+          int *q = &g;
+          void *p;
+          check(*q);
+          p = alloc_wrapper();
+          __VERIFIER_nondet_memory(p, 8);
+          return 0;
+        }
+        """;
+    // The dereference at the other call site of check is not on any path from the allocation.
+    assertThat(isHavocOfUntouchedMallocBlock(program, "p")).isTrue();
+  }
+
+  @Test(timeout = 20_000)
+  public void testHavocInUncalledMutualRecursion() throws Exception {
+    String program =
+        """
+        extern void __VERIFIER_nondet_memory(void *, unsigned long);
+        extern int __VERIFIER_nondet_int(void);
+        void *p;
+        void g();
+        void f() {
+          if (__VERIFIER_nondet_int()) {
+            __VERIFIER_nondet_memory(p, 8);
+          } else {
+            g();
+          }
+        }
+        void g() {
+          f();
+        }
+        int main() {
+          return 0;
+        }
+        """;
+    // f and g are their only callers, so leaving them through their call edges walks in a cycle.
+    assertThat(isHavocOfUntouchedMallocBlock(program, "p")).isFalse();
   }
 }

@@ -86,6 +86,39 @@ public class AstCfaRelationScopeTest {
   }
 
   @Test
+  public void hiddenVariableInScopeAfterNestedBlocks() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "shadowed-variable-block-ends.c");
+    CFANode afterBlocks = TestCfaUtils.getEdge("int y = x__2;", cfa).getSuccessor();
+
+    assertThat(
+            variablesInScope(cfa, afterBlocks)
+                .filter(variable -> variable.getOrigName().matches("x|y"))
+                .transform(AbstractSimpleDeclaration::getName))
+        .containsExactly("x");
+  }
+
+  @Test
+  public void hiddenVariableInScopeAtBreak() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "shadowed-variable-block-ends.c");
+    CFANode beforeBreak = TestCfaUtils.getEdge("break", cfa).getPredecessor();
+
+    assertThat(
+            variablesInScope(cfa, beforeBreak)
+                .filter(variable -> variable.getOrigName().equals("x"))
+                .transform(AbstractSimpleDeclaration::getName))
+        .containsExactly("x");
+  }
+
+  @Test
+  public void parameterNotInScopeAtFunctionExit() throws Exception {
+    CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "shadowed-parameter.c");
+    CFANode exit = cfa.getFunctionHead("f").getExitNode().orElseThrow();
+
+    assertThat(variablesInScope(cfa, exit).transform(AbstractSimpleDeclaration::getOrigName))
+        .containsNoneOf("n", "result");
+  }
+
+  @Test
   public void staticLocalVariableInScopeOnce() throws Exception {
     CFA cfa = TestCfaUtils.makeCfaFromFile(PROGRAMS + "static-local-variable.c");
     CFANode beforeReturn =

@@ -53,13 +53,6 @@ public final class SeqThreadStatementClause implements SeqExportStatement {
    */
   private final ImmutableList<SeqThreadStatementBlock> blocks;
 
-  public SeqThreadStatementClause(MPOROptions pOptions, SeqThreadStatementBlock pBlock) {
-    id = getNewId();
-    options = pOptions;
-    labelNumber = pBlock.getLabelNumber();
-    blocks = ImmutableList.of(pBlock);
-  }
-
   public SeqThreadStatementClause(
       MPOROptions pOptions, ImmutableList<SeqThreadStatementBlock> pBlocks) {
 

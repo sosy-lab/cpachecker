@@ -78,10 +78,9 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       Set<UnmodifiableReachedSet> newElements = Sets.difference(tmp, lastUsedReachedSets);
 
       oldElements.forEach(r -> singleInvariantSuppliers.remove(r));
-      newElements.forEach(
-          r ->
-              singleInvariantSuppliers.put(
-                  r, new ReachedSetBasedFormulaSupplier(new LazyLocationMapping(r))));
+      newElements.forEach(r ->
+          singleInvariantSuppliers.put(
+              r, new ReachedSetBasedFormulaSupplier(new LazyLocationMapping(r))));
 
       lastUsedReachedSets = tmp;
       lastInvariantSupplier =

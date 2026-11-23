@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputWarning;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -136,7 +137,10 @@ public record SeqFunctionStatementBuilder(
                 parameterSubstitutes.get(j), callContextSubstitute.getArguments().get(i + j));
         rAssignments.add(
             new SeqFunctionParameterAssignment(
-                expressionAssignmentStatement, pCallContext, pCfaEdgeForThread.callContext));
+                pSubstitution.getThread(),
+                expressionAssignmentStatement,
+                pCallContext,
+                pCfaEdgeForThread.callContext));
       }
     }
     return rAssignments.build();
@@ -201,7 +205,10 @@ public record SeqFunctionStatementBuilder(
                   cell.getValue(), rightHandSideSubstitute);
           SeqFunctionParameterAssignment startRoutineArgAssignment =
               new SeqFunctionParameterAssignment(
-                  expressionAssignmentStatement, callContext, cfaEdgeForThread.callContext);
+                  pSubstitution.getThread(),
+                  expressionAssignmentStatement,
+                  callContext,
+                  cfaEdgeForThread.callContext);
           rAssignments.put(cfaEdgeForThread, startRoutineArgAssignment);
         }
       }
@@ -241,7 +248,7 @@ public record SeqFunctionStatementBuilder(
           if (functionSummaryEdge.isPresent()) {
             Optional<SeqFunctionReturnValueAssignment> assignment =
                 tryBuildReturnValueAssignment(
-                    functionSummaryEdge.orElseThrow(), returnStatementEdge);
+                    pThread, functionSummaryEdge.orElseThrow(), returnStatementEdge);
             if (assignment.isPresent()) {
               rReturnStatements.put(threadEdge, assignment.orElseThrow());
             }
@@ -260,12 +267,11 @@ public record SeqFunctionStatementBuilder(
     pThread
         .cfa()
         .threadEdges
-        .forEach(
-            e ->
-                checkState(
-                    substituteEdges.containsKey(e),
-                    "Edge %s missing from substitute map",
-                    e.cfaEdge.getCode()));
+        .forEach(e ->
+            checkState(
+                substituteEdges.containsKey(e),
+                "Edge %s missing from substitute map",
+                e.cfaEdge.getCode()));
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
       // consider only threadEdges with callContext, CReturnStatementEdges always have call contexts
       if (threadEdge.callContext.cfaEdgeForThread().isPresent()) {
@@ -290,7 +296,9 @@ public record SeqFunctionStatementBuilder(
   }
 
   private Optional<SeqFunctionReturnValueAssignment> tryBuildReturnValueAssignment(
-      SubstituteEdge pFunctionSummaryEdge, CReturnStatementEdge pReturnStatementEdge) {
+      MPORThread pThread,
+      SubstituteEdge pFunctionSummaryEdge,
+      CReturnStatementEdge pReturnStatementEdge) {
 
     CFunctionSummaryEdge functionSummaryEdge = (CFunctionSummaryEdge) pFunctionSummaryEdge.cfaEdge;
     // if the summary edge is of the form value = func(); (i.e. an assignment)
@@ -307,6 +315,7 @@ public record SeqFunctionStatementBuilder(
                 pReturnStatementEdge.getExpression().orElseThrow());
         return Optional.of(
             new SeqFunctionReturnValueAssignment(
+                pThread,
                 assignmentStatement,
                 pFunctionSummaryEdge.getCallContext(),
                 new SeqCallContext(Optional.of(pFunctionSummaryEdge.getThreadEdge()))));
@@ -325,28 +334,60 @@ public record SeqFunctionStatementBuilder(
   private ImmutableMap<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
       buildStartRoutineExitAssignments(MPORThread pThread) throws UnsupportedCodeException {
 
+    // main threads can never return any value, because they have no pthread_t object to join
+    if (pThread.isMain()) {
+      return ImmutableMap.of();
+    }
+
     ImmutableMap.Builder<CFAEdgeForThread, SeqFunctionReturnValueAssignment>
         rStartRoutineExitAssignments = ImmutableMap.builder();
+
     for (CFAEdgeForThread threadEdge : pThread.cfa().threadEdges) {
-      Optional<CFunctionCall> functionCall =
-          PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
-      if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
-          SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
-          CFunctionCall substituteFunctionCall =
-              PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
+      SubstituteEdge substituteEdge = Objects.requireNonNull(substituteEdges.get(threadEdge));
+      CFAEdgeForThread cfaEdgeForThread =
+          substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
+
+      // return value assignments via pthread_exit, no matter what the call context is
+      if (PthreadUtil.isCallToPthreadFunction(
+          threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+
+        CFunctionCall substituteFunctionCall =
+            PthreadUtil.tryGetFunctionCallFromCfaEdge(substituteEdge.cfaEdge).orElseThrow();
+        CExpression rightHandSide =
+            PthreadUtil.getParameterExpressionAtPthreadObjectTypeIndex(
+                substituteFunctionCall, PthreadObjectType.RETURN_VALUE);
+        CExpressionAssignmentStatement assignmentStatement =
+            SeqStatementBuilder.buildExpressionAssignmentStatement(
+                pThread.startRoutineExitVariable(), rightHandSide);
+        SeqFunctionReturnValueAssignment returnValueAssignment =
+            new SeqFunctionReturnValueAssignment(
+                pThread,
+                assignmentStatement,
+                cfaEdgeForThread.callContext,
+                substituteEdge.getCallContext());
+        rStartRoutineExitAssignments.put(threadEdge, returnValueAssignment);
+      }
+
+      // return value assignments from normal 'return expr;' statements, are only created if it is
+      // inside the start_routine directly which is checked via the call context.
+      SeqCallContext startRoutineCallContext = new SeqCallContext(pThread.startRoutineCall());
+      if (threadEdge.callContext.equals(startRoutineCallContext)) {
+        if (threadEdge.cfaEdge instanceof CReturnStatementEdge returnStatementEdge
+            && returnStatementEdge.getExpression().isPresent()) {
+
+          CReturnStatementEdge substituteReturnStatementEdge =
+              (CReturnStatementEdge) substituteEdge.cfaEdge;
           CExpressionAssignmentStatement assignmentStatement =
               SeqStatementBuilder.buildExpressionAssignmentStatement(
-                  pThread.startRoutineExitVariable().orElseThrow(),
-                  PthreadUtil.extractExitReturnValue(substituteFunctionCall));
-          CFAEdgeForThread cfaEdgeForThread =
-              substituteEdge.getCallContext().cfaEdgeForThread().orElseThrow();
-          SeqFunctionReturnValueAssignment assignment =
+                  pThread.startRoutineExitVariable(),
+                  substituteReturnStatementEdge.getExpression().orElseThrow());
+          SeqFunctionReturnValueAssignment returnValueAssignment =
               new SeqFunctionReturnValueAssignment(
+                  pThread,
                   assignmentStatement,
                   cfaEdgeForThread.callContext,
                   substituteEdge.getCallContext());
-          rStartRoutineExitAssignments.put(threadEdge, assignment);
+          rStartRoutineExitAssignments.put(threadEdge, returnValueAssignment);
         }
       }
     }

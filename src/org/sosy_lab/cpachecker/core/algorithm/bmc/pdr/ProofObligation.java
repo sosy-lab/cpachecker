@@ -82,7 +82,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
 
     @Override
     public CandidateInvariant getViolatedInvariant() {
-      return aggregateOverTrace(Function.identity(), (a, b) -> b).getViolatedInvariant();
+      return aggregateOverTrace(Function.identity(), (_, b) -> b).getViolatedInvariant();
     }
 
     @Override

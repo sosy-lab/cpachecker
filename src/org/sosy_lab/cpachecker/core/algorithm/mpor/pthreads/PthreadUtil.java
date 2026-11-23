@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectSubstitution.isPthreadObjectType;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -196,13 +197,6 @@ public class PthreadUtil {
         .get(returnValueIndex);
   }
 
-  public static boolean isCallToPthreadExitWithReturnValue(CFunctionCall pFunctionCall) {
-    return isCallToPthreadFunction(pFunctionCall, PthreadFunctionType.PTHREAD_EXIT)
-        && !MPORUtil.isVoidPointer(
-            Iterables.getOnlyElement(
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions()));
-  }
-
   // PTHREAD_MUTEX_INITIALIZER =====================================================================
 
   /**
@@ -247,6 +241,15 @@ public class PthreadUtil {
   }
 
   // boolean helpers ===============================================================================
+
+  public static boolean isAnyPthreadObjectType(CType pType) {
+    for (PthreadObjectType objectType : PthreadObjectType.values()) {
+      if (isPthreadObjectType(pType, objectType)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   /**
    * Returns {@code true} if {@code pCfaEdge} is a call to {@code pFunctionType} and {@code false}

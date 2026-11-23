@@ -55,7 +55,7 @@ final class ForeignDefUseData {
       if (edge instanceof CFunctionSummaryEdge summaryEdge) {
         AFunctionDeclaration function = summaryEdge.getPredecessor().getFunction();
         AFunctionDeclaration calledFunction = summaryEdge.getFunctionEntry().getFunction();
-        calledFunctions.computeIfAbsent(function, key -> new HashSet<>()).add(calledFunction);
+        calledFunctions.computeIfAbsent(function, _ -> new HashSet<>()).add(calledFunction);
       }
     }
 
@@ -118,7 +118,7 @@ final class ForeignDefUseData {
       EdgeDefUseData defUseData = pDefUseExtractor.extract(edge);
 
       Set<MemoryLocation> foreignDefs =
-          pForeignDefs.computeIfAbsent(function, key -> new HashSet<>());
+          pForeignDefs.computeIfAbsent(function, _ -> new HashSet<>());
       collectForeignMemoryLocations(
           function, edge, defUseData.getPointeeDefs(), pPointerState, foreignDefs);
       for (MemoryLocation def : defUseData.getDefs()) {
@@ -128,7 +128,7 @@ final class ForeignDefUseData {
       }
 
       Set<MemoryLocation> foreignUses =
-          pForeignUses.computeIfAbsent(function, key -> new HashSet<>());
+          pForeignUses.computeIfAbsent(function, _ -> new HashSet<>());
       collectForeignMemoryLocations(
           function, edge, defUseData.getPointeeUses(), pPointerState, foreignUses);
       for (MemoryLocation use : defUseData.getUses()) {

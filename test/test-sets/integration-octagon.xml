@@ -10,7 +10,7 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -38,6 +38,7 @@ SPDX-License-Identifier: Apache-2.0
       <exclude>../programs/benchmarks/systemc/toy.cil.yml</exclude> <!-- flapping oom/timeout -->
       <exclude>../programs/benchmarks/systemc/toy1.cil.yml</exclude> <!-- flapping oom/timeout -->
       <exclude>../programs/benchmarks/systemc/transmitter.06.cil.yml</exclude> <!-- flapping timeout -->
+      <exclude>../programs/benchmarks/systemc/transmitter.08.cil.yml</exclude> <!-- flapping timeout / OOM -->
       <option name="--option">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="--option">cpa.octagon.octagonLibrary=INT</option>
   </tasks>
@@ -85,8 +86,10 @@ SPDX-License-Identifier: Apache-2.0
       <option name="--option">cpa.octagon.octagonLibrary=FLOAT</option>
   </tasks>
 
+<!--
   <columns>
     <column title="total">time for CPAchecker</column>
     <column title="reached">Size of reached set</column>
   </columns>
+-->
 </benchmark>

@@ -308,8 +308,8 @@ public class StateEqualsVisitor
             ? InvariantsFormulaManager.INSTANCE.asConstant(
                 pVariable.getTypeInfo(), cim.allPossibleValues())
             : resolvedLeft;
-    if (pOther instanceof Variable) {
-      MemoryLocation rightVarLocation = ((Variable<?>) pOther).getMemoryLocation();
+    if (pOther instanceof Variable<?> variable) {
+      MemoryLocation rightVarLocation = variable.getMemoryLocation();
       if (leftVarLocation.equals(rightVarLocation)) {
         return true;
       }

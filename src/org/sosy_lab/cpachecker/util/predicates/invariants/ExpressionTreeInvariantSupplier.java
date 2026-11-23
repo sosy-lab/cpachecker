@@ -58,10 +58,9 @@ public class ExpressionTreeInvariantSupplier implements ExpressionTreeSupplier {
       Set<UnmodifiableReachedSet> newElements = Sets.difference(newReached, lastUsedReachedSets);
 
       oldElements.forEach(r -> singleInvariantSuppliers.remove(r));
-      newElements.forEach(
-          r ->
-              singleInvariantSuppliers.put(
-                  r, new ReachedSetBasedExpressionTreeSupplier(new LazyLocationMapping(r), cfa)));
+      newElements.forEach(r ->
+          singleInvariantSuppliers.put(
+              r, new ReachedSetBasedExpressionTreeSupplier(new LazyLocationMapping(r), cfa)));
 
       lastUsedReachedSets = newReached;
       lastInvariantSupplier =

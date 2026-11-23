@@ -158,6 +158,7 @@ public class SMGCPA
         new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
 
     solver = Solver.create(pConfig, logger, pShutdownNotifier);
+    logger.logf(Level.INFO, "Using SMG analysis with %s.", solver.getVersion());
     FormulaManagerView formulaManager = solver.getFormulaManager();
     CtoFormulaConverter converter =
         initializeCToFormulaConverter(

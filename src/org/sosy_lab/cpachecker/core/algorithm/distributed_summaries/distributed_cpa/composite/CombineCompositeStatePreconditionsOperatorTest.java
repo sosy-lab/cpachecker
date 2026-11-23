@@ -123,7 +123,7 @@ public class CombineCompositeStatePreconditionsOperatorTest {
 
   @Test
   public void unsupportedOperatorDoesNotOptInToExactCombination() throws Exception {
-    CombinePreconditionsOperator operator = states -> new SetState(3);
+    CombinePreconditionsOperator operator = _ -> new SetState(3);
     assertThat(operator.combineIfPossible(ImmutableList.of(new SetState(1), new SetState(2))))
         .isEmpty();
   }

@@ -30,11 +30,11 @@ public final class BooleanConstant<ConstantType> implements BooleanFormula<Const
   public boolean equals(Object pOther) {
     // Sanity check that this multiton works as expected.
     assert (this == pOther
-            && pOther instanceof BooleanConstant
-            && value == ((BooleanConstant<?>) pOther).value)
+            && pOther instanceof BooleanConstant<?> booleanConstant
+            && value == booleanConstant.value)
         || (this != pOther
-            && (!(pOther instanceof BooleanConstant)
-                || value != ((BooleanConstant<?>) pOther).value));
+            && (!(pOther instanceof BooleanConstant<?> booleanConstant)
+                || value != booleanConstant.value));
     return this == pOther;
   }
 

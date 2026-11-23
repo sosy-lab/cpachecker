@@ -142,10 +142,10 @@ public class MPORSubstitution {
 
     switch (pExpression) {
       // shortcut for optimization: never substitute pure int or strings
-      case CIntegerLiteralExpression ignored -> {
+      case CIntegerLiteralExpression _ -> {
         return pExpression;
       }
-      case CStringLiteralExpression ignored -> {
+      case CStringLiteralExpression _ -> {
         return pExpression;
       }
       case CIdExpression idExpression -> {
@@ -207,7 +207,8 @@ public class MPORSubstitution {
               new CArraySubscriptExpression(
                   arraySubscript.getFileLocation(),
                   PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                      arraySubscript.getExpressionType(), ImmutableSet.of()),
+                          arraySubscript.getExpressionType(), ImmutableSet.of())
+                      .type(),
                   arraySubstitute,
                   subscriptSubstitute);
           MPORSubstitutionTrackerUtil.trackPointerDereferenceByLeftHandSide(
@@ -233,7 +234,8 @@ public class MPORSubstitution {
               new CFieldReference(
                   fieldReference.getFileLocation(),
                   PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                      fieldReference.getExpressionType(), ImmutableSet.of()),
+                          fieldReference.getExpressionType(), ImmutableSet.of())
+                      .type(),
                   fieldReference.getFieldName(),
                   fieldOwnerSubstitute,
                   fieldReference.isPointerDereference());
@@ -246,7 +248,8 @@ public class MPORSubstitution {
         return new CUnaryExpression(
             unary.getFileLocation(),
             PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                unary.getExpressionType(), ImmutableSet.of()),
+                    unary.getExpressionType(), ImmutableSet.of())
+                .type(),
             substitute(
                 unary.getOperand(),
                 pCallContext,
@@ -263,7 +266,8 @@ public class MPORSubstitution {
             new CPointerExpression(
                 pointer.getFileLocation(),
                 PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                    pointer.getExpressionType(), ImmutableSet.of()),
+                        pointer.getExpressionType(), ImmutableSet.of())
+                    .type(),
                 substitute(
                     pointer.getOperand(),
                     pCallContext,
@@ -280,7 +284,8 @@ public class MPORSubstitution {
         return new CCastExpression(
             cast.getFileLocation(),
             PthreadObjectSubstitution.substitutePthreadObjectTypes(
-                cast.getExpressionType(), ImmutableSet.of()),
+                    cast.getExpressionType(), ImmutableSet.of())
+                .type(),
             substitute(
                 cast.getOperand(),
                 pCallContext,
@@ -349,6 +354,7 @@ public class MPORSubstitution {
 
     if (substituteStatement instanceof CAssignment assignment) {
       MPORSubstitutionTrackerUtil.trackPointerAssignment(
+          thread,
           assignment.getLeftHandSide(),
           assignment.getRightHandSide(),
           pCallContext,
@@ -511,7 +517,12 @@ public class MPORSubstitution {
     CVariableDeclaration variableDeclarationSubstitute =
         (CVariableDeclaration) idExpressionSubstitute.getDeclaration();
     MPORSubstitutionTrackerUtil.trackPointerAssignmentInVariableDeclaration(
-        variableDeclarationSubstitute, idExpressionSubstitute, pCallContext, pInputCfa, pTracker);
+        thread,
+        variableDeclarationSubstitute,
+        idExpressionSubstitute,
+        pCallContext,
+        pInputCfa,
+        pTracker);
     return variableDeclarationSubstitute;
   }
 

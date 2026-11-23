@@ -144,7 +144,7 @@ final class CfaSimplifications {
 
               for (Map.Entry<ArrayAccess, CExpression> finishedEntry : finished.entrySet()) {
                 substitution
-                    .computeIfAbsent(newDeclarationEdge, key -> new HashMap<>())
+                    .computeIfAbsent(newDeclarationEdge, _ -> new HashMap<>())
                     .put(finishedEntry.getKey(), finishedEntry.getValue());
               }
 
@@ -153,13 +153,13 @@ final class CfaSimplifications {
 
               CIdExpression substituteExpression = new CIdExpression(fileLocation, declaration);
               substitution
-                  .computeIfAbsent(edge, key -> new HashMap<>())
+                  .computeIfAbsent(edge, _ -> new HashMap<>())
                   .put(current, substituteExpression);
               if (edge instanceof FunctionCallEdge functionCallEdge) {
                 FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
                 assert summaryEdge != null : "Missing summary edge for call edge";
                 substitution
-                    .computeIfAbsent(summaryEdge, key -> new HashMap<>())
+                    .computeIfAbsent(summaryEdge, _ -> new HashMap<>())
                     .put(current, substituteExpression);
               }
 
@@ -425,7 +425,7 @@ final class CfaSimplifications {
             }
 
             Map<CSimpleDeclaration, CExpression> declarationSubstitution =
-                substitution.computeIfAbsent(edge, key -> new HashMap<>());
+                substitution.computeIfAbsent(edge, _ -> new HashMap<>());
             declarationSubstitution.put(targetDeclaration, substituteExpression);
           }
 

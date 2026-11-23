@@ -29,7 +29,7 @@ public class InputWarning {
       InputMessage pMessage, FileLocation pFileLocation, String pCode, LogManager pLogger) {
 
     String formatMessage =
-        String.format(pMessage.formatMessage(), pFileLocation.getStartingLineInOrigin(), pCode);
+        pMessage.formatMessage(String.valueOf(pFileLocation.getStartingLineInOrigin()), pCode);
     pLogger.log(Level.WARNING, formatMessage);
   }
 
@@ -46,7 +46,7 @@ public class InputWarning {
       }
     }
     if (!isParallel) {
-      pLogger.log(Level.WARNING, InputMessage.NOT_CONCURRENT.message);
+      pLogger.log(Level.WARNING, InputMessage.NOT_CONCURRENT.formatMessage());
     }
   }
 }

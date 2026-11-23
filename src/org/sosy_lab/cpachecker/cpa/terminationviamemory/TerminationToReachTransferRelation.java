@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -21,6 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.validation.well_founde
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -31,19 +34,13 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.Formula;
 
 public class TerminationToReachTransferRelation extends SingleEdgeTransferRelation {
-  private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
   private final ImmutableSet<Loop> allLoops;
 
   public TerminationToReachTransferRelation(
-      FormulaManagerView pFormulaManagerView,
-      PathFormulaManager pPathFormulaManager,
-      ImmutableSet<Loop> pAllLoops) {
-    fmgr = pFormulaManagerView;
+      PathFormulaManager pPathFormulaManager, ImmutableSet<Loop> pAllLoops) {
     pfmgr = pPathFormulaManager;
     allLoops = pAllLoops;
   }
@@ -62,7 +59,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
             terminationState.getPathFormulaAtLastVisit(),
             terminationState.getPathFormulaSinceLastVisit(),
             terminationState.getPathFormulaFull(),
-            Collections3.listAndElement(terminationState.getPathSequence(), cfaEdge.getSuccessor()),
+            terminationState.getPathSequence().append(cfaEdge.getSuccessor()),
             terminationState.getLoopHeadVisits(),
             ImmutableSet.of(),
             terminationState.getTransitionPredicates());
@@ -89,8 +86,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     if (TransitionInvariantUtils.isLoopHead(location, allLoops)) {
       ProgramCounter loopHead = new ProgramCounter(locationState, callstackState);
 
-      ImmutableMap.Builder<ProgramCounter, ImmutableMap<Integer, ImmutableSet<Formula>>>
-          newStoredValues = ImmutableMap.builder();
+      ImmutableMap.Builder<ProgramCounter, ImmutableMap<Integer, SSAMap>> newStoredValues =
+          ImmutableMap.builder();
       ImmutableMap.Builder<ProgramCounter, Integer> newNumberOfIterations = ImmutableMap.builder();
       ImmutableMap.Builder<ProgramCounter, PathFormula> newPathFormulaForIteration =
           ImmutableMap.builder();
@@ -124,7 +121,7 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       newAtLastVisit.put(loopHead, newFullFormula);
 
       // Copy the information for other loops
-      for (Entry<ProgramCounter, ImmutableMap<Integer, ImmutableSet<Formula>>> entry :
+      for (Entry<ProgramCounter, ImmutableMap<Integer, SSAMap>> entry :
           terminationState.getStoredValues().entrySet()) {
         if (!entry.getKey().equals(loopHead)) {
           newStoredValues.put(entry.getKey(), entry.getValue());
@@ -138,18 +135,17 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
       }
 
       // Set the new iteration formula
-      ImmutableMap.Builder<Integer, ImmutableSet<Formula>> newValues = ImmutableMap.builder();
+      ImmutableMap.Builder<Integer, SSAMap> newValues = ImmutableMap.builder();
       if (terminationState.getStoredValues().containsKey(loopHead)) {
         newValues.putAll(terminationState.getStoredValues().get(loopHead));
         newValues.put(
-            terminationState.getNumberOfIterationsAtLoopHead(loopHead),
-            extractLoopHeadVariables(newFullFormula));
+            terminationState.getNumberOfIterationsAtLoopHead(loopHead), newFullFormula.getSsa());
         newStoredValues.put(loopHead, newValues.buildOrThrow());
         newNumberOfIterations.put(
             loopHead, terminationState.getNumberOfIterationsAtLoopHead(loopHead) + 1);
         newPathFormulaForIteration.put(loopHead, iterationFormula);
       } else {
-        newValues.put(0, extractLoopHeadVariables(newFullFormula));
+        newValues.put(0, newFullFormula.getSsa());
         newStoredValues.put(loopHead, newValues.buildOrThrow());
         newNumberOfIterations.put(loopHead, 1);
       }
@@ -169,7 +165,8 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
                       loopHead,
                       terminationState.getPathSequence().size() - 1,
                       block,
-                      ImmutableSet.of())),
+                      ImmutableSet.of(),
+                      getCycleAutomatonStates(pOtherStates))),
               ImmutableSet.of(),
               terminationState.getTransitionPredicates());
       return ImmutableList.of(newState);
@@ -189,13 +186,14 @@ public class TerminationToReachTransferRelation extends SingleEdgeTransferRelati
     return pfmgr.makeConjunction(ImmutableList.of(sinceLastVisit, pBlock));
   }
 
-  private ImmutableSet<Formula> extractLoopHeadVariables(PathFormula pPathFormula) {
-    SSAMap ssaMap = pPathFormula.getSsa();
-    ImmutableSet.Builder<Formula> newStoredIndices = ImmutableSet.builder();
-    for (Formula variable : fmgr.extractVariables(pPathFormula.getFormula()).values()) {
-      newStoredIndices.add(fmgr.instantiate(fmgr.uninstantiate(variable), ssaMap));
-    }
-    return newStoredIndices.build();
+  private static ImmutableList<AutomatonState> getCycleAutomatonStates(
+      Iterable<AbstractState> otherStates) {
+    return FluentIterable.from(otherStates)
+        .filter(AutomatonState.class)
+        .filter(state ->
+            state.getOwningAutomaton().getStates().stream()
+                .anyMatch(AutomatonInternalState::isNontrivialCycleStart))
+        .toList();
   }
 
   private LocationState getLocationState(Iterable<AbstractState> otherStates) {

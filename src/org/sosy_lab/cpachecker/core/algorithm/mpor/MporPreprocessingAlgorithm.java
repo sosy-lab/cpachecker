@@ -361,7 +361,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       try {
         try (Writer writer = IO.openOutputFile(programPath, Charset.defaultCharset())) {
           writer.write(pOutputProgram);
-          logger.log(Level.INFO, "Sequentialized program exported to: ", programPath.toString());
+          logger.log(Level.INFO, "Sequentialized program exported to: ", programPath);
         }
       } catch (IOException e) {
         logger.logUserException(
@@ -382,7 +382,7 @@ public class MporPreprocessingAlgorithm implements Algorithm, StatisticsProvider
       MetadataRecord metadataRecord = buildMetadataRecord(pInputFilePaths);
       try {
         yamlMapper.writeValue(metadataPath.toFile(), metadataRecord);
-        logger.log(Level.INFO, "Sequentialization metadata exported to: ", metadataPath.toString());
+        logger.log(Level.INFO, "Sequentialization metadata exported to: ", metadataPath);
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING,

@@ -56,7 +56,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
  * href="https://sv-comp.sosy-lab.org/2027/rules.php">SV-COMP 2027 Rules</a>.
  */
 @Options(prefix = "witness")
-class AutomatonWitnessV2ParserCommon {
+sealed class AutomatonWitnessV2ParserCommon
+    permits AutomatonWitnessCorrectnessV2Parser, AutomatonWitnessViolationV2Parser {
 
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -206,10 +207,9 @@ class AutomatonWitnessV2ParserCommon {
               CProgramScope programScope = new CProgramScope(cfa, logger);
               yield pNode
                   .flatMap(cfa.getAstCfaRelation()::getVariablesAndParametersInScope)
-                  .map(
-                      variables ->
-                          programScope.withVariablesInScope(
-                              variables.filter(CSimpleDeclaration.class).toList()))
+                  .map(variables ->
+                      programScope.withVariablesInScope(
+                          variables.filter(CSimpleDeclaration.class).toList()))
                   .orElse(programScope);
             }
             default -> DummyScope.getInstance();

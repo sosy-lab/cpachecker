@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.CFAEdgeForThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 
 public record SeqFunctionStatements(
@@ -26,6 +27,8 @@ public record SeqFunctionStatements(
     ImmutableMap<CFAEdgeForThread, SeqFunctionReturnValueAssignment> startRoutineExitAssignments) {
 
   public interface SeqFunctionStatement {
+    MPORThread getThread();
+
     CExpressionAssignmentStatement getExpressionAssignmentStatement();
 
     SeqCallContext getLeftHandSideCallContext();
@@ -64,6 +67,7 @@ public record SeqFunctionStatements(
    * }
    * }</pre>
    *
+   * @param thread The thread in which this assignment occurs.
    * @param expressionAssignmentStatement The assignment statement. This is not a {@link
    *     CFunctionCallAssignmentStatement} to exclude parameters that call a function such as {@code
    *     function(another_function());}.
@@ -75,6 +79,7 @@ public record SeqFunctionStatements(
    *     is placed inside the {@code main()} function as shown in the example above.
    */
   public record SeqFunctionParameterAssignment(
+      MPORThread thread,
       CExpressionAssignmentStatement expressionAssignmentStatement,
       SeqCallContext leftHandSideCallContext,
       SeqCallContext rightHandSideCallContext)
@@ -84,6 +89,11 @@ public record SeqFunctionStatements(
       checkArgument(
           leftHandSideCallContext.cfaEdgeForThread().isPresent(),
           "leftHandSideCallContext must be present.");
+    }
+
+    @Override
+    public MPORThread getThread() {
+      return thread;
     }
 
     @Override
@@ -127,6 +137,7 @@ public record SeqFunctionStatements(
    *     return} statements inside the function which always has a call context.
    */
   public record SeqFunctionReturnValueAssignment(
+      MPORThread thread,
       CExpressionAssignmentStatement expressionAssignmentStatement,
       SeqCallContext leftHandSideCallContext,
       SeqCallContext rightHandSideCallContext)
@@ -136,6 +147,11 @@ public record SeqFunctionStatements(
       checkArgument(
           rightHandSideCallContext.cfaEdgeForThread().isPresent(),
           "rightHandSideCallContext must be present.");
+    }
+
+    @Override
+    public MPORThread getThread() {
+      return thread;
     }
 
     @Override

@@ -524,13 +524,16 @@ public class ARGToCorrectnessWitnessV2 extends AbstractARGToCorrectnessWitness {
           getASTStructure()
               .getTightestIterationStructureForNode(pNode)
               // The validator checks the invariant at the head of this loop, which must be the node
-              .filter(
-                  iteration ->
-                      cfa.getLoopStructure()
-                          .flatMap(iteration::getLoopHead)
-                          .equals(Optional.of(pNode)))
+              .filter(iteration ->
+                  cfa.getLoopStructure().flatMap(iteration::getLoopHead).equals(Optional.of(pNode)))
               .map(iteration -> iteration.getCompleteElement().location());
-      case LOCATION_INVARIANT -> getASTStructure().getStatementStartingAtNode(pNode);
+      case LOCATION_INVARIANT ->
+          pNode instanceof FunctionEntryNode functionEntry
+              // An invariant at a function entry belongs before the first statement of its body.
+              ? Optional.of(
+                  getASTStructure()
+                      .nextStartStatementLocation(functionEntry.getFileLocation().getNodeOffset()))
+              : getASTStructure().getStatementStartingAtNode(pNode);
       default -> throw new AssertionError("Cannot export invariants of type " + pType);
     };
   }

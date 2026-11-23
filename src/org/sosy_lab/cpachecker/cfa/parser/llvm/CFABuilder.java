@@ -271,11 +271,10 @@ class CFABuilder {
 
       en.getExitNode()
           .filter(exitNode -> exitNode.getNumEnteringEdges() == 0)
-          .ifPresent(
-              unreachableExitNode -> {
-                cfaNodes.remove(funcName, unreachableExitNode);
-                en.removeExitNode();
-              });
+          .ifPresent(unreachableExitNode -> {
+            cfaNodes.remove(funcName, unreachableExitNode);
+            en.removeExitNode();
+          });
 
       functions.put(funcName, en);
 
@@ -1657,7 +1656,7 @@ class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      return new CStringLiteralExpression(fileLocation, '"' + constant + '"');
+      return CStringLiteralExpression.fromContent(fileLocation, constant);
     }
 
     CType currentType = typeConverter.getCType(startPointer);

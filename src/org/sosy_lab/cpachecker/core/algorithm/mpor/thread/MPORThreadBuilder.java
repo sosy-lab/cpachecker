@@ -136,7 +136,13 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     resetPc(); // reset pc for every thread created
     int newThreadId = currentThreadId++;
     CFAForThread threadCfa = buildThreadCfa(newThreadId, pEntryNode, pStartRoutineCall);
-    Optional<CIdExpression> startRoutineExitVariable = tryCreateStartRoutineExitVariable(threadCfa);
+
+    String name = SeqNameUtil.buildStartRoutineExitVariableName(options, newThreadId);
+    CVariableDeclaration declaration =
+        SeqDeclarationBuilder.buildVariableDeclaration(
+            true, CPointerType.POINTER_TO_VOID, name, null);
+    CIdExpression startRoutineExitVariable = SeqExpressionBuilder.buildIdExpression(declaration);
+
     ImmutableListMultimap<CVariableDeclaration, SeqCallContext> localVariables =
         getLocalVariableDeclarations(threadCfa.threadEdges);
     return new MPORThread(
@@ -327,30 +333,6 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
     return pPreviousCallContext;
   }
 
-  /**
-   * Returns the intermediate exit variable that stores the {@code retval} given to {@code
-   * pthread_exit}, or {@link Optional#empty()} if the thread does not call {@code pthread_exit} at
-   * all.
-   */
-  private Optional<CIdExpression> tryCreateStartRoutineExitVariable(CFAForThread pThreadCFA) {
-    for (CFAEdgeForThread threadEdge : pThreadCFA.threadEdges) {
-      Optional<CFunctionCall> functionCall =
-          PthreadUtil.tryGetFunctionCallFromCfaEdge(threadEdge.cfaEdge);
-      if (functionCall.isPresent()) {
-        if (PthreadUtil.isCallToPthreadExitWithReturnValue(functionCall.orElseThrow())) {
-          String name = SeqNameUtil.buildStartRoutineExitVariableName(options, pThreadCFA.threadId);
-          CVariableDeclaration declaration =
-              SeqDeclarationBuilder.buildVariableDeclaration(
-                  true, CPointerType.POINTER_TO_VOID, name, null);
-          CIdExpression startRoutineExitVariable =
-              SeqExpressionBuilder.buildIdExpression(declaration);
-          return Optional.of(startRoutineExitVariable);
-        }
-      }
-    }
-    return Optional.empty();
-  }
-
   /** Extracts all local variable declarations from pThreadEdges. */
   private ImmutableListMultimap<CVariableDeclaration, SeqCallContext> getLocalVariableDeclarations(
       ImmutableList<CFAEdgeForThread> pThreadEdges) {
@@ -499,11 +481,10 @@ public record MPORThreadBuilder(MPOROptions options, CFA cfa) {
 
     FluentIterable<FunctionEntryNode> functionEntryNodes =
         FluentIterable.from(cfa.getAllFunctions().values())
-            .filter(
-                functionEntryNode ->
-                    Objects.requireNonNull(functionEntryNode)
-                        .getFunctionDefinition()
-                        .equals(pStartRoutineDeclaration));
+            .filter(functionEntryNode ->
+                Objects.requireNonNull(functionEntryNode)
+                    .getFunctionDefinition()
+                    .equals(pStartRoutineDeclaration));
     if (functionEntryNodes.isEmpty()) {
       throw new UnsupportedCodeException(
           "Could not find a FunctionEntryNode for start_routine "

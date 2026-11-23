@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.terminationviamemory.TerminationToReachState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -110,11 +111,20 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
     }
   }
 
-  /** This method should not be called from this class, but only from the extending one. */
+  /**
+   * Export the given counterexample as a non-termination witness if it describes a lasso, i.e., if
+   * its target state knows the number of unrollings before the cycle. Otherwise, e.g., for an
+   * analysis that only identifies the location of the infinite loop, only the target is exported.
+   */
   @Override
   protected void exportWitness(
-      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) {
-    throw new UnsupportedOperationException();
+      CounterexampleInfo pCex, Path pPath, YAMLWitnessVersion pWitnessVersion) throws IOException {
+    if (AbstractStates.extractStateByType(pCex.getTargetState(), TerminationToReachState.class)
+        == null) {
+      super.exportWitness(pCex, pPath, pWitnessVersion);
+    } else {
+      exportWitness(pCex, pPath, pWitnessVersion, OptionalInt.empty());
+    }
   }
 
   /**
@@ -163,6 +173,12 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
                     "Number of unrollings for the non-termination witness is unknown")
                 .getNumberOfTargetStateVisitsBeforeInfiniteLoop();
     CFANode cycleHead = AbstractStates.extractLocation(pCex.getTargetState());
+    // The TerminationToReachCPA counts only the visits of the cycle head in the call of the target
+    // state, the identity of the call stack state distinguishes calls
+    @Nullable CallstackState cycleHeadCall =
+        pNumberOfUnrollings.isPresent()
+            ? null
+            : AbstractStates.extractStateByType(pCex.getTargetState(), CallstackState.class);
 
     for (EdgeWithStates edgeWithStates : edges) {
       Optional<String> currentThread =
@@ -182,7 +198,12 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
 
       // The cycle starts when the cycle head is left after it was already left
       // numberOfUnrollings times
-      if (!isInCycle && edgeWithStates.edge().getPredecessor().equals(cycleHead)) {
+      if (!isInCycle
+          && edgeWithStates.edge().getPredecessor().equals(cycleHead)
+          && (cycleHeadCall == null
+              || AbstractStates.extractStateByType(
+                      edgeWithStates.previousState(), CallstackState.class)
+                  == cycleHeadCall)) {
         if (cycleHeadVisits < numberOfUnrollings) {
           cycleHeadVisits++;
         } else {
@@ -208,7 +229,7 @@ public class NonterminationCounterexampleToWitness extends CounterexampleToWitne
       }
 
       edgeToCurrentExpressionIndex.compute(
-          edgeWithStates.edge(), (key, value) -> (value == null) ? null : value + 1);
+          edgeWithStates.edge(), (_, value) -> (value == null) ? null : value + 1);
     }
 
     // Non-termination witnesses do not have a target waypoint, the cycle describes the violation

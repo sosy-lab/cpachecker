@@ -19,6 +19,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.Traverser;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -102,9 +103,9 @@ public final class AbstractStates {
    * input has several of them, use <code>asFlatIterable(states).filter(pType)</code>. *
    *
    * @param states an <code>Iterable</code> over all the states <code>
-   *     extractStateByType(AbstractState, Class)</code> should be applied on
+   *               extractStateByType(AbstractState, Class)</code> should be applied on
    * @param pType the type to use in each call of <code>extractStateByType(AbstractState, Class)
-   *     </code>
+   *               </code>
    * @return an <code>Iterable</code> over all the returned states without <code>null</code> values
    */
   public static <T extends AbstractState> FluentIterable<T> projectToType(
@@ -137,6 +138,42 @@ public final class AbstractStates {
 
   public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
     return extractStateByType(pState, AbstractStateWithLocations.class).getOutgoingEdges();
+  }
+
+  /**
+   * Get the CFA edges from {@code pParent} to {@code pChild} as far as their location information
+   * allows, or an empty list if neither state provides it or the connection is not unique (cf.
+   * {@link AbstractStateWithLocations#getEdgesToChild(AbstractStateWithLocations)}). The
+   * single-location view is tried first, the multi-location one only if it yields no edges.
+   */
+  public static List<CFAEdge> getEdgesToChild(AbstractState pParent, AbstractState pChild) {
+    List<CFAEdge> resultWithLocation = getEdgesToChildWithLocation(pParent, pChild);
+    if (!resultWithLocation.isEmpty()) {
+      return resultWithLocation;
+    }
+
+    return getEdgesToChildWithLocations(pParent, pChild);
+  }
+
+  private static List<CFAEdge> getEdgesToChildWithLocation(
+      AbstractState pParent, AbstractState pChild) {
+    AbstractStateWithLocation parent = extractStateByType(pParent, AbstractStateWithLocation.class);
+    AbstractStateWithLocation child = extractStateByType(pChild, AbstractStateWithLocation.class);
+    if (parent == null || child == null) {
+      return ImmutableList.of();
+    }
+    return parent.getEdgesToChild(child);
+  }
+
+  private static List<CFAEdge> getEdgesToChildWithLocations(
+      AbstractState pParent, AbstractState pChild) {
+    AbstractStateWithLocations parent =
+        extractStateByType(pParent, AbstractStateWithLocations.class);
+    AbstractStateWithLocations child = extractStateByType(pChild, AbstractStateWithLocations.class);
+    if (parent == null || child == null) {
+      return ImmutableList.of();
+    }
+    return parent.getEdgesToChild(child);
   }
 
   public static Iterable<AbstractState> filterLocation(
@@ -183,7 +220,7 @@ public final class AbstractStates {
    * Returns a {@link Function} object for {@link #extractStateByType(AbstractState, Class)}.
    *
    * @param pType the type to use in the call of <code>extractStateByType(AbstractState, Class)
-   *     </code> for parameter <code>Class</code>
+   *              </code> for parameter <code>Class</code>
    * @return a <code>Function</code> for <code>extractStateByType(AbstractState, Class)</code> using
    *     the given type
    */

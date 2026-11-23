@@ -85,7 +85,7 @@ public final class SeqThreadStatementUtil {
 
     for (SeqInstrumentation instrumentation : pInstrumentation) {
       if (instrumentation.type().equals(SeqInstrumentationType.EXECUTE_UNTIL_CONFLICT_REDUCTION)) {
-        if (instrumentation.statement() instanceof CGotoStatement) {
+        if (instrumentation.exportStatement() instanceof CGotoStatement) {
           return true;
         }
       }

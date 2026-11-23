@@ -415,13 +415,13 @@ public class AutomatonInternalTest {
             Fact.fact("but was", pattern),
             Fact.fact("which cannot be parsed", e));
         // Cannot test value of variable with failed parsing.
-        return pVar -> ASTMatcherSubject.this.ignoreCheck().that("");
+        return _ -> ASTMatcherSubject.this.ignoreCheck().that("");
       }
 
       if (!matches) {
         failWithActual(Fact.fact("expected to match", src));
         // Cannot test value of variable if pattern does not match.
-        return pVar -> ASTMatcherSubject.this.ignoreCheck().that("");
+        return _ -> ASTMatcherSubject.this.ignoreCheck().that("");
       }
       return pVar -> {
         check("getTransitionVariables()").that(args.getTransitionVariables()).containsKey(pVar);

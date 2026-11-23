@@ -15,6 +15,16 @@ from lxml import etree
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
+# Options of the verification runs that make the validation write witnesses, too
+_WITNESS_EXPORT_OPTIONS = {
+    "counterexample.export.compressWitness",
+    "counterexample.export.graphml",
+    "counterexample.export.yaml",
+    "cpa.arg.compressWitness",
+    "cpa.arg.proofWitness",
+    "cpa.arg.yamlProofWitness",
+}
+
 
 def _get_test_directory():
     return os.path.dirname(os.path.dirname(__file__))
@@ -42,6 +52,16 @@ def _option(name, value=None):
 
 def _remove(tag):
     tag.getparent().remove(tag)
+
+
+def _remove_witness_export_options(benchmark):
+    for option in list(benchmark.iter("option")):
+        key = (option.text or "").split("=", 1)[0].strip()
+        if (
+            option.get("name") in ["--option", "-setprop"]
+            and key in _WITNESS_EXPORT_OPTIONS
+        ):
+            _remove(option)
 
 
 # if needed, add a new option for the machinemodel.
@@ -88,6 +108,7 @@ def _generate_validation_file(testdef_path, tool, yaml_witness=False):
     assert benchmark.attrib["tool"] == "cpachecker"
     if tool == "CPAchecker":
         benchmark.attrib["tool"] = "cpachecker"
+        _remove_witness_export_options(benchmark)
         rundef.append(_option("--witnessValidation"))
         rundef.append(_option("--witness", witness_path))
 

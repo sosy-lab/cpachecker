@@ -71,11 +71,13 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
    * @return an optional bitvector of the same size as the wrapper specified
    */
   private Optional<BitvectorFormula> getBitvectorIntermediateIfNecessary(Formula pFormula) {
-    if (isBitvectorIntermediateNecessary(getFormulaType(pFormula))) {
+    FormulaType<?> type = getFormulaType(pFormula);
+    if (isBitvectorIntermediateNecessary(type)) {
+      // The size is taken from the type of the wrapper, because the formula itself is an integer
+      // and the manager of the bitvectors cannot handle a wrapped formula.
       return Optional.of(
           bitvectorFormulaManager.makeBitvector(
-              bitvectorFormulaManager.getLength((BitvectorFormula) pFormula),
-              (IntegerFormula) unwrap(pFormula)));
+              ((FormulaType.BitvectorType) type).getSize(), (IntegerFormula) unwrap(pFormula)));
     }
     return Optional.empty();
   }
@@ -149,19 +151,18 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       return manager.fromIeeeBitvector(pNumber, pTargetType);
     } else {
       return getBitvectorIntermediateIfNecessary(pNumber)
-          .map(
-              it ->
-                  // we don't use bitvectors but have found an integer --> consider this as an
-                  // unsigned integer
-                  // representing a bitvector
-                  // useFloatForFloats() is required here, because if it's not the case, then the
-                  // actual manager
-                  // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not
-                  // accept actual
-                  // bitvectors, only wrapped integers. In those cases, we fall back to the
-                  // approximation in the
-                  // else branch of this decision.
-                  manager.fromIeeeBitvector(it, pTargetType))
+          .map(it ->
+              // we don't use bitvectors but have found an integer --> consider this as an
+              // unsigned integer
+              // representing a bitvector
+              // useFloatForFloats() is required here, because if it's not the case, then the
+              // actual manager
+              // will be the ReplaceFloatingPointWithNumeralAndFunctionTheory, which does not
+              // accept actual
+              // bitvectors, only wrapped integers. In those cases, we fall back to the
+              // approximation in the
+              // else branch of this decision.
+              manager.fromIeeeBitvector(it, pTargetType))
           .orElse(
               ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
                   pNumber, pTargetType, this, functionManager));

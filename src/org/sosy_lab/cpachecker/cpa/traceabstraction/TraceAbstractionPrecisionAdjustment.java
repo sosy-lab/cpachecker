@@ -305,13 +305,11 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
             .anyMatch(edge -> edge.getEdgeType() == CFAEdgeType.StatementEdge)) {
           boolean assignmentMadeForRelevantPred =
               precondition.stream()
-                  .anyMatch(
-                      pred ->
-                          anyVariableModified(
-                              abstractionFormula.getBlockFormula().getSsa(),
-                              computedPostCondition.getBlockFormula().getSsa(),
-                              fMgrView.extractVariableNames(
-                                  pred.getPredicate().getSymbolicAtom())));
+                  .anyMatch(pred ->
+                      anyVariableModified(
+                          abstractionFormula.getBlockFormula().getSsa(),
+                          computedPostCondition.getBlockFormula().getSsa(),
+                          fMgrView.extractVariableNames(pred.getPredicate().getSymbolicAtom())));
           if (assignmentMadeForRelevantPred) {
             continue;
           }
@@ -491,21 +489,19 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
     Region regionPost = abstractionResult.asRegion();
     logger.log(
         Level.FINE,
-        MoreStrings.lazyString(
-            () ->
-                String.format(
-                    "Region Post: %s -- BF: %s%n",
-                    regionPost, abstractionManager.convertRegionToFormula(regionPost))));
+        MoreStrings.lazyString(() ->
+            String.format(
+                "Region Post: %s -- BF: %s%n",
+                regionPost, abstractionManager.convertRegionToFormula(regionPost))));
 
     for (AbstractionPredicate abstractionPredicate : relevantPreds) {
       Region regionPre = abstractionPredicate.getAbstractVariable();
       logger.log(
           Level.FINE,
-          MoreStrings.lazyString(
-              () ->
-                  String.format(
-                      "Region Pre: %s -- BF: %s%n",
-                      regionPre, abstractionManager.convertRegionToFormula(regionPre))));
+          MoreStrings.lazyString(() ->
+              String.format(
+                  "Region Pre: %s -- BF: %s%n",
+                  regionPre, abstractionManager.convertRegionToFormula(regionPre))));
 
       logger.logf(
           Level.FINE,
@@ -522,11 +518,10 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
   private void printHoareTriple(
       Collection<AbstractionPredicate> pPredicates, AbstractionFormula resultFormula) {
     Object prettyPrintPredicateList =
-        MoreStrings.lazyString(
-            () ->
-                FluentIterable.from(pPredicates)
-                    .transform(AbstractionPredicate::getSymbolicAtom)
-                    .join(Joiner.on(", ")));
+        MoreStrings.lazyString(() ->
+            FluentIterable.from(pPredicates)
+                .transform(AbstractionPredicate::getSymbolicAtom)
+                .join(Joiner.on(", ")));
     logger.logf(
         Level.FINER,
         "[%s] --- %s --- %s",

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.VerifierNondetFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -163,18 +164,20 @@ class MemoryManipulationFunctionHandler {
       throws UnrecognizedCodeException, InterruptedException {
 
     CExpression functionName = pNondetMemoryCall.getFunctionNameExpression();
+    String nondetMemoryFunctionName = VerifierNondetFunctions.getFunctionNameNondetMemory();
     boolean hasFunctionCorrectName =
         functionName instanceof CIdExpression idExpression
-            && idExpression.getName().equals("__VERIFIER_nondet_memory");
+            && idExpression.getName().equals(nondetMemoryFunctionName);
     verify(
         hasFunctionCorrectName,
-        "Expected function name __VERIFIER_nondet_memory function, got %s",
+        "Expected function name %s, got %s",
+        nondetMemoryFunctionName,
         functionName);
 
     ImmutableList<CExpression> params = pNondetMemoryCall.getParameterExpressions();
     if (params.size() != 2) {
       throw new UnrecognizedCodeException(
-          "Expected 2 parameters for __VERIFIER_nondet_memory, got " + params.size(),
+          "Expected 2 parameters for " + nondetMemoryFunctionName + ", got " + params.size(),
           pNondetMemoryCall);
     }
 

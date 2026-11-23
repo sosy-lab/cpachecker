@@ -76,9 +76,9 @@ public class Pair<A, B> implements Serializable {
 
   @Override
   public boolean equals(@Nullable Object other) {
-    return (other instanceof Pair<?, ?>)
-        && Objects.equals(first, ((Pair<?, ?>) other).first)
-        && Objects.equals(second, ((Pair<?, ?>) other).second);
+    return (other instanceof Pair<?, ?> pair)
+        && Objects.equals(first, pair.first)
+        && Objects.equals(second, pair.second);
   }
 
   @Override

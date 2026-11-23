@@ -260,8 +260,8 @@ final class SliceToCfaConversion {
           pLogger,
           pSlice.getOriginalCfa(),
           graph,
-          (cfaEdge, astNode) -> astNode,
-          (cfaNode, astNode) -> astNode);
+          (_, astNode) -> astNode,
+          (_, astNode) -> astNode);
     }
 
     CFA sliceCfa =

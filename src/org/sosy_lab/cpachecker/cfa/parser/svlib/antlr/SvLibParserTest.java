@@ -111,7 +111,7 @@ public class SvLibParserTest {
     SvLibScript output =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("LIA"), FileLocation.DUMMY),
                 new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(w, FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(z, FileLocation.DUMMY),
@@ -157,7 +157,8 @@ public class SvLibParserTest {
                                                     y.toSimpleDeclaration(), FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
-                                ImmutableList.of())),
+                                ImmutableList.of(
+                                    new SvLibTagReference("f1-check-1", FileLocation.DUMMY)))),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
                         ImmutableList.of(new SvLibTagReference("proc-f1", FileLocation.DUMMY)))),
@@ -198,7 +199,7 @@ public class SvLibParserTest {
     SvLibScript output =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("LIA"), FileLocation.DUMMY),
                 new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(w, FileLocation.DUMMY),
                 new SvLibVariableDeclarationCommand(z, FileLocation.DUMMY),
@@ -252,7 +253,8 @@ public class SvLibParserTest {
                                                     FileLocation.DUMMY)),
                                             FileLocation.DUMMY),
                                         FileLocation.DUMMY)),
-                                ImmutableList.of())),
+                                ImmutableList.of(
+                                    new SvLibTagReference("f1-check-1", FileLocation.DUMMY)))),
                         FileLocation.DUMMY,
                         ImmutableList.of(),
                         ImmutableList.of(new SvLibTagReference("proc-f1", FileLocation.DUMMY)))),
@@ -300,7 +302,7 @@ public class SvLibParserTest {
     SvLibScript output =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("LIA"), FileLocation.DUMMY),
                 new SvLibSetInfoCommand(":format-version", "1.0", FileLocation.DUMMY),
                 new SvLibProcedureDefinitionCommand(
                     FileLocation.DUMMY,
@@ -457,7 +459,7 @@ public class SvLibParserTest {
     SvLibScript expectedOutput =
         new SvLibScript(
             ImmutableList.of(
-                new SvLibSetLogicCommand(SmtLibLogic.LIA, FileLocation.DUMMY),
+                new SvLibSetLogicCommand(SmtLibLogic.fromString("UFLIA"), FileLocation.DUMMY),
                 new SvLibSetOptionCommand(
                     ":witness-output-channel", "./output/witness.svlib", FileLocation.DUMMY),
                 new SvLibSetOptionCommand(
@@ -584,7 +586,9 @@ public class SvLibParserTest {
                                         new SvLibCheckTrueTag(
                                             new SvLibBooleanConstantTerm(false, FileLocation.DUMMY),
                                             FileLocation.DUMMY)),
-                                    ImmutableList.of())),
+                                    ImmutableList.of(
+                                        new SvLibTagReference(
+                                            "main-check-1", FileLocation.DUMMY)))),
                             new SvLibAssignmentStatement(
                                 ImmutableMap.of(
                                     resultVar,

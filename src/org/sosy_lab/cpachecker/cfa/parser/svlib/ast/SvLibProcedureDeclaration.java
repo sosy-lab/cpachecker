@@ -99,11 +99,10 @@ public final class SvLibProcedureDeclaration implements SvLibParsingDeclaration 
           + Joiner.on(") (")
               .join(
                   variableList.stream()
-                      .map(
-                          var ->
-                              SmtLibSymbols.quoteIfNeeded(var.getName())
-                                  + " "
-                                  + var.getType().toASTString())
+                      .map(var ->
+                          SmtLibSymbols.quoteIfNeeded(var.getName())
+                              + " "
+                              + var.getType().toASTString())
                       .toList())
           + "))";
     }

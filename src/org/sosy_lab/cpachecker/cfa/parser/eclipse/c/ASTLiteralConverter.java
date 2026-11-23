@@ -74,10 +74,18 @@ class ASTLiteralConverter {
           new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
       case IASTLiteralExpression.lk_integer_constant -> parseIntegerLiteral(fileLoc, valueStr, e);
       case IASTLiteralExpression.lk_float_constant -> parseFloatLiteral(fileLoc, type, valueStr, e);
-      case IASTLiteralExpression.lk_string_literal ->
-          new CStringLiteralExpression(fileLoc, valueStr);
+      case IASTLiteralExpression.lk_string_literal -> parseStringLiteral(fileLoc, valueStr, e);
       default -> throw parseContext.parseError("Unknown literal", e);
     };
+  }
+
+  private CStringLiteralExpression parseStringLiteral(
+      FileLocation fileLoc, String valueStr, IASTLiteralExpression e) {
+    try {
+      return CStringLiteralExpression.fromSourceCode(fileLoc, valueStr);
+    } catch (IllegalArgumentException ex) {
+      throw parseContext.parseError(ex.getMessage(), e);
+    }
   }
 
   private CImaginaryLiteralExpression handleImaginaryNumber(
@@ -115,8 +123,7 @@ class ASTLiteralConverter {
   }
 
   @VisibleForTesting
-  CLiteralExpression parseIntegerLiteral(
-      FileLocation pFileLoc, String pValueStr, IASTLiteralExpression pExp) {
+  CLiteralExpression parseIntegerLiteral(FileLocation pFileLoc, String pValueStr, IASTNode pExp) {
 
     // Get the suffix that is specified in the literal
     Suffix denotedSuffix = extractDenotedSuffix(pValueStr, pExp);
@@ -381,14 +388,14 @@ class ASTLiteralConverter {
    *
    * @param pMachineModel the machine model.
    * @param pValue the literal value.
-   * @param pExp the ASTLiteralExpression containing the literal.
+   * @param pExp the AST node containing the literal.
    * @return the size that will be used to represent the value.
    */
   private Suffix getLeastRepresentedTypeForValue(
       BigInteger pValue,
       MachineModel pMachineModel,
       ImmutableList<Suffix> pSuffixes,
-      IASTLiteralExpression pExp) {
+      IASTNode pExp) {
     Preconditions.checkState(!pSuffixes.isEmpty(), "List with possible suffixes must not be empty");
 
     int numberOfBits = pValue.bitLength();

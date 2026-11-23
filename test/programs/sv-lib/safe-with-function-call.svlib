@@ -31,7 +31,7 @@
       (sequence
         (call add-one (a) (b))
         (assign (a b)))) :tag while-loop)
-    (if (not (= a 6)) (! (sequence) :check-true false))
+    (if (not (= a 6)) (! (sequence) :tag main-check-1 :check-true false))
     (assign (|c#result| 1))
     (return)) :tag proc-main))
 

@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -199,7 +200,10 @@ public class ConstraintsTransferRelation
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
       case AIdExpression aIdExpression ->
           createConstraint(aIdExpression, pFactory, pTruthAssumption);
-      default -> throw new AssertionError("Unhandled expression type " + pExpression.getClass());
+      default ->
+          throw new UnsupportedCodeException(
+              "Unhandled expression type " + pExpression.getClass(),
+              pFactory.getCfaEdgeForDebugging());
     };
   }
 
@@ -375,7 +379,7 @@ public class ConstraintsTransferRelation
       final AExpression edgeExpression = assume.getExpression();
 
       final ConstraintFactory factory =
-          ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger);
+          ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger, pCfaEdge);
 
       ConstraintsState newState;
       try {
@@ -470,7 +474,8 @@ public class ConstraintsTransferRelation
       // The assumptions are about the successor state, so they are in the scope of its function
       final String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
       final ConstraintFactory factory =
-          ConstraintFactory.getInstance(successorFunctionName, valueState, machineModel, logger);
+          ConstraintFactory.getInstance(
+              successorFunctionName, valueState, machineModel, logger, pCfaEdge);
 
       try {
         ConstraintsState newState = pStateToStrengthen;

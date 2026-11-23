@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -37,11 +38,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * reached through the same chain of calls, and agree on the deepest loop iteration.
  *
  * <p>Partitioning affects only <em>which</em> states are compared, never whether comparing them
- * succeeds; coverage and merging remain governed by the CPAs' own operators. Making the partition
- * coarser is therefore always semantically safe. To actually benefit from it, the callstack and
- * loop-bound CPAs need to be configured to compare states accordingly, see {@code
- * cpa.callstack.domain=FLATPCC} and {@code cpa.loopbound.domain=DEEPEST_ITERATION}. The
- * configuration {@code kInduction-plain-relaxed.properties} combines the three.
+ * succeeds; coverage and merging remain governed by the CPAs' own operators. To actually benefit
+ * from it, the callstack and loop-bound CPAs need to be configured to compare states accordingly,
+ * see {@code cpa.callstack.domain=FLATPCC} and {@code cpa.loopbound.domain=RANGE}. The
+ * configuration {@code includes/kInduction-step-case-relaxed.properties} combines the three.
+ *
+ * <p>One exception is necessary: in BMC mode, target states are predicate abstraction states, which
+ * cover each other regardless of their block formulas. If another component, such as the loop-bound
+ * CPA with {@code RANGE}, changes when two target states are merged, the merge succeeds and the
+ * block formula of one of them is silently lost. Each target state is therefore put into a
+ * partition of its own.
  */
 public class InductionPartitionedReachedSet extends PartitionedReachedSet {
 
@@ -53,6 +59,11 @@ public class InductionPartitionedReachedSet extends PartitionedReachedSet {
   @Override
   protected Object getPartitionKey(AbstractState pState) {
     checkNotNull(pState);
+    // The ARG state may already be removed from the ARG when this is called, so do not ask it
+    if (AbstractStates.isTargetState(
+        pState instanceof ARGState argState ? argState.getWrappedState() : pState)) {
+      return pState;
+    }
     CFANode location = AbstractStates.extractLocation(pState);
     CallstackState callstack = AbstractStates.extractStateByType(pState, CallstackState.class);
     LoopIterationReportingState loopState =

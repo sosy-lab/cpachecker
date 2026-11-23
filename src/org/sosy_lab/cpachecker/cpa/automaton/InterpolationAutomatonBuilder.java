@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class InterpolationAutomatonBuilder {
+public final class InterpolationAutomatonBuilder {
 
   private static final String ITP_AUTOMATON_NAME = "ItpAut";
 
@@ -318,11 +318,10 @@ public class InterpolationAutomatonBuilder {
   private void printHoareTriple(
       ImmutableList<AbstractionPredicate> pPredicates, AbstractionFormula resultFormula) {
     Object prettyPrintPredicateList =
-        MoreStrings.lazyString(
-            () ->
-                FluentIterable.from(pPredicates)
-                    .transform(AbstractionPredicate::getSymbolicAtom)
-                    .join(Joiner.on(", ")));
+        MoreStrings.lazyString(() ->
+            FluentIterable.from(pPredicates)
+                .transform(AbstractionPredicate::getSymbolicAtom)
+                .join(Joiner.on(", ")));
     logger.logf(
         Level.FINE,
         "[%s] --- %s --- %s",

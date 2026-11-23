@@ -36,7 +36,7 @@ public final class CDefaults {
     // according to C standard §6.7.9 (10)
     type = type.getCanonicalType();
     return switch (type) {
-      case CPointerType unused -> initializerFor(signedIntZero(fileLoc), fileLoc);
+      case CPointerType _ -> initializerFor(signedIntZero(fileLoc), fileLoc);
 
       case CSimpleType simpleType ->
           switch (simpleType.getType()) {
@@ -54,7 +54,7 @@ public final class CDefaults {
                     new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
           };
 
-      case CEnumType unused ->
+      case CEnumType _ ->
           // enum declaration: enum e { ... } var;
           initializerFor(signedIntZero(fileLoc), fileLoc);
 
@@ -62,14 +62,14 @@ public final class CDefaults {
           // enum declaration: enum e var;
           initializerFor(signedIntZero(fileLoc), fileLoc);
 
-      case CElaboratedType unused ->
+      case CElaboratedType _ ->
           // struct or union that is incompletely defined, cannot produce an initializer
           throw new IllegalArgumentException(
               "Cannot produce initializer for incompletely defined type " + type);
 
-      case CCompositeType unused -> emptyAggregate(fileLoc); // struct or union
+      case CCompositeType _ -> emptyAggregate(fileLoc); // struct or union
 
-      case CArrayType unused -> emptyAggregate(fileLoc);
+      case CArrayType _ -> emptyAggregate(fileLoc);
 
       case CBitFieldType bitfieldType -> forType(pMachineModel, bitfieldType.getType(), fileLoc);
 

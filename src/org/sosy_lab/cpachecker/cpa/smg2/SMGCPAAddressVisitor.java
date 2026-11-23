@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -296,8 +297,8 @@ public class SMGCPAAddressVisitor
 
       if (finalOffset instanceof SymbolicValue symOffset) {
         if (!options.trackPredicates()) {
-          throw new UnsupportedOperationException(
-              "Symbolic array subscript access not supported by this analysis.");
+          throw new UnsupportedCodeException(
+              "Symbolic array subscript access not supported by this analysis", cfaEdge, expr);
         } else if (options.isFindConcreteValuesForSymbolicOffsets()) {
           // Assign concrete values for the offset
           if (pCurrentState.isConcreteAssignmentFeasible(symOffset)) {
@@ -307,9 +308,11 @@ public class SMGCPAAddressVisitor
           // Fallthrough for no constraints or no assignment possible
 
         } else {
-          throw new UnsupportedOperationException(
-              "Missing case in SMGCPAAddressVisitor. Report to CPAchecker issue tracker for SMG2"
-                  + " analysis. Missing symbolic handling of an array subscript expression");
+          throw new UnsupportedCodeException(
+              "Symbolic array subscript access without option"
+                  + " cpa.smg2.findConcreteValuesForSymbolicOffsets",
+              cfaEdge,
+              expr);
         }
       }
 

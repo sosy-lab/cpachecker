@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_checks.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -63,6 +64,7 @@ public class SeqPointerAliasingUtil {
    *     CPointerType}.
    */
   public static Optional<SeqPointerAssignment> tryBuildPointerAssignment(
+      MPORThread pThread,
       CLeftHandSide pLeftHandSide,
       CRightHandSide pRightHandSide,
       SeqCallContext pLeftHandSideCallContext,
@@ -114,8 +116,8 @@ public class SeqPointerAliasingUtil {
                       rightHandSideVisitResult.declaration(),
                       rightHandSideVisitResult.fieldMember());
               return Optional.of(
-                  SeqPointerAssignment.of(
-                      pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+                  new SeqPointerAssignment(
+                      pThread, pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
           case CFunctionCallExpression functionCallExpression -> {
@@ -128,8 +130,8 @@ public class SeqPointerAliasingUtil {
                       Optional.empty(),
                       Optional.of(functionCallExpression));
               return Optional.of(
-                  SeqPointerAssignment.of(
-                      pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
+                  new SeqPointerAssignment(
+                      pThread, pType, leftHandSideMemoryLocation, rightHandSideMemoryLocation));
             }
           }
         }
@@ -415,7 +417,6 @@ public class SeqPointerAliasingUtil {
 
     @Override
     public Boolean visit(CArraySubscriptExpression pArraySubscriptExpression) throws NoException {
-
       return true;
     }
 
@@ -436,45 +437,6 @@ public class SeqPointerAliasingUtil {
 
     @Override
     public Boolean visit(CComplexCastExpression pComplexCastExpression) throws NoException {
-
-      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
-      return operandLeftHandSide.accept(this);
-    }
-  }
-
-  public static final class CLeftHandSideSimpleDeclarationVisitor
-      implements CLeftHandSideVisitor<CSimpleDeclaration, NoException> {
-
-    @Override
-    public CSimpleDeclaration visit(CArraySubscriptExpression pArraySubscriptExpression)
-        throws NoException {
-
-      CLeftHandSide arrayLeftHandSide =
-          (CLeftHandSide) pArraySubscriptExpression.getArrayExpression();
-      return arrayLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CFieldReference pFieldReference) throws NoException {
-      CLeftHandSide fieldOwnerLeftHandSide = (CLeftHandSide) pFieldReference.getFieldOwner();
-      return fieldOwnerLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CIdExpression pIdExpression) throws NoException {
-      return pIdExpression.getDeclaration();
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CPointerExpression pPointerExpression) throws NoException {
-      CLeftHandSide operandLeftHandSide = (CLeftHandSide) pPointerExpression.getOperand();
-      return operandLeftHandSide.accept(this);
-    }
-
-    @Override
-    public CSimpleDeclaration visit(CComplexCastExpression pComplexCastExpression)
-        throws NoException {
-
       CLeftHandSide operandLeftHandSide = (CLeftHandSide) pComplexCastExpression.getOperand();
       return operandLeftHandSide.accept(this);
     }

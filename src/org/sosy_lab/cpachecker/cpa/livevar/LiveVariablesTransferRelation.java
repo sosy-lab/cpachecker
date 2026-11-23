@@ -360,14 +360,14 @@ public class LiveVariablesTransferRelation
       throws CPATransferException {
     BitSet out = state.getDataCopy();
     return switch (statement) {
-      case AExpressionAssignmentStatement unused -> {
+      case AExpressionAssignmentStatement _ -> {
         handleAssignment((AAssignment) statement, out);
         yield LiveVariablesState.ofUnique(out, this);
 
         // no changes as there is no assignment, thus we can return the last state
       }
-      case AExpressionStatement unused -> state;
-      case AFunctionCallAssignmentStatement unused -> {
+      case AExpressionStatement _ -> state;
+      case AFunctionCallAssignmentStatement _ -> {
         handleAssignment((AAssignment) statement, out);
         yield LiveVariablesState.ofUnique(out, this);
       }

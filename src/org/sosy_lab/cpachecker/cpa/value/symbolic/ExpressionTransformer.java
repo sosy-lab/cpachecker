@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -40,9 +41,14 @@ public class ExpressionTransformer {
 
   protected ValueAnalysisState valueState;
 
-  public ExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
+  // The CFAEdge is only used for checked exceptions
+  private final CFAEdge cfaEdgeForDebugging;
+
+  public ExpressionTransformer(
+      String pFunctionName, ValueAnalysisState pValueState, CFAEdge pCfaEdgeForDebugging) {
     functionName = pFunctionName;
     valueState = pValueState;
+    cfaEdgeForDebugging = pCfaEdgeForDebugging;
   }
 
   protected Value createNumericValue(long pValue) {
@@ -100,5 +106,10 @@ public class ExpressionTransformer {
     final Type floatType = pIastFloatLiteralExpression.getExpressionType();
 
     return ConstantSymbolicExpression.of(createNumericValue(value), floatType);
+  }
+
+  /** Returns the current {@link CFAEdge} that can be used for checked exceptions. */
+  protected CFAEdge getCfaEdgeForDebugging() {
+    return cfaEdgeForDebugging;
   }
 }

@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.SeqCallContext;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -188,6 +189,7 @@ public class SeqPointerAliasingTest {
     // global_ptr_A = &global_X; i.e. pointer assignment
     Optional<SeqPointerAssignment> pointerAssignment =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             GLOBAL_X_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -214,6 +216,7 @@ public class SeqPointerAliasingTest {
     // global_ptr_A = &global_X; and global_ptr_A = &global_Y; i.e. pointer assignments
     Optional<SeqPointerAssignment> pointerAssignment1 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             GLOBAL_X_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -222,6 +225,7 @@ public class SeqPointerAliasingTest {
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             GLOBAL_Y_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -252,6 +256,7 @@ public class SeqPointerAliasingTest {
     // i.e. pointer assignment (transitive)
     Optional<SeqPointerAssignment> pointerAssignment1 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             GLOBAL_X_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -260,6 +265,7 @@ public class SeqPointerAliasingTest {
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_B_ID_EXPRESSION,
             GLOBAL_POINTER_A_ID_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -285,6 +291,7 @@ public class SeqPointerAliasingTest {
     // global_ptr_A = &local_Z; i.e. pointer assignment
     Optional<SeqPointerAssignment> pointerAssignment =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             LOCAL_Z_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -312,6 +319,7 @@ public class SeqPointerAliasingTest {
     // i.e. transitive pointer assignments
     Optional<SeqPointerAssignment> pointerAssignment1 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             LOCAL_C_ID_EXPRESSION,
             LOCAL_Z_UNARY_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -320,6 +328,7 @@ public class SeqPointerAliasingTest {
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment2 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             LOCAL_D_ID_EXPRESSION,
             LOCAL_C_ID_EXPRESSION,
             SeqCallContext.EMPTY,
@@ -328,6 +337,7 @@ public class SeqPointerAliasingTest {
             SeqPointerAssignmentType.EXPLICIT);
     Optional<SeqPointerAssignment> pointerAssignment3 =
         SeqPointerAliasingUtil.tryBuildPointerAssignment(
+            MPORThreadUtil.testThreadInstance(),
             GLOBAL_POINTER_A_ID_EXPRESSION,
             LOCAL_D_ID_EXPRESSION,
             SeqCallContext.EMPTY,

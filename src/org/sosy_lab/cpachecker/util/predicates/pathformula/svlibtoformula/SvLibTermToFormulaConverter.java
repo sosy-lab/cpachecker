@@ -93,8 +93,7 @@ public class SvLibTermToFormulaConverter {
           convertApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
       case SvLibConstantTerm pSvLibConstantTerm -> convertConstant(pSvLibConstantTerm, fmgr);
       case SvLibIdTerm pSvLibIdTerm -> convertVariable(pSvLibIdTerm, ssa, fmgr, pConverter);
-      case SvLibAtTerm pSvLibAtTerm ->
-          throw new UnsupportedOperationException("Not yet implemented");
+      case SvLibAtTerm _ -> throw new UnsupportedOperationException("Not yet implemented");
       // TODO: remove once we have modules such that we can seal the classes
       default -> throw new IllegalStateException("Unexpected value: " + pSvLibRelationalTerm);
     };

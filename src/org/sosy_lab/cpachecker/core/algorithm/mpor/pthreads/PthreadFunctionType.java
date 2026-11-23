@@ -42,6 +42,11 @@ public enum PthreadFunctionType {
       false,
       false,
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_T, false, 0)),
+  PTHREAD_COND_BROADCAST(
+      "pthread_cond_broadcast",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_COND_T, 0)),
   PTHREAD_COND_INIT(
       "pthread_cond_init",
       true,
@@ -115,6 +120,26 @@ public enum PthreadFunctionType {
       true,
       true,
       new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEX_T, 0)),
+  PTHREAD_MUTEXATTR_DESTROY(
+      "pthread_mutexattr_destroy",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEXATTR_T, 0)),
+  PTHREAD_MUTEXATTR_GETTYPE(
+      "pthread_mutexattr_gettype",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEXATTR_T, 0)),
+  PTHREAD_MUTEXATTR_INIT(
+      "pthread_mutexattr_init",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEXATTR_T, 0)),
+  PTHREAD_MUTEXATTR_SETTYPE(
+      "pthread_mutexattr_settype",
+      false,
+      false,
+      new PthreadParameterInfo(PthreadObjectType.PTHREAD_MUTEXATTR_T, 0)),
   PTHREAD_ONCE(
       "pthread_once",
       true,

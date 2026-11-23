@@ -908,8 +908,6 @@ public class PolicyIterationManager {
           }
           case UNSAT -> throw new CPAException("Unexpected UNSAT");
           case UNDEF -> {
-            logger.log(Level.WARNING, "Solver returned undefined status on the problem: ");
-            logger.log(Level.INFO, optEnvironment.toString());
             throw new CPATransferException("Solver returned undefined status");
           }
         }
@@ -977,16 +975,16 @@ public class PolicyIterationManager {
     List<PolicyBound> policyBounds = new ArrayList<>();
     List<Rational> coefficients = new ArrayList<>();
 
-    for (Entry<CIdExpression, Rational> e : pTemplate.getLinearExpression()) {
+    for (Entry<CIdExpression, Rational> e : pTemplate.linearExpression()) {
       CIdExpression c = e.getKey();
       Rational r = e.getValue();
       LinearExpression<CIdExpression> le = LinearExpression.ofVariable(c);
 
       Template singleton;
       if (r.signum() < 0) {
-        singleton = Template.of(le.negate());
+        singleton = new Template(le.negate());
       } else {
-        singleton = Template.of(le);
+        singleton = new Template(le);
       }
 
       Set<String> variables =

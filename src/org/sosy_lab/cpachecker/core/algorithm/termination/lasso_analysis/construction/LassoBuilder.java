@@ -83,6 +83,9 @@ public class LassoBuilder {
 
   static final String TERMINATION_REPLACE_VARS_PREFIX = "__TERMINATION_REPLACE-";
 
+  /** Prefix of the UFs that encode the heap if useArraysForHeap=false. */
+  private static final String HEAP_UF_PREFIX = "*";
+
   @Option(secure = true, description = "Simplifies loop and stem formulas.")
   private boolean simplify = false;
 
@@ -102,6 +105,7 @@ public class LassoBuilder {
   private final IfThenElseElimination ifThenElseElimination;
   private final EqualElimination equalElimination;
   private final NotEqualAndNotInequalityElimination notEqualAndNotInequalityElimination;
+  private final StrictIntegerInequalityElimination strictIntegerInequalityElimination;
 
   private final FormulaTransformationVisitor formulaVisitor;
 
@@ -133,6 +137,7 @@ public class LassoBuilder {
     ifThenElseElimination = new IfThenElseElimination(fmgrView, fmgr);
     equalElimination = new EqualElimination(fmgrView);
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
+    strictIntegerInequalityElimination = new StrictIntegerInequalityElimination(fmgrView);
 
     formulaVisitor =
         new FormulaTransformationVisitor(fmgr) {
@@ -152,7 +157,15 @@ public class LassoBuilder {
     return META_VARIABLES_PREFIX.stream().anyMatch(variableName::startsWith);
   }
 
-  public Collection<Lasso> buildLasso(
+  /**
+   * The lassos of one counterexample.
+   *
+   * @param abstractsHeap whether heap accesses were replaced by fresh variables, which makes
+   *     non-termination arguments for the lassos unsound
+   */
+  public record Lassos(Collection<Lasso> lassos, boolean abstractsHeap) {}
+
+  public Lassos buildLasso(
       CounterexampleInfo pCounterexampleInfo, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException, TermException, SolverException {
 
@@ -165,7 +178,12 @@ public class LassoBuilder {
         Maps.uniqueIndex(pRelevantVariables, AVariableDeclaration::getQualifiedName);
     try {
       stats.lassosCreationStarted();
-      return createLassos(stemAndLoop, relevantVariables);
+      Dnf stemDnf = toDnf(stemAndLoop.getStem(), Result.empty(fmgr), true);
+      Dnf loopDnf = toDnf(stemAndLoop.getLoop(), stemDnf.getUfEliminationResult(), true);
+      return new Lassos(
+          createLassos(stemAndLoop, stemDnf, loopDnf, relevantVariables, true),
+          abstractsHeap(stemDnf.getUfEliminationResult())
+              || abstractsHeap(loopDnf.getUfEliminationResult()));
     } finally {
       stats.lassosCreationFinished();
     }
@@ -236,12 +254,11 @@ public class LassoBuilder {
     return new StemAndLoop(stemPathFormula, loopPathFormula, loopInVars.build());
   }
 
-  private Collection<Lasso> createLassos(
-      StemAndLoop pStemAndLoop, ImmutableMap<String, CVariableDeclaration> pRelevantVariables)
-      throws InterruptedException, TermException, SolverException {
-    Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Result.empty(fmgr));
-    Dnf loopDnf = toDnf(pStemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
-    return createLassos(pStemAndLoop, stemDnf, loopDnf, pRelevantVariables, true);
+  /** Whether the UF elimination replaced heap accesses by fresh variables. */
+  private boolean abstractsHeap(Result pUfEliminationResult) {
+    return pUfEliminationResult.getSubstitution().keySet().stream()
+        .flatMap(f -> fmgrView.extractFunctionNames(f).stream())
+        .anyMatch(name -> name.startsWith(HEAP_UF_PREFIX));
   }
 
   public Collection<Lasso> createLassos(
@@ -320,6 +337,17 @@ public class LassoBuilder {
 
   public Dnf toDnf(BooleanFormula pFormula, UfElimination.Result eliminatedUfs)
       throws InterruptedException, SolverException {
+    return toDnf(pFormula, eliminatedUfs, false);
+  }
+
+  /**
+   * @param pWeakenAbstractedHeap if heap accesses are abstracted, drop the functional-consistency
+   *     constraints of the UF elimination. This over-approximates the formula and avoids a DNF that
+   *     grows exponentially with the number of heap accesses.
+   */
+  private Dnf toDnf(
+      BooleanFormula pFormula, UfElimination.Result eliminatedUfs, boolean pWeakenAbstractedHeap)
+      throws InterruptedException, SolverException {
 
     BooleanFormula simplified;
     if (simplify) {
@@ -333,7 +361,9 @@ public class LassoBuilder {
         transformRecursively(nonLinearMultiplicationElimination, withoutDivAndMod);
     Result ufEliminationResult = ufElimination.eliminateUfs(withoutNonLinearMult, eliminatedUfs);
     BooleanFormula withoutUfs =
-        bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.getConstraints());
+        pWeakenAbstractedHeap && abstractsHeap(ufEliminationResult)
+            ? ufEliminationResult.getFormula()
+            : bfmrView.and(ufEliminationResult.getFormula(), ufEliminationResult.getConstraints());
     Map<Formula, Formula> ufSubstitution = ufEliminationResult.getSubstitution();
     logger.logf(FINER, "Substitution of Ufs in lasso formula: %s", ufSubstitution);
 
@@ -342,9 +372,11 @@ public class LassoBuilder {
     BooleanFormula notEqualEliminated =
         transformRecursively(notEqualAndNotInequalityElimination, nnf);
     BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
+    BooleanFormula nonStrict =
+        transformRecursively(strictIntegerInequalityElimination, equalEliminated);
     BooleanFormula dnf =
         DnfTransformation.transformToDnf(
-            equalEliminated, fmgrView, shutdownNotifier, proverEnvironmentSupplier);
+            nonStrict, fmgrView, shutdownNotifier, proverEnvironmentSupplier);
     ImmutableSet<BooleanFormula> clauses =
         ImmutableSet.copyOf(bfmrView.toDisjunctionArgs(dnf, true));
 

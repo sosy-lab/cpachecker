@@ -24,13 +24,13 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * Implements an integer expression that evaluates and returns a <code>int</code> value when <code>
  * eval()</code> is called. The Expression can be evaluated multiple times.
  */
-interface AutomatonIntExpr extends AutomatonExpression<Integer> {
+sealed interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
   @Override
   ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
 
   /** Stores a constant integer. */
-  static class Constant implements AutomatonIntExpr {
+  static final class Constant implements AutomatonIntExpr {
     private final ResultValue<Integer> constantResult;
 
     public Constant(int pI) {
@@ -68,7 +68,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
   }
 
   /** Loads an {@link AutomatonVariable} from the VariableMap and returns its int value. */
-  static class VarAccess implements AutomatonIntExpr {
+  static final class VarAccess implements AutomatonIntExpr {
 
     private final String varId;
 
@@ -138,7 +138,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
    * query-Result.
    */
-  static class CPAQuery implements AutomatonIntExpr {
+  static final class CPAQuery implements AutomatonIntExpr {
     private final String cpaName;
     private final String queryString;
 
@@ -218,7 +218,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
     }
   }
 
-  static class BinaryAutomatonIntExpr implements AutomatonIntExpr {
+  static sealed class BinaryAutomatonIntExpr implements AutomatonIntExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -272,14 +272,14 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
   }
 
   /** Addition of {@link AutomatonIntExpr} instances. */
-  static class Plus extends BinaryAutomatonIntExpr {
+  static final class Plus extends BinaryAutomatonIntExpr {
     public Plus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
       super(pA, pB, (a, b) -> a + b, "+");
     }
   }
 
   /** Subtraction of {@link AutomatonIntExpr} instances. */
-  static class Minus extends BinaryAutomatonIntExpr {
+  static final class Minus extends BinaryAutomatonIntExpr {
     public Minus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
       super(pA, pB, (a, b) -> a - b, "-");
     }

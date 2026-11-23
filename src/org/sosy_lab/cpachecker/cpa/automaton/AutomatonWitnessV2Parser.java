@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
  * correctness or a violation witness and which format version they use, and hands them to {@link
  * AutomatonWitnessCorrectnessV2Parser} or {@link AutomatonWitnessViolationV2Parser} respectively.
  */
-public class AutomatonWitnessV2Parser {
+public final class AutomatonWitnessV2Parser {
 
   private final LogManager logger;
   private final Configuration config;
@@ -60,18 +60,32 @@ public class AutomatonWitnessV2Parser {
     } catch (IOException e) {
       throw new WitnessParseException(e);
     }
+    return parseAutomaton(entries);
+  }
+
+  /**
+   * Parses a specification from the entries of a witness and returns the Automaton representing the
+   * witness.
+   *
+   * @param pEntries the entries of the witness.
+   * @return the automaton representing the witness.
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   * @throws InterruptedException if the parsing is interrupted.
+   */
+  public Automaton parseAutomaton(List<AbstractEntry> pEntries)
+      throws InvalidConfigurationException, InterruptedException {
     YAMLWitnessVersion witnessVersion =
-        AutomatonWitnessV2ParserUtils.getWitnessVersion(entries).orElseThrow();
-    if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(entries)
+        AutomatonWitnessV2ParserUtils.getWitnessVersion(pEntries).orElseThrow();
+    if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(pEntries)
         .orElseThrow()
         .equals(WitnessType.CORRECTNESS_WITNESS)) {
       return new AutomatonWitnessCorrectnessV2Parser(
               config, logger, shutdownNotifier, cfa, witnessVersion)
-          .createCorrectnessAutomatonFromEntries(entries);
+          .createCorrectnessAutomatonFromEntries(pEntries);
     } else {
       return new AutomatonWitnessViolationV2Parser(
               config, logger, shutdownNotifier, cfa, witnessVersion)
-          .createViolationAutomatonFromEntries(entries);
+          .createViolationAutomatonFromEntries(pEntries);
     }
   }
 }

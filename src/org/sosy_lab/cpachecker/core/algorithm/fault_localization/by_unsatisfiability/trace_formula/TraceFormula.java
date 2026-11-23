@@ -255,9 +255,8 @@ public class TraceFormula {
       trace = new Trace(pContext, modifiedTrace);
     } else {
       FluentIterable.from(trace)
-          .filter(
-              atom ->
-                  nondets.stream().anyMatch(name -> atom.getFormula().toString().contains(name)))
+          .filter(atom ->
+              nondets.stream().anyMatch(name -> atom.getFormula().toString().contains(name)))
           .transform(TraceAtom::correspondingEdge)
           .copyInto(preconditionEdges);
       precondition = precondition.replaceRelatedEdges(preconditionEdges);

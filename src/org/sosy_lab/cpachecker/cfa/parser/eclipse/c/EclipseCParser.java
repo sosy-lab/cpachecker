@@ -141,7 +141,7 @@ class EclipseCParser implements CParser {
         Lists.transform(pFilenames, name -> new FileToParse(Path.of(name))),
         new CSourceOriginMapping(),
         CProgramScope.empty(),
-        (pFileName, pContent) -> eclipseCdt.wrapFile(pFileName));
+        (pFileName, _) -> eclipseCdt.wrapFile(pFileName));
   }
 
   @Override
@@ -352,6 +352,8 @@ class EclipseCParser implements CParser {
                   asts,
                   result.cfaNodeToAstLocalVariablesInScope().orElseThrow(),
                   result.cfaNodeToAstParametersInScope().orElseThrow(),
+                  result.cfaNodeToVisibleLocalVariables().orElseThrow(),
+                  result.cfaNodeToVisibleParameters().orElseThrow(),
                   FluentIterable.from(result.globalDeclarations())
                       .transform(Pair::getFirst)
                       .filter(AVariableDeclaration.class)

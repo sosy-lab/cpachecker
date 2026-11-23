@@ -253,13 +253,13 @@ public class ExpressionToFormulaVisitor
       }
       case BITWISE_AND -> {
         ret = mgr.makeAnd(f1, f2);
-        if (conv.options.approximateBitwiseOperationsLinearly()) {
+        if (shouldApproximateBitwiseOperationLinearly(exp)) {
           addBitwiseAndConstraints(f1, f2, signed, ret);
         }
       }
       case BITWISE_OR -> {
         ret = mgr.makeOr(f1, f2);
-        if (conv.options.approximateBitwiseOperationsLinearly()) {
+        if (shouldApproximateBitwiseOperationLinearly(exp)) {
           addBitwiseOrConstraints(f1, f2, signed, ret);
         }
       }
@@ -267,9 +267,13 @@ public class ExpressionToFormulaVisitor
       case SHIFT_LEFT ->
           // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
           ret = mgr.makeShiftLeft(f1, f2);
-      case SHIFT_RIGHT ->
-          // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-          ret = mgr.makeShiftRight(f1, f2, signed);
+      case SHIFT_RIGHT -> {
+        // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+        ret = mgr.makeShiftRight(f1, f2, signed);
+        if (conv.options.approximateBitwiseOperationsLinearly()) {
+          addShiftRightConstraints(exp.getOperand2(), f1, signed, ret);
+        }
+      }
       case GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL, EQUALS, NOT_EQUALS -> {
         BooleanFormula result =
             switch (op) {
@@ -383,6 +387,39 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
+   * Returns whether linear bounds should be added for the bitwise and or or in {@code exp}, i.e.,
+   * whether it is applied to integers and not used as a logical connective. The termination
+   * analysis, for example, combines the comparisons in its ranking relations with & and |. Bounds
+   * for these add little, but they make the formulas larger, which slows down the analysis.
+   */
+  private boolean shouldApproximateBitwiseOperationLinearly(CBinaryExpression exp) {
+    return conv.options.approximateBitwiseOperationsLinearly() && !isLogicalConnective(exp);
+  }
+
+  /** Returns whether both operands of the bitwise and or or in {@code exp} are truth values. */
+  private static boolean isLogicalConnective(CBinaryExpression exp) {
+    return isTruthValue(exp.getOperand1()) && isTruthValue(exp.getOperand2());
+  }
+
+  /**
+   * Returns whether {@code exp} is a truth value, i.e., the literal 0 or 1, a comparison, or a
+   * logical connective.
+   */
+  private static boolean isTruthValue(CExpression exp) {
+    if (exp instanceof CIntegerLiteralExpression literal) {
+      BigInteger value = literal.getValue();
+      return value.equals(BigInteger.ZERO) || value.equals(BigInteger.ONE);
+    }
+    if (exp instanceof CBinaryExpression binaryExpression) {
+      BinaryOperator operator = binaryExpression.getOperator();
+      return operator.isLogicalOperator()
+          || ((operator == BinaryOperator.BITWISE_AND || operator == BinaryOperator.BITWISE_OR)
+              && isLogicalConnective(binaryExpression));
+    }
+    return false;
+  }
+
+  /**
    * Adds linear bounds for {@code ret = f1 & f2}, depending on the signs of the operands:
    *
    * <ul>
@@ -449,6 +486,30 @@ public class ExpressionToFormulaVisitor
                 f2NonNegative,
                 bfmgr.and(
                     mgr.makeLessOrEqual(f2, ret, signed), mgr.makeLessThan(ret, zero, signed)))));
+  }
+
+  /**
+   * Encodes {@code ret = f1 >> k} for a constant {@code k} exactly as {@code 0 <= f1 - 2^k * ret <=
+   * 2^k - 1}, i.e., as division rounded down.
+   */
+  private void addShiftRightConstraints(
+      final CExpression pShiftAmount, final Formula f1, final boolean signed, final Formula ret) {
+    FormulaType<?> formulaType = mgr.getFormulaType(f1);
+    if (!(pShiftAmount instanceof CIntegerLiteralExpression literal)
+        || !(formulaType instanceof BitvectorType bitvectorType)
+        || literal.getValue().signum() < 0
+        || literal.getValue().compareTo(BigInteger.valueOf(bitvectorType.getSize())) >= 0) {
+      return;
+    }
+    BigInteger divisor = BigInteger.ONE.shiftLeft(literal.getValue().intValueExact());
+    Formula remainder =
+        mgr.makeMinus(f1, mgr.makeMultiply(mgr.makeNumber(bitvectorType, divisor), ret));
+    constraints.addConstraint(
+        mgr.makeRangeConstraint(
+            remainder,
+            mgr.makeNumber(bitvectorType, 0L),
+            mgr.makeNumber(bitvectorType, divisor.subtract(BigInteger.ONE)),
+            signed));
   }
 
   @Override

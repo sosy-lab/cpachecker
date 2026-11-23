@@ -140,10 +140,9 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
       splitConditions.add(
           new HashSet<>(
               FluentIterable.from(pReached)
-                  .filter(
-                      state ->
-                          AbstractStates.extractStateByType(state, SplitInfoState.class)
-                              .isInSplit(index))
+                  .filter(state ->
+                      AbstractStates.extractStateByType(state, SplitInfoState.class)
+                          .isInSplit(index))
                   .filter(ARGState.class)
                   .toSet()));
     }

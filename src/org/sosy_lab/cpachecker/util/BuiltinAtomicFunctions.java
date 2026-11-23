@@ -539,16 +539,15 @@ public final class BuiltinAtomicFunctions {
    */
   public static Optional<CType> getType(String pFunctionName) {
     return CAtomicOperations.fromString(pFunctionName)
-        .flatMap(
-            operation ->
-                switch (operation.getOperationType()) {
-                  // the generic load and exchange write their result through a pointer instead of
-                  // returning it
-                  case STORE, CLEAR, FENCE -> Optional.of(CVoidType.VOID);
-                  case LOAD, EXCHANGE ->
-                      operation.isGeneric() ? Optional.of(CVoidType.VOID) : Optional.empty();
-                  case CMP_XCHG, TEST_AND_SET -> Optional.of(CNumericTypes.BOOL);
-                  case FETCH_OP, OP_FETCH -> Optional.empty();
-                });
+        .flatMap(operation ->
+            switch (operation.getOperationType()) {
+              // the generic load and exchange write their result through a pointer instead of
+              // returning it
+              case STORE, CLEAR, FENCE -> Optional.of(CVoidType.VOID);
+              case LOAD, EXCHANGE ->
+                  operation.isGeneric() ? Optional.of(CVoidType.VOID) : Optional.empty();
+              case CMP_XCHG, TEST_AND_SET -> Optional.of(CNumericTypes.BOOL);
+              case FETCH_OP, OP_FETCH -> Optional.empty();
+            });
   }
 }

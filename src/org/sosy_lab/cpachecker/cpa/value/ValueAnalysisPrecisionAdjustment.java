@@ -134,7 +134,11 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
     private boolean abstractAtLoop(LocationState location) {
       checkState(!alwaysAtLoop || loopHeads != null);
-      return alwaysAtLoop && loopHeads.contains(location.getLocationNode());
+      CFANode node = location.getLocationNode();
+      CFANode originalNode = node.getOriginal();
+      return alwaysAtLoop
+          && (loopHeads.contains(node)
+              || (originalNode != node && loopHeads.contains(originalNode)));
     }
   }
 

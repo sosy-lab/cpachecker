@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
@@ -580,7 +581,7 @@ public class SMGTransferRelation
       }
     }
 
-    return ImmutableList.of(handleFunctionCall(state, callEdge, arguments, paramDecl));
+    return handleFunctionCall(state, callEdge, arguments, paramDecl);
   }
 
   /**
@@ -593,11 +594,11 @@ public class SMGTransferRelation
    * @param callEdge the edge of the function call.
    * @param arguments the function call arguments {@link CExpression}s.
    * @param paramDecl the {@link CParameterDeclaration} for the arguments.
-   * @return a state with a new stack frame and all parameters evaluated to values and assigned to
-   *     new local variables.
+   * @return the states with a new stack frame and all parameters evaluated to values and assigned
+   *     to new local variables. The evaluation of an argument may split the state.
    * @throws CPATransferException in case of a critical error.
    */
-  private SMGState handleFunctionCall(
+  private List<SMGState> handleFunctionCall(
       SMGState initialState,
       CFunctionCallEdge callEdge,
       List<CExpression> arguments,
@@ -606,9 +607,11 @@ public class SMGTransferRelation
     // Create a variable for each parameter, then evaluate all given parameters and assign them to
     // their variables
     // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
-    SMGState currentState = initialState;
-    ImmutableList.Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
-    BigInteger overallVarArgsSizeInBits = BigInteger.ZERO;
+    // Each state with the values of the arguments read so far.
+    // Evaluating an argument may split the state. Each following argument is then evaluated
+    // in every resulting state, so that every successor has its own complete list of values.
+    List<Pair<SMGState, ImmutableList<Value>>> statesAndReadValues =
+        ImmutableList.of(Pair.of(initialState, ImmutableList.of()));
     CType parameterType = null;
 
     for (int i = 0; i < arguments.size(); i++) {
@@ -619,57 +622,72 @@ public class SMGTransferRelation
       if (paramDecl.size() > i) {
         // The last type is the type for the following arguments
         parameterType = SMGCPAExpressionEvaluator.getCanonicalType(paramDecl.get(i));
-      } else {
-        // Remember overall size of varArgs
-        Value typeSizeInBits = evaluator.getBitSizeof(currentState, cParamExp, callEdge);
-        checkState(typeSizeInBits.isNumericValue());
-        overallVarArgsSizeInBits =
-            overallVarArgsSizeInBits.add(typeSizeInBits.asNumericValue().bigIntegerValue());
       }
 
-      ValueAndSMGState valueAndState;
-      if (parameterType instanceof CPointerType && argumentType instanceof CArrayType) {
-        if (cParamExp instanceof CStringLiteralExpression stringExpr) {
-          // For example: print("string"); does not create a String constant beforehand
-          String stringName = currentState.getCStringLiteralExpressionVariableName(stringExpr);
-          if (!currentState.isLocalOrGlobalVariablePresent(stringName)) {
-            // If s String literal is part of varArgs, we don't have a variable decl
-            List<SMGState> statesWithString =
-                evaluator.handleStringInitializer(
-                    currentState,
-                    paramDecl.size() > i ? paramDecl.get(i).asVariableDeclaration() : null,
-                    callEdge,
-                    stringName,
-                    new NumericValue(BigInteger.ZERO),
-                    parameterType,
-                    callEdge.getFileLocation(),
-                    stringExpr);
-            Preconditions.checkArgument(statesWithString.size() == 1);
-            currentState = statesWithString.getFirst();
+      ImmutableList.Builder<Pair<SMGState, ImmutableList<Value>>> newStatesAndReadValues =
+          ImmutableList.builder();
+      for (Pair<SMGState, ImmutableList<Value>> stateAndReadValues : statesAndReadValues) {
+        SMGState currentState = stateAndReadValues.getFirst();
+        List<ValueAndSMGState> valuesAndStates;
+        if (parameterType instanceof CPointerType && argumentType instanceof CArrayType) {
+          if (cParamExp instanceof CStringLiteralExpression stringExpr) {
+            // For example: print("string"); does not create a String constant beforehand
+            String stringName = currentState.getCStringLiteralExpressionVariableName(stringExpr);
+            if (!currentState.isLocalOrGlobalVariablePresent(stringName)) {
+              // If s String literal is part of varArgs, we don't have a variable decl
+              List<SMGState> statesWithString =
+                  evaluator.handleStringInitializer(
+                      currentState,
+                      paramDecl.size() > i ? paramDecl.get(i).asVariableDeclaration() : null,
+                      callEdge,
+                      stringName,
+                      new NumericValue(BigInteger.ZERO),
+                      parameterType,
+                      callEdge.getFileLocation(),
+                      stringExpr);
+              Preconditions.checkArgument(statesWithString.size() == 1);
+              currentState = statesWithString.getFirst();
+            }
           }
+          // Implicit & on the array expr
+          valuesAndStates = evaluator.createAddress(cParamExp, currentState, callEdge);
+        } else {
+          // Evaluate the CExpr into a Value
+          // Note: this evaluates local arrays into pointers!!!!!
+          valuesAndStates =
+              cParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger));
         }
-        // Implicit & on the array expr
-        List<ValueAndSMGState> addressesAndStates =
-            evaluator.createAddress(cParamExp, currentState, callEdge);
-
-        Preconditions.checkArgument(addressesAndStates.size() == 1);
-        valueAndState = addressesAndStates.getFirst();
-      } else {
-        // Evaluate the CExpr into a Value
-        // Note: this evaluates local arrays into pointers!!!!!
-        List<ValueAndSMGState> valuesAndStates =
-            cParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger));
-
-        // If this ever fails; we need to take all states/values into account, meaning we would need
-        // to proceed from this point onwards with all of them with all following operations
-        Preconditions.checkArgument(valuesAndStates.size() == 1);
-        valueAndState = valuesAndStates.getFirst();
+        for (ValueAndSMGState valueAndState : valuesAndStates) {
+          newStatesAndReadValues.add(
+              Pair.of(
+                  valueAndState.getState(),
+                  listAndElement(stateAndReadValues.getSecond(), valueAndState.getValue())));
+        }
       }
-      readValuesInOrderBuilder.add(valueAndState.getValue());
-      currentState = valueAndState.getState();
+      statesAndReadValues = newStatesAndReadValues.build();
     }
 
-    ImmutableList<Value> readValuesInOrder = readValuesInOrderBuilder.build();
+    ImmutableList.Builder<SMGState> resultStates = ImmutableList.builder();
+    for (Pair<SMGState, ImmutableList<Value>> stateAndReadValues : statesAndReadValues) {
+      resultStates.add(
+          addStackFrameAndAssignParameters(
+              stateAndReadValues.getFirst(),
+              stateAndReadValues.getSecond(),
+              callEdge,
+              arguments,
+              paramDecl));
+    }
+    return resultStates.build();
+  }
+
+  private SMGState addStackFrameAndAssignParameters(
+      SMGState pCurrentState,
+      ImmutableList<Value> readValuesInOrder,
+      CFunctionCallEdge callEdge,
+      List<CExpression> arguments,
+      List<CParameterDeclaration> paramDecl)
+      throws CPATransferException {
+    SMGState currentState = pCurrentState;
     // Add the new stack frame based on the function def, but only after we read the values from the
     // old stack frame
     CFunctionDeclaration funcDecl = callEdge.getSuccessor().getFunctionDefinition();

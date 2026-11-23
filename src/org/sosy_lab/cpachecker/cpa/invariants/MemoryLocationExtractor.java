@@ -131,7 +131,7 @@ public class MemoryLocationExtractor {
           MemoryLocation.parseExtendedQualifiedName(
               String.format("*(%s)", getMemoryLocation(pe.getOperand())));
 
-      case CPointerExpression pe ->
+      case CPointerExpression _ ->
           // TODO
           MemoryLocation.forLocalVariable(functionName, pLhs.toString());
 

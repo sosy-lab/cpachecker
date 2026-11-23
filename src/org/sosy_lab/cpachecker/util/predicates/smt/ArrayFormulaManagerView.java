@@ -143,10 +143,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
   /** {@inheritDoc} */
   @Override
   public <TI extends Formula> FormulaType<TI> getIndexType(final ArrayFormula<TI, ?> pArray) {
-    if (pArray instanceof WrappingFormula<?, ?>) {
+    if (pArray instanceof WrappingFormula<?, ?> wrappingFormula) {
       @SuppressWarnings("unchecked")
-      ArrayFormulaType<TI, ?> t =
-          (ArrayFormulaType<TI, ?>) ((WrappingFormula<?, ?>) pArray).getType();
+      ArrayFormulaType<TI, ?> t = (ArrayFormulaType<TI, ?>) wrappingFormula.getType();
       return t.getIndexType();
     }
     return manager.getIndexType(pArray);
@@ -155,10 +154,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
   /** {@inheritDoc} */
   @Override
   public <TE extends Formula> FormulaType<TE> getElementType(final ArrayFormula<?, TE> pArray) {
-    if (pArray instanceof WrappingFormula<?, ?>) {
+    if (pArray instanceof WrappingFormula<?, ?> wrappingFormula) {
       @SuppressWarnings("unchecked")
-      ArrayFormulaType<?, TE> t =
-          (ArrayFormulaType<?, TE>) ((WrappingFormula<?, ?>) pArray).getType();
+      ArrayFormulaType<?, TE> t = (ArrayFormulaType<?, TE>) wrappingFormula.getType();
       return t.getElementType();
     }
     return manager.getElementType(pArray);

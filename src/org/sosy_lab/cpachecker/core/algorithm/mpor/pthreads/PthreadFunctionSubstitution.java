@@ -168,19 +168,12 @@ public class PthreadFunctionSubstitution {
   }
 
   private static CFieldReference buildMutexFieldReference(CExpression pMutexExpression) {
-    CFieldReference mutexFieldReference =
-        new CFieldReference(
-            FileLocation.DUMMY,
-            PthreadObjectSubstitutions.MUTEX_INNER_LIST_ELABORATED_TYPE,
-            PthreadObjectSubstitutions.MUTEX_INNER_LIST_MEMBER_DECLARATION.getName(),
-            pMutexExpression,
-            pMutexExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
     return new CFieldReference(
         FileLocation.DUMMY,
-        PthreadObjectSubstitutions.MUTEX_INNER_LIST_ELABORATED_TYPE,
+        PthreadObjectSubstitutions.MUTEX_ELABORATED_TYPE,
         PthreadObjectSubstitutions.MUTEX_LOCKED_MEMBER_DECLARATION.getName(),
-        mutexFieldReference,
-        false);
+        pMutexExpression,
+        pMutexExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
   }
 
   // pthread_once_t
@@ -294,29 +287,24 @@ public class PthreadFunctionSubstitution {
             new CExpressionAssignmentStatement(
                 FileLocation.DUMMY, condFieldReference, CIntegerLiteralExpression.ZERO));
     // for a breakdown on this behavior, cf. https://linux.die.net/man/3/pthread_cond_wait
-    return ImmutableList.of(
+    return ImmutableList.<CCompoundStatementElement>builder()
         // the calling thread blocks on the condition variable -> assume(signaled == 1)
-        new CStatementWrapper(
-            SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(condFieldReference)),
-        condAssignment,
+        .add(
+            new CStatementWrapper(
+                SeqAssumeFunctionBuilder.buildAssumeFunctionCallStatement(condFieldReference)))
+        .add(condAssignment)
         // on return, the mutex is locked and owned by the calling thread
-        buildMutexLockAssignment(mutexExpression));
+        .addAll(buildMutexLockFunctionStatements(mutexExpression))
+        .build();
   }
 
   private static CFieldReference buildCondFieldReference(CExpression pCondExpression) {
-    CFieldReference condFieldReference =
-        new CFieldReference(
-            FileLocation.DUMMY,
-            PthreadObjectSubstitutions.COND_INNER_LIST_ELABORATED_TYPE,
-            PthreadObjectSubstitutions.COND_INNER_LIST_MEMBER_DECLARATION.getName(),
-            pCondExpression,
-            pCondExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
     return new CFieldReference(
         FileLocation.DUMMY,
-        PthreadObjectSubstitutions.COND_INNER_LIST_ELABORATED_TYPE,
+        PthreadObjectSubstitutions.COND_ELABORATED_TYPE,
         PthreadObjectSubstitutions.COND_SIGNALED_MEMBER_DECLARATION.getName(),
-        condFieldReference,
-        false);
+        pCondExpression,
+        pCondExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
   }
 
   // pthread_rwlock_t
@@ -391,19 +379,12 @@ public class PthreadFunctionSubstitution {
   private static CFieldReference buildRwLockFieldReference(
       CExpression pRwLockExpression, CCompositeTypeMemberDeclaration pMemberDeclaration) {
 
-    CFieldReference rwLockFieldReference =
-        new CFieldReference(
-            FileLocation.DUMMY,
-            PthreadObjectSubstitutions.RWLOCK_INNER_LIST_ELABORATED_TYPE,
-            PthreadObjectSubstitutions.RWLOCK_INNER_LIST_MEMBER_DECLARATION.getName(),
-            pRwLockExpression,
-            pRwLockExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
     return new CFieldReference(
         FileLocation.DUMMY,
-        PthreadObjectSubstitutions.RWLOCK_INNER_LIST_ELABORATED_TYPE,
+        PthreadObjectSubstitutions.RWLOCK_ELABORATED_TYPE,
         pMemberDeclaration.getName(),
-        rwLockFieldReference,
-        false);
+        pRwLockExpression,
+        pRwLockExpression.getExpressionType().getCanonicalType() instanceof CPointerType);
   }
 
   // Helper

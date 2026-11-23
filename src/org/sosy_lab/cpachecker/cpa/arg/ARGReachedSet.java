@@ -105,7 +105,7 @@ public class ARGReachedSet {
    * reachable from the rootState. States which have become unreachable get properly detached
    */
   public void recalculateReachedSet(ARGState rootState) {
-    removeUnReachableFrom(Collections.singleton(rootState), ARGState::getChildren, x -> true);
+    removeUnReachableFrom(Collections.singleton(rootState), ARGState::getChildren, _ -> true);
   }
 
   /**
@@ -376,14 +376,13 @@ public class ARGReachedSet {
       Precision pNewPrecision, Predicate<? super Precision> pPrecisionType) {
     IdentityHashMap<Precision, Precision> precisionUpdateCache = new IdentityHashMap<>();
 
-    mReached.forEach(
-        (s, oldPrecision) -> {
-          Precision newPrecision =
-              precisionUpdateCache.computeIfAbsent(
-                  oldPrecision, oldPrec -> adaptPrecision(oldPrec, pNewPrecision, pPrecisionType));
+    mReached.forEach((s, oldPrecision) -> {
+      Precision newPrecision =
+          precisionUpdateCache.computeIfAbsent(
+              oldPrecision, oldPrec -> adaptPrecision(oldPrec, pNewPrecision, pPrecisionType));
 
-          mReached.updatePrecision(s, newPrecision);
-        });
+      mReached.updatePrecision(s, newPrecision);
+    });
   }
 
   /**

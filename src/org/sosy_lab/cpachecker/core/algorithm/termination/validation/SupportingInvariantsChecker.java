@@ -8,9 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -23,7 +30,15 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2Parser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.WitnessInvariantType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 /**
  * Checks whether the (supporting) invariants of a correctness witness are invariants of the
@@ -40,6 +55,13 @@ public final class SupportingInvariantsChecker {
     /** The check could not decide whether the invariants hold. */
     UNKNOWN
   }
+
+  /**
+   * The results of the checks of witnesses for each CFA, since the analyses that validate a witness
+   * in parallel check the same invariants.
+   */
+  private static final Cache<CFA, Map<List<Path>, InvariantCheckResult>> RESULTS =
+      CacheBuilder.newBuilder().weakKeys().build();
 
   private SupportingInvariantsChecker() {}
 
@@ -62,43 +84,130 @@ public final class SupportingInvariantsChecker {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws CPAException, InterruptedException {
+    Map<List<Path>, InvariantCheckResult> results =
+        RESULTS.asMap().computeIfAbsent(pCfa, _ -> new ConcurrentHashMap<>());
+    List<Path> key =
+        ImmutableList.of(
+            pConfigFile.toAbsolutePath().normalize(), pWitnessPath.toAbsolutePath().normalize());
+    InvariantCheckResult cachedResult = results.get(key);
+    if (cachedResult != null) {
+      return cachedResult;
+    }
+
+    List<AbstractEntry> witnessEntries;
+    try {
+      witnessEntries = AutomatonWitnessV2ParserUtils.parseYAML(pWitnessPath);
+    } catch (IOException e) {
+      throw new CPAException("Supporting invariants check failed: " + e.getMessage(), e);
+    }
+    InvariantCheckResult result =
+        checkInvariants(
+            pConfigFile,
+            withoutTransitionInvariants(witnessEntries),
+            pCfa,
+            pLogger,
+            pShutdownNotifier);
+    results.put(key, result);
+    return result;
+  }
+
+  /**
+   * Removes the transition invariants from the given entries of a witness. They are not checked
+   * here, but the automaton of the witness has a transition without assumptions for each of them,
+   * besides the transitions for the invariants at the same location. So the automaton branches at
+   * each visit of such a location, which can make the check infeasible.
+   */
+  private static ImmutableList<AbstractEntry> withoutTransitionInvariants(
+      List<AbstractEntry> pWitnessEntries) {
+    return transformedImmutableListCopy(
+        pWitnessEntries,
+        entry ->
+            entry instanceof InvariantSetEntry invariantSet
+                ? new InvariantSetEntry(
+                    invariantSet.getMetadata(),
+                    invariantSet.content.stream()
+                        .filter(invariant -> !isTransitionInvariant(invariant))
+                        .collect(ImmutableList.toImmutableList()))
+                : entry);
+  }
+
+  private static boolean isTransitionInvariant(AbstractInvariantEntry pInvariant) {
+    return WitnessInvariantType.of(InvariantRecordType.fromKeyword(pInvariant.getType()))
+        .map(WitnessInvariantType::isTransitionInvariant)
+        .orElse(false);
+  }
+
+  /**
+   * Check whether the invariants of the given entries of a correctness witness hold in the program
+   * of the given CFA.
+   *
+   * @param pConfigFile the configuration of the analysis that checks the invariants. The witness is
+   *     converted into an automaton according to this configuration.
+   * @param pWitnessEntries the entries of the correctness witness whose invariants are checked
+   * @param pCfa the CFA of the program
+   * @return {@link InvariantCheckResult#INVALID} if a violation of an invariant was found, {@link
+   *     InvariantCheckResult#VALID} if the analysis finished soundly without finding a violation,
+   *     and {@link InvariantCheckResult#UNKNOWN} otherwise
+   */
+  public static InvariantCheckResult checkInvariants(
+      Path pConfigFile,
+      List<AbstractEntry> pWitnessEntries,
+      CFA pCfa,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
+      throws CPAException, InterruptedException {
     try {
       Configuration invariantsCheckConfig =
           Configuration.builder().loadFromFile(pConfigFile).build();
-      Specification invariantSpec =
-          Specification.fromFiles(
-              ImmutableList.of(pWitnessPath),
-              pCfa,
-              invariantsCheckConfig,
-              pLogger,
-              pShutdownNotifier);
-      CoreComponentsFactory coreComponents =
-          new CoreComponentsFactory(
-              invariantsCheckConfig,
-              pLogger,
-              pShutdownNotifier,
-              AggregatedReachedSets.empty(),
-              pCfa);
-      ConfigurableProgramAnalysis supportingInvariantsCPA = coreComponents.createCPA(invariantSpec);
-      Algorithm invariantCheckingAlgorithm =
-          coreComponents.createAlgorithm(supportingInvariantsCPA, invariantSpec);
-
-      ReachedSet reachedSet =
-          coreComponents.createInitializedReachedSet(
-              supportingInvariantsCPA, pCfa.getMainFunction());
-
-      AlgorithmStatus status = invariantCheckingAlgorithm.run(reachedSet);
-      // An interrupted analysis may look as if it finished, so it must not be reported as valid
-      pShutdownNotifier.shutdownIfNecessary();
-      if (reachedSet.wasTargetReached()) {
-        return InvariantCheckResult.INVALID;
-      }
-      if (status.isSound() && !reachedSet.hasWaitingState()) {
-        return InvariantCheckResult.VALID;
-      }
-      return InvariantCheckResult.UNKNOWN;
+      Automaton witnessAutomaton =
+          new AutomatonWitnessV2Parser(invariantsCheckConfig, pLogger, pShutdownNotifier, pCfa)
+              .parseAutomaton(pWitnessEntries);
+      return checkSpecification(
+          invariantsCheckConfig,
+          Specification.fromAutomata(ImmutableList.of(witnessAutomaton)),
+          pCfa,
+          pLogger,
+          pShutdownNotifier);
     } catch (InvalidConfigurationException | IOException e) {
       throw new CPAException("Supporting invariants check failed: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Run the analysis of the given configuration with the given specification, which contains the
+   * automaton of the witness whose invariants are checked.
+   */
+  private static InvariantCheckResult checkSpecification(
+      Configuration pInvariantsCheckConfig,
+      Specification pInvariantSpec,
+      CFA pCfa,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    CoreComponentsFactory coreComponents =
+        new CoreComponentsFactory(
+            pInvariantsCheckConfig,
+            pLogger,
+            pShutdownNotifier,
+            AggregatedReachedSets.empty(),
+            pCfa);
+    ConfigurableProgramAnalysis supportingInvariantsCPA = coreComponents.createCPA(pInvariantSpec);
+    Algorithm invariantCheckingAlgorithm =
+        coreComponents.createAlgorithm(supportingInvariantsCPA, pInvariantSpec);
+
+    ReachedSet reachedSet =
+        coreComponents.createInitializedReachedSet(supportingInvariantsCPA, pCfa.getMainFunction());
+
+    AlgorithmStatus status;
+    status = invariantCheckingAlgorithm.run(reachedSet);
+    // An interrupted analysis may look as if it finished, so it must not be reported as valid
+    pShutdownNotifier.shutdownIfNecessary();
+    if (reachedSet.wasTargetReached()) {
+      return InvariantCheckResult.INVALID;
+    }
+    if (status.isSound() && !reachedSet.hasWaitingState()) {
+      return InvariantCheckResult.VALID;
+    }
+    return InvariantCheckResult.UNKNOWN;
   }
 }

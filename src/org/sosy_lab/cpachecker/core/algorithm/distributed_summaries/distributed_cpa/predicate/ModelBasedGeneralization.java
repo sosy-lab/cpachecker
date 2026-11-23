@@ -108,10 +108,9 @@ final class ModelBasedGeneralization {
       // predicates over renamed variables say nothing about the condition
       vocabulary =
           FluentIterable.from(fmgr.extractAtoms(precondition, false))
-              .filter(
-                  atom ->
-                      fmgr.extractFunctionNames(atom).stream()
-                          .noneMatch(name -> name.startsWith(PRECONDITION_ONLY_PREFIX)))
+              .filter(atom ->
+                  fmgr.extractFunctionNames(atom).stream()
+                      .noneMatch(name -> name.startsWith(PRECONDITION_ONLY_PREFIX)))
               .toSet();
     }
     return generalize(

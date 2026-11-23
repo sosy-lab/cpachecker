@@ -253,13 +253,12 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
 
     String actualName =
         canonicalNameOfBitvectorOperator(pKind)
-            .orElseGet(
-                () ->
-                    pName
-                        // Remove type suffixes from overloaded operators, like '_int'
-                        .replace("_int", "")
-                        .replace("_rat", "")
-                        .replaceAll("_T" + Pattern.quote("(") + "[0-9]+" + Pattern.quote(")"), ""));
+            .orElseGet(() ->
+                pName
+                    // Remove type suffixes from overloaded operators, like '_int'
+                    .replace("_int", "")
+                    .replace("_rat", "")
+                    .replaceAll("_T" + Pattern.quote("(") + "[0-9]+" + Pattern.quote(")"), ""));
 
     if (pKind == FunctionDeclarationKind.BV_SCASTTO_FP
         || pKind == FunctionDeclarationKind.BV_UCASTTO_FP
@@ -570,12 +569,14 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
     return uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
   }
 
+  public static String nameWithoutSSA(String pName) {
+    return pName.replaceAll("@$", "").replaceAll("@[0-9]+", "");
+  }
+
   @Override
   public SvLibTerm visitFreeVariable(Formula pFormula, String pS) {
-    String nameWithoutSSA = pS.replaceAll("@$", "").replaceAll("@[0-9]+", "");
-
     SvLibSimpleDeclaration variableDeclaration =
-        scope.getVariableForQualifiedName(nameWithoutSSA).toSimpleDeclaration();
+        scope.getVariableForQualifiedName(nameWithoutSSA(pS)).toSimpleDeclaration();
     return new SvLibIdTerm(variableDeclaration, FileLocation.DUMMY);
   }
 

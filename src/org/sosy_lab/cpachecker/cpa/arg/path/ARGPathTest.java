@@ -18,11 +18,13 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -45,6 +47,20 @@ public class ARGPathTest {
   private ARGState lastARGState;
   private ARGPath path;
 
+  /**
+   * Mocks a {@link LocationState} at the given node. {@code getEdgesToChild} is a default method on
+   * {@link AbstractStateWithLocation}, so Mockito does not run its real logic unless told to;
+   * without this stub it silently returns nothing instead of walking the (stubbed) location node.
+   */
+  private static LocationState mockLocationState(CFANode pNode) {
+    LocationState mockState = Mockito.mock(LocationState.class);
+    Mockito.when(mockState.getLocationNode()).thenReturn(pNode);
+    Mockito.when(mockState.getLocationNodes()).thenReturn(Collections.singleton(pNode));
+    Mockito.when(mockState.getEdgesToChild(ArgumentMatchers.any(AbstractStateWithLocation.class)))
+        .thenCallRealMethod();
+    return mockState;
+  }
+
   @Before
   public void setup() {
     // setup for the builder tests
@@ -53,9 +69,7 @@ public class ARGPathTest {
             "", FileLocation.DUMMY, newDummyCFANode("test"), newDummyCFANode("test"), "test");
     edge.getSuccessor().addEnteringEdge(edge);
     edge.getPredecessor().addLeavingEdge(edge);
-    LocationState tmp = Mockito.mock(LocationState.class);
-    Mockito.when(tmp.getLocationNode()).thenReturn(edge.getPredecessor());
-    Mockito.when(tmp.getLocationNodes()).thenReturn(Collections.singleton(edge.getPredecessor()));
+    LocationState tmp = mockLocationState(edge.getPredecessor());
     state = new ARGState(tmp, null);
 
     // setup for the full path and path iterator tests
@@ -74,24 +88,12 @@ public class ARGPathTest {
     }
 
     // mock location states for ARGPath
-    LocationState firstState = Mockito.mock(LocationState.class);
-    Mockito.when(firstState.getLocationNode()).thenReturn(edges.get(STATE_POS_1).getPredecessor());
-    Mockito.when(firstState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(STATE_POS_1).getPredecessor()));
-    LocationState secondState = Mockito.mock(LocationState.class);
-    Mockito.when(secondState.getLocationNode()).thenReturn(edges.get(STATE_POS_2).getPredecessor());
-    Mockito.when(secondState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(STATE_POS_2).getPredecessor()));
-    LocationState thirdState = Mockito.mock(LocationState.class);
-    Mockito.when(thirdState.getLocationNode()).thenReturn(edges.get(STATE_POS_3).getPredecessor());
-    Mockito.when(thirdState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(STATE_POS_3).getPredecessor()));
+    LocationState firstState = mockLocationState(edges.get(STATE_POS_1).getPredecessor());
+    LocationState secondState = mockLocationState(edges.get(STATE_POS_2).getPredecessor());
+    LocationState thirdState = mockLocationState(edges.get(STATE_POS_3).getPredecessor());
 
     // last ARGState is the end of the CFA-path we created before
-    LocationState lastState = Mockito.mock(LocationState.class);
-    Mockito.when(lastState.getLocationNode()).thenReturn(edges.getLast().getSuccessor());
-    Mockito.when(lastState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.getLast().getSuccessor()));
+    LocationState lastState = mockLocationState(edges.getLast().getSuccessor());
 
     // build argPath
     ARGPathBuilder builder = ARGPath.builder();
@@ -131,9 +133,7 @@ public class ARGPathTest {
   public void testDefaultBuilderBuild() {
     ARGPathBuilder builder = ARGPath.builder();
     builder.add(state, edge);
-    LocationState tmp = Mockito.mock(LocationState.class);
-    Mockito.when(tmp.getLocationNode()).thenReturn(edge.getSuccessor());
-    Mockito.when(tmp.getLocationNodes()).thenReturn(Collections.singleton(edge.getSuccessor()));
+    LocationState tmp = mockLocationState(edge.getSuccessor());
     ARGState secondState = new ARGState(tmp, null);
 
     List<ARGState> states = new ArrayList<>();
@@ -151,9 +151,7 @@ public class ARGPathTest {
   @Test
   public void testReverseBuilderBuild() {
     ARGPathBuilder builder = ARGPath.reverseBuilder();
-    LocationState tmp = Mockito.mock(LocationState.class);
-    Mockito.when(tmp.getLocationNode()).thenReturn(edge.getSuccessor());
-    Mockito.when(tmp.getLocationNodes()).thenReturn(Collections.singleton(edge.getSuccessor()));
+    LocationState tmp = mockLocationState(edge.getSuccessor());
     ARGState secondState = new ARGState(tmp, null);
     builder.add(secondState, edge);
 

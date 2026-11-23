@@ -6,7 +6,7 @@
 ;
 ; SPDX-License-Identifier: Apache-2.0
 
-(set-logic LIA)
+(set-logic UFLIA)
 (set-option :witness-output-channel "./output/witness.svlib")
 (set-option :produce-correctness-witnesses true)
 (set-option :produce-violation-witnesses true)
@@ -29,7 +29,7 @@
     (! (while
       (< a 6)
       (assign (a (+ a 1)))) :tag while-loop)
-    (if (not (= a 6)) (! (sequence) :check-true false))
+    (if (not (= a 6)) (! (sequence) :tag main-check-1 :check-true false))
     (assign (|c#result| 1))
     (return)) :tag proc-main))
 

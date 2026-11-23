@@ -162,11 +162,10 @@ public final class DecisionGraph {
           current,
           new Node(
               current.arcs.stream()
-                  .map(
-                      a ->
-                          new Arc(
-                              replacements.getOrDefault(a.edge, a.edge),
-                              Objects.requireNonNull(memo.get(a.next))))
+                  .map(a ->
+                      new Arc(
+                          replacements.getOrDefault(a.edge, a.edge),
+                          Objects.requireNonNull(memo.get(a.next))))
                   .toList()));
     }
     return Objects.requireNonNull(memo.get(node));

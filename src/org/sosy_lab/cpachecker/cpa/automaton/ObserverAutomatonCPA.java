@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 
-public class ObserverAutomatonCPA extends ControlAutomatonCPA {
+public final class ObserverAutomatonCPA extends ControlAutomatonCPA {
 
   private ObserverAutomatonCPA(
       @OptionalAnnotation Automaton pAutomaton,

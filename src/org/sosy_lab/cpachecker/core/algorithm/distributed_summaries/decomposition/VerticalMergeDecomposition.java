@@ -66,10 +66,9 @@ public class VerticalMergeDecomposition implements DssBlockDecomposition {
 
     // Insertion order, because blocks.values() below becomes the input of the next merge round
     Map<String, BlockNode> blocks = new LinkedHashMap<>();
-    pNodes.forEach(
-        n -> {
-          blocks.put(n.getId(), n);
-        });
+    pNodes.forEach(n -> {
+      blocks.put(n.getId(), n);
+    });
 
     MergeIDTracker idTracker = new MergeIDTracker(blocks.keySet());
 

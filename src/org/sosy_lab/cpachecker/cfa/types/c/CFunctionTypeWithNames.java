@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
  * is that it also stores the names of parameters, not only their types. It should not be used
  * outside the cfa package.
  */
-public final class CFunctionTypeWithNames extends CFunctionType implements CType {
+public final class CFunctionTypeWithNames extends CFunctionType {
 
   @Serial private static final long serialVersionUID = -3585082910610497708L;
 

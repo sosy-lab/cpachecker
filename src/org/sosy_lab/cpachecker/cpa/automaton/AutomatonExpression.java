@@ -12,14 +12,17 @@ import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.CPAQuery;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-interface AutomatonExpression<T> {
+sealed interface AutomatonExpression<T>
+    permits AutomatonBoolExpr, AutomatonIntExpr, CPAQuery, StringExpression {
 
   ResultValue<T> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-  static class StringExpression implements AutomatonExpression<String> {
+  static final class StringExpression implements AutomatonExpression<String> {
     private String toPrint;
 
     public StringExpression(String pString) {
@@ -71,7 +74,7 @@ interface AutomatonExpression<T> {
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
    * query-Result.
    */
-  static class CPAQuery implements AutomatonExpression<String> {
+  static final class CPAQuery implements AutomatonExpression<String> {
     private final String cpaName;
     private final String queryString;
 

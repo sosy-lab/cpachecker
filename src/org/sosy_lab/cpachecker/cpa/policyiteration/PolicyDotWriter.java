@@ -33,7 +33,7 @@ public class PolicyDotWriter {
     Map<LinearExpression<?>, Rational> equal = new HashMap<>();
 
     for (Map.Entry<Template, PolicyBound> e : data.entrySet()) {
-      toSort.put(e.getKey().getLinearExpression(), e.getValue());
+      toSort.put(e.getKey().linearExpression(), e.getValue());
     }
     while (toSort.size() > 0) {
       Entry<LinearExpression<?>, PolicyBound> entry = toSort.entrySet().iterator().next();

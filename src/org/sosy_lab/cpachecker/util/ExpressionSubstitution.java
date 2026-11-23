@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -24,9 +25,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public final class ExpressionSubstitution {
@@ -72,6 +75,43 @@ public final class ExpressionSubstitution {
       throws SubstitutionException {
     Substitution substitution = pE -> pE.equals(pToSubstitute) ? pSubstitute : pE;
     return applySubstitution(pExpression, substitution, pBinExpBuilder);
+  }
+
+  /**
+   * Returns the substitution of expressions by the variables for their values, e.g., of x or *p in
+   * a transition invariant, see {@link
+   * org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ParsedInvariant#expressionVariables()},
+   * for {@link SubstitutingCAstNodeVisitor#substituteExpressions}. If an expression has several
+   * variables, the last one is used.
+   *
+   * <p>The substitution is meant for {@link SubstitutingCAstNodeVisitor} and not for {@link
+   * SubstitutingVisitor}, because they differ as follows:
+   *
+   * <ul>
+   *   <li>{@link SubstitutingVisitor} substitutes bottom-up, i.e., the subexpressions of an
+   *       expression before the expression. With substitutions for both *q and *(*q), it thus turns
+   *       *(*q) into *v, where v is the variable for *q, instead of into the variable for *(*q).
+   *       {@link SubstitutingCAstNodeVisitor} substitutes top-down and does not visit the
+   *       subexpressions of a substituted expression.
+   *   <li>{@link SubstitutingVisitor} rebuilds an array subscript only if both the array and the
+   *       subscript changed, e.g., a[*p] stays unchanged, and rebuilds a {@link
+   *       CComplexCastExpression} as {@link CPointerExpression}.
+   *   <li>{@link SubstitutingVisitor} recomputes the types of the binary expressions with changed
+   *       operands with a {@link CBinaryExpressionBuilder}, while {@link
+   *       SubstitutingCAstNodeVisitor} keeps the types of the original expressions. Thus each
+   *       variable must have the type of its expression.
+   * </ul>
+   *
+   * @param pExpressionVariables the variables for the values of the expressions, mapped to these
+   *     expressions
+   */
+  public static ImmutableMap<CExpression, CExpression> substitutionByVariables(
+      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
+    ImmutableMap.Builder<CExpression, CExpression> substitution = ImmutableMap.builder();
+    pExpressionVariables.forEach((variable, expression) ->
+        substitution.put(expression, new CIdExpression(variable.getFileLocation(), variable)));
+    // An expression has a variable for each function of the invariants with it
+    return substitution.buildKeepingLast();
   }
 
   public interface Substitution {

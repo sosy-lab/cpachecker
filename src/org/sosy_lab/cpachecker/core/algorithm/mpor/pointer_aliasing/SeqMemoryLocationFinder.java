@@ -169,7 +169,7 @@ public class SeqMemoryLocationFinder {
    * CRightHandSide} in an assignment where the pointer that is dereferenced is a {@link
    * CLeftHandSide}.
    */
-  static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
+  public static ImmutableSet<SeqMemoryLocation> findMemoryLocationsByPointerDereference(
       final SeqMemoryLocation pPointerDereference,
       ImmutableSet<SeqPointerAssignment> pPointerAssignments)
       throws UnsupportedCodeException {

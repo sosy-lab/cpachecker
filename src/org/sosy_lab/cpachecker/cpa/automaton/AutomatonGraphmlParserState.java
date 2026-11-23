@@ -27,11 +27,11 @@ import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
-public class AutomatonGraphmlParserState {
+final class AutomatonGraphmlParserState {
 
   private static final String CLONED_FUNCTION_INFIX = "__cloned_function__";
 
-  protected static final Pattern CLONED_FUNCTION_NAME_PATTERN =
+  static final Pattern CLONED_FUNCTION_NAME_PATTERN =
       Pattern.compile("(.+)(" + CLONED_FUNCTION_INFIX + ")(\\d+)");
 
   /** The name of the witness automaton. */
@@ -149,11 +149,11 @@ public class AutomatonGraphmlParserState {
       GraphMLState current = waitlist.poll();
       int newDistance = distances.get(current) + 1;
       for (GraphMLTransition enteringTransition : pEnteringTransitions.get(current)) {
-        GraphMLState sourceState = enteringTransition.getSource();
+        GraphMLState sourceState = enteringTransition.source();
         Integer oldDistance = distances.get(sourceState);
         if (oldDistance == null || oldDistance > newDistance) {
-          distances.put(enteringTransition.getSource(), newDistance);
-          waitlist.offer(enteringTransition.getSource());
+          distances.put(enteringTransition.source(), newDistance);
+          waitlist.offer(enteringTransition.source());
         }
       }
     }
@@ -177,7 +177,7 @@ public class AutomatonGraphmlParserState {
    * @throws WitnessParseException if there is not exactly one entry state.
    * @return the initialized {@link AutomatonGraphmlParserState}.
    */
-  public static AutomatonGraphmlParserState initialize(
+  static AutomatonGraphmlParserState initialize(
       String pAutomatonName,
       WitnessType pWitnessType,
       Set<Property> pSpecificationTypes,
@@ -201,7 +201,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the name of the witness automaton.
    */
-  public String getAutomatonName() {
+  String getAutomatonName() {
     return automatonName;
   }
 
@@ -210,7 +210,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the type of the witness automaton.
    */
-  public WitnessType getWitnessType() {
+  WitnessType getWitnessType() {
     return witnessType;
   }
 
@@ -219,7 +219,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the specification types.
    */
-  protected ImmutableSet<Property> getSpecificationTypes() {
+  ImmutableSet<Property> getSpecificationTypes() {
     return specificationTypes;
   }
 
@@ -228,7 +228,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the entry state.
    */
-  public GraphMLState getEntryState() {
+  GraphMLState getEntryState() {
     return entryState;
   }
 
@@ -237,7 +237,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the states.
    */
-  public ImmutableSet<GraphMLState> getStates() {
+  ImmutableSet<GraphMLState> getStates() {
     return states;
   }
 
@@ -246,7 +246,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the transitions entering states, represented in the GraphML model.
    */
-  public ImmutableMultimap<GraphMLState, GraphMLTransition> getEnteringTransitions() {
+  ImmutableMultimap<GraphMLState, GraphMLTransition> getEnteringTransitions() {
     return enteringTransitions;
   }
 
@@ -255,7 +255,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the transitions leaving states, represented in the GraphML model.
    */
-  public ImmutableMultimap<GraphMLState, GraphMLTransition> getLeavingTransitions() {
+  ImmutableMultimap<GraphMLState, GraphMLTransition> getLeavingTransitions() {
     return leavingTransitions;
   }
 
@@ -264,7 +264,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the distance of the given state to the next violation state.
    */
-  public int getDistance(GraphMLState pState) {
+  int getDistance(GraphMLState pState) {
     Integer distance = distances.get(pState);
     if (distance == null) {
       return Integer.MAX_VALUE;
@@ -279,7 +279,7 @@ public class AutomatonGraphmlParserState {
    * @return the currently stored mapping from states to the conditions for stuttering at the
    *     corresponding states.
    */
-  public Map<GraphMLState, AutomatonBoolExpr> getStutterConditions() {
+  Map<GraphMLState, AutomatonBoolExpr> getStutterConditions() {
     return stutterConditions;
   }
 
@@ -288,7 +288,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the automaton variables by their names.
    */
-  public Map<String, AutomatonVariable> getAutomatonVariables() {
+  Map<String, AutomatonVariable> getAutomatonVariables() {
     return automatonVariables;
   }
 
@@ -319,8 +319,7 @@ public class AutomatonGraphmlParserState {
    * @return the call stack currently stored for the given thread and state (represented in the
    *     GraphML model).
    */
-  public Deque<String> getOrCreateStack(
-      GraphMLTransition.GraphMLThread pThread, GraphMLState pState) {
+  Deque<String> getOrCreateStack(GraphMLTransition.GraphMLThread pThread, GraphMLState pState) {
     Objects.requireNonNull(pState);
     Map<GraphMLState, Deque<String>> threadStacks = getOrCreateThreadStacks(pThread);
     Deque<String> stack = threadStacks.get(pState);
@@ -339,7 +338,7 @@ public class AutomatonGraphmlParserState {
    * @param pState the state, represented in the GraphML model.
    * @param pStack the call stack.
    */
-  public void putStack(
+  void putStack(
       GraphMLTransition.GraphMLThread pThread, GraphMLState pState, Deque<String> pStack) {
     Objects.requireNonNull(pStack);
     getOrCreateThreadStacks(pThread).put(pState, pStack);
@@ -350,7 +349,7 @@ public class AutomatonGraphmlParserState {
    *
    * @param pThread the thread identifier and name.
    */
-  public void releaseFunctions(GraphMLTransition.GraphMLThread pThread) {}
+  void releaseFunctions(GraphMLTransition.GraphMLThread pThread) {}
 
   /**
    * Gets the currently collected list of state transitions (in our automaton model) leaving the
@@ -360,7 +359,7 @@ public class AutomatonGraphmlParserState {
    * @return the currently collected list of state transitions (in our automaton model) leaving the
    *     given state (represented in the GraphML model).
    */
-  public List<AutomatonTransition> getStateTransitions(GraphMLState pGraphMLState) {
+  List<AutomatonTransition> getStateTransitions(GraphMLState pGraphMLState) {
     List<AutomatonTransition> result = stateTransitions.get(pGraphMLState);
     if (result == null) {
       result = new ArrayList<>(4);
@@ -375,7 +374,7 @@ public class AutomatonGraphmlParserState {
    * @return {@code true} if the entry state is connected to a violation state, {@code false}
    *     otherwise.
    */
-  public boolean isEntryConnectedToViolation() {
+  boolean isEntryConnectedToViolation() {
     return distances.get(getEntryState()) != null;
   }
 }

@@ -81,11 +81,10 @@ public class RankingRelation {
       final String pFunctionScope, final FormulaManagerView pFormulaManagerView) {
     Collection<BooleanFormula> filteredRankingRelationFormulae =
         rankingRelationFormulas.stream()
-            .filter(
-                rankF ->
-                    formulaManagerView.extractVariableNames(rankF).stream()
-                        .allMatch(
-                            name -> !name.contains("::") || name.startsWith(pFunctionScope + "::")))
+            .filter(rankF ->
+                formulaManagerView.extractVariableNames(rankF).stream()
+                    .allMatch(
+                        name -> !name.contains("::") || name.startsWith(pFunctionScope + "::")))
             .toList();
     if (filteredRankingRelationFormulae.isEmpty()) {
       return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
