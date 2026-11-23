@@ -64,7 +64,7 @@ public class AutomatonTransferRelation implements TransferRelation {
   private final TimerWrapper totalStrengthenTime;
   private final StatIntHist automatonSuccessors;
 
-  public AutomatonTransferRelation(
+  AutomatonTransferRelation(
       ControlAutomatonCPA pCpa,
       LogManager pLogger,
       MachineModel pMachineModel,

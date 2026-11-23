@@ -169,7 +169,7 @@ class GraphMLTransition {
     return entersLoopHead;
   }
 
-  public static GraphMLThread createThread(int pId, String pName) {
+  static GraphMLThread createThread(int pId, String pName) {
     return new GraphMLThread(pId, pName);
   }
 

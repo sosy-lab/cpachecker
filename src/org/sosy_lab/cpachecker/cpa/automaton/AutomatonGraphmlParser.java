@@ -1381,7 +1381,7 @@ public class AutomatonGraphmlParser {
    *
    * @param pThreadId the thread id to assign.
    */
-  protected static AutomatonAction getThreadIdAssignment(int pThreadId) {
+  static AutomatonAction getThreadIdAssignment(int pThreadId) {
     AutomatonIntExpr expr = new AutomatonIntExpr.Constant(pThreadId);
     return new AutomatonAction.Assignment(THREAD_ID_VAR_NAME, expr);
   }
@@ -2276,7 +2276,7 @@ public class AutomatonGraphmlParser {
   }
 
   @FunctionalInterface
-  public interface InputHandler<T, E extends Throwable> {
+  interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;
   }

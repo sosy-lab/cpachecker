@@ -69,19 +69,19 @@ class GraphMLState {
     return explicitInvariantScope;
   }
 
-  public boolean isEntryState() {
+  boolean isEntryState() {
     return flags.contains(NodeFlag.ISENTRY);
   }
 
-  public boolean isSinkState() {
+  boolean isSinkState() {
     return flags.contains(NodeFlag.ISSINKNODE);
   }
 
-  public boolean isViolationState() {
+  boolean isViolationState() {
     return flags.contains(NodeFlag.ISVIOLATION);
   }
 
-  public boolean isCycleHead() {
+  boolean isCycleHead() {
     return flags.contains(NodeFlag.ISCYCLEHEAD);
   }
 }

@@ -184,13 +184,13 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * followed. We therefore store the negated distance, just like {@link AutomatonGraphmlParser}
    * does.
    */
-  protected AutomatonAction distanceToViolationAction(int pDistanceToViolation) {
+  AutomatonAction distanceToViolationAction(int pDistanceToViolation) {
     return new AutomatonAction.Assignment(
         AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
         new AutomatonIntExpr.Constant(-pDistanceToViolation));
   }
 
-  protected AutomatonTransition.Builder distanceToViolation(
+  AutomatonTransition.Builder distanceToViolation(
       AutomatonTransition.Builder pBuilder, int pDistance) {
     return pBuilder.withActions(ImmutableList.of(distanceToViolationAction(pDistance)));
   }
@@ -206,7 +206,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * @param transitions of the automaton that we extended by transition for given waypoint
    * @param automatonStates that we extended by the target state
    */
-  protected void handleTarget(
+  void handleTarget(
       String nextStateId,
       Integer followLine,
       OptionalInt followColumn,
@@ -266,7 +266,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * @param pDistanceToViolation the distance to the violation
    * @param transitions of the automaton that we extended by transition for given waypoint
    */
-  protected void handleIntermediateTarget(
+  void handleIntermediateTarget(
       String nextStateId,
       Integer followLine,
       OptionalInt followColumn,
@@ -314,7 +314,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * @throws InterruptedException if the function call is interrupted
    * @throws WitnessParseException if the constraint cannot be parsed
    */
-  protected void handleAssumption(
+  void handleAssumption(
       String nextStateId,
       ASTElement enterElement,
       int followLine,
@@ -437,7 +437,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * @param pBranchToFollow which branch to follow, if true the if branch is followed
    * @param transitions of the automaton that we extended by transition for given waypoint
    */
-  protected void handleFollowWaypointAtStatement(
+  void handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
       String nextStateId,
       OptionalInt followColumn,
@@ -583,7 +583,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * @param pDistanceToViolation the distance to the violation
    * @throws WitnessParseException if no call matches the location of the waypoint
    */
-  protected void handleFunctionEnter(
+  void handleFunctionEnter(
       String nextStateId,
       Integer followLine,
       OptionalInt followColumn,
@@ -642,7 +642,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
    * @param startLineToCFAEdge a mapping from the start line to the CFA edge
    * @throws InterruptedException if the function call is interrupted
    */
-  protected void handleFunctionReturn(
+  void handleFunctionReturn(
       String nextStateId,
       Integer followLine,
       OptionalInt followColumn,
@@ -827,7 +827,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     return segmentizedEntries;
   }
 
-  protected ViolationSequenceEntry getViolationSequence(List<AbstractEntry> pEntries)
+  ViolationSequenceEntry getViolationSequence(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
     if (pEntries.size() != 1) {
       throw new InvalidYAMLWitnessException(
@@ -840,7 +840,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
   // Automaton construction
   // ===========================================================================
 
-  protected void handleMultiTargetWaypoints(
+  void handleMultiTargetWaypoints(
       List<WaypointRecord> pWaypointRecords,
       String nextStateId,
       String currentStateId,
@@ -1153,7 +1153,7 @@ public class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserC
     return automaton;
   }
 
-  protected Integer handleWaypoints(
+  Integer handleWaypoints(
       PartitionedWaypoints pEntry,
       WaypointRecord follow,
       ImmutableList.Builder<AutomatonTransition> transitions,

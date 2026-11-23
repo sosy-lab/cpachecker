@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
@@ -72,7 +73,7 @@ public class AutomatonInternalState {
 
   private final boolean isCycleStart;
 
-  public AutomatonInternalState(
+  AutomatonInternalState(
       String pName,
       List<AutomatonTransition> pTransitions,
       boolean pIsTarget,
@@ -85,7 +86,7 @@ public class AutomatonInternalState {
     isCycleStart = pIsCycleStart;
   }
 
-  public AutomatonInternalState(
+  AutomatonInternalState(
       String pName,
       List<AutomatonTransition> pTransitions,
       boolean pIsTarget,
@@ -93,6 +94,7 @@ public class AutomatonInternalState {
     this(pName, pTransitions, pIsTarget, pAllTransitions, false);
   }
 
+  @VisibleForTesting
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
     this(pName, pTransitions, false, false, false);
   }

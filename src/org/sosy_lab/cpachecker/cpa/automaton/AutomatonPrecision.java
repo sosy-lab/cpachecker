@@ -15,7 +15,7 @@ public class AutomatonPrecision implements AdjustablePrecision {
   private final Automaton automaton;
   private boolean enabled;
 
-  public AutomatonPrecision(Automaton pAutomaton) {
+  AutomatonPrecision(Automaton pAutomaton) {
     automaton = pAutomaton;
     enabled = true;
   }

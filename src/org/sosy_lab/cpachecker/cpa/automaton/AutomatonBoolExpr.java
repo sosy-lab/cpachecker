@@ -1576,7 +1576,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private final java.util.function.Predicate<FileLocation> matchDescriptor;
 
-    public MatchLocationDescriptor(
+    MatchLocationDescriptor(
         FunctionEntryNode pMainEntry, java.util.function.Predicate<FileLocation> pDescriptor) {
       Preconditions.checkNotNull(pDescriptor);
 
@@ -1589,7 +1589,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       return eval(pArgs.getCfaEdge()) ? CONST_TRUE : CONST_FALSE;
     }
 
-    protected boolean eval(CFAEdge edge) {
+    boolean eval(CFAEdge edge) {
       return AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(edge, mainEntry).stream()
           .anyMatch(matchDescriptor);
     }
