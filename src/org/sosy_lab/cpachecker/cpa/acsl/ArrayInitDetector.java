@@ -34,8 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * Detect if a loop follows a certain pattern that makes it possible to infer an ACSL invariant. For
- * now the goal is to detect only one pattern: array initialization with a constant value.
+ * Detect the pattern of an array initialization that makes it possible to infer an ACSL invariant.
  */
 class ArrayInitDetector implements AcslLoopInvariantDetector {
 
@@ -192,6 +191,11 @@ class ArrayInitDetector implements AcslLoopInvariantDetector {
                 store.orElseThrow().value()));
       }
     }
+  }
+
+  @Override
+  public Class<? extends AcslInvariantProvider> getInvariantClass() {
+    return ArrayInitialization.class;
   }
 
   private boolean indexMatchesEveryWhere(ArrayStore pArrayStore, ScalarUpdate pScalarUpdate) {
