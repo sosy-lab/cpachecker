@@ -66,6 +66,7 @@ auto-update-dependencies:
   script:
     - build/auto-update-dependencies.sh
   environment: repo/auto-update-dependencies
+  resource_group: repo/auto-update-dependencies
   variables:
     PUSH: "$[[ inputs.git_push_remote ]]"
   rules:
