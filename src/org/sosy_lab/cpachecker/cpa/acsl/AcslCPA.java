@@ -34,19 +34,23 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 
   private final CFA cfa;
   private final LogManager logger;
+  private final Configuration config;
   private final Solver solver;
   private FormulaToAcslConverter formulaConverter;
   private FormulaManagerView fmgr;
+  private TransferRelation transfer;
 
   private AcslCPA(
       CFA pCFA, LogManager pLogManager, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     super("join", "join", null);
     this.cfa = pCFA;
+    this.config = pConfig;
     this.logger = pLogManager;
     solver = Solver.create(pConfig, this.logger, pShutdownNotifier);
     this.fmgr = solver.getFormulaManager();
     formulaConverter = new FormulaToAcslConverter(fmgr, cfa.getMachineModel());
+    transfer = new AcslTransferRelation(cfa, logger, formulaConverter, fmgr, config);
   }
 
   public static CPAFactory factory() {
@@ -55,7 +59,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new AcslTransferRelation(cfa, logger, formulaConverter, fmgr);
+    return transfer;
   }
 
   @Override

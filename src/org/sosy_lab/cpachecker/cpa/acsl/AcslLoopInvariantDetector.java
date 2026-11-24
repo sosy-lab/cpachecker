@@ -16,4 +16,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 public interface AcslLoopInvariantDetector {
   Optional<? extends AcslInvariantProvider> detect(
       CFAEdge pEdge, Optional<LoopStructure> pLoopStructure, PredicateAbstractState pState);
+
+  Class<? extends AcslInvariantProvider> getInvariantClass();
 }

@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -44,10 +46,12 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       CFA pCFA,
       LogManager pLogManager,
       FormulaToAcslConverter pFormulaConverter,
-      FormulaManagerView pFmgr) {
+      FormulaManagerView pFmgr,
+      Configuration config)
+      throws InvalidConfigurationException {
     this.cfa = pCFA;
     this.logger = pLogManager;
-    this.detectorManager = new AcslLoopInvariantDetectorManager(logger, pFormulaConverter);
+    this.detectorManager = new AcslLoopInvariantDetectorManager(logger, pFormulaConverter, config);
     this.formulaConverter = pFormulaConverter;
     this.fmgr = pFmgr;
     if (cfa.getLoopStructure().isEmpty()) {
@@ -92,39 +96,28 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
     for (AbstractState otherState : otherStates) {
 
       if (otherState instanceof PredicateAbstractState predicateState) {
+        ImmutableList<AcslInvariantProvider> detected =
+            detectorManager.detect(state, cfaEdge, cfa.getLoopStructure(), predicateState);
 
-        if (state instanceof AcslState acslState
-            && cfaEdge != null
-            && !acslState
-                .getInvariantsForNode(cfaEdge.getSuccessor(), ArrayInitialization.class)
-                .isEmpty()) {
-          logger.log(
-              logLevel,
-              "Skipping detection of array initialization, as one already exists for the node.");
-        } else {
-          ImmutableList<AcslInvariantProvider> detected =
-              detectorManager.detect(cfaEdge, cfa.getLoopStructure(), predicateState);
+        for (AcslInvariantProvider invariant : detected) {
+          logger.log(Level.INFO, "SUCCESS: Detected ACSL invariant: " + invariant);
 
-          for (AcslInvariantProvider invariant : detected) {
-            logger.log(Level.INFO, "SUCCESS: Detected ACSL invariant: " + invariant);
+          CProgramScope scope = new CProgramScope(cfa, logger);
+          AcslPredicate inv = invariant.toInvariant(scope, FileLocation.DUMMY, logger);
+          logger.log(Level.INFO, "Generated ACSL invariant: " + inv);
 
-            CProgramScope scope = new CProgramScope(cfa, logger);
-            AcslPredicate inv = invariant.toInvariant(scope, FileLocation.DUMMY, logger);
-            logger.log(Level.INFO, "Generated ACSL invariant: " + inv);
-
-            if (updatedState instanceof AcslState acslState) {
-              ImmutableList<CFANode> exitNodes =
-                  getExitNodes(cfa.getLoopStructure().orElseThrow(), invariant.loopHead());
-              if (exitNodes.isEmpty()) {
-                updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
-                logger.log(
-                    Level.WARNING,
-                    "Cound not determine the node(s) after the loop, storing invariant for loop"
-                        + " head instead!");
-              } else {
-                // TODO clean this up if it works
-                updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
-              }
+          if (updatedState instanceof AcslState acslState) {
+            ImmutableList<CFANode> exitNodes =
+                getExitNodes(cfa.getLoopStructure().orElseThrow(), invariant.loopHead());
+            if (exitNodes.isEmpty()) {
+              updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
+              logger.log(
+                  Level.WARNING,
+                  "Cound not determine the node(s) after the loop, storing invariant for loop"
+                      + " head instead!");
+            } else {
+              // TODO clean this up if it works
+              updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
             }
           }
         }
