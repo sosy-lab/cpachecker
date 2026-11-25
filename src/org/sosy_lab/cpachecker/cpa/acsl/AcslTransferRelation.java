@@ -16,9 +16,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -29,16 +26,12 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-@SuppressWarnings("unused")
 public class AcslTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFA cfa;
   private final LogManager logger;
   private final AcslLoopInvariantDetectorManager detectorManager;
-  private final FormulaToAcslConverter formulaConverter;
-  private final FormulaManagerView fmgr;
   private final boolean hasNestedLoop;
   private final Level logLevel = Level.FINER; // TODO change this to INFO while debugging
 
@@ -46,14 +39,11 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
       CFA pCFA,
       LogManager pLogManager,
       FormulaToAcslConverter pFormulaConverter,
-      FormulaManagerView pFmgr,
       Configuration config)
       throws InvalidConfigurationException {
     this.cfa = pCFA;
     this.logger = pLogManager;
     this.detectorManager = new AcslLoopInvariantDetectorManager(logger, pFormulaConverter, config);
-    this.formulaConverter = pFormulaConverter;
-    this.fmgr = pFmgr;
     if (cfa.getLoopStructure().isEmpty()) {
       this.logger.log(
           Level.WARNING,
@@ -101,24 +91,8 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
 
         for (AcslInvariantProvider invariant : detected) {
           logger.log(Level.INFO, "SUCCESS: Detected ACSL invariant: " + invariant);
-
-          CProgramScope scope = new CProgramScope(cfa, logger);
-          AcslPredicate inv = invariant.toInvariant(scope, FileLocation.DUMMY, logger);
-          logger.log(Level.INFO, "Generated ACSL invariant: " + inv);
-
           if (updatedState instanceof AcslState acslState) {
-            ImmutableList<CFANode> exitNodes =
-                getExitNodes(cfa.getLoopStructure().orElseThrow(), invariant.loopHead());
-            if (exitNodes.isEmpty()) {
-              updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
-              logger.log(
-                  Level.WARNING,
-                  "Cound not determine the node(s) after the loop, storing invariant for loop"
-                      + " head instead!");
-            } else {
-              // TODO clean this up if it works
-              updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
-            }
+            updatedState = acslState.withAddedInvariant(invariant.loopHead(), invariant);
           }
         }
       }
@@ -146,6 +120,7 @@ public class AcslTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
+  @SuppressWarnings("unused") // TODO delete when you are sure it is no longer needed
   private static ImmutableList<CFANode> getExitNodes(
       LoopStructure loopStructure, CFANode loopHead) {
     ImmutableList<Loop> loops = ImmutableList.copyOf(loopStructure.getLoopsForLoopHead(loopHead));

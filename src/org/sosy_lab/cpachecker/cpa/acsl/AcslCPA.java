@@ -50,7 +50,7 @@ public class AcslCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     solver = Solver.create(pConfig, this.logger, pShutdownNotifier);
     this.fmgr = solver.getFormulaManager();
     formulaConverter = new FormulaToAcslConverter(fmgr, cfa.getMachineModel());
-    transfer = new AcslTransferRelation(cfa, logger, formulaConverter, fmgr, config);
+    transfer = new AcslTransferRelation(cfa, logger, formulaConverter, config);
   }
 
   public static CPAFactory factory() {
