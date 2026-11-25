@@ -1,0 +1,22 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+; An annotation compares an array with a constant array
+(set-logic QF_ALIA)
+(define-proc main () () ((a (Array Int Int)) (i Int))
+  (sequence
+    (assign (a ((as const (Array Int Int)) 0)))
+    (havoc i)
+    (while (< i 10)
+      (sequence
+        (assign (a (store a i 0)))
+        (assign (i (+ i 1)))))
+    (! (sequence) :tag check)))
+(annotate-tag check :check-true (= a ((as const (Array Int Int)) 0)))
+(verify-call main ())
+(get-witness)

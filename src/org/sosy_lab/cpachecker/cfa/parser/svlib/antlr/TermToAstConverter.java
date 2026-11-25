@@ -577,11 +577,16 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         case "=" -> {
           // Equality is only handled here if the arguments are arrays, other types are resolved
           // in their respective theory.
-          if (pArguments.size() == 2
-              && pArguments.getFirst().getExpressionType()
-                  instanceof SvLibSmtLibArrayType arrayType) {
+          // The type of a variable of an annotation is not known yet, see SvLibAnyType
+          Optional<SvLibSmtLibArrayType> arrayType =
+              FluentIterable.from(pArguments)
+                  .transform(SvLibTerm::getExpressionType)
+                  .filter(SvLibSmtLibArrayType.class)
+                  .first()
+                  .toJavaUtil();
+          if (pArguments.size() == 2 && arrayType.isPresent()) {
             return SmtLibTheoryDeclarations.arrayEquality(
-                arrayType.getKeysType(), arrayType.getValuesType());
+                arrayType.orElseThrow().getKeysType(), arrayType.orElseThrow().getValuesType());
           }
         }
       }
