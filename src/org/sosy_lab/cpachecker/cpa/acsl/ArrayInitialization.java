@@ -29,9 +29,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 
 public record ArrayInitialization(
@@ -44,14 +46,13 @@ public record ArrayInitialization(
     AcslTerm value)
     implements AcslInvariantProvider {
 
+  /**
+   * Builds and returns ACSL invariant from record: \forall signed int j; (lowerbound <= j && j <
+   * index) ==> array[j] == value;
+   */
   @SuppressWarnings("unused")
   @Override
   public AcslPredicate toInvariant(CProgramScope pScope, FileLocation pLoc, LogManager pLogger) {
-    // I think I need the program scope to get the C objects for the array
-
-    // Clean SSA Indices with this, if needed:
-    // TODO decide if I want to remove SSA index from upper and lower bounds or if that is needed
-    // info...
     AcslRemoveSsaIndexVisitor ssaRemover = new AcslRemoveSsaIndexVisitor();
 
     CVariableDeclaration ci =
@@ -77,12 +78,16 @@ public record ArrayInitialization(
           "Could not create ACSL invariant, because array does not exist in CProgram Scope.");
       return null;
     }
+    CType arrayElementType = ((CArrayType) arrayDecl.getType()).getType();
 
     AcslCExpression arrayAtIndex =
         new AcslCExpression(
             pLoc,
             new CArraySubscriptExpression(
-                pLoc, basicInt(), new CIdExpression(pLoc, arrayDecl), new CIdExpression(pLoc, ci)));
+                pLoc,
+                arrayElementType,
+                new CIdExpression(pLoc, arrayDecl),
+                new CIdExpression(pLoc, ci)));
 
     AcslBinaryTermExpressionOperator upperBoundOp =
         upperboundInclusive
