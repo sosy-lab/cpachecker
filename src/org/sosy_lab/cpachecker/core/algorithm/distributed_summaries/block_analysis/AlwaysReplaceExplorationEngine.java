@@ -108,6 +108,14 @@ final class AlwaysReplaceExplorationEngine implements DssExplorationEngine {
               violationConditions.states(),
               precisionOfAnalysis,
               true);
+      if (!topExploration.violationConditions().isEmpty()) {
+        // The runs from the received preconditions found no violation, so their summaries are
+        // complete for these preconditions and are published as well. Otherwise, a block that is
+        // its own predecessor (a loop) never receives its own summary, explores speculatively in
+        // every round, and extends its violation conditions by one more loop iteration forever.
+        return AnalysisResult.ofSummariesAndSpeculativeViolations(
+            merge(rounds).summaries(), topExploration.violationConditions());
+      }
       rounds.add(topExploration);
     }
     return merge(rounds);

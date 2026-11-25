@@ -289,17 +289,28 @@ public final class DssBlockAnalysis {
     return messagesFor(engine.explore(pViolationConditionsChanged));
   }
 
-  /** Publishes all violations of a round, or its postcondition if it contains no violations. */
+  /**
+   * Publishes all violations of a round together with the postcondition it may carry along (see
+   * {@link AnalysisResult#ofSummariesAndSpeculativeViolations}), or only its postcondition if it
+   * contains no violations.
+   */
   private Collection<DssMessage> messagesFor(AnalysisResult pRound)
       throws CPAException, InterruptedException, SolverException {
     if (!pRound.violationConditions().isEmpty()) {
+      ImmutableList.Builder<DssMessage> messages = ImmutableList.builder();
+      if (!pRound.summaries().isEmpty()) {
+        // the postcondition goes first, so that a block that is its own successor stores it before
+        // it explores the violation conditions again
+        messages.addAll(reportPostconditions(combineSummaries(pRound.summaries())));
+      }
       try {
         workerStats.getViolationConditionTimer().start();
         workerStats.getViolationConditionCounter().add(pRound.violationConditions().size());
-        return reportViolationConditions(pRound.violationConditions());
+        messages.addAll(reportViolationConditions(pRound.violationConditions()));
       } finally {
         workerStats.getViolationConditionTimer().stop();
       }
+      return messages.build();
     } else if (pRound.blockEndUnreachable()) {
       return reportUnreachableBlockEnd();
     } else {

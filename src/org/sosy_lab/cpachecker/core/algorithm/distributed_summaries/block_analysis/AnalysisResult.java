@@ -18,7 +18,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 /**
  * What one round of exploring a block produced, before it is turned into messages.
  *
- * @param summaries the postconditions to publish to successor blocks
+ * @param summaries the postconditions to publish to successor blocks. They accompany violation
+ *     conditions only if those come from a speculative exploration, see {@link
+ *     #ofSummariesAndSpeculativeViolations}.
  * @param violationConditions the violating paths to publish to predecessor blocks
  * @param blockEndUnreachable whether the block end turned out to be unreachable, i.e., the
  *     postcondition is {@code false}. This is tracked explicitly instead of being encoded as a top
@@ -32,8 +34,8 @@ record AnalysisResult(
 
   AnalysisResult {
     checkArgument(
-        violationConditions.isEmpty() || (summaries.isEmpty() && !blockEndUnreachable),
-        "A round with violations must not publish a postcondition");
+        violationConditions.isEmpty() || !blockEndUnreachable,
+        "A round with violations must not report an unreachable block end");
     checkArgument(
         !blockEndUnreachable || summaries.isEmpty(),
         "An unreachable block end must not have reachable summaries");
@@ -69,6 +71,16 @@ record AnalysisResult(
   /** A round whose block end is unreachable and reports false as its postcondition. */
   static AnalysisResult unreachableBlockEnd() {
     return new AnalysisResult(ImmutableSet.of(), ImmutableSet.of(), true);
+  }
+
+  /**
+   * A round whose explorations from the received preconditions found no violation, while the
+   * speculative exploration from the unconstrained start state did. The summaries are complete for
+   * the received preconditions, so they are published alongside the violation conditions.
+   */
+  static AnalysisResult ofSummariesAndSpeculativeViolations(
+      Collection<StateAndPrecision> pSummaries, Set<ArgPathAndCondition> pViolationConditions) {
+    return new AnalysisResult(pSummaries, pViolationConditions, false);
   }
 
   /** A round with errors reports its violation conditions instead of a forward summary. */

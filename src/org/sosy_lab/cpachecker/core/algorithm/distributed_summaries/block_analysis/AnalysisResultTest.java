@@ -25,14 +25,23 @@ public class AnalysisResultTest {
   }
 
   @Test
-  public void mixedResultsAreRejected() {
+  public void violationsWithUnreachableBlockEndAreRejected() {
     ImmutableSet<ArgPathAndCondition> violations = ImmutableSet.of(mock(ArgPathAndCondition.class));
     assertThrows(
         IllegalArgumentException.class,
-        () -> new AnalysisResult(ImmutableSet.of(summary()), violations, false));
-    assertThrows(
-        IllegalArgumentException.class,
         () -> new AnalysisResult(ImmutableSet.of(), violations, true));
+  }
+
+  @Test
+  public void speculativeViolationsKeepSummaries() {
+    StateAndPrecision summary = summary();
+    ArgPathAndCondition violation = mock(ArgPathAndCondition.class);
+    AnalysisResult result =
+        AnalysisResult.ofSummariesAndSpeculativeViolations(
+            ImmutableSet.of(summary), ImmutableSet.of(violation));
+    assertThat(result.summaries()).containsExactly(summary);
+    assertThat(result.violationConditions()).containsExactly(violation);
+    assertThat(result.blockEndUnreachable()).isFalse();
   }
 
   @Test
