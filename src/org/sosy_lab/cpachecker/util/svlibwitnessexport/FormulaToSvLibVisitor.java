@@ -672,6 +672,16 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
                   ImmutableList.of(rightTerm, modulusTerm),
                   FileLocation.DUMMY)),
           FileLocation.DUMMY);
+    } else if (pFunctionDeclaration.getKind() == FunctionDeclarationKind.CONST
+        && formulaType instanceof SvLibSmtLibArrayType arrayType) {
+      // The array that maps every index to the argument
+      return new SvLibSymbolApplicationTerm(
+          new SvLibIdTerm(
+              SmtLibTheoryDeclarations.arrayConst(
+                  arrayType.getKeysType(), arrayType.getValuesType()),
+              FileLocation.DUMMY),
+          args,
+          FileLocation.DUMMY);
     } else if (pFunctionDeclaration.getKind() == FunctionDeclarationKind.BV_MUL
         && getFactorThatIsNegated(args).isPresent()) {
       // A multiplication with -1, which is how the solvers build the negation of a bitvector, is
