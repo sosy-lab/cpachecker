@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -71,6 +72,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final ImmutableSet<Loop> allLoops;
   private final ImmutableMap<CFANode, BooleanFormula> supportingInvariants;
   private final NestedLoopSummarizer nestedLoopSummarizer;
+  private final ImmutableSet<String> globalVariables;
   protected final LogManager logger;
 
   @Option(
@@ -143,6 +145,10 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     allLoops = pAllLoops;
     supportingInvariants = pSupportingInvariants;
     nestedLoopSummarizer = new NestedLoopSummarizer(pFmgr, pBfmgr, pCFA);
+    globalVariables =
+        CFAUtils.getGlobalVariableDeclarations(pCFA).stream()
+            .map(AVariableDeclaration::getQualifiedName)
+            .collect(ImmutableSet.toImmutableSet());
   }
 
   @Override
@@ -703,14 +709,18 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
    * that decreases or alternates some variable local for that function. The interpolant could
    * express this property, but the actual state at the loop head in the loop does not change.
    * Therefore, there needs to be at least one variable that is local for the function, where the
-   * loop is, such that we check that some variable actually decreases/increases.
+   * loop is, or global, such that we check that some variable actually decreases/increases.
    */
   private boolean containsOnlyVariablesOutOfScope(
       BooleanFormula pInvariant, CallstackState pCallstackState) {
-    return CFAUtils.filterVariablesOfFunction(
-            ImmutableSortedSet.copyOf(fmgr.extractVariables(pInvariant).keySet()),
-            pCallstackState.getCurrentFunction())
-        .isEmpty();
+    ImmutableSortedSet<String> variables =
+        ImmutableSortedSet.copyOf(fmgr.extractVariables(pInvariant).keySet());
+    return CFAUtils.filterVariablesOfFunction(variables, pCallstackState.getCurrentFunction())
+            .isEmpty()
+        && variables.stream()
+            .noneMatch(
+                variable ->
+                    globalVariables.contains(FormulaManagerView.parseName(variable).getFirst()));
   }
 
   /**
