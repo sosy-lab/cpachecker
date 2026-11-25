@@ -62,19 +62,12 @@ public class AcslLoopInvariantDetectorManager {
       Optional<LoopStructure> pLoopStructure,
       PredicateAbstractState pState) {
 
-    boolean checkExisting = false;
-    AcslState acslCurrState = null;
-
-    if (pCurrState instanceof AcslState acslState && pEdge != null) {
-      acslCurrState = acslState;
-      checkExisting = true;
-    }
-
     ImmutableList.Builder<AcslInvariantProvider> builder = ImmutableList.builder();
 
     for (AcslLoopInvariantDetector d : detectors) {
-      if (checkExisting
-          && !acslCurrState
+      if (pCurrState instanceof AcslState acslState
+          && pEdge != null
+          && !acslState
               .getInvariantsForNode(pEdge.getSuccessor(), d.getInvariantClass())
               .isEmpty()) {
         logger.log(
