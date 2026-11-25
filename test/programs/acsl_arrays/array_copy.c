@@ -8,22 +8,22 @@
 
 extern unsigned __VERIFIER_nondet_int();
 extern void __VERIFIER_assume(int);
-extern void __assert_fail(const char *assertion, const char *file,
-                          unsigned int line, const char *function);
 #define SIZE 10
 
 int main() {
     int s[SIZE] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     int d[SIZE];
 
+    int random = __VERIFIER_nondet_int();
+    __VERIFIER_assume(random >= 0);
+    __VERIFIER_assume(random < SIZE);
+
     for (int i = 0; i < SIZE; i++) {
         d[i] = s[i];
     }
 
-    int random = __VERIFIER_nondet_int();
-    __VERIFIER_assume(0 <= random && random < SIZE);
-
     if (d[random] != s[random]) {
-        __assert_fail("0", "array_copy.c", 27, "main");
+        ERROR: return 1;
     }
+    return 0;
 }
