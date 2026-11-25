@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -78,13 +77,12 @@ class ArrayInitDetector implements AcslLoopInvariantDetector {
     }
 
     BooleanFormula formula = predState.getPathFormula().getFormula();
-    SSAMap ssa = predState.getPathFormula().getSsa();
 
     logger.log(logLevel, "Path formula leading to loop head: " + formula);
 
     AcslPredicate acsl;
     try {
-      acsl = formulaConverter.formulaToAcslExpression(formula, ssa);
+      acsl = formulaConverter.formulaToAcslExpression(formula);
       logger.log(logLevel, "Formula in ACSL: " + acsl);
     } catch (Exception e) {
       logger.log(Level.WARNING, "Error converting formula to ACSL: " + e.getMessage());
@@ -303,11 +301,9 @@ class ArrayInitDetector implements AcslLoopInvariantDetector {
     }
 
     BooleanFormula formula = predStateAtLoopEntry.getPathFormula().getFormula();
-    SSAMap ssa = predStateAtLoopEntry.getPathFormula().getSsa();
-
     AcslPredicate acsl;
     try {
-      acsl = formulaConverter.formulaToAcslExpression(formula, ssa);
+      acsl = formulaConverter.formulaToAcslExpression(formula);
       logger.log(logLevel, "Formula in ACSL: " + acsl);
     } catch (Exception e) {
       logger.log(Level.WARNING, "Error converting formula to ACSL: " + e.getMessage());

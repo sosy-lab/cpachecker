@@ -29,11 +29,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** Detect the pattern of an array copy that makes it possible to infer an ACSL invariant. */
-@SuppressWarnings("unused")
 class ArrayCopyDetector implements AcslLoopInvariantDetector {
 
   private final LogManager logger;
@@ -75,13 +73,12 @@ class ArrayCopyDetector implements AcslLoopInvariantDetector {
     }
 
     BooleanFormula formula = pState.getPathFormula().getFormula();
-    SSAMap ssa = pState.getPathFormula().getSsa();
 
     logger.log(logLevel, "Path formula leading to loop head: " + formula);
 
     AcslPredicate acsl;
     try {
-      acsl = formulaConverter.formulaToAcslExpression(formula, ssa);
+      acsl = formulaConverter.formulaToAcslExpression(formula);
       logger.log(logLevel, "Formula in ACSL: " + acsl);
     } catch (Exception e) {
       logger.log(Level.WARNING, "Error converting formula to ACSL: " + e.getMessage());
@@ -144,7 +141,6 @@ class ArrayCopyDetector implements AcslLoopInvariantDetector {
       }
 
       // try to extract the bounds of the initialization we found
-      AcslPredicate condition = loopCondPredicate.orElseThrow();
       AcslIdTerm index = store.orElseThrow().index();
       Optional<AcslTerm> extractedLower = extractLowerBoundFromLoopEntryPred(index);
       if (extractedLower.isEmpty()) {
@@ -258,11 +254,9 @@ class ArrayCopyDetector implements AcslLoopInvariantDetector {
     }
 
     BooleanFormula formula = predStateAtLoopEntry.getPathFormula().getFormula();
-    SSAMap ssa = predStateAtLoopEntry.getPathFormula().getSsa();
-
     AcslPredicate acsl;
     try {
-      acsl = formulaConverter.formulaToAcslExpression(formula, ssa);
+      acsl = formulaConverter.formulaToAcslExpression(formula);
       logger.log(logLevel, "Formula in ACSL: " + acsl);
     } catch (Exception e) {
       logger.log(Level.WARNING, "Error converting formula to ACSL: " + e.getMessage());
