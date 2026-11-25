@@ -38,6 +38,10 @@ public class DistributedSummarySynthesisTest {
   private static final String PROGRAM = "doc/examples/example.c";
   private static final String PROGRAM_UNSAFE_CYCLE =
       "test/programs/simple/block_analysis/inlined_mutex_cycle_unsafe.c";
+  private static final String PROGRAM_LOOP_VIOLATION_BEFORE_SUMMARY =
+      "test/programs/simple/block_analysis/loop_violation_before_summary_safe.c";
+  private static final String PROGRAM_SPECULATION_REACHES_ROOT =
+      "test/programs/simple/block_analysis/speculation_reaches_root_unsafe.c";
   private static final String BLOCKS_JSON_PATH = "output/block_analysis/blocks.json";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -91,5 +95,33 @@ public class DistributedSummarySynthesisTest {
             .build();
 
     IntegrationTestRunner.run(config, PROGRAM_UNSAFE_CYCLE).assertIsUnsafe();
+  }
+
+  private Configuration dssConfiguration() throws Exception {
+    return TestUtils.configurationForTest()
+        .loadFromFile(CONFIGURATION_FILE_DSS)
+        .setOption("analysis.machineModel", MachineModel.LINUX64.name())
+        .setOption("specification", SPECIFICATION_REACHABILITY)
+        // fail instead of hanging if the analysis stops converging
+        .setOption("limits.time.wall", "60s")
+        .build();
+  }
+
+  /**
+   * A loop block that explores speculatively because it has not received its own summary yet must
+   * still publish the summary of its real preconditions. Otherwise it never stops extending its
+   * violation condition around the loop.
+   */
+  @Test
+  public void loopPublishesSummaryDespiteSpeculativeViolation() throws Exception {
+    IntegrationTestRunner.run(dssConfiguration(), PROGRAM_LOOP_VIOLATION_BEFORE_SUMMARY)
+        .assertIsSafe();
+  }
+
+  /** The speculative exploration is what carries a violation condition back to the root. */
+  @Test
+  public void speculationPropagatesViolationToRoot() throws Exception {
+    IntegrationTestRunner.run(dssConfiguration(), PROGRAM_SPECULATION_REACHES_ROOT)
+        .assertIsUnsafe();
   }
 }
