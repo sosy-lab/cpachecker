@@ -1,0 +1,19 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+; A logic with reals but without integers, where a numeral is a real
+(set-logic QF_LRA)
+(define-proc main () () ((x Real) (y Real))
+  (sequence
+    (havoc x)
+    (assume (and (<= 0 x) (<= x 1.0)))
+    (assign (y (- (/ x 2))))
+    (! (sequence) :tag check)))
+(annotate-tag check :check-true (< y 0))
+(verify-call main ())
+(get-witness)
