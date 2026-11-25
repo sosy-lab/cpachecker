@@ -59,6 +59,14 @@ public final class SmtLibLogic implements Serializable {
           Theory.LINEAR_INTEGER_REAL_ARITHMETIC,
           Theory.NON_LINEAR_INTEGER_REAL_ARITHMETIC);
 
+  private static final ImmutableSet<Theory> REAL_ARITHMETIC =
+      Sets.immutableEnumSet(
+          Theory.REAL_DIFFERENCE_LOGIC,
+          Theory.LINEAR_REAL_ARITHMETIC,
+          Theory.NON_LINEAR_REAL_ARITHMETIC,
+          Theory.LINEAR_INTEGER_REAL_ARITHMETIC,
+          Theory.NON_LINEAR_INTEGER_REAL_ARITHMETIC);
+
   private final String name;
   private final ImmutableSet<Theory> theories;
 
@@ -92,6 +100,15 @@ public final class SmtLibLogic implements Serializable {
 
   public boolean containsIntegerArithmetic() {
     return !Sets.intersection(theories, INTEGER_ARITHMETIC).isEmpty();
+  }
+
+  public boolean containsRealArithmetic() {
+    return !Sets.intersection(theories, REAL_ARITHMETIC).isEmpty();
+  }
+
+  /** Is a numeral a real, as in a logic with reals but without integers? */
+  public boolean hasRealNumerals() {
+    return containsRealArithmetic() && !containsIntegerArithmetic();
   }
 
   public boolean containsBitvectorOperations() {

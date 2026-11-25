@@ -410,7 +410,10 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "+" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.realAddition(pArgTypes.size()), FileLocation.DUMMY);
-        case "-" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MINUS, FileLocation.DUMMY);
+        case "-" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.realSubtraction(pArgTypes.size()), FileLocation.DUMMY);
+        case "/" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_DIVISION, FileLocation.DUMMY);
         case "*" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MULTIPLICATION, FileLocation.DUMMY);
         default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
