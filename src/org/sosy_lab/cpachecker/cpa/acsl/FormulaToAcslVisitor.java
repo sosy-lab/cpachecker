@@ -160,7 +160,7 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
             BigInteger v = i;
             if (type.isBitvectorType()) {
               // TODO this is a bad simplification, but afaik there is currently no way to really
-              // know if the betvector used to be singned or unsigned in C
+              // know if the bitvector used to be signed or unsigned in C
               int bitWidth = ((FormulaType.BitvectorType) type).getSize();
               v = toSigned(i, bitWidth);
             }
@@ -263,9 +263,16 @@ public class FormulaToAcslVisitor extends FormulaTransformationVisitor {
 
           case UF -> makeUninterpretedFunction(f, newArgs, functionDeclaration);
 
-          case SELECT ->
-              new AcslArraySubscriptTerm(
-                  DUMMY_LOC, getAcslType(f), getTerm(newArgs.getFirst()), getTerm(newArgs.get(1)));
+          case SELECT -> {
+            AcslTerm original = getTerm(newArgs.get(1));
+            AcslTerm simplified = simplifyArrayAddressCalculations(original);
+
+            if (simplified != original) {
+              yield simplified;
+            }
+            yield new AcslArraySubscriptTerm(
+                DUMMY_LOC, getAcslType(f), getTerm(newArgs.getFirst()), getTerm(newArgs.get(1)));
+          }
           case STORE ->
               new AcslBinaryTermPredicate(
                   DUMMY_LOC,
