@@ -403,14 +403,26 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
         case "/", "div" -> new SvLibIdTerm(SmtLibTheoryDeclarations.INT_DIV, FileLocation.DUMMY);
         default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
       };
-    } else if (pReturnType == SvLibSmtLibPredefinedType.REAL
-        && FluentIterable.from(pArgTypes)
-            .allMatch(type -> type.equals(SvLibSmtLibPredefinedType.REAL))) {
+    } else if (pReturnType == SvLibSmtLibPredefinedType.BOOL && isRealArithmetic(pArgTypes)) {
+      return switch (actualName) {
+        case "=" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_EQUALITY, FileLocation.DUMMY);
+        case "<" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_LESS_THAN, FileLocation.DUMMY);
+        case "<=" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_LESS_EQUAL_THAN, FileLocation.DUMMY);
+        case ">" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_GREATER_THAN, FileLocation.DUMMY);
+        case ">=" ->
+            new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_GREATER_EQUAL_THAN, FileLocation.DUMMY);
+        default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
+      };
+    } else if (pReturnType == SvLibSmtLibPredefinedType.REAL && isRealArithmetic(pArgTypes)) {
       return switch (actualName) {
         case "+" ->
             new SvLibIdTerm(
                 SmtLibTheoryDeclarations.realAddition(pArgTypes.size()), FileLocation.DUMMY);
-        case "-" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MINUS, FileLocation.DUMMY);
+        case "-" ->
+            new SvLibIdTerm(
+                SmtLibTheoryDeclarations.realSubtraction(pArgTypes.size()), FileLocation.DUMMY);
+        case "/" -> new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_DIVISION, FileLocation.DUMMY);
         case "*" ->
             new SvLibIdTerm(SmtLibTheoryDeclarations.REAL_MULTIPLICATION, FileLocation.DUMMY);
         default -> uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
@@ -569,6 +581,18 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
     return uninterpretedFunctionOrUnsupported(pName, pKind, pReturnType, pArgTypes);
   }
 
+  /**
+   * Whether the arguments are of the theory of reals, where the solvers also take integers, which
+   * {@link #withIntegersAsReals} converts.
+   */
+  private static boolean isRealArithmetic(List<@NonNull SvLibSmtLibType> pArgTypes) {
+    return pArgTypes.contains(SvLibSmtLibPredefinedType.REAL)
+        && FluentIterable.from(pArgTypes)
+            .allMatch(type ->
+                type.equals(SvLibSmtLibPredefinedType.REAL)
+                    || type.equals(SvLibSmtLibPredefinedType.INT));
+  }
+
   public static String nameWithoutSSA(String pName) {
     return pName.replaceAll("@$", "").replaceAll("@[0-9]+", "");
   }
@@ -648,6 +672,16 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
                   ImmutableList.of(rightTerm, modulusTerm),
                   FileLocation.DUMMY)),
           FileLocation.DUMMY);
+    } else if (pFunctionDeclaration.getKind() == FunctionDeclarationKind.CONST
+        && formulaType instanceof SvLibSmtLibArrayType arrayType) {
+      // The array that maps every index to the argument
+      return new SvLibSymbolApplicationTerm(
+          new SvLibIdTerm(
+              SmtLibTheoryDeclarations.arrayConst(
+                  arrayType.getKeysType(), arrayType.getValuesType()),
+              FileLocation.DUMMY),
+          args,
+          FileLocation.DUMMY);
     } else if (pFunctionDeclaration.getKind() == FunctionDeclarationKind.BV_MUL
         && getFactorThatIsNegated(args).isPresent()) {
       // A multiplication with -1, which is how the solvers build the negation of a bitvector, is
@@ -685,6 +719,12 @@ public class FormulaToSvLibVisitor implements FormulaVisitor<SvLibTerm> {
     for (int i = 0; i < pArgs.size(); i++) {
       SvLibTerm arg = pArgs.get(i);
       if (functionType.getInputTypes().get(i).equals(SvLibSmtLibPredefinedType.REAL)
+          && arg instanceof SvLibIntegerConstantTerm integer) {
+        // A real constant also exists in a logic without integers, unlike to_real
+        arg =
+            new SvLibRealConstantTerm(
+                Rational.ofBigInteger(integer.getValue()), FileLocation.DUMMY);
+      } else if (functionType.getInputTypes().get(i).equals(SvLibSmtLibPredefinedType.REAL)
           && arg.getExpressionType().equals(SvLibSmtLibPredefinedType.INT)) {
         arg =
             new SvLibSymbolApplicationTerm(

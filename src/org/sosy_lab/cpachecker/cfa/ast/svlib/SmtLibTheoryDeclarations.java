@@ -249,14 +249,49 @@ public class SmtLibTheoryDeclarations {
           "to_real",
           ImmutableList.of());
 
-  public static SvLibFunctionDeclaration REAL_MINUS =
+  private static SvLibFunctionDeclaration realRelation(String pName) {
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.of(SvLibSmtLibPredefinedType.REAL, SvLibSmtLibPredefinedType.REAL),
+            SvLibSmtLibPredefinedType.BOOL),
+        pName,
+        pName,
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration REAL_EQUALITY = realRelation("=");
+
+  public static SvLibFunctionDeclaration REAL_LESS_THAN = realRelation("<");
+
+  public static SvLibFunctionDeclaration REAL_LESS_EQUAL_THAN = realRelation("<=");
+
+  public static SvLibFunctionDeclaration REAL_GREATER_THAN = realRelation(">");
+
+  public static SvLibFunctionDeclaration REAL_GREATER_EQUAL_THAN = realRelation(">=");
+
+  /** The negation of a real with one argument, the subtraction with two. */
+  public static SvLibFunctionDeclaration realSubtraction(int amountArguments) {
+    Verify.verify(amountArguments == 1 || amountArguments == 2);
+    return SvLibFunctionDeclaration.logicBuiltinFunction(
+        FileLocation.DUMMY,
+        new SvLibFunctionType(
+            ImmutableList.copyOf(
+                Collections.nCopies(amountArguments, SvLibSmtLibPredefinedType.REAL)),
+            SvLibSmtLibPredefinedType.REAL),
+        "-",
+        "-",
+        ImmutableList.of());
+  }
+
+  public static SvLibFunctionDeclaration REAL_DIVISION =
       SvLibFunctionDeclaration.logicBuiltinFunction(
           FileLocation.DUMMY,
           new SvLibFunctionType(
               ImmutableList.of(SvLibSmtLibPredefinedType.REAL, SvLibSmtLibPredefinedType.REAL),
               SvLibSmtLibPredefinedType.REAL),
-          "-",
-          "-",
+          "/",
+          "/",
           ImmutableList.of());
 
   public static SvLibFunctionDeclaration REAL_MULTIPLICATION =

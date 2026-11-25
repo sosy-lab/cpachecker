@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import java.math.BigInteger;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
@@ -49,6 +50,21 @@ public sealed interface SvLibConstantTerm extends SvLibTerm
                 "Expected Integer value for SvLibSmtLibPredefinedType.INT, but got: " + pValue);
           }
           yield new SvLibIntegerConstantTerm(i, FileLocation.DUMMY);
+        }
+        case REAL -> {
+          // A solver reports a real whose value is integral as an integer
+          Rational value =
+              switch (pValue) {
+                case Rational rational -> rational;
+                case BigInteger bigInt -> Rational.ofBigInteger(bigInt);
+                case Integer val -> Rational.ofLong(val);
+                case Long val -> Rational.ofLong(val);
+                default ->
+                    throw new IllegalArgumentException(
+                        "Expected a rational value for SvLibSmtLibPredefinedType.REAL, but got: "
+                            + pValue);
+              };
+          yield new SvLibRealConstantTerm(value, FileLocation.DUMMY);
         }
         default ->
             throw new UnsupportedOperationException(

@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.RationalFormulaManagerView;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -56,6 +57,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class SvLibTermToFormulaConverter {
@@ -244,6 +246,9 @@ public class SvLibTermToFormulaConverter {
       // A conversion has to be handled before the theories, because its argument and its result
       // belong to different ones.
       return convertBetweenTheories(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
+    } else if (isRealApplication(pSvLibGeneralSymbolApplicationTerm)) {
+      // Before the integers, since a real can be cast to an integer, see SvLibType#canBeCastTo
+      return convertRealApplication(pSvLibGeneralSymbolApplicationTerm, ssa, fmgr, pConverter);
     } else if (FluentIterable.from(pSvLibGeneralSymbolApplicationTerm.getTerms())
         .transform(SvLibRelationalTerm::getExpressionType)
         .allMatch(type -> SvLibType.canBeCastTo(type, SvLibSmtLibPredefinedType.INT))) {
@@ -366,6 +371,71 @@ public class SvLibTermToFormulaConverter {
               "Unexpected value: '"
                   + functionName
                   + "' when converting from an integer term into a formula.");
+    };
+  }
+
+  private static boolean isRealApplication(SvLibGeneralSymbolApplicationTerm pTerm) {
+    FluentIterable<SvLibType> argumentTypes =
+        FluentIterable.from(pTerm.getTerms()).transform(SvLibRelationalTerm::getExpressionType);
+    return argumentTypes.contains(SvLibSmtLibPredefinedType.REAL)
+        && argumentTypes.allMatch(type ->
+            type.equals(SvLibSmtLibPredefinedType.REAL)
+                || type.equals(SvLibSmtLibPredefinedType.INT));
+  }
+
+  private static @NonNull Formula convertRealApplication(
+      SvLibGeneralSymbolApplicationTerm pSvLibGeneralSymbolApplicationTerm,
+      SSAMapBuilder ssa,
+      FormulaManagerView fmgr,
+      SvLibToFormulaConverter pConverter) {
+    String functionName = pSvLibGeneralSymbolApplicationTerm.getSymbol().getDeclaration().getName();
+    List<NumeralFormula> args =
+        transformedImmutableListCopy(
+            pSvLibGeneralSymbolApplicationTerm.getTerms(),
+            term -> (NumeralFormula) convertTerm(term, ssa, fmgr, pConverter));
+    RationalFormulaManagerView rmgr = fmgr.getRationalFormulaManager();
+    return switch (functionName) {
+      case "+" -> rmgr.sum(args);
+      case "-" -> {
+        if (args.size() == 1) {
+          yield rmgr.negate(args.getFirst());
+        }
+        Verify.verify(args.size() == 2);
+        yield rmgr.subtract(args.getFirst(), args.get(1));
+      }
+      case "*" -> {
+        Verify.verify(args.size() == 2);
+        yield rmgr.multiply(args.getFirst(), args.get(1));
+      }
+      case "/" -> {
+        Verify.verify(args.size() == 2);
+        yield rmgr.divide(args.getFirst(), args.get(1));
+      }
+      case "=" -> {
+        Verify.verify(args.size() == 2);
+        yield rmgr.equal(args.getFirst(), args.get(1));
+      }
+      case "<" -> {
+        Verify.verify(args.size() == 2);
+        yield rmgr.lessThan(args.getFirst(), args.get(1));
+      }
+      case "<=" -> {
+        Verify.verify(args.size() == 2);
+        yield rmgr.lessOrEquals(args.getFirst(), args.get(1));
+      }
+      case ">" -> {
+        Verify.verify(args.size() == 2);
+        yield rmgr.greaterThan(args.getFirst(), args.get(1));
+      }
+      case ">=" -> {
+        Verify.verify(args.size() == 2);
+        yield rmgr.greaterOrEquals(args.getFirst(), args.get(1));
+      }
+      default ->
+          throw new IllegalStateException(
+              "Unexpected value: '"
+                  + functionName
+                  + "' when converting from a real term into a formula.");
     };
   }
 

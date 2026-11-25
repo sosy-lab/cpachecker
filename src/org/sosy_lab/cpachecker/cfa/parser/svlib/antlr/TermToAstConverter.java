@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -24,6 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibIndexedSymbol;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibLogic;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFloatingPointConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIntegerConstantTerm;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRealConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibRoundingModeConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibSymbolApplicationTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
@@ -154,9 +157,19 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
   @Override
   public SvLibTerm visitSpecConstantTerm(SpecConstantTermContext ctx) {
     Spec_constantContext specConstantContext = ctx.spec_constant();
-    if (specConstantContext.numeral() != null) {
+    if (specConstantContext.numeral() != null && logicContains(SmtLibLogic::hasRealNumerals)) {
+      return new SvLibRealConstantTerm(
+          Rational.ofBigInteger(new BigInteger(specConstantContext.numeral().getText())),
+          fileLocationFromContext(ctx));
+    } else if (specConstantContext.numeral() != null) {
       return new SvLibIntegerConstantTerm(
           new BigInteger(specConstantContext.numeral().getText()), fileLocationFromContext(ctx));
+    } else if (specConstantContext.decimal() != null
+        && logicContains(SmtLibLogic::containsRealArithmetic)) {
+      BigDecimal decimal = new BigDecimal(specConstantContext.decimal().getText());
+      return new SvLibRealConstantTerm(
+          Rational.of(decimal.unscaledValue(), BigInteger.TEN.pow(decimal.scale())),
+          fileLocationFromContext(ctx));
     } else if (specConstantContext.hexadecimal() != null
         && logicContains(SmtLibLogic::containsBitvectorOperations)) {
       return new SvLibBitVectorConstantTerm(
@@ -406,6 +419,49 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
       }
     }
 
+    // The theory of reals comes first, since a real can be cast to an integer, see
+    // SvLibType#canBeCastTo
+    if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsRealArithmetic)
+        && isRealApplication(pLogics, pArguments)) {
+      switch (pSymbol) {
+        case "=" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.REAL_EQUALITY;
+        }
+        case "<" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.REAL_LESS_THAN;
+        }
+        case "<=" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.REAL_LESS_EQUAL_THAN;
+        }
+        case ">" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.REAL_GREATER_THAN;
+        }
+        case ">=" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.REAL_GREATER_EQUAL_THAN;
+        }
+        case "-" -> {
+          return SmtLibTheoryDeclarations.realSubtraction(pArguments.size());
+        }
+        case "+" -> {
+          return SmtLibTheoryDeclarations.realAddition(pArguments.size());
+        }
+        case "*" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.REAL_MULTIPLICATION;
+        }
+        case "/" -> {
+          Verify.verify(pArguments.size() == 2);
+          return SmtLibTheoryDeclarations.REAL_DIVISION;
+        }
+        default -> {}
+      }
+    }
+
     // Match Integer Arithmetic logic
     if (FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic)
         && FluentIterable.from(pArguments)
@@ -521,11 +577,16 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
         case "=" -> {
           // Equality is only handled here if the arguments are arrays, other types are resolved
           // in their respective theory.
-          if (pArguments.size() == 2
-              && pArguments.getFirst().getExpressionType()
-                  instanceof SvLibSmtLibArrayType arrayType) {
+          // The type of a variable of an annotation is not known yet, see SvLibAnyType
+          Optional<SvLibSmtLibArrayType> arrayType =
+              FluentIterable.from(pArguments)
+                  .transform(SvLibTerm::getExpressionType)
+                  .filter(SvLibSmtLibArrayType.class)
+                  .first()
+                  .toJavaUtil();
+          if (pArguments.size() == 2 && arrayType.isPresent()) {
             return SmtLibTheoryDeclarations.arrayEquality(
-                arrayType.getKeysType(), arrayType.getValuesType());
+                arrayType.orElseThrow().getKeysType(), arrayType.orElseThrow().getValuesType());
           }
         }
       }
@@ -752,6 +813,20 @@ class TermToAstConverter extends AbstractAntlrToAstConverter<SvLibTerm> {
 
     throw new IllegalArgumentException(
         "Unsupported logic for the resolution of symbol: " + pSymbol);
+  }
+
+  /**
+   * Whether the arguments are reals, where the type of a variable of an annotation is not known
+   * yet, see {@link SvLibAnyType}.
+   */
+  private static boolean isRealApplication(Set<SmtLibLogic> pLogics, List<SvLibTerm> pArguments) {
+    FluentIterable<SvLibType> types =
+        FluentIterable.from(pArguments).transform(SvLibTerm::getExpressionType);
+    return !pArguments.isEmpty()
+        && types.allMatch(
+            type -> type.equals(SvLibSmtLibPredefinedType.REAL) || type instanceof SvLibAnyType)
+        && (types.contains(SvLibSmtLibPredefinedType.REAL)
+            || !FluentIterable.from(pLogics).anyMatch(SmtLibLogic::containsIntegerArithmetic));
   }
 
   /** Does a logic of the script contain the given theory? */

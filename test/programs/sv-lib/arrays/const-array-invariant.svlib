@@ -1,0 +1,892 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2014-2026 Fondazione Bruno Kessler
+;
+; SPDX-License-Identifier: CC-BY-4.0
+
+; The task vis/vsaR_p03 of the MoXI tasks of SV-Benchmarks, which was translated to MoXI from an
+; SMV benchmark model distributed with the nuXmv model checker 2.2.0 (https://nuxmv.fbk.eu), and
+; then to SV-LIB. Its correctness witness has an invariant with a constant array.
+
+(set-logic QF_ABV)
+(define-proc
+  main
+  ((clock Bool)
+    (datain (_ BitVec 5))
+    (instruction (_ BitVec 12))
+    (|$auto$rename.cc:157:execute$1244| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1246| Bool)
+    (|$auto$rename.cc:157:execute$1250| (_ BitVec 12))
+    (|$auto$rename.cc:157:execute$1252| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1254| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1255| (_ BitVec 3))
+    (ALUOutput (_ BitVec 5))
+    (PC (_ BitVec 5))
+    (a4 (Array (_ BitVec 2) (_ BitVec 5)))
+    (dataout (_ BitVec 5)))
+  ((|clock'| Bool)
+    (|datain'| (_ BitVec 5))
+    (|instruction'| (_ BitVec 12))
+    (|$auto$rename.cc:157:execute$1244'| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1246'| Bool)
+    (|$auto$rename.cc:157:execute$1250'| (_ BitVec 12))
+    (|$auto$rename.cc:157:execute$1252'| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1254'| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1255'| (_ BitVec 3))
+    (|ALUOutput'| (_ BitVec 5))
+    (|PC'| (_ BitVec 5))
+    (|a4'| (Array (_ BitVec 2) (_ BitVec 5)))
+    (|dataout'| (_ BitVec 5)))
+  ((__expr18 (_ BitVec 2))
+    (__expr19 (Array (_ BitVec 2) (_ BitVec 5)))
+    (__expr16 Bool)
+    (__expr20 (_ BitVec 1))
+    (__expr21 (_ BitVec 3))
+    (__expr22 Bool)
+    (__expr23 Bool)
+    (__expr24 (_ BitVec 1))
+    (__expr25 (_ BitVec 3))
+    (__expr26 Bool)
+    (__expr27 Bool)
+    (__expr28 Bool)
+    (__expr29 (_ BitVec 1))
+    (__expr30 (_ BitVec 3))
+    (__expr31 Bool)
+    (__expr32 Bool)
+    (__expr33 (_ BitVec 1))
+    (__expr34 (_ BitVec 3))
+    (__expr35 Bool)
+    (__expr36 Bool)
+    (__expr37 (_ BitVec 3))
+    (__expr38 Bool)
+    (__expr39 Bool)
+    (__expr40 Bool)
+    (__expr41 Bool)
+    (__expr42 Bool)
+    (__expr43 Bool)
+    (__expr44 Bool)
+    (__expr45 Bool)
+    (__expr46 Bool)
+    (__expr47 Bool)
+    (__expr48 Bool)
+    (__expr49 Bool)
+    (__expr50 Bool)
+    (__expr51 Bool)
+    (__expr52 Bool)
+    (__expr53 Bool)
+    (__expr54 Bool)
+    (__expr55 Bool)
+    (__expr56 Bool)
+    (__expr57 Bool)
+    (__expr58 (_ BitVec 1))
+    (__expr59 Bool)
+    (__expr60 Bool)
+    (__expr61 (Array (_ BitVec 2) (_ BitVec 5)))
+    (__expr62 (_ BitVec 2))
+    (__expr63 (Array (_ BitVec 2) (_ BitVec 5)))
+    (__expr64 Bool)
+    (__expr65 Bool)
+    (__expr66 Bool)
+    (__expr67 Bool)
+    (__expr68 Bool)
+    (__expr69 Bool)
+    (__expr70 Bool)
+    (__expr71 Bool)
+    (__expr72 Bool)
+    (__expr73 Bool)
+    (__expr74 Bool)
+    (__expr75 Bool)
+    (__expr76 Bool)
+    (__expr77 Bool)
+    (__expr78 Bool)
+    (__expr79 Bool)
+    (__expr80 Bool)
+    (__expr81 Bool)
+    (__expr82 Bool)
+    (__expr83 Bool)
+    (__expr84 (_ BitVec 1))
+    (__expr85 Bool)
+    (__expr86 Bool)
+    (__expr87 (Array (_ BitVec 2) (_ BitVec 5)))
+    (__expr88 (Array (_ BitVec 2) (_ BitVec 5)))
+    (__expr89 Bool)
+    (__expr90 Bool)
+    (__expr91 Bool)
+    (__expr92 Bool)
+    (__expr93 Bool)
+    (__expr94 Bool)
+    (__expr95 Bool)
+    (__expr96 Bool)
+    (__expr97 Bool)
+    (__expr98 Bool)
+    (__expr99 Bool)
+    (__expr100 Bool)
+    (__expr101 Bool)
+    (__expr102 Bool)
+    (__expr103 Bool)
+    (__expr104 Bool)
+    (__expr105 Bool)
+    (__expr106 Bool)
+    (__expr107 (_ BitVec 1))
+    (__expr108 Bool)
+    (__expr109 Bool)
+    (__expr110 (Array (_ BitVec 2) (_ BitVec 5)))
+    (__expr111 Bool)
+    (__expr112 (_ BitVec 3))
+    (__expr113 (_ BitVec 3))
+    (__expr114 (_ BitVec 3))
+    (__expr115 Bool)
+    (__expr116 (_ BitVec 5))
+    (__expr117 Bool)
+    (__expr118 Bool)
+    (__expr119 (_ BitVec 5))
+    (__expr120 (_ BitVec 5))
+    (__expr121 (_ BitVec 5))
+    (__expr122 (_ BitVec 5))
+    (__expr123 (_ BitVec 5))
+    (__expr124 (_ BitVec 5))
+    (__expr125 Bool)
+    (__expr126 Bool)
+    (__expr127 Bool)
+    (__expr128 Bool)
+    (__expr129 Bool)
+    (__expr130 Bool)
+    (__expr131 Bool)
+    (__expr8 Bool)
+    (__expr132 Bool)
+    (__expr133 Bool)
+    (__expr134 Bool)
+    (__expr135 Bool)
+    (__expr136 Bool)
+    (__expr137 Bool)
+    (__expr138 Bool)
+    (__expr139 Bool)
+    (__expr140 Bool)
+    (__expr141 Bool)
+    (__expr142 Bool)
+    (__expr143 Bool)
+    (__expr144 Bool)
+    (__expr145 Bool)
+    (__expr146 Bool)
+    (__expr147 Bool)
+    (__expr148 Bool)
+    (__expr149 Bool)
+    (__expr150 Bool)
+    (__expr151 Bool)
+    (__expr152 Bool)
+    (__expr153 Bool)
+    (__expr154 Bool)
+    (__expr155 (_ BitVec 12))
+    (__expr156 (_ BitVec 12))
+    (__expr157 Bool)
+    (__expr158 (_ BitVec 5))
+    (__expr159 (_ BitVec 5))
+    (__expr160 (_ BitVec 5))
+    (__expr161 Bool)
+    (__expr162 (_ BitVec 4))
+    (__expr163 (_ BitVec 5))
+    (__expr164 (_ BitVec 5))
+    (__expr165 (_ BitVec 5))
+    (__expr166 (_ BitVec 5))
+    (__expr167 (_ BitVec 5))
+    (__expr168 (_ BitVec 5))
+    (__expr169 (_ BitVec 5))
+    (__expr170 (_ BitVec 5))
+    (__expr171 (_ BitVec 5))
+    (__expr172 (_ BitVec 5))
+    (__expr173 (_ BitVec 1))
+    (__expr174 (_ BitVec 4))
+    (__expr175 (_ BitVec 5))
+    (__expr176 (_ BitVec 3))
+    (__expr177 Bool)
+    (__expr178 (_ BitVec 5))
+    (__expr179 (_ BitVec 5))
+    (__expr180 Bool)
+    (__expr181 (_ BitVec 5))
+    (__expr182 (_ BitVec 5))
+    (__expr183 Bool)
+    (__expr184 (_ BitVec 5))
+    (__expr185 (_ BitVec 5))
+    (__expr186 Bool)
+    (__expr187 (_ BitVec 5))
+    (__expr188 (_ BitVec 5))
+    (__expr189 Bool)
+    (__expr190 (_ BitVec 5))
+    (__expr191 (_ BitVec 5))
+    (__expr192 Bool)
+    (__expr193 (_ BitVec 5))
+    (__expr194 (_ BitVec 5))
+    (__expr195 (_ BitVec 5))
+    (__expr196 Bool)
+    (__expr197 (_ BitVec 5))
+    (__expr198 (_ BitVec 5))
+    (__expr199 Bool)
+    (__expr200 (_ BitVec 5))
+    (__expr201 (_ BitVec 5))
+    (__expr202 (_ BitVec 5))
+    (__expr203 (_ BitVec 5))
+    (__expr204 (_ BitVec 5))
+    (__expr205 (_ BitVec 5))
+    (__expr206 (_ BitVec 5))
+    (__expr207 Bool)
+    (__expr208 (_ BitVec 5))
+    (__expr209 (_ BitVec 5))
+    (__expr210 (_ BitVec 5))
+    (__expr211 (_ BitVec 5))
+    (__expr212 (_ BitVec 5))
+    (__expr213 (_ BitVec 5))
+    (__expr214 (_ BitVec 5))
+    (__expr215 Bool)
+    (__expr216 (_ BitVec 5))
+    (__expr217 (_ BitVec 5))
+    (__expr218 (_ BitVec 5))
+    (__expr219 (_ BitVec 5))
+    (__expr220 Bool)
+    (__expr221 (_ BitVec 2))
+    (__expr222 (_ BitVec 5))
+    (__expr223 (_ BitVec 5))
+    (__expr224 (_ BitVec 5))
+    (__expr225 (_ BitVec 5))
+    (__expr226 Bool)
+    (__expr227 Bool)
+    (__expr228 Bool)
+    (__expr229 Bool)
+    (__expr230 Bool)
+    (__expr231 Bool)
+    (__expr232 Bool)
+    (__expr233 Bool)
+    (__expr234 Bool)
+    (__expr235 Bool))
+  (!
+    (sequence
+      (havoc
+        |clock'|
+        |datain'|
+        |instruction'|
+        |$auto$rename.cc:157:execute$1244'|
+        |$auto$rename.cc:157:execute$1246'|
+        |$auto$rename.cc:157:execute$1250'|
+        |$auto$rename.cc:157:execute$1252'|
+        |$auto$rename.cc:157:execute$1254'|
+        |$auto$rename.cc:157:execute$1255'|
+        |ALUOutput'|
+        |PC'|
+        |a4'|
+        |dataout'|)
+      (assign
+        (__expr18
+          ((_ extract 4 3) |$auto$rename.cc:157:execute$1250|)))
+      (assign
+        (__expr19 (store a4 __expr18 ALUOutput)))
+      (assign
+        (__expr16
+          (= |$auto$rename.cc:157:execute$1255| #b000)))
+      (assign
+        (__expr20 (ite __expr16 #b1 (ite true #b0 #b0))))
+      (assign (__expr21 (concat __expr20 #b00)))
+      (assign
+        (__expr22
+          (= |$auto$rename.cc:157:execute$1255| __expr21)))
+      (assign
+        (__expr23
+          (= |$auto$rename.cc:157:execute$1255| #b001)))
+      (assign
+        (__expr24 (ite __expr23 #b1 (ite true #b0 #b0))))
+      (assign (__expr25 (concat __expr24 #b00)))
+      (assign
+        (__expr26
+          (= |$auto$rename.cc:157:execute$1255| __expr25)))
+      (assign
+        (__expr27
+          (= |$auto$rename.cc:157:execute$1255| #b010)))
+      (assign
+        (__expr28
+          (= |$auto$rename.cc:157:execute$1255| #b011)))
+      (assign
+        (__expr29 (ite __expr28 #b1 (ite true #b0 #b0))))
+      (assign (__expr30 (concat __expr29 #b00)))
+      (assign
+        (__expr31
+          (= |$auto$rename.cc:157:execute$1255| __expr30)))
+      (assign
+        (__expr32
+          (= |$auto$rename.cc:157:execute$1255| #b100)))
+      (assign
+        (__expr33 (ite __expr32 #b1 (ite true #b0 #b0))))
+      (assign (__expr34 (concat __expr33 #b00)))
+      (assign
+        (__expr35
+          (= |$auto$rename.cc:157:execute$1255| __expr34)))
+      (assign (__expr36 (not __expr35)))
+      (assign
+        (__expr37
+          ((_ extract 11 9) |$auto$rename.cc:157:execute$1250|)))
+      (assign (__expr38 (= __expr37 #b011)))
+      (assign (__expr39 (not __expr38)))
+      (assign (__expr40 (= __expr18 #b00)))
+      (assign (__expr41 (not __expr40)))
+      (assign (__expr42 (or __expr41 __expr39)))
+      (assign (__expr43 (and __expr38 __expr42)))
+      (assign (__expr44 (or __expr43 __expr36)))
+      (assign (__expr45 (and __expr35 __expr44)))
+      (assign (__expr46 (or __expr45 __expr31)))
+      (assign (__expr47 (not __expr31)))
+      (assign (__expr48 (and __expr47 __expr46)))
+      (assign (__expr49 (or __expr48 __expr27)))
+      (assign (__expr50 (not __expr27)))
+      (assign (__expr51 (and __expr50 __expr49)))
+      (assign (__expr52 (or __expr51 __expr26)))
+      (assign (__expr53 (not __expr26)))
+      (assign (__expr54 (and __expr53 __expr52)))
+      (assign (__expr55 (or __expr54 __expr22)))
+      (assign (__expr56 (not __expr22)))
+      (assign (__expr57 (and __expr56 __expr55)))
+      (assign
+        (__expr58 (ite __expr57 #b1 (ite true #b0 #b0))))
+      (assign (__expr59 (= __expr58 #b1)))
+      (assign (__expr60 (and clock __expr59)))
+      (assign
+        (__expr61
+          (ite __expr60 __expr19 (ite true a4 a4))))
+      (assign
+        (__expr62
+          ((_ extract 6 5) |$auto$rename.cc:157:execute$1250|)))
+      (assign
+        (__expr63 (store a4 __expr62 ALUOutput)))
+      (assign (__expr64 (= __expr37 #b101)))
+      (assign (__expr65 (= __expr37 #b100)))
+      (assign (__expr66 (or __expr65 __expr64)))
+      (assign (__expr67 (not __expr66)))
+      (assign (__expr68 (= __expr62 #b00)))
+      (assign (__expr69 (not __expr68)))
+      (assign (__expr70 (or __expr69 __expr67)))
+      (assign (__expr71 (and __expr66 __expr70)))
+      (assign (__expr72 (or __expr38 __expr71)))
+      (assign (__expr73 (and __expr39 __expr72)))
+      (assign (__expr74 (or __expr36 __expr73)))
+      (assign (__expr75 (and __expr35 __expr74)))
+      (assign (__expr76 (or __expr31 __expr75)))
+      (assign (__expr77 (and __expr47 __expr76)))
+      (assign (__expr78 (or __expr27 __expr77)))
+      (assign (__expr79 (and __expr50 __expr78)))
+      (assign (__expr80 (or __expr26 __expr79)))
+      (assign (__expr81 (and __expr53 __expr80)))
+      (assign (__expr82 (or __expr22 __expr81)))
+      (assign (__expr83 (and __expr56 __expr82)))
+      (assign
+        (__expr84 (ite __expr83 #b1 (ite true #b0 #b0))))
+      (assign (__expr85 (= __expr84 #b1)))
+      (assign (__expr86 (and clock __expr85)))
+      (assign
+        (__expr87
+          (ite __expr86 __expr63 (ite true __expr61 __expr61))))
+      (assign
+        (__expr88
+          (store a4 __expr62 |$auto$rename.cc:157:execute$1252|)))
+      (assign (__expr89 (= __expr37 #b000)))
+      (assign (__expr90 (not __expr89)))
+      (assign (__expr91 (or __expr69 __expr90)))
+      (assign (__expr92 (and __expr89 __expr91)))
+      (assign (__expr93 (or __expr66 __expr92)))
+      (assign (__expr94 (and __expr67 __expr93)))
+      (assign (__expr95 (or __expr38 __expr94)))
+      (assign (__expr96 (and __expr39 __expr95)))
+      (assign (__expr97 (or __expr36 __expr96)))
+      (assign (__expr98 (and __expr35 __expr97)))
+      (assign (__expr99 (or __expr31 __expr98)))
+      (assign (__expr100 (and __expr47 __expr99)))
+      (assign (__expr101 (or __expr27 __expr100)))
+      (assign (__expr102 (and __expr50 __expr101)))
+      (assign (__expr103 (or __expr26 __expr102)))
+      (assign (__expr104 (and __expr53 __expr103)))
+      (assign (__expr105 (or __expr22 __expr104)))
+      (assign (__expr106 (and __expr56 __expr105)))
+      (assign
+        (__expr107 (ite __expr106 #b1 (ite true #b0 #b0))))
+      (assign (__expr108 (= __expr107 #b1)))
+      (assign (__expr109 (and clock __expr108)))
+      (assign
+        (__expr110
+          (ite __expr109 __expr88 (ite true __expr87 __expr87))))
+      (assign (__expr111 (= __expr110 |a4'|)))
+      (assign
+        (__expr112
+          (bvadd #b001 |$auto$rename.cc:157:execute$1255|)))
+      (assign
+        (__expr113
+          (ite __expr32 #b000 (ite true __expr112 __expr112))))
+      (assign
+        (__expr114
+          (ite
+            clock
+            __expr113
+            (ite true |$auto$rename.cc:157:execute$1255| |$auto$rename.cc:157:execute$1255|))))
+      (assign
+        (__expr115
+          (= __expr114 |$auto$rename.cc:157:execute$1255'|)))
+      (assign
+        (__expr116
+          (ite
+            __expr89
+            datain
+            (ite true |$auto$rename.cc:157:execute$1252| |$auto$rename.cc:157:execute$1252|))))
+      (assign (__expr117 (= __expr37 #b001)))
+      (assign (__expr118 (or __expr117 __expr89)))
+      (assign
+        (__expr119
+          (ite
+            __expr118
+            __expr116
+            (ite true |$auto$rename.cc:157:execute$1252| |$auto$rename.cc:157:execute$1252|))))
+      (assign
+        (__expr120
+          (ite
+            __expr31
+            __expr119
+            (ite true |$auto$rename.cc:157:execute$1252| |$auto$rename.cc:157:execute$1252|))))
+      (assign
+        (__expr121
+          (ite __expr27 |$auto$rename.cc:157:execute$1252| (ite true __expr120 __expr120))))
+      (assign
+        (__expr122
+          (ite __expr26 |$auto$rename.cc:157:execute$1252| (ite true __expr121 __expr121))))
+      (assign
+        (__expr123
+          (ite __expr22 |$auto$rename.cc:157:execute$1252| (ite true __expr122 __expr122))))
+      (assign
+        (__expr124
+          (ite
+            clock
+            __expr123
+            (ite true |$auto$rename.cc:157:execute$1252| |$auto$rename.cc:157:execute$1252|))))
+      (assign
+        (__expr125
+          (= __expr124 |$auto$rename.cc:157:execute$1252'|)))
+      (assign
+        (__expr126
+          (or clock |$auto$rename.cc:157:execute$1246|)))
+      (assign (__expr127 (not clock)))
+      (assign
+        (__expr128
+          (or __expr27 |$auto$rename.cc:157:execute$1246|)))
+      (assign (__expr129 (= __expr37 #b010)))
+      (assign
+        (__expr130
+          (or __expr129 |$auto$rename.cc:157:execute$1246|)))
+      (assign (__expr131 (not __expr129)))
+      (assign
+        (__expr8
+          (= |$auto$rename.cc:157:execute$1244| #b00000)))
+      (assign (__expr132 (or __expr8 __expr131)))
+      (assign (__expr133 (and __expr132 __expr130)))
+      (assign (__expr134 (or __expr66 __expr133)))
+      (assign
+        (__expr135
+          (or __expr67 |$auto$rename.cc:157:execute$1246|)))
+      (assign (__expr136 (and __expr135 __expr134)))
+      (assign (__expr137 (or __expr38 __expr136)))
+      (assign
+        (__expr138
+          (or __expr39 |$auto$rename.cc:157:execute$1246|)))
+      (assign (__expr139 (and __expr138 __expr137)))
+      (assign (__expr140 (or __expr118 __expr139)))
+      (assign (__expr141 (not __expr118)))
+      (assign
+        (__expr142
+          (or |$auto$rename.cc:157:execute$1246| __expr141)))
+      (assign (__expr143 (and __expr142 __expr140)))
+      (assign (__expr144 (or __expr50 __expr143)))
+      (assign (__expr145 (and __expr144 __expr128)))
+      (assign (__expr146 (or __expr26 __expr145)))
+      (assign
+        (__expr147
+          (or __expr53 |$auto$rename.cc:157:execute$1246|)))
+      (assign (__expr148 (and __expr147 __expr146)))
+      (assign (__expr149 (or __expr22 __expr148)))
+      (assign
+        (__expr150
+          (or __expr56 |$auto$rename.cc:157:execute$1246|)))
+      (assign (__expr151 (and __expr150 __expr149)))
+      (assign (__expr152 (or __expr151 __expr127)))
+      (assign (__expr153 (and __expr152 __expr126)))
+      (assign
+        (__expr154
+          (= __expr153 |$auto$rename.cc:157:execute$1246'|)))
+      (assign
+        (__expr155
+          (ite
+            __expr22
+            instruction
+            (ite true |$auto$rename.cc:157:execute$1250| |$auto$rename.cc:157:execute$1250|))))
+      (assign
+        (__expr156
+          (ite
+            clock
+            __expr155
+            (ite true |$auto$rename.cc:157:execute$1250| |$auto$rename.cc:157:execute$1250|))))
+      (assign
+        (__expr157
+          (= __expr156 |$auto$rename.cc:157:execute$1250'|)))
+      (assign (__expr158 (bvadd #b00010 PC)))
+      (assign
+        (__expr159
+          (ite
+            __expr22
+            __expr158
+            (ite true |$auto$rename.cc:157:execute$1254| |$auto$rename.cc:157:execute$1254|))))
+      (assign
+        (__expr160
+          (ite
+            clock
+            __expr159
+            (ite true |$auto$rename.cc:157:execute$1254| |$auto$rename.cc:157:execute$1254|))))
+      (assign
+        (__expr161
+          (= __expr160 |$auto$rename.cc:157:execute$1254'|)))
+      (assign
+        (__expr162
+          ((_ extract 3 0) |$auto$rename.cc:157:execute$1250|)))
+      (assign (__expr163 (concat #b0 __expr162)))
+      (assign
+        (__expr164
+          (bvadd |$auto$rename.cc:157:execute$1254| __expr163)))
+      (assign
+        (__expr165
+          (ite __expr129 __expr164 (ite true ALUOutput ALUOutput))))
+      (assign
+        (__expr166
+          ((_ extract 4 0) |$auto$rename.cc:157:execute$1250|)))
+      (assign (__expr167 (bvneg __expr166)))
+      (assign
+        (__expr168
+          (bvadd |$auto$rename.cc:157:execute$1244| __expr167)))
+      (assign
+        (__expr169
+          (ite __expr64 __expr168 (ite true ALUOutput ALUOutput))))
+      (assign
+        (__expr170
+          (bvadd |$auto$rename.cc:157:execute$1244| __expr166)))
+      (assign
+        (__expr171
+          (ite __expr65 __expr170 (ite true __expr169 __expr169))))
+      (assign
+        (__expr172
+          (ite __expr66 __expr171 (ite true __expr165 __expr165))))
+      (assign
+        (__expr173
+          ((_ extract 4 4) |$auto$rename.cc:157:execute$1244|)))
+      (assign
+        (__expr174
+          ((_ extract 4 1) |$auto$rename.cc:157:execute$1244|)))
+      (assign
+        (__expr175 (concat __expr174 __expr173)))
+      (assign
+        (__expr176
+          ((_ extract 2 0) |$auto$rename.cc:157:execute$1250|)))
+      (assign (__expr177 (= __expr176 #b111)))
+      (assign
+        (__expr178
+          (ite __expr177 __expr175 (ite true ALUOutput ALUOutput))))
+      (assign (__expr179 (concat __expr174 #b0)))
+      (assign (__expr180 (= __expr176 #b110)))
+      (assign
+        (__expr181
+          (ite __expr180 __expr179 (ite true __expr178 __expr178))))
+      (assign
+        (__expr182
+          (bvnot |$auto$rename.cc:157:execute$1244|)))
+      (assign (__expr183 (= __expr176 #b101)))
+      (assign
+        (__expr184
+          (ite __expr183 __expr182 (ite true __expr181 __expr181))))
+      (assign
+        (__expr185
+          (bvxor dataout |$auto$rename.cc:157:execute$1244|)))
+      (assign (__expr186 (= __expr176 #b100)))
+      (assign
+        (__expr187
+          (ite __expr186 __expr185 (ite true __expr184 __expr184))))
+      (assign
+        (__expr188
+          (bvor dataout |$auto$rename.cc:157:execute$1244|)))
+      (assign (__expr189 (= __expr176 #b011)))
+      (assign
+        (__expr190
+          (ite __expr189 __expr188 (ite true __expr187 __expr187))))
+      (assign
+        (__expr191
+          (bvand dataout |$auto$rename.cc:157:execute$1244|)))
+      (assign (__expr192 (= __expr176 #b010)))
+      (assign
+        (__expr193
+          (ite __expr192 __expr191 (ite true __expr190 __expr190))))
+      (assign (__expr194 (bvneg dataout)))
+      (assign
+        (__expr195
+          (bvadd |$auto$rename.cc:157:execute$1244| __expr194)))
+      (assign (__expr196 (= __expr176 #b001)))
+      (assign
+        (__expr197
+          (ite __expr196 __expr195 (ite true __expr193 __expr193))))
+      (assign
+        (__expr198
+          (bvadd dataout |$auto$rename.cc:157:execute$1244|)))
+      (assign (__expr199 (= __expr176 #b000)))
+      (assign
+        (__expr200
+          (ite __expr199 __expr198 (ite true __expr197 __expr197))))
+      (assign
+        (__expr201
+          (ite __expr38 __expr200 (ite true __expr172 __expr172))))
+      (assign
+        (__expr202
+          (ite __expr118 __expr170 (ite true __expr201 __expr201))))
+      (assign
+        (__expr203
+          (ite __expr27 __expr202 (ite true ALUOutput ALUOutput))))
+      (assign
+        (__expr204
+          (ite __expr26 ALUOutput (ite true __expr203 __expr203))))
+      (assign
+        (__expr205
+          (ite __expr22 ALUOutput (ite true __expr204 __expr204))))
+      (assign
+        (__expr206
+          (ite clock __expr205 (ite true ALUOutput ALUOutput))))
+      (assign (__expr207 (= __expr206 |ALUOutput'|)))
+      (assign
+        (__expr208
+          (ite
+            |$auto$rename.cc:157:execute$1246|
+            ALUOutput
+            (ite true |$auto$rename.cc:157:execute$1254| |$auto$rename.cc:157:execute$1254|))))
+      (assign
+        (__expr209
+          (ite
+            __expr129
+            __expr208
+            (ite true |$auto$rename.cc:157:execute$1254| |$auto$rename.cc:157:execute$1254|))))
+      (assign
+        (__expr210
+          (ite __expr31 __expr209 (ite true PC PC))))
+      (assign
+        (__expr211
+          (ite __expr27 PC (ite true __expr210 __expr210))))
+      (assign
+        (__expr212
+          (ite __expr26 PC (ite true __expr211 __expr211))))
+      (assign
+        (__expr213
+          (ite __expr22 PC (ite true __expr212 __expr212))))
+      (assign
+        (__expr214 (ite clock __expr213 (ite true PC PC))))
+      (assign (__expr215 (= __expr214 |PC'|)))
+      (assign (__expr216 (select a4 __expr62)))
+      (assign
+        (__expr217
+          (ite __expr26 __expr216 (ite true dataout dataout))))
+      (assign
+        (__expr218
+          (ite __expr22 dataout (ite true __expr217 __expr217))))
+      (assign
+        (__expr219
+          (ite clock __expr218 (ite true dataout dataout))))
+      (assign (__expr220 (= __expr219 |dataout'|)))
+      (assign
+        (__expr221
+          ((_ extract 8 7) |$auto$rename.cc:157:execute$1250|)))
+      (assign (__expr222 (select a4 __expr221)))
+      (assign
+        (__expr223
+          (ite
+            __expr26
+            __expr222
+            (ite true |$auto$rename.cc:157:execute$1244| |$auto$rename.cc:157:execute$1244|))))
+      (assign
+        (__expr224
+          (ite __expr22 |$auto$rename.cc:157:execute$1244| (ite true __expr223 __expr223))))
+      (assign
+        (__expr225
+          (ite
+            clock
+            __expr224
+            (ite true |$auto$rename.cc:157:execute$1244| |$auto$rename.cc:157:execute$1244|))))
+      (assign
+        (__expr226
+          (= __expr225 |$auto$rename.cc:157:execute$1244'|)))
+      (assign (__expr227 (and __expr226 __expr220)))
+      (assign (__expr228 (and __expr227 __expr215)))
+      (assign (__expr229 (and __expr228 __expr207)))
+      (assign (__expr230 (and __expr229 __expr161)))
+      (assign (__expr231 (and __expr230 __expr157)))
+      (assign (__expr232 (and __expr231 __expr154)))
+      (assign (__expr233 (and __expr232 __expr125)))
+      (assign (__expr234 (and __expr233 __expr115)))
+      (assign (__expr235 (and __expr234 __expr111)))
+      (assume __expr235))
+    :tag
+    main_moxi-proc-body))
+(define-proc
+  main_transition_system_qry_rch_1
+  ()
+  ((|$auto$rename.cc:157:execute$1244| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1246| Bool)
+    (|$auto$rename.cc:157:execute$1250| (_ BitVec 12))
+    (|$auto$rename.cc:157:execute$1252| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1254| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1255| (_ BitVec 3))
+    (ALUOutput (_ BitVec 5))
+    (PC (_ BitVec 5))
+    (a4 (Array (_ BitVec 2) (_ BitVec 5)))
+    (dataout (_ BitVec 5)))
+  ((clock Bool)
+    (datain (_ BitVec 5))
+    (instruction (_ BitVec 12))
+    (|clock'| Bool)
+    (|datain'| (_ BitVec 5))
+    (|instruction'| (_ BitVec 12))
+    (|$auto$rename.cc:157:execute$1244'| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1246'| Bool)
+    (|$auto$rename.cc:157:execute$1250'| (_ BitVec 12))
+    (|$auto$rename.cc:157:execute$1252'| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1254'| (_ BitVec 5))
+    (|$auto$rename.cc:157:execute$1255'| (_ BitVec 3))
+    (|ALUOutput'| (_ BitVec 5))
+    (|PC'| (_ BitVec 5))
+    (|a4'| (Array (_ BitVec 2) (_ BitVec 5)))
+    (|dataout'| (_ BitVec 5))
+    (__expr1 Bool)
+    (__expr2 Bool)
+    (__expr3 Bool)
+    (__expr4 Bool)
+    (__expr5 Bool)
+    (__expr6 Bool)
+    (__expr7 Bool)
+    (__expr8 Bool)
+    (__expr9 Bool)
+    (__expr10 Bool)
+    (__expr11 Bool)
+    (__expr12 Bool)
+    (__expr13 Bool)
+    (__expr14 Bool)
+    (__expr15 Bool)
+    (__expr16 Bool)
+    (__expr17 Bool)
+    (__expr236 (_ BitVec 5))
+    (__expr237 Bool))
+  (!
+    (sequence
+      (havoc
+        clock
+        datain
+        instruction
+        |$auto$rename.cc:157:execute$1244|
+        |$auto$rename.cc:157:execute$1246|
+        |$auto$rename.cc:157:execute$1250|
+        |$auto$rename.cc:157:execute$1252|
+        |$auto$rename.cc:157:execute$1254|
+        |$auto$rename.cc:157:execute$1255|
+        ALUOutput
+        PC
+        a4
+        dataout)
+      (assign
+        (__expr1
+          (= |$auto$rename.cc:157:execute$1252| #b00000)))
+      (assign
+        (__expr2
+          (not |$auto$rename.cc:157:execute$1246|)))
+      (assign
+        (__expr3
+          (= |$auto$rename.cc:157:execute$1250| #b000000000000)))
+      (assign
+        (__expr4
+          (= |$auto$rename.cc:157:execute$1254| #b00000)))
+      (assign (__expr5 (= ALUOutput #b00000)))
+      (assign (__expr6 (= PC #b00000)))
+      (assign (__expr7 (= dataout #b00000)))
+      (assign
+        (__expr8
+          (= |$auto$rename.cc:157:execute$1244| #b00000)))
+      (assign (__expr9 (and __expr8 __expr7)))
+      (assign (__expr10 (and __expr9 __expr6)))
+      (assign (__expr11 (and __expr10 __expr5)))
+      (assign (__expr12 (and __expr11 __expr4)))
+      (assign (__expr13 (and __expr12 __expr3)))
+      (assign (__expr14 (and __expr13 __expr2)))
+      (assign (__expr15 (and __expr14 __expr1)))
+      (assign
+        (__expr16
+          (= |$auto$rename.cc:157:execute$1255| #b000)))
+      (assign (__expr17 (and __expr16 __expr15)))
+      (assume
+        (and
+          (=
+            a4
+            ((as const (Array (_ BitVec 2) (_ BitVec 5)))
+              #b00000))
+          __expr17))
+      (assume true)
+      (!
+        (while
+          true
+          (sequence
+            (call
+              main
+              (clock
+                datain
+                instruction
+                |$auto$rename.cc:157:execute$1244|
+                |$auto$rename.cc:157:execute$1246|
+                |$auto$rename.cc:157:execute$1250|
+                |$auto$rename.cc:157:execute$1252|
+                |$auto$rename.cc:157:execute$1254|
+                |$auto$rename.cc:157:execute$1255|
+                ALUOutput
+                PC
+                a4
+                dataout)
+              (|clock'|
+                |datain'|
+                |instruction'|
+                |$auto$rename.cc:157:execute$1244'|
+                |$auto$rename.cc:157:execute$1246'|
+                |$auto$rename.cc:157:execute$1250'|
+                |$auto$rename.cc:157:execute$1252'|
+                |$auto$rename.cc:157:execute$1254'|
+                |$auto$rename.cc:157:execute$1255'|
+                |ALUOutput'|
+                |PC'|
+                |a4'|
+                |dataout'|))
+            (assume true)
+            (assign (__expr236 (select a4 #b00)))
+            (assign (__expr237 (= __expr236 #b00000)))
+            (!
+              (sequence)
+              :tag
+              main_transition_system_qry_rch_1_reachable
+              :check-true
+              (not (not __expr237)))
+            (assign
+              (clock |clock'|)
+              (datain |datain'|)
+              (instruction |instruction'|)
+              (|$auto$rename.cc:157:execute$1244| |$auto$rename.cc:157:execute$1244'|)
+              (|$auto$rename.cc:157:execute$1246| |$auto$rename.cc:157:execute$1246'|)
+              (|$auto$rename.cc:157:execute$1250| |$auto$rename.cc:157:execute$1250'|)
+              (|$auto$rename.cc:157:execute$1252| |$auto$rename.cc:157:execute$1252'|)
+              (|$auto$rename.cc:157:execute$1254| |$auto$rename.cc:157:execute$1254'|)
+              (|$auto$rename.cc:157:execute$1255| |$auto$rename.cc:157:execute$1255'|)
+              (ALUOutput |ALUOutput'|)
+              (PC |PC'|)
+              (a4 |a4'|)
+              (dataout |dataout'|))))
+        :tag
+        main_transition_system_qry_rch_1_while_true_loop))
+    :tag
+    main_transition_system_qry_rch_1_body))
+(verify-call main_transition_system_qry_rch_1 ())
+(get-witness)
