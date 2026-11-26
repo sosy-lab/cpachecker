@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -73,6 +75,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
   private final ImmutableMap<CFANode, BooleanFormula> supportingInvariants;
   private final NestedLoopSummarizer nestedLoopSummarizer;
   private final ImmutableSet<String> globalVariables;
+  private final ImmutableSet<String> irrelevantVariables;
   protected final LogManager logger;
 
   @Option(
@@ -97,6 +100,14 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       description =
           "Disables checks for fix-point with transition invariants and performs " + "plain BMC.")
   private boolean disableTransitionAbstractions = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Compare at a loop head only the variables that may influence the control flow or whose"
+              + " address is taken. The other variables cannot influence whether a loop"
+              + " terminates.")
+  private boolean compareOnlyRelevantVariables = false;
 
   public TerminationToReachPrecisionAdjustment(
       Solver pSolver,
@@ -149,6 +160,24 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
         CFAUtils.getGlobalVariableDeclarations(pCFA).stream()
             .map(AVariableDeclaration::getQualifiedName)
             .collect(ImmutableSet.toImmutableSet());
+    irrelevantVariables =
+        compareOnlyRelevantVariables && pCFA.getVarClassification().isPresent()
+            ? collectIrrelevantVariables(pCFA.getVarClassification().orElseThrow())
+            : ImmutableSet.of();
+  }
+
+  /**
+   * Returns the assigned variables that neither influence the control flow nor have their address
+   * taken.
+   */
+  private static ImmutableSet<String> collectIrrelevantVariables(
+      VariableClassification pClassification) {
+    return ImmutableSet.copyOf(
+        Sets.difference(
+            Sets.difference(
+                pClassification.getAssignedVariables().elementSet(),
+                pClassification.getRelevantVariables()),
+            pClassification.getAddressedVariables()));
   }
 
   @Override
@@ -856,8 +885,8 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
       int pMaxIndex) {
     ImmutableSet.Builder<Formula> stateVariablesBuilder = ImmutableSet.builder();
     for (Entry<String, Formula> variable : fmgr.extractVariables(pPath).entrySet()) {
-      if (pLatestValues.containsVariable(
-          FormulaManagerView.parseName(variable.getKey()).getFirst())) {
+      String name = FormulaManagerView.parseName(variable.getKey()).getFirst();
+      if (pLatestValues.containsVariable(name) && !irrelevantVariables.contains(name)) {
         stateVariablesBuilder.add(fmgr.uninstantiate(variable.getValue()));
       }
     }

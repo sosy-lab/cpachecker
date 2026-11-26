@@ -4261,6 +4261,11 @@ cpa.terminationviamemory.addConstraintsToPreventOverflows = false
 # use this option.
 cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 
+# Compare at a loop head only the variables that may influence the control
+# flow or whose address is taken. The other variables cannot influence
+# whether a loop terminates.
+cpa.terminationviamemory.compareOnlyRelevantVariables = false
+
 # Disables checks for fix-point with transition invariants and performs plain
 # BMC.
 cpa.terminationviamemory.disableTransitionAbstractions = false
