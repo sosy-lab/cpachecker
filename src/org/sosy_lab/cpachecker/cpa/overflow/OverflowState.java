@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -25,26 +26,38 @@ public final class OverflowState
 
   private final ImmutableSet<? extends AExpression> assumptions;
   private final OverflowState parent;
-  private final boolean nextHasOverflow;
+  private final ImmutableSet<CFAEdge> overflowingNextEdges; // overflow if the assumptions hold
+  private final boolean hasOverflow; // whether the edge that led to this state overflows
   private static final String PROPERTY_OVERFLOW = "overflow";
 
-  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow) {
-    this(pAssumptions, pNextHasOverflow, null);
-  }
-
   public OverflowState(
-      Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow, OverflowState pParent) {
+      Set<? extends AExpression> pAssumptions,
+      Set<CFAEdge> pOverflowingNextEdges,
+      OverflowState pParent,
+      boolean pHasOverflow) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
+    overflowingNextEdges = ImmutableSet.copyOf(pOverflowingNextEdges);
     parent = pParent;
-    nextHasOverflow = pNextHasOverflow;
+    hasOverflow = pHasOverflow;
   }
 
+  /** Whether the edge that led to this state overflows, i.e., whether this is a target state. */
   public boolean hasOverflow() {
-    return parent != null && parent.nextHasOverflow;
+    return hasOverflow;
   }
 
+  /** Whether the assumptions say that the edges {@link #getOverflowingNextEdges()} overflow. */
   public boolean nextHasOverflow() {
-    return nextHasOverflow;
+    return !overflowingNextEdges.isEmpty();
+  }
+
+  /**
+   * The edges that overflow if the assumptions of this state hold. Empty if the assumptions do not
+   * say that an edge overflows, e.g., for the no-overflow successors of the lookahead, for states
+   * after terminal edges, for target states, and for the initial state.
+   */
+  public ImmutableSet<CFAEdge> getOverflowingNextEdges() {
+    return overflowingNextEdges;
   }
 
   public AbstractStateWithAssumptions getParent() {
@@ -58,7 +71,7 @@ public final class OverflowState
 
   @Override
   public int hashCode() {
-    return Objects.hash(assumptions, nextHasOverflow);
+    return Objects.hash(assumptions, overflowingNextEdges, hasOverflow);
   }
 
   @Override
@@ -70,22 +83,26 @@ public final class OverflowState
       return false;
     }
     OverflowState that = (OverflowState) pO;
-    return nextHasOverflow == that.nextHasOverflow && assumptions.equals(that.assumptions);
+    return hasOverflow == that.hasOverflow
+        && overflowingNextEdges.equals(that.overflowingNextEdges)
+        && assumptions.equals(that.assumptions);
   }
 
   @Override
   public String toString() {
     return "OverflowState{assumeEdges=["
         + getReadableAssumptions()
-        + "], nextHasOverflow="
-        + nextHasOverflow
+        + "], overflowingNextEdges="
+        + overflowingNextEdges
+        + ", hasOverflow="
+        + hasOverflow
         + '}';
   }
 
   @Override
   public String toDOTLabel() {
-    if (hasOverflow()) {
-      return "Assumptions:\n" + getReadableAssumptions(this).replace(", ", "\n");
+    if (hasOverflow() && parent != null) {
+      return "Assumptions:\n" + getReadableAssumptions(parent).replace(", ", "\n");
     }
     return "";
   }

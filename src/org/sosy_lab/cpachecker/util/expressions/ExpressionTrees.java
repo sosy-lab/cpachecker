@@ -770,7 +770,7 @@ public final class ExpressionTrees {
           while (!commonFacts.isEmpty() && opIt.hasNext()) {
             Iterable<ExpressionTree<LeafType>> facts = asFacts(opIt.next());
             commonFacts.retainAll(
-                facts instanceof Collection ? (Collection<?>) facts : Lists.newArrayList(facts));
+                facts instanceof Collection<?> collection ? collection : Lists.newArrayList(facts));
             ++nOperands;
           }
 

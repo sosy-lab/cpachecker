@@ -54,7 +54,7 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
               state,
               pPrecision,
               pStates,
-              Functions.compose(abstractState -> state, pStateProjection),
+              Functions.compose(_ -> state, pStateProjection),
               pFullState);
       if (wrappedRes.isPresent()) {
         present = true;

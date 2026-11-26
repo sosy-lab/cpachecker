@@ -110,6 +110,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** Algorithm that uses a safety-analysis to prove (non-)termination. */
@@ -161,6 +162,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
+  // The CFA of the input program. The analysis may work on a copy of it
+  // (analysis.algorithm.copyCFA).
+  private final CFA originalCfa;
   private final ReachedSetFactory reachedSetFactory;
   private final Algorithm safetyAlgorithm;
   private final ConfigurableProgramAnalysis safetyCPA;
@@ -177,6 +181,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
+      CFA pOriginalCfa,
       ReachedSetFactory pReachedSetFactory,
       AggregatedReachedSetManager pAggregatedReachedSetManager,
       Algorithm pSafetyAlgorithm,
@@ -186,6 +191,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     logger = checkNotNull(pLogger);
     shutdownNotifier = pShutdownNotifier;
     cfa = checkNotNull(pCfa);
+    originalCfa = checkNotNull(pOriginalCfa);
     aggregatedReachedSetManager = checkNotNull(pAggregatedReachedSetManager);
     safetyAlgorithm = checkNotNull(pSafetyAlgorithm);
     safetyCPA = checkNotNull(pSafetyCPA);
@@ -204,13 +210,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     LoopStructure loopStructure =
         cfa.getLoopStructure()
-            .orElseThrow(
-                () ->
-                    new InvalidConfigurationException(
-                        "Loop structure is not present, but required for termination analysis."));
+            .orElseThrow(() ->
+                new InvalidConfigurationException(
+                    "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), cfa);
+        new TerminationStatistics(
+            pConfig, logger, loopStructure.getAllLoops().size(), cfa, originalCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, cfa, statistics);
   }
 
@@ -270,7 +276,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         // LassoRanker handles unsigned types incorrectly as it does not account for overflows
         for (CVariableDeclaration variable : getRelevantVariables(loop)) {
           if (variable.getType().getCanonicalType() instanceof CSimpleType pType
-              && !cfa.getMachineModel().isSigned(pType)) {
+              && !cfa.getMachineModel().isSigned(pType)
+              && mayInfluenceControlFlow(variable)) {
             // We cannot determine the loop terminating because it contains unsigned integers and
             // the analysis is possibly unsound.
             logger.log(
@@ -300,6 +307,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // We did not find a non-terminating loop.
     logger.log(Level.INFO, "Termination algorithm did not find a non-terminating loop.");
+    if (status.isSound()) {
+      // Check the supporting invariants for the export now, while the analysis is still running
+      statistics.confirmSupportingInvariants(originalCfa, shutdownNotifier);
+    }
     while (status.isSound() && pReachedSet.hasWaitingState()) {
       pReachedSet.popFromWaitlist();
     }
@@ -621,6 +632,20 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     public String toString() {
       return TerminationInvariantSupplierState.class.getSimpleName() + "[" + invariant + "]";
     }
+  }
+
+  /**
+   * Returns whether the value of {@code pVariable} may influence a branch of the original program.
+   * Wrap-arounds of other variables cannot change the termination behavior.
+   */
+  private boolean mayInfluenceControlFlow(CVariableDeclaration pVariable) {
+    Optional<VariableClassification> varClassification = originalCfa.getVarClassification();
+    if (varClassification.isEmpty()) {
+      return true;
+    }
+    String name = pVariable.getQualifiedName();
+    return varClassification.orElseThrow().getRelevantVariables().contains(name)
+        || varClassification.orElseThrow().getAddressedVariables().contains(name);
   }
 
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {

@@ -19,6 +19,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -104,6 +105,16 @@ public interface PointerTargetSetBuilder {
 
   int getFreshAllocationId();
 
+  /** The facts about equal strings that currently hold, the newest first. */
+  PersistentList<StringEqualityFact> getStringFacts();
+
+  void setStringFacts(PersistentList<StringEqualityFact> facts);
+
+  /** The facts about memory that is still zero since its allocation, the newest first. */
+  ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts();
+
+  void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> facts);
+
   /** Returns an immutable PointerTargetSet with all the changes made to the builder. */
   PointerTargetSet build();
 
@@ -130,6 +141,8 @@ public interface PointerTargetSetBuilder {
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
     private PersistentList<Formula> highestAllocatedAddresses;
     private int allocationCount;
+    private PersistentList<StringEqualityFact> stringFacts;
+    private ImmutableList<ZeroedMemoryFact> zeroedMemoryFacts;
 
     /**
      * Creates a new RealPointerTargetSetBuilder.
@@ -160,6 +173,8 @@ public interface PointerTargetSetBuilder {
       }
       highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
       allocationCount = pointerTargetSet.getAllocationCount();
+      stringFacts = pointerTargetSet.getStringFacts();
+      zeroedMemoryFacts = pointerTargetSet.getZeroedMemoryFacts();
       typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
       options = pOptions;
@@ -343,7 +358,7 @@ public interface PointerTargetSetBuilder {
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
           final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
           if (!offset.isPresent()) {
-            continue; // TODO this looses values of bit fields
+            continue; // TODO this loses values of bit fields that do not fit into a cell
           }
           if (tracksField(CompositeField.of(compositeType, memberDeclaration))) {
             addTargets(
@@ -353,7 +368,11 @@ public interface PointerTargetSetBuilder {
                 containerOffset + properOffset,
                 field);
           }
-          if (isTargetComposite && memberDeclaration.equals(field.getFieldDeclaration())) {
+          // the field may come from a field reference, which has no attributes
+          if (isTargetComposite
+              && memberDeclaration
+                  .withoutAttributes()
+                  .equals(field.getFieldDeclaration().withoutAttributes())) {
             MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
             targets =
                 ptsMgr.addToTargets(
@@ -534,13 +553,12 @@ public interface PointerTargetSetBuilder {
       final Set<Pair<PointerBase, DeferredAllocation>> cache = new HashSet<>(deferredAllocations);
       deferredAllocations.stream()
           .filter(p -> p.getFirst().equals(originalPointer))
-          .forEachOrdered(
-              p -> {
-                final Pair<PointerBase, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
-                if (!cache.contains(pp)) {
-                  deferredAllocations = deferredAllocations.with(pp);
-                }
-              });
+          .forEachOrdered(p -> {
+            final Pair<PointerBase, DeferredAllocation> pp = Pair.of(newPointer, p.getSecond());
+            if (!cache.contains(pp)) {
+              deferredAllocations = deferredAllocations.with(pp);
+            }
+          });
     }
 
     /**
@@ -557,12 +575,11 @@ public interface PointerTargetSetBuilder {
       if (result.isEmpty()) {
         return true;
       }
-      deferredAllocations.forEach(
-          p -> {
-            if (!p.getFirst().equals(pointer)) {
-              result.remove(p.getSecond());
-            }
-          });
+      deferredAllocations.forEach(p -> {
+        if (!p.getFirst().equals(pointer)) {
+          result.remove(p.getSecond());
+        }
+      });
       return result.isEmpty();
     }
 
@@ -750,7 +767,9 @@ public interface PointerTargetSetBuilder {
               deferredAllocations,
               targets,
               highestAllocatedAddresses,
-              allocationCount);
+              allocationCount,
+              stringFacts,
+              zeroedMemoryFacts);
       if (result.isEmpty()) {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
@@ -759,6 +778,26 @@ public interface PointerTargetSetBuilder {
     }
 
     /** Returns a fresh ID that can be used as identifier for a heap allocation. */
+    @Override
+    public PersistentList<StringEqualityFact> getStringFacts() {
+      return stringFacts;
+    }
+
+    @Override
+    public void setStringFacts(PersistentList<StringEqualityFact> pFacts) {
+      stringFacts = pFacts;
+    }
+
+    @Override
+    public ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+      return zeroedMemoryFacts;
+    }
+
+    @Override
+    public void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> pFacts) {
+      zeroedMemoryFacts = pFacts;
+    }
+
     @Override
     public int getFreshAllocationId() {
       allocationCount = Math.incrementExact(allocationCount);
@@ -884,6 +923,26 @@ public interface PointerTargetSetBuilder {
     @Override
     public Iterable<PointerTarget> getNonMatchingTargets(
         MemoryRegion region, Predicate<PointerTarget> pPattern) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PersistentList<StringEqualityFact> getStringFacts() {
+      return PersistentLinkedList.of();
+    }
+
+    @Override
+    public void setStringFacts(PersistentList<StringEqualityFact> pFacts) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ImmutableList<ZeroedMemoryFact> getZeroedMemoryFacts() {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public void setZeroedMemoryFacts(ImmutableList<ZeroedMemoryFact> pFacts) {
       throw new UnsupportedOperationException();
     }
 

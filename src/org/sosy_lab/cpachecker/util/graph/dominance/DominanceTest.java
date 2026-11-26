@@ -773,7 +773,7 @@ public final class DominanceTest {
           .isFalse();
       assertThrows(IllegalArgumentException.class, () -> domTree.getParent(pUnknownNode));
       assertThrows(IllegalArgumentException.class, () -> domTree.getAncestors(pUnknownNode));
-      N otherNode = Iterables.tryFind(domTree, element -> true).or(pUnknownNode);
+      N otherNode = Iterables.tryFind(domTree, _ -> true).or(pUnknownNode);
       assertThrows(
           IllegalArgumentException.class, () -> domTree.isAncestorOf(otherNode, pUnknownNode));
       assertThrows(

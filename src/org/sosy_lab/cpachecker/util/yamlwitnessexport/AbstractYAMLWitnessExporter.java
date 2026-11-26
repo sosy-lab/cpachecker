@@ -105,6 +105,10 @@ public abstract class AbstractYAMLWitnessExporter {
     return mapper;
   }
 
+  protected void exportEntries(AbstractEntry pEntry, Path pOutFile) {
+    exportEntries(ImmutableList.of(pEntry), pOutFile, logger);
+  }
+
   public static void exportEntries(List<AbstractEntry> pEntries, Path outFile, LogManager pLogger) {
     if (outFile == null) {
       pLogger.log(Level.FINE, "Output file is null, not exporting witness.");

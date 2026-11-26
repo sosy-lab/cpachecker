@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 @SuppressFBWarnings(
     value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
-public class Automaton {
+public final class Automaton {
   private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
@@ -154,6 +154,18 @@ public class Automaton {
       }
     }
     return invariants;
+  }
+
+  /** Whether a transition of this automaton has candidate transition invariants. */
+  public boolean hasCandidateTransitionInvariants() {
+    for (AutomatonInternalState state : states) {
+      for (AutomatonTransition transition : state.getTransitions()) {
+        if (!transition.getCandidateTransitionInvariants().equals(ExpressionTrees.getTrue())) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**

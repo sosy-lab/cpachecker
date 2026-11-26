@@ -50,7 +50,7 @@ public class IdentitySlicer extends AbstractSlicer {
 
     List<CFAEdge> relevantEdges = cfaVisitor.getVisitedEdges();
     ImmutableSet<ASimpleDeclaration> relevantDeclarations =
-        AbstractSlice.computeRelevantDeclarations(relevantEdges, declaration -> true);
+        AbstractSlice.computeRelevantDeclarations(relevantEdges, _ -> true);
 
     return new AbstractSlice(pCfa, pSlicingCriteria, relevantEdges, relevantDeclarations) {
 

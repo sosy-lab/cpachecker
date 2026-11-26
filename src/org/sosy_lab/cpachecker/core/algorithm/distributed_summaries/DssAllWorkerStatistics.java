@@ -32,7 +32,8 @@ public class DssAllWorkerStatistics implements Statistics {
   }
 
   public synchronized DssSingleWorkerStatistics createWorkerStats(String pWorkerId) {
-    DssSingleWorkerStatistics stats = new DssSingleWorkerStatistics(pWorkerId);
+    DssSingleWorkerStatistics stats =
+        new DssSingleWorkerStatistics(pWorkerId, printBlockLevelStats);
     workerStats.add(stats);
     return stats;
   }

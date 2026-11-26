@@ -348,16 +348,16 @@ public class ModificationsPropHelper {
 
     try {
       switch (pEdge) {
-        case BlankEdge blankEdge -> {
+        case BlankEdge _ -> {
           return false; // no operation
         }
-        case CFunctionReturnEdge returnEdge -> {
+        case CFunctionReturnEdge _ -> {
           return false; // no operation
         }
-        case CFunctionSummaryEdge summaryEdge -> {
+        case CFunctionSummaryEdge _ -> {
           return false; // CallToReturnEdge handled by CFunctionCallEdge
         }
-        case CStatementEdge stmtEdge -> {
+        case CStatementEdge _ -> {
           return false; // ignored as handled later
         }
         case CDeclarationEdge cDeclarationEdge -> {

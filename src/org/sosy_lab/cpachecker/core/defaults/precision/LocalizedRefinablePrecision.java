@@ -110,17 +110,14 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
 
       FluentIterable<@NonNull MemoryLocation> relevantVariables =
           FluentIterable.from(rawPrecision.get(currentLocation))
-              .filter(
-                  memoryLocation ->
-                      notInternalVariable(memoryLocation.getQualifiedName())
-                          && variableNameInFunction(memoryLocation.getQualifiedName(), functionName)
-                          // Nodes without a scope of their own are overapproximated by the scope
-                          // of their function, where the variables of the node are still in scope
-                          && (precisionScope.isEmpty()
-                              || variableInOriginalProgram(
-                                  memoryLocation.getQualifiedName(),
-                                  astCfaRelation,
-                                  currentLocation)));
+              .filter(memoryLocation ->
+                  notInternalVariable(memoryLocation.getQualifiedName())
+                      && variableNameInFunction(memoryLocation.getQualifiedName(), functionName)
+                      // Nodes without a scope of their own are overapproximated by the scope
+                      // of their function, where the variables of the node are still in scope
+                      && (precisionScope.isEmpty()
+                          || variableInOriginalProgram(
+                              memoryLocation.getQualifiedName(), astCfaRelation, currentLocation)));
 
       Set<String> expressions =
           relevantVariables
@@ -134,7 +131,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
         variablesPerScope
             .computeIfAbsent(
                 precisionScope.orElseGet(() -> new FunctionPrecisionScope(functionName)),
-                key -> new LinkedHashSet<>())
+                _ -> new LinkedHashSet<>())
             .addAll(expressions);
       }
     }

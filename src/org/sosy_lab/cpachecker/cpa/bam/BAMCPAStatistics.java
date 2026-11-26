@@ -104,8 +104,8 @@ class BAMCPAStatistics implements Statistics {
 
   /** to be called before and after executing a transfer relation for a block in (sequential) BAM */
   void switchBlock(Block oldBlock, Block newBlock) {
-    timeForBlock.computeIfAbsent(oldBlock, b -> new Timer()).stopIfRunning();
-    timeForBlock.computeIfAbsent(newBlock, b -> new Timer()).start();
+    timeForBlock.computeIfAbsent(oldBlock, _ -> new Timer()).stopIfRunning();
+    timeForBlock.computeIfAbsent(newBlock, _ -> new Timer()).start();
     // TODO how and when can we start and stop the timer of the main-block?
   }
 

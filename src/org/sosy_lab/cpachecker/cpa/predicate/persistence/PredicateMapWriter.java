@@ -235,15 +235,14 @@ public final class PredicateMapWriter {
     }
     return variablesInScope
         .orElseThrow()
-        .anyMatch(
-            var ->
-                // For local variables
-                (pLocation.getFunctionName()
-                            + FUNCTION_DELIMITER
-                            + Objects.requireNonNull(var).getOrigName())
-                        .equals(pQualifiedVariableName)
-                    // For global variables
-                    || var.getOrigName().equals(pQualifiedVariableName));
+        .anyMatch(var ->
+            // For local variables
+            (pLocation.getFunctionName()
+                        + FUNCTION_DELIMITER
+                        + Objects.requireNonNull(var).getOrigName())
+                    .equals(pQualifiedVariableName)
+                // For global variables
+                || var.getOrigName().equals(pQualifiedVariableName));
   }
 
   public void writePredicateMapAsWitness(
@@ -365,7 +364,7 @@ public final class PredicateMapWriter {
     }
     if (!predicateStrings.isEmpty()) {
       pPredicatesPerScope
-          .computeIfAbsent(pScope, scope -> new LinkedHashSet<>())
+          .computeIfAbsent(pScope, _ -> new LinkedHashSet<>())
           .addAll(predicateStrings);
     }
   }

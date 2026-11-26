@@ -90,7 +90,9 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.KnownFunctionBehaviorDetector;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.SetjmpLongjmpTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.TrivialLoopRemover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
@@ -324,6 +326,24 @@ public class CFACreator {
 
   @Option(
       secure = true,
+      name = "cfa.detectKnownFunctionBehavior",
+      description =
+          "Detect functions of the program that behave like a well-known function (so far,"
+              + " byte-wise implementations of memset and wrappers of them) and store this in"
+              + " their function entry nodes. The structure of the CFA is not changed. Needs the"
+              + " loop structure (analysis.useLoopStructure).")
+  private boolean detectKnownFunctionBehavior = true;
+
+  @Option(
+      secure = true,
+      name = "cfa.transformSetjmpLongjmp",
+      description =
+          "Model setjmp and longjmp with a CFA transformation if the program calls setjmp only once"
+              + " and in a non-recursive function. Calls of longjmp in other programs are kept.")
+  private boolean transformSetjmpLongjmp = true;
+
+  @Option(
+      secure = true,
       name = "cfa.useFunctionCallUnwinding",
       description = "unwind recursive functioncalls (bounded to max call stack size)")
   private boolean useFunctionCallUnwinding = false;
@@ -385,6 +405,8 @@ public class CFACreator {
     private final Timer processingTime = new Timer();
     private final Timer exportTime = new Timer();
     private final Timer loopStructureTime = new Timer();
+    private final Timer knownFunctionBehaviorTime = new Timer();
+    private int knownFunctionBehaviors = 0;
     private final Timer astStructureTime = new Timer();
     private final List<Statistics> statisticsCollection;
     private final LogManager logger;
@@ -410,6 +432,10 @@ public class CFACreator {
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
       out.println("    Time for loop structure:  " + loopStructureTime);
+      if (knownFunctionBehaviorTime.getNumberOfIntervals() > 0) {
+        out.println("    Time for known functions: " + knownFunctionBehaviorTime);
+        out.println("  Number of functions with known behavior: " + knownFunctionBehaviors);
+      }
       out.println("    Time for AST structure:   " + astStructureTime);
 
       if (exportThread != null) {
@@ -534,7 +560,13 @@ public class CFACreator {
     stats.totalTime.start();
     try {
       ParseResult parseResult = parseToCFAs(program);
-      FunctionEntryNode mainFunction = parseResult.functions().get(mainFunctionName);
+
+      // As in parseFileAndCreateCFA, an SV-LIB script starts in the function that calls the
+      // procedure of its verify-call command.
+      FunctionEntryNode mainFunction =
+          language == Language.SVLIB
+              ? getSvLibMainFunction(parseResult.functions())
+              : parseResult.functions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
       return createCFA(parseResult, mainFunction);
@@ -655,10 +687,9 @@ public class CFACreator {
         break;
       }
     }
-    return mainMethodKey.orElseThrow(
-        () ->
-            new InvalidConfigurationException(
-                "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
+    return mainMethodKey.orElseThrow(() ->
+        new InvalidConfigurationException(
+            "Method " + mainFunction + " not found.\n" + EXAMPLE_JAVA_METHOD_NAME));
   }
 
   private ImmutableCFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction)
@@ -711,6 +742,25 @@ public class CFACreator {
       stats.loopStructureTime.start();
       addLoopStructure(cfa);
       stats.loopStructureTime.stop();
+    }
+
+    // find functions that behave like well-known functions
+    // (needs loop information, and each function has to be a separate graph)
+    if (detectKnownFunctionBehavior && language == Language.C) {
+      stats.knownFunctionBehaviorTime.start();
+      Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
+      if (loopStructure.isPresent()) {
+        stats.knownFunctionBehaviors =
+            KnownFunctionBehaviorDetector.detect(cfa, loopStructure.orElseThrow(), logger);
+      } else {
+        // only INFO, because the option is enabled by default and a missing loop structure is
+        // either intended (analysis.useLoopStructure=false) or already reported as warning
+        logger.log(
+            Level.INFO,
+            "Cannot detect functions with known behavior without loop structure"
+                + " (analysis.useLoopStructure).");
+      }
+      stats.knownFunctionBehaviorTime.stop();
     }
 
     // FOURTH, insert call and return edges and build the supergraph
@@ -876,6 +926,10 @@ public class CFACreator {
       transformer.replaceFunctionPointerArrayAssignments(cfa);
     }
 
+    if (language == Language.C && transformSetjmpLongjmp) {
+      new SetjmpLongjmpTransformer(cfa, logger).transformIfNeeded(globalDeclarations);
+    }
+
     // add atexit handlers
     if (language == Language.C) {
       AtExitTransformer atExitTransformer = new AtExitTransformer(cfa, logger, config);
@@ -929,7 +983,9 @@ public class CFACreator {
           final AExpression functionNameExp =
               aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
           if (functionNameExp instanceof AIdExpression aIdExpression) {
-            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())) {
+            if (ThreadingTransferRelation.THREAD_START.equals(aIdExpression.getName())
+                // the ThreadingCPA runs the init routine of pthread_once in a new thread
+                || ThreadingTransferRelation.THREAD_ONCE.equals(aIdExpression.getName())) {
               return true;
             }
           }
@@ -957,21 +1013,19 @@ public class CFACreator {
 
       mainMethodValues =
           nodesWithCorrectClassPath.stream()
-              .filter(
-                  v ->
-                      ((JMethodDeclaration) v.getFunctionDefinition())
-                          .getSimpleName()
-                          .equals(mainMethodName))
+              .filter(v ->
+                  ((JMethodDeclaration) v.getFunctionDefinition())
+                      .getSimpleName()
+                      .equals(mainMethodName))
               .collect(ImmutableSet.toImmutableSet());
     }
 
     if (mainMethodValues.size() >= 2) {
       StringBuilder exceptionMessage = new StringBuilder();
-      mainMethodValues.forEach(
-          k ->
-              exceptionMessage
-                  .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
-                  .append("\n"));
+      mainMethodValues.forEach(k ->
+          exceptionMessage
+              .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
+              .append("\n"));
 
       throw new InvalidConfigurationException(
           "Two or more matching functions for \""
@@ -987,12 +1041,11 @@ public class CFACreator {
   private static Set<FunctionEntryNode> getCfaNodesOfClass(
       Map<String, FunctionEntryNode> cfas, String classPath) {
     return cfas.values().stream()
-        .filter(
-            v ->
-                ((JMethodDeclaration) v.getFunctionDefinition())
-                    .getDeclaringClass()
-                    .getName()
-                    .equals(classPath))
+        .filter(v ->
+            ((JMethodDeclaration) v.getFunctionDefinition())
+                .getDeclaringClass()
+                .getName()
+                .equals(classPath))
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -1242,7 +1295,8 @@ public class CFACreator {
                     v.getName(),
                     v.getOrigName(),
                     v.getQualifiedName(),
-                    initializer);
+                    initializer,
+                    v.hasThreadLocalStorage());
 
             previouslyInitializedVariables.add(name);
             iterator.set(Pair.of(v, p.getSecond())); // replace declaration
@@ -1305,12 +1359,11 @@ public class CFACreator {
           declarationAtNode
               .orElseThrow()
               .filter(Predicates.notNull())
-              .transform(
-                  declaration ->
-                      declaration.getType() instanceof CSimpleType pCSimpleType
-                          ? new AVariableDeclarationExchange(
-                              declaration.getOrigName(), pCSimpleType.getType())
-                          : null)
+              .transform(declaration ->
+                  declaration.getType() instanceof CSimpleType pCSimpleType
+                      ? new AVariableDeclarationExchange(
+                          declaration.getOrigName(), pCSimpleType.getType())
+                      : null)
               .toSet();
 
       // create a new map if it does not exist

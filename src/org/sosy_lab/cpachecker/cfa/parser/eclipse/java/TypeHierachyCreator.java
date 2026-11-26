@@ -188,7 +188,7 @@ class TypeHierachyCreator extends ASTVisitor {
       JClassOrInterfaceType type = converter.convertClassOrInterfaceType(typeBinding);
       typeTable.registerFileNameOfType(type, fileOfCU);
     } else {
-      logger.logf(Level.WARNING, "Type %s has no binding.", node.toString());
+      logger.logf(Level.WARNING, "Type %s has no binding.", node);
     }
 
     return !classNameException;

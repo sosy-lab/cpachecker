@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
@@ -17,19 +19,28 @@ public class TransitionInvariant extends Invariant {
 
   private ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> mapPrevVarsToCurr;
 
+  private final ImmutableMap<CSimpleDeclaration, CExpression> expressionVariables;
+
   public TransitionInvariant(
       ExpressionTree<AExpression> pFormula,
       int pLine,
-      int pColumn,
+      OptionalInt pColumn,
       String pFunction,
       boolean pIsLoopInvariant,
-      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrentVarsToPrev) {
+      ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> pMapCurrentVarsToPrev,
+      ImmutableMap<CSimpleDeclaration, CExpression> pExpressionVariables) {
     super(pFormula, pLine, pColumn, pFunction, pIsLoopInvariant);
     mapPrevVarsToCurr = pMapCurrentVarsToPrev;
+    expressionVariables = pExpressionVariables;
   }
 
   public ImmutableMap<CSimpleDeclaration, CSimpleDeclaration> getMapCurrentVarsToPrev() {
     return mapPrevVarsToCurr;
+  }
+
+  /** See {@link ParsedInvariant#expressionVariables()}. */
+  public ImmutableMap<CSimpleDeclaration, CExpression> getExpressionVariables() {
+    return expressionVariables;
   }
 
   @Override
@@ -45,6 +56,7 @@ public class TransitionInvariant extends Invariant {
 
     return pObj instanceof TransitionInvariant other
         && super.equals(other)
-        && other.mapPrevVarsToCurr.equals(this.mapPrevVarsToCurr);
+        && other.mapPrevVarsToCurr.equals(this.mapPrevVarsToCurr)
+        && other.expressionVariables.equals(this.expressionVariables);
   }
 }

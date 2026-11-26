@@ -300,17 +300,17 @@ public class PartialEvaluator
     BooleanFormula<CompoundInterval> operand2 = pAnd.getOperand2().accept(this, pEvaluationVisitor);
 
     // If either operand is false, return it
-    if (operand1 instanceof BooleanConstant<?> && !((BooleanConstant<?>) operand1).getValue()) {
+    if (operand1 instanceof BooleanConstant<?> booleanOperand1 && !booleanOperand1.getValue()) {
       return operand1;
     }
-    if (operand2 instanceof BooleanConstant<?> && !((BooleanConstant<?>) operand2).getValue()) {
+    if (operand2 instanceof BooleanConstant<?> booleanOperand2 && !booleanOperand2.getValue()) {
       return operand2;
     }
     // If both operands are true, return the first one
-    if (operand1 instanceof BooleanConstant<?>
-        && ((BooleanConstant<?>) operand1).getValue()
-        && operand2 instanceof BooleanConstant<?>
-        && ((BooleanConstant<?>) operand2).getValue()) {
+    if (operand1 instanceof BooleanConstant<?> booleanOperand1
+        && booleanOperand1.getValue()
+        && operand2 instanceof BooleanConstant<?> booleanOperand2
+        && booleanOperand2.getValue()) {
       return operand1;
     }
     if (operand1 == pAnd.getOperand1() && operand2 == pAnd.getOperand2()) {

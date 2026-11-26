@@ -604,12 +604,11 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       StaticCandidateProvider candidateGenerator =
           new StaticCandidateProvider(
               from(conjuncts)
-                  .transform(
-                      pInput -> {
-                        String dumpedFormula = fmgr.dumpFormula(pInput).toString();
-                        formulaToRegion.put(dumpedFormula, pInput);
-                        return makeLocationInvariant(pLocation, dumpedFormula);
-                      }));
+                  .transform(pInput -> {
+                    String dumpedFormula = fmgr.dumpFormula(pInput).toString();
+                    formulaToRegion.put(dumpedFormula, pInput);
+                    return makeLocationInvariant(pLocation, dumpedFormula);
+                  }));
 
       new KInductionInvariantChecker(
               config,
@@ -921,20 +920,19 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
                 found
                     .filter(candidateInvariant -> candidateInvariant.appliesTo(node))
                     .first()
-                    .transform(
-                        candidateInvariant -> {
-                          try {
-                            return candidateInvariant.getFormula(fmgr, pfmgr, null);
-                          } catch (CPATransferException | InterruptedException e) {
-                            // this should never happen, if it does we log
-                            // the exception and return TRUE as invariant
-                            logger.logUserException(
-                                Level.WARNING,
-                                e,
-                                "Invariant could not be retrieved from InvariantGenerator");
-                            return fmgr.getBooleanFormulaManager().makeTrue();
-                          }
-                        })
+                    .transform(candidateInvariant -> {
+                      try {
+                        return candidateInvariant.getFormula(fmgr, pfmgr, null);
+                      } catch (CPATransferException | InterruptedException e) {
+                        // this should never happen, if it does we log
+                        // the exception and return TRUE as invariant
+                        logger.logUserException(
+                            Level.WARNING,
+                            e,
+                            "Invariant could not be retrieved from InvariantGenerator");
+                        return fmgr.getBooleanFormulaManager().makeTrue();
+                      }
+                    })
                     .or(fmgr.getBooleanFormulaManager().makeTrue()),
                 node));
       }

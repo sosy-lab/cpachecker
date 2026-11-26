@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinIoFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -343,18 +344,33 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision)
       throws UnrecognizedCodeException {
 
+    InvariantsState state = pElement;
     if (pEdge.getStatement() instanceof CFunctionCall cFunctionCall) {
-      CExpression fn = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+      CFunctionCallExpression functionCallExpression = cFunctionCall.getFunctionCallExpression();
+      CExpression fn = functionCallExpression.getFunctionNameExpression();
       if (fn instanceof CIdExpression cIdExpression) {
         String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
         }
+        if (BuiltinIoFunctions.matchesFscanf(func)) {
+          // fscanf writes an unknown value through its receiving parameter
+          CExpression receiver =
+              BuiltinIoFunctions.createNondetCallModellingFscanf(functionCallExpression, pEdge)
+                  .getLeftHandSide();
+          state =
+              handleAssignment(
+                  state,
+                  pEdge,
+                  receiver,
+                  allPossibleValues(receiver.getExpressionType()),
+                  pPrecision);
+        }
       }
     }
 
     if (pEdge.getStatement() instanceof CAssignment assignment) {
-      ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
+      ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, state);
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();
       NumeralFormula<CompoundInterval> value =
@@ -372,11 +388,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
                   typeInfo, getCompoundIntervalManager(typeInfo).singleton(0).extendToMaxValue());
         }
       }
-      value = handlePotentialOverflow(pElement, value, leftHandSide.getExpressionType());
-      return handleAssignment(pElement, pEdge, leftHandSide, value, pPrecision);
+      value = handlePotentialOverflow(state, value, leftHandSide.getExpressionType());
+      return handleAssignment(state, pEdge, leftHandSide, value, pPrecision);
     }
 
-    return pElement;
+    return state;
   }
 
   private InvariantsState handleAssignment(
@@ -497,8 +513,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         CExpression actualParam = actualParamIterator.next();
         NumeralFormula<CompoundInterval> actualParamFormula =
             actualParam.accept(getExpressionToFormulaVisitor(summaryEdge, pElement));
-        if (actualParamFormula instanceof Variable) {
-          MemoryLocation actualParamName = ((Variable<?>) actualParamFormula).getMemoryLocation();
+        if (actualParamFormula instanceof Variable<?> variable) {
+          MemoryLocation actualParamName = variable.getMemoryLocation();
           String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
           String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
           for (Entry<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> entry :
@@ -526,10 +542,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     // Remove all variables that are in the scope of the returning function
     result =
-        result.clearAll(
-            pMemoryLocation ->
-                pMemoryLocation.isOnFunctionStack()
-                    && pMemoryLocation.getFunctionName().equals(calledFunctionName));
+        result.clearAll(pMemoryLocation ->
+            pMemoryLocation.isOnFunctionStack()
+                && pMemoryLocation.getFunctionName().equals(calledFunctionName));
 
     return result;
   }
@@ -578,16 +593,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (usePointerAliasStrengthening) {
-      return pointerAliasStrengthening(pElement, pOtherElements, pCfaEdge, state);
+      return pointerAliasStrengthening(pOtherElements, pCfaEdge, state);
     }
-    return Collections.singleton(pElement);
+    return Collections.singleton(state);
   }
 
   private Collection<? extends AbstractState> pointerAliasStrengthening(
-      AbstractState pElement,
-      Iterable<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge,
-      InvariantsState state)
+      Iterable<AbstractState> pOtherElements, CFAEdge pCfaEdge, InvariantsState state)
       throws UnrecognizedCodeException {
     CFAEdge edge = pCfaEdge;
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
@@ -626,10 +638,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
             final String end = location.getExtendedQualifiedName().substring(lastIndexOfSep + 1);
             Iterable<? extends MemoryLocation> targets =
                 FluentIterable.from(result.getEnvironment().keySet())
-                    .filter(
-                        pVar ->
-                            pVar.getIdentifier().endsWith("." + end)
-                                || pVar.getIdentifier().endsWith("->" + end));
+                    .filter(pVar ->
+                        pVar.getIdentifier().endsWith("." + end)
+                            || pVar.getIdentifier().endsWith("->" + end));
             if (moreThanOneLocation || hasMoreThanNElements(targets, 1)) {
               for (MemoryLocation variableName : targets) {
                 Type type = result.getType(variableName);
@@ -654,7 +665,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
       return Collections.singleton(result);
     }
-    return Collections.singleton(pElement);
+    return Collections.singleton(state);
   }
 
   private InvariantsState clearAddressedVariables(InvariantsState pState) {

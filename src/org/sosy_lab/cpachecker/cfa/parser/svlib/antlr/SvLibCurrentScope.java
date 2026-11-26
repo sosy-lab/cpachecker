@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cfa.parser.svlib.antlr;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -22,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSimpleParsingDeclaratio
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSmtFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibSortDeclaration;
 
-class SvLibCurrentScope extends SvLibScope {
+public class SvLibCurrentScope extends SvLibScope {
 
   private PersistentMap<String, SvLibSimpleParsingDeclaration> globalVariables;
 
@@ -36,7 +38,7 @@ class SvLibCurrentScope extends SvLibScope {
   private PersistentMap<String, SvLibProcedureDeclaration> procedureDeclarations;
 
   public SvLibCurrentScope() {
-    super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new ImmutableMap.Builder<>());
+    super(new ImmutableSet.Builder<>(), new ImmutableMap.Builder<>(), new LinkedHashMap<>());
     globalVariables = PathCopyingPersistentTreeMap.of();
     globalVariablesQualifiedNames = PathCopyingPersistentTreeMap.of();
     procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
@@ -53,7 +55,7 @@ class SvLibCurrentScope extends SvLibScope {
       PersistentMap<String, SvLibProcedureDeclaration> pProcedureDeclarations,
       ImmutableSet.Builder<SmtLibLogic> pLogics,
       ImmutableMap.Builder<String, SvLibSortDeclaration> pSortDeclarations,
-      ImmutableMap.Builder<String, SvLibSmtFunctionDeclaration> pFunctionDeclarations) {
+      Map<String, SvLibSmtFunctionDeclaration> pFunctionDeclarations) {
     super(pLogics, pSortDeclarations, pFunctionDeclarations);
     globalVariables = pGlobalVariables;
     globalVariablesQualifiedNames = pGlobalVariablesQualifiedNames;
@@ -97,6 +99,7 @@ class SvLibCurrentScope extends SvLibScope {
   public void leaveProcedure() {
     // Clear the procedure declaration variables when exiting the function/procedure scope
     procedureDeclarationVariables = PathCopyingPersistentTreeMap.of();
+    procedureDeclarationVariablesQualifiedNames = PathCopyingPersistentTreeMap.of();
   }
 
   @Override
@@ -121,6 +124,17 @@ class SvLibCurrentScope extends SvLibScope {
       throw new IllegalArgumentException(
           "Variable with name " + pText + " does not exist in the scope.");
     }
+  }
+
+  @Override
+  public boolean hasVariable(String pText) {
+    return globalVariables.containsKey(pText) || procedureDeclarationVariables.containsKey(pText);
+  }
+
+  @Override
+  public boolean hasVariableForQualifiedName(String pText) {
+    return globalVariablesQualifiedNames.containsKey(pText)
+        || procedureDeclarationVariablesQualifiedNames.containsKey(pText);
   }
 
   @Override
@@ -149,6 +163,13 @@ class SvLibCurrentScope extends SvLibScope {
 
   @Override
   public SvLibProcedureDeclaration getProcedureDeclaration(String pText) {
-    return Objects.requireNonNull(procedureDeclarations.get(pText));
+    return Objects.requireNonNull(
+        procedureDeclarations.get(pText),
+        () -> "Procedure with name " + pText + " does not exist in the scope.");
+  }
+
+  @Override
+  public boolean hasProcedureDeclaration(String pText) {
+    return procedureDeclarations.containsKey(pText);
   }
 }

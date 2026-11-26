@@ -9,12 +9,22 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import java.math.BigInteger;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibBitVectorType;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibFloatingPointType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 
 public sealed interface SvLibConstantTerm extends SvLibTerm
-    permits SvLibBooleanConstantTerm, SvLibIntegerConstantTerm, SvLibRealConstantTerm {
+    permits SvLibArrayConstantTerm,
+        SvLibBitVectorConstantTerm,
+        SvLibBooleanConstantTerm,
+        SvLibFloatingPointConstantTerm,
+        SvLibIntegerConstantTerm,
+        SvLibRealConstantTerm,
+        SvLibRoundingModeConstantTerm {
 
   Object getValue();
 
@@ -41,12 +51,52 @@ public sealed interface SvLibConstantTerm extends SvLibTerm
           }
           yield new SvLibIntegerConstantTerm(i, FileLocation.DUMMY);
         }
+        case REAL -> {
+          // A solver reports a real whose value is integral as an integer
+          Rational value =
+              switch (pValue) {
+                case Rational rational -> rational;
+                case BigInteger bigInt -> Rational.ofBigInteger(bigInt);
+                case Integer val -> Rational.ofLong(val);
+                case Long val -> Rational.ofLong(val);
+                default ->
+                    throw new IllegalArgumentException(
+                        "Expected a rational value for SvLibSmtLibPredefinedType.REAL, but got: "
+                            + pValue);
+              };
+          yield new SvLibRealConstantTerm(value, FileLocation.DUMMY);
+        }
         default ->
             throw new UnsupportedOperationException(
                 "Cannot create constant expression for type: " + pSvLibSmtLibPredefinedType);
       };
     }
 
-    throw new UnsupportedOperationException("Cannot create constant expression for type: " + pType);
+    if (pType instanceof SvLibSmtLibBitVectorType bitVectorType) {
+      BigInteger value;
+      if (pValue instanceof BigInteger bigInt) {
+        value = bigInt;
+      } else if (pValue instanceof Integer val) {
+        value = BigInteger.valueOf(val);
+      } else if (pValue instanceof Long val) {
+        value = BigInteger.valueOf(val);
+      } else {
+        throw new IllegalArgumentException(
+            "Expected numeric value for bitvector type, but got: " + pValue);
+      }
+      if (value.signum() < 0) {
+        // Normalize values of a signed interpretation into [0, 2^size)
+        value = value.add(BigInteger.ONE.shiftLeft(bitVectorType.getSize()));
+      }
+      return new SvLibBitVectorConstantTerm(value, bitVectorType.getSize(), FileLocation.DUMMY);
+    }
+
+    if (pType instanceof SvLibSmtLibFloatingPointType
+        && pValue instanceof FloatingPointNumber floatingPointNumber) {
+      return new SvLibFloatingPointConstantTerm(floatingPointNumber, FileLocation.DUMMY);
+    }
+
+    throw new UnsupportedOperationException(
+        "Cannot create constant expression for type " + pType + " from value " + pValue);
   }
 }

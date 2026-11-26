@@ -357,7 +357,7 @@ class AutomatonASTComparator {
         T pPattern, Function<T, ?> fieldAccess) {
       Object field = fieldAccess.apply(pPattern);
 
-      return (pSource, pArgs) -> Objects.equals(field, fieldAccess.apply(pSource));
+      return (pSource, _) -> Objects.equals(field, fieldAccess.apply(pSource));
     }
 
     private <T extends CAstNode> CheckedASTMatcher<T> compareOperand(
@@ -408,7 +408,7 @@ class AutomatonASTComparator {
     }
   }
 
-  private static class NumberedJokerMatcher implements ASTMatcher {
+  private static final class NumberedJokerMatcher implements ASTMatcher {
 
     private final int number;
 

@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
-public class AutomatonPrecision implements AdjustablePrecision {
+public final class AutomatonPrecision implements AdjustablePrecision {
 
   private final Automaton automaton;
   private boolean enabled;
 
-  public AutomatonPrecision(Automaton pAutomaton) {
+  AutomatonPrecision(Automaton pAutomaton) {
     automaton = pAutomaton;
     enabled = true;
   }

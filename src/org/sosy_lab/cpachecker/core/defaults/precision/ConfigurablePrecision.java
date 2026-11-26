@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,7 +24,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -34,7 +33,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 
 @Options(prefix = "precision")
-public class ConfigurablePrecision extends VariableTrackingPrecision {
+public class ConfigurablePrecision extends NonlocalizedVariableTrackingPrecision {
 
   @Option(
       secure = true,
@@ -118,7 +117,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode location) {
+  public boolean isTracking(MemoryLocation pVariable, Type pType) {
     if (trackFloatVariables) {
       return isTracking(pVariable);
     } else {
@@ -129,7 +128,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     }
   }
 
-  private boolean isTracking(MemoryLocation pVariable) {
+  public boolean isTracking(MemoryLocation pVariable) {
     if (isOnWhitelist(pVariable.getIdentifier())) {
       return true;
     }
@@ -209,7 +208,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public VariableTrackingPrecision withIncrement(Multimap<CFANode, MemoryLocation> pIncrement) {
+  public NonlocalizedVariableTrackingPrecision withIncrement(
+      Collection<MemoryLocation> pIncrement) {
     return this;
   }
 

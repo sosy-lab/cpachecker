@@ -1,0 +1,79 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2026 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.1"
+    uuid: "c0801ef6-9881-4378-9ad3-56e3c947a9a4"
+    creation_time: "2026-11-16T12:00:00+01:00"
+    producer:
+      name: "Handcrafted"
+    task:
+      input_files:
+        - "../../simple/witness_validation/nontermination-in-second-call.c"
+      input_file_hashes:
+        "../../simple/witness_validation/nontermination-in-second-call.c": "31a2fd08b3d85163e8bec1ecb47deb50ec8d7699b102f1a33a9615147582cb7b"
+      specification: "F end"
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/nontermination-in-second-call.c"
+              line: 12
+              column: 3
+              function: "count_down"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/nontermination-in-second-call.c"
+              line: 13
+              column: 5
+              function: "count_down"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "false"
+            location:
+              file_name: "../../simple/witness_validation/nontermination-in-second-call.c"
+              line: 12
+              column: 3
+              function: "count_down"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "true"
+            location:
+              file_name: "../../simple/witness_validation/nontermination-in-second-call.c"
+              line: 12
+              column: 3
+              function: "count_down"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "cycle"
+            constraint:
+              value: "false"
+            location:
+              file_name: "../../simple/witness_validation/nontermination-in-second-call.c"
+              line: 13
+              column: 5
+              function: "count_down"

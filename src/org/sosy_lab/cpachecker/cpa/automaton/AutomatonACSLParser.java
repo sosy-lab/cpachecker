@@ -96,8 +96,7 @@ public class AutomatonACSLParser {
       final ExpressionTree<AExpression> pInvariant)
       throws UnrecognizedCodeException {
     CExpression cExpr = pInvariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
-    if (!(pInvariant instanceof LeafExpression<?>)
-        || ((LeafExpression<?>) pInvariant).assumeTruth()) {
+    if (!(pInvariant instanceof LeafExpression<?> leafExpression) || leafExpression.assumeTruth()) {
       // we must swap the c expression only when assume truth is true
       // because we are only interested in the negated expression anyway
       cExpr =

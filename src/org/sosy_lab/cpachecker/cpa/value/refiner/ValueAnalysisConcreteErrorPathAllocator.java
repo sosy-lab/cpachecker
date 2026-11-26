@@ -114,7 +114,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
                     ImmutableMap.of(),
                     allocateAddresses(valueState, variableAddresses),
                     variableAddresses,
-                    exp -> MEMORY_NAME,
+                    _ -> MEMORY_NAME,
                     machineModel)));
       }
     }
@@ -155,7 +155,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
         ImmutableMap.of(),
         allocateAddresses(pValueState, variableAddresses),
         variableAddresses,
-        exp -> MEMORY_NAME,
+        _ -> MEMORY_NAME,
         pMachineModel);
   }
 

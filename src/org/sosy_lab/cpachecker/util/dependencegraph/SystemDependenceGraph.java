@@ -1169,7 +1169,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         Optional<?> result = pFunction.apply(node);
 
         if (result != null && result.isPresent()) {
-          int id = resultMap.computeIfAbsent(result.orElseThrow(), key -> resultMap.size());
+          int id = resultMap.computeIfAbsent(result.orElseThrow(), _ -> resultMap.size());
           ids[nodeId] = id;
         } else {
           ids[nodeId] = -1;

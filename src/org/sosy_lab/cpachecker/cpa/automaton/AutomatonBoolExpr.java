@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadId;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -68,7 +69,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when
  * <code>eval()</code> is called. The Expression can be evaluated multiple times.
  */
-interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
+non-sealed interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   ResultValue<Boolean> CONST_TRUE = new ResultValue<>(true);
   ResultValue<Boolean> CONST_FALSE = new ResultValue<>(false);
 
@@ -93,7 +94,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  public static class IsStatementEdge implements AutomatonBoolExpr {
+  public static final class IsStatementEdge implements AutomatonBoolExpr {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -116,7 +117,31 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  public static class CheckCoversLines implements AutomatonBoolExpr {
+  /** Matches the edges that return from a function to its call site. */
+  public static final class CheckIsFunctionReturnEdge implements AutomatonBoolExpr {
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return pArgs.getCfaEdge() instanceof FunctionReturnEdge ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "IS_FUNCTION_RETURN_EDGE";
+    }
+
+    @Override
+    public int hashCode() {
+      return 1;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckIsFunctionReturnEdge;
+    }
+  }
+
+  public static final class CheckCoversLines implements AutomatonBoolExpr {
     private final ImmutableSet<Integer> linesToCover;
 
     public CheckCoversLines(Set<Integer> pSet) {
@@ -155,7 +180,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Checks if any successor edge of the current edge covers a given line. In other words it checks
    * if any of the leaving edges of the current edge fulfill the check {@link CheckCoversLines}.
    */
-  public static class CheckReachesLine implements AutomatonBoolExpr {
+  public static final class CheckReachesLine implements AutomatonBoolExpr {
     private final int lineToReach;
 
     public CheckReachesLine(int pLine) {
@@ -197,7 +222,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Checks if the current edge begins or ends at the given line and the given offset lies between
    * the beginning and the end of the statement the edge represents.
    */
-  class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
+  final class CheckCoversOffsetAndLine implements AutomatonBoolExpr {
     private final int offsetToReach;
     private final int lineNumber;
 
@@ -243,20 +268,42 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  /** Checks if the current edge is contained within the ASTElement. */
-  public static class CheckEntersElement implements AutomatonBoolExpr {
+  /** The edges of the element that start at a node which no edge of the element leads to. */
+  private static ImmutableSet<CFAEdge> getIncomingFrontierEdges(ASTElement pElement) {
+    return FluentIterable.from(
+            Sets.difference(
+                transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
+                transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
+        .transformAndConcat(CFANode::getAllLeavingEdges)
+        .filter(edge -> pElement.edges().contains(edge))
+        .toSet();
+  }
+
+  /**
+   * Checks if the current edge is one of the first edges of the ASTElement, e.g., not an edge in
+   * the body of a loop.
+   */
+  public static final class CheckEntersElement implements AutomatonBoolExpr {
 
     private final ASTElement elementToEnter;
 
+    private final ImmutableSet<CFAEdge> firstEdges;
+
     public CheckEntersElement(ASTElement pElement) {
       elementToEnter = pElement;
+      // The predecessor of a return edge is in the called function
+      ImmutableSet<CFAEdge> frontierEdges =
+          FluentIterable.from(getIncomingFrontierEdges(pElement))
+              .filter(edge -> !(edge instanceof FunctionReturnEdge))
+              .toSet();
+      firstEdges = frontierEdges.isEmpty() ? pElement.edges() : frontierEdges;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (elementToEnter.edges().contains(edge)) {
+      if (firstEdges.contains(edge.getOriginal())) {
         return CONST_TRUE;
       }
       return CONST_FALSE;
@@ -283,7 +330,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Sees if any successor of the current edge fulfills {@link CheckEntersElement} */
-  public static class CheckReachesElement implements AutomatonBoolExpr {
+  public static final class CheckReachesElement implements AutomatonBoolExpr {
 
     private final ImmutableSet<CFAEdge> incomingFrontierEdges;
 
@@ -291,21 +338,16 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     public CheckReachesElement(ASTElement pElement) {
       elementToEnter = pElement;
-      incomingFrontierEdges =
-          FluentIterable.from(
-                  Sets.difference(
-                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getPredecessor),
-                      transformedImmutableSetCopy(pElement.edges(), CFAEdge::getSuccessor)))
-              .transformAndConcat(CFANode::getAllLeavingEdges)
-              .filter(edge -> pElement.edges().contains(edge))
-              .toSet();
+      incomingFrontierEdges = getIncomingFrontierEdges(pElement);
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (edge.getSuccessor().getLeavingEdges().anyMatch(e -> incomingFrontierEdges.contains(e))) {
+      if (edge.getSuccessor()
+          .getLeavingEdges()
+          .anyMatch(e -> incomingFrontierEdges.contains(e.getOriginal()))) {
         return CONST_TRUE;
       }
 
@@ -336,7 +378,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Checks if the current edge begins or ends at the given line and the column lies between the
    * starting column of the edge and the column at which the edge ends.
    */
-  public static class CheckCoversColumnAndLine implements AutomatonBoolExpr {
+  public static final class CheckCoversColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
 
@@ -393,7 +435,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Checks if the current edge begins at the given line and column. */
-  public static class CheckMatchesColumnAndLine implements AutomatonBoolExpr {
+  public static final class CheckMatchesColumnAndLine implements AutomatonBoolExpr {
     private final int columnToReach;
     private final int lineNumber;
 
@@ -443,7 +485,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * <p>The closest full expression is defined as in {@link
    * CFAUtils#getClosestFullExpression(CCfaEdge,AstCfaRelation)}.
    */
-  public static class CheckClosestFullExpressionMatchesColumnAndLine implements AutomatonBoolExpr {
+  public static final class CheckClosestFullExpressionMatchesColumnAndLine
+      implements AutomatonBoolExpr {
     private final OptionalInt columnToReach;
     private final int lineNumber;
     private final AstCfaRelation astCfaRelation;
@@ -464,7 +507,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       }
 
       Optional<FileLocation> optionalFullExpressionLocation =
-          CFAUtils.getClosestFullExpression(cCfaEdge, astCfaRelation);
+          CFAUtils.getClosestFullExpression((CCfaEdge) cCfaEdge.getOriginal(), astCfaRelation);
       if (optionalFullExpressionLocation.isEmpty()) {
         return CONST_FALSE;
       }
@@ -503,7 +546,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * The check succeeds if any of the edges leaving any of the successor nodes of the current edge
    * fulfil {@link CheckCoversOffsetAndLine}.
    */
-  public static class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
+  public static final class CheckReachesOffsetAndLine implements AutomatonBoolExpr {
     private final int offsetToReach;
     private final int lineNumber;
 
@@ -542,11 +585,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         if (edgeLocation.getNodeOffset() + edgeLocation.getNodeLength() < offsetToReach) {
           if (edge.getSuccessor()
               .getLeavingEdges()
-              .anyMatch(
-                  e ->
-                      offsetToReach
-                          <= e.getFileLocation().getNodeOffset()
-                              + e.getFileLocation().getNodeLength())) {
+              .anyMatch(e ->
+                  offsetToReach
+                      <= e.getFileLocation().getNodeOffset()
+                          + e.getFileLocation().getNodeLength())) {
 
             return CONST_TRUE;
           }
@@ -575,7 +617,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Checks if the given edge leaves the condition of an if statement to enter the provided branch
    * of it
    */
-  class CheckPassesThroughNodes implements AutomatonBoolExpr {
+  final class CheckPassesThroughNodes implements AutomatonBoolExpr {
 
     private final Set<CFANode> edgePredecessorMatch;
 
@@ -583,8 +625,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     public CheckPassesThroughNodes(
         Set<CFANode> pEdgePredecessorMatch, Set<CFANode> pEdgeSuccessorMatch) {
-      edgePredecessorMatch = pEdgePredecessorMatch;
-      edgeSuccessorMatch = pEdgeSuccessorMatch;
+      edgePredecessorMatch =
+          pEdgePredecessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
+      edgeSuccessorMatch =
+          pEdgeSuccessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
     }
 
     @Override
@@ -595,8 +643,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this
       // happens when there is no else branch in an if statement.
-      if (edgeSuccessorMatch.contains(edge.getSuccessor())
-          && edgePredecessorMatch.contains(edge.getPredecessor())) {
+      if (edgeSuccessorMatch.contains(edge.getSuccessor().getOriginal())
+          && edgePredecessorMatch.contains(edge.getPredecessor().getOriginal())) {
         return CONST_TRUE;
       }
 
@@ -614,12 +662,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Checks if the given edge ends at any of the provided nodes */
-  class CheckEndsAtNodes implements AutomatonBoolExpr {
+  final class CheckEndsAtNodes implements AutomatonBoolExpr {
 
     private final Set<CFANode> edgeSuccessorMatch;
 
     public CheckEndsAtNodes(Set<CFANode> pEdgeSuccessorMatch) {
-      edgeSuccessorMatch = pEdgeSuccessorMatch;
+      edgeSuccessorMatch =
+          pEdgeSuccessorMatch.stream()
+              .map(CFANode::getOriginal)
+              .collect(ImmutableSet.toImmutableSet());
     }
 
     @Override
@@ -630,7 +681,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       // Sometimes it happens that there are multiple ways of getting to the same node.
       // We only want the edges which went through the condition element. In particular this
       // happens when there is no else branch in an if statement.
-      if (edgeSuccessorMatch.contains(edge.getSuccessor())) {
+      if (edgeSuccessorMatch.contains(edge.getSuccessor().getOriginal())) {
         return CONST_TRUE;
       }
 
@@ -690,7 +741,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  class MatchSuccessor implements AutomatonBoolExpr {
+  final class MatchSuccessor implements AutomatonBoolExpr {
 
     private final ImmutableSet<CFANode> acceptedNodes;
 
@@ -730,7 +781,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  class EpsilonMatch implements AutomatonBoolExpr {
+  final class EpsilonMatch implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr expr;
 
@@ -855,7 +906,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchFunctionCallStatement implements AutomatonBoolExpr {
+  static final class MatchFunctionCallStatement implements AutomatonBoolExpr {
 
     private final String functionName;
 
@@ -898,7 +949,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchFunctionCall implements AutomatonBoolExpr {
+  static final class MatchFunctionCall implements AutomatonBoolExpr {
 
     private final String functionName;
 
@@ -936,7 +987,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchFunctionPointerAssumeCase implements AutomatonBoolExpr {
+  static final class MatchFunctionPointerAssumeCase implements AutomatonBoolExpr {
 
     private final MatchAssumeCase matchAssumeCase;
 
@@ -1002,7 +1053,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchFunctionExit implements AutomatonBoolExpr {
+  static final class MatchFunctionExit implements AutomatonBoolExpr {
 
     private final String functionName;
 
@@ -1053,7 +1104,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Implements a match on the label after the current CFAEdge. The eval method returns false if
    * there is no label following the CFAEdge.
    */
-  static class MatchLabelExact implements AutomatonBoolExpr {
+  static final class MatchLabelExact implements AutomatonBoolExpr {
 
     private final String label;
 
@@ -1092,7 +1143,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Implements a regex match on the label after the current CFAEdge. The eval method returns false
    * if there is no label following the CFAEdge. (".*" in java-regex means "any characters")
    */
-  static class MatchLabelRegEx implements AutomatonBoolExpr {
+  static final class MatchLabelRegEx implements AutomatonBoolExpr {
 
     private final Pattern pattern;
 
@@ -1139,7 +1190,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Comparison evaluates the pattern (coming from the Automaton Definition) and the C-Statement on
    * the CFA Edge to ASTs and compares these with a Tree comparison algorithm.
    */
-  static class MatchCFAEdgeASTComparison implements AutomatonBoolExpr {
+  static final class MatchCFAEdgeASTComparison implements AutomatonBoolExpr {
 
     private final ASTMatcher patternAST;
 
@@ -1182,7 +1233,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchCFAEdgeRegEx implements AutomatonBoolExpr {
+  static final class MatchCFAEdgeRegEx implements AutomatonBoolExpr {
 
     private final Pattern pattern;
 
@@ -1215,7 +1266,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchCFAEdgeNodes implements AutomatonBoolExpr {
+  static final class MatchCFAEdgeNodes implements AutomatonBoolExpr {
 
     private final int predecessorNodeNumber;
     private final int successorNodeNumber;
@@ -1257,7 +1308,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchCFAEdgeExact implements AutomatonBoolExpr {
+  static final class MatchCFAEdgeExact implements AutomatonBoolExpr {
 
     private final String pattern;
 
@@ -1323,7 +1374,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchAssumeCase implements AutomatonBoolExpr {
+  static final class MatchAssumeCase implements AutomatonBoolExpr {
 
     private final boolean matchPositiveCase;
 
@@ -1364,7 +1415,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchAllSuccessorEdgesBoolExpr implements AutomatonBoolExpr {
+  static final class MatchAllSuccessorEdgesBoolExpr implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr operandExpression;
 
@@ -1414,7 +1465,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchAnySuccessorEdgesBoolExpr implements AutomatonBoolExpr {
+  static final class MatchAnySuccessorEdgesBoolExpr implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr operandExpression;
 
@@ -1436,12 +1487,11 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
               callEdge
                   .getReturnNode()
                   .getEnteringEdges()
-                  .filter(
-                      e ->
-                          (e instanceof AStatementEdge aStatementEdge
-                                  && call.equals(aStatementEdge.getStatement()))
-                              || (e instanceof FunctionReturnEdge functionReturnEdge
-                                  && summaryEdge.equals(functionReturnEdge.getSummaryEdge())));
+                  .filter(e ->
+                      (e instanceof AStatementEdge aStatementEdge
+                              && call.equals(aStatementEdge.getStatement()))
+                          || (e instanceof FunctionReturnEdge functionReturnEdge
+                              && summaryEdge.equals(functionReturnEdge.getSummaryEdge())));
           leavingEdges = Iterables.concat(leavingEdges, potentialFurtherMatches);
         }
       }
@@ -1521,13 +1571,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  static class MatchLocationDescriptor implements AutomatonBoolExpr {
+  static final class MatchLocationDescriptor implements AutomatonBoolExpr {
 
     private final FunctionEntryNode mainEntry;
 
     private final java.util.function.Predicate<FileLocation> matchDescriptor;
 
-    public MatchLocationDescriptor(
+    MatchLocationDescriptor(
         FunctionEntryNode pMainEntry, java.util.function.Predicate<FileLocation> pDescriptor) {
       Preconditions.checkNotNull(pDescriptor);
 
@@ -1540,7 +1590,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       return eval(pArgs.getCfaEdge()) ? CONST_TRUE : CONST_FALSE;
     }
 
-    protected boolean eval(CFAEdge edge) {
+    boolean eval(CFAEdge edge) {
       return AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(edge, mainEntry).stream()
           .anyMatch(matchDescriptor);
     }
@@ -1571,7 +1621,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * TRUE; Returns FALSE if all Elements returned either FALSE or an InvalidQueryException. Returns
    * MAYBE if no Element is available or the Variables could not be replaced.
    */
-  public static class ALLCPAQuery implements AutomatonBoolExpr {
+  public static final class ALLCPAQuery implements AutomatonBoolExpr {
     private final String queryString;
 
     public ALLCPAQuery(String pString) {
@@ -1645,10 +1695,60 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /**
+   * Checks whether the thread that takes the current edge has the given witness thread id.
+   *
+   * <p>If the CFA was cloned per thread (see {@link CFANode#getCloneThreadId()}), the edge itself
+   * names the thread that takes it, and its clone thread id is compared directly. Otherwise, the
+   * thread is only known to the analysis, so the check is delegated to the other CPAs' states
+   * (e.g., the ThreadingCPA) like {@link ALLCPAQuery} does with the query {@code
+   * AutomatonWitnessViolationV2Parser#THREAD_ID_QUERY}. In particular, if no state answers the
+   * query, the result is unknown and not false.
+   */
+  static final class CheckCurrentThreadId implements AutomatonBoolExpr {
+    private final int threadId;
+    private final ALLCPAQuery fallbackQuery;
+
+    CheckCurrentThreadId(int pThreadId) {
+      threadId = pThreadId;
+      fallbackQuery =
+          new ALLCPAQuery(AutomatonWitnessViolationV2Parser.THREAD_ID_QUERY + pThreadId);
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      Optional<ThreadId> cloneThreadId = edge.getSuccessor().getCloneThreadId();
+      if (cloneThreadId.isEmpty()) {
+        cloneThreadId = edge.getPredecessor().getCloneThreadId();
+      }
+      if (cloneThreadId.isPresent()) {
+        return cloneThreadId.orElseThrow().id() == threadId ? CONST_TRUE : CONST_FALSE;
+      }
+      return fallbackQuery.eval(pArgs);
+    }
+
+    @Override
+    public String toString() {
+      return "CHECK_CURRENT_THREAD_ID(" + threadId + ")";
+    }
+
+    @Override
+    public int hashCode() {
+      return Integer.hashCode(threadId) * 31;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof CheckCurrentThreadId other && threadId == other.threadId;
+    }
+  }
+
+  /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
    * query-Result.
    */
-  static class CPAQuery implements AutomatonBoolExpr {
+  static final class CPAQuery implements AutomatonBoolExpr {
     private final String cpaName;
     private final String queryString;
 
@@ -1795,7 +1895,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         }
       };
 
-  abstract static class IntBinaryTest implements AutomatonBoolExpr {
+  abstract static sealed class IntBinaryTest implements AutomatonBoolExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -1854,21 +1954,21 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}. */
-  static class IntEqTest extends IntBinaryTest {
+  static final class IntEqTest extends IntBinaryTest {
     public IntEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
       super(pA, pB, Integer::equals, "==");
     }
   }
 
   /** Tests whether two instances of {@link AutomatonIntExpr} evaluate to different integers. */
-  static class IntNotEqTest extends IntBinaryTest {
+  static final class IntNotEqTest extends IntBinaryTest {
     public IntNotEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
       super(pA, pB, (a, b) -> !a.equals(b), "!=");
     }
   }
 
   /** Computes the disjunction of two {@link AutomatonBoolExpr} (lazy evaluation). */
-  static class Or extends BoolBinaryTest {
+  static final class Or extends BoolBinaryTest {
     public Or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
       super(pA, pB, null, "||");
     }
@@ -1908,7 +2008,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Computes the conjunction of two {@link AutomatonBoolExpr} (lazy evaluation). */
-  static class And extends BoolBinaryTest {
+  static final class And extends BoolBinaryTest {
     public And(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
       super(pA, pB, null, "&&");
     }
@@ -1952,7 +2052,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
    * Negates the result of a {@link AutomatonBoolExpr}. If the result is MAYBE it is returned
    * unchanged.
    */
-  static class Negation implements AutomatonBoolExpr {
+  static final class Negation implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
 
@@ -1994,7 +2094,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  abstract static class BoolBinaryTest implements AutomatonBoolExpr {
+  abstract static sealed class BoolBinaryTest implements AutomatonBoolExpr {
 
     protected final AutomatonBoolExpr a;
     protected final AutomatonBoolExpr b;
@@ -2055,16 +2155,16 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /** Boolean Equality */
-  static class BoolEqTest extends BoolBinaryTest {
+  static final class BoolEqTest extends BoolBinaryTest {
     public BoolEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
       super(pA, pB, Boolean::equals, "==");
     }
   }
 
   /** Boolean != */
-  static class BoolNotEqTest extends BoolBinaryTest {
+  static final class BoolNotEqTest extends BoolBinaryTest {
     public BoolNotEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      super(pA, pB, (a, b) -> !a.equals(b), "!=");
+      super(pA, pB, (boolA, boolB) -> !boolA.equals(boolB), "!=");
     }
   }
 }

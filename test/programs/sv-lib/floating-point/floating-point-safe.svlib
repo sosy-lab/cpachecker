@@ -1,0 +1,28 @@
+; This file is part of CPAchecker,
+; a tool for configurable software verification:
+; https://cpachecker.sosy-lab.org
+;
+; SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
+;
+; SPDX-License-Identifier: Apache-2.0
+
+(set-logic ALL)
+
+(set-info :format-version 1.0)
+
+(define-proc
+  main
+  ()
+  ()
+  ((one (_ FloatingPoint 8 24)) (two (_ FloatingPoint 8 24)))
+  (! (sequence
+    (assign (one (fp #b0 #b01111111 #b00000000000000000000000)))
+    (assign (two (fp.add RNE one one)))
+    (! (sequence)
+      :tag check
+      :check-true (fp.eq two (fp #b0 #b10000000 #b00000000000000000000000))
+      :check-true (fp.eq (fp.sub roundNearestTiesToEven two one) one)
+      :check-true (fp.lt one two))) :tag main-body))
+
+(verify-call main ())
+(get-witness)

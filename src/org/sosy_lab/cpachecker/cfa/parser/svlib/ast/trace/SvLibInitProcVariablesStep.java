@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.io.Serial;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.svlib.SmtLibSymbols;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibConstantTerm;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibIdTerm;
 import org.sosy_lab.cpachecker.cfa.parser.svlib.ast.SvLibParsingAstNodeVisitor;
@@ -45,18 +46,17 @@ public final class SvLibInitProcVariablesStep extends SvLibTraceStep {
   @Override
   public String toASTString() {
     return "(init-proc-vars "
-        + procedureDeclaration.getName()
+        + SmtLibSymbols.quoteIfNeeded(procedureDeclaration.getName())
         + " "
         + Joiner.on(" ")
             .join(
                 assignments.entrySet().stream()
-                    .map(
-                        entry ->
-                            "("
-                                + entry.getKey().toASTString()
-                                + " "
-                                + entry.getValue().toASTString()
-                                + ")")
+                    .map(entry ->
+                        "("
+                            + entry.getKey().toASTString()
+                            + " "
+                            + entry.getValue().toASTString()
+                            + ")")
                     .toList())
         + ")";
   }

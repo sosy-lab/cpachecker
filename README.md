@@ -88,10 +88,11 @@ Verifying a Program with CPAchecker
    A specific analysis (like k-induction) can be chosen
    for example with `bin/cpachecker --config/kInduction.properties doc/examples/example.c`
    or the equivalent abbreviation `bin/cpachecker --kInduction doc/examples/example.c`.
-   Java 21 or later is necessary. If it is not in your PATH,
+   Java 25 or later is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
-   Example: `export JAVA=/usr/lib/jvm/java-21-openjdk-amd64/bin/java`
-   for 64bit OpenJDK 21 on Ubuntu.
+   Example: `export JAVA=/usr/lib/jvm/java-25-openjdk-amd64/bin/java`
+   for 64bit OpenJDK 25 on Ubuntu.
+   Cf. [INSTALL.md](INSTALL.md) for our policy on raising required dependency versions.
 
    Please note that not all analysis configurations are available for MacOS
    because we do not ship binaries for SMT solvers for this platform.

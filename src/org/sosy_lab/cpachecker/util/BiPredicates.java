@@ -17,11 +17,11 @@ import java.util.function.Predicate;
 public class BiPredicates {
 
   public static <T, U> BiPredicate<T, U> alwaysFalse() {
-    return (a, b) -> false;
+    return (_, _) -> false;
   }
 
   public static <T, U> BiPredicate<T, U> alwaysTrue() {
-    return (a, b) -> true;
+    return (_, _) -> true;
   }
 
   public static <T> BiPredicate<T, T> bothSatisfy(Predicate<? super T> p) {

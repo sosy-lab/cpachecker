@@ -12,6 +12,7 @@ import java.io.Serial;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibArrayType;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibType;
 
 public final class SvLibIdTerm extends AIdExpression implements SvLibTerm, SvLibLeftHandSide {
@@ -40,6 +41,24 @@ public final class SvLibIdTerm extends AIdExpression implements SvLibTerm, SvLib
   @NonNull
   public SvLibSimpleDeclaration getDeclaration() {
     return (SvLibSimpleDeclaration) super.getDeclaration();
+  }
+
+  @Override
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    // An indexed identifier like (_ extract 7 0) is no symbol, so it is never quoted
+    if (getDeclaration() instanceof SvLibFunctionDeclaration function
+        && function.getIndexedSymbol().isPresent()) {
+      return function.getIndexedSymbol().orElseThrow().toString();
+    }
+    // The constant array is a qualified identifier, see SmtLibTheoryDeclarations#arrayConst
+    if (getDeclaration() instanceof SvLibFunctionDeclaration function
+        && function.getName().equals("const")
+        && !function.isUninterpreted()
+        && !function.hasBeenDefined()
+        && function.getType().getReturnType() instanceof SvLibSmtLibArrayType arrayType) {
+      return "(as const " + arrayType.toASTString() + ")";
+    }
+    return SmtLibSymbols.quoteIfNeeded(super.toASTString(pAAstNodeRepresentation));
   }
 
   @Override

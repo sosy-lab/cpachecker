@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.GREATER_EQUAL;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.LESS_THAN;
@@ -27,8 +28,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypeQualifiers;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @RunWith(Parameterized.class)
@@ -83,6 +86,20 @@ public class CBinaryExpressionBuilderTest {
     checkRelationalTypes(EQUALS);
     checkRelationalTypes(LESS_THAN);
     checkRelationalTypes(GREATER_EQUAL);
+  }
+
+  @Test
+  public void multiplicationWithPointerIsUnrecognized() {
+    CPointerType pointer = new CPointerType(CTypeQualifiers.NONE, S_INT);
+    assertThrows(
+        UnrecognizedCodeException.class,
+        () ->
+            c.getCalculationTypeForBinaryOperation(
+                S_INT,
+                pointer,
+                MULTIPLY,
+                CIntegerLiteralExpression.ZERO,
+                CIntegerLiteralExpression.ZERO));
   }
 
   private void checkArithmeticTypes(BinaryOperator op) throws UnrecognizedCodeException {

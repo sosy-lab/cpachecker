@@ -96,7 +96,7 @@ public class PolyhedraWideningManager {
 
     for (Template t : diff) {
       out.add(t);
-      out.add(Template.of(t.getLinearExpression().negate()));
+      out.add(new Template(t.linearExpression().negate()));
     }
     return out;
   }
@@ -125,7 +125,7 @@ public class PolyhedraWideningManager {
       Template t = ofExpression(constraint);
 
       // We want: -t <= coeff.
-      Template tNegated = Template.of(t.getLinearExpression().negate());
+      Template tNegated = new Template(t.linearExpression().negate());
 
       out.put(tNegated, coeff);
     }
@@ -163,7 +163,7 @@ public class PolyhedraWideningManager {
       out = out.add(LinearExpression.monomial(types.get(varName), coeff));
     }
 
-    return Template.of(out);
+    return new Template(out);
   }
 
   private Rational ofCoeff(Coeff c) {
@@ -175,7 +175,7 @@ public class PolyhedraWideningManager {
   private Lincons1 fromTemplateBound(Environment environment, Template t, Rational bound) {
     // APRON supports only ">= 0".
     // We are getting from "t <= x" to "-t + x >= 0"
-    Linexpr1 expr = fromLinearExpression(environment, t.getLinearExpression().negate());
+    Linexpr1 expr = fromLinearExpression(environment, t.linearExpression().negate());
     expr.setCst(ofRational(bound));
     return new Lincons1(Lincons1.SUPEQ, expr);
   }
@@ -197,7 +197,7 @@ public class PolyhedraWideningManager {
   }
 
   private Environment generateEnvironment(Environment environment, Template t) {
-    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
+    for (Entry<CIdExpression, Rational> e : t.linearExpression()) {
       CIdExpression id = e.getKey();
       String varName = id.getDeclaration().getQualifiedName();
       types.put(varName, id);

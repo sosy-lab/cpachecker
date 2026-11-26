@@ -10,8 +10,7 @@ SPDX-FileCopyrightText: 2026 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN"
-  "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
 
   <!--
@@ -31,7 +30,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks name="SV-LIB.Simple">
-    <include>../programs/sv-lib/*.yml</include>
+    <includesfile>../programs/sv-lib/svlib.set</includesfile>
     <propertyfile>../config/properties/correct-annotations.prp</propertyfile>
   </tasks>
 

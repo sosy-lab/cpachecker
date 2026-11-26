@@ -532,7 +532,7 @@ public final class AutomatonGraphmlCommon {
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
     switch (edge) {
-      case BlankEdge blankEdge -> {
+      case BlankEdge _ -> {
         if (isMainFunctionEntry(edge)) {
           return false;
         }
@@ -568,7 +568,7 @@ public final class AutomatonGraphmlCommon {
           }
         }
       }
-      case CFunctionSummaryStatementEdge summaryEdge -> {
+      case CFunctionSummaryStatementEdge _ -> {
         return true;
       }
       case AStatementEdge statementEdge -> {

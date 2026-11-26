@@ -9,6 +9,9 @@
 package org.sosy_lab.cpachecker.cfa.ast.svlib;
 
 import java.io.Serial;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.svlib.SvLibSmtLibPredefinedType;
@@ -52,7 +55,21 @@ public final class SvLibRealConstantTerm implements SvLibConstantTerm {
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(/ " + value.getNum() + " " + value.getDen() + ")";
+    // SMT-LIB has no negative numerals, -1 would be a symbol. A decimal is a real in every logic,
+    // while a numeral is one only in a logic without integers.
+    BigInteger numerator = value.getNum().abs();
+    BigInteger denominator = value.getDen();
+    String absoluteValue;
+    try {
+      BigDecimal decimal =
+          new BigDecimal(numerator).divide(new BigDecimal(denominator), MathContext.UNLIMITED);
+      absoluteValue =
+          decimal.scale() > 0 ? decimal.toPlainString() : decimal.toPlainString() + ".0";
+    } catch (ArithmeticException e) {
+      // The value has no finite decimal expansion
+      absoluteValue = "(/ " + numerator + " " + denominator + ")";
+    }
+    return value.getNum().signum() < 0 ? "(- " + absoluteValue + ")" : absoluteValue;
   }
 
   @Override

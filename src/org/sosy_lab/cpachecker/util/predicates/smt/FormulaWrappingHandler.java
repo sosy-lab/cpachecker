@@ -85,11 +85,11 @@ final class FormulaWrappingHandler {
 
   @SuppressWarnings("unchecked")
   <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
-    if (toWrap instanceof WrappingFormula<?, ?>) {
+    if (toWrap instanceof WrappingFormula<?, ?> wrappingFormula) {
       throw new IllegalArgumentException(
           String.format(
               "Cannot double-wrap a formula %s, which has already been wrapped as %s, as %s.",
-              toWrap, ((WrappingFormula<?, ?>) toWrap).getType(), targetType));
+              toWrap, wrappingFormula.getType(), targetType));
     }
 
     if (targetType.isIntegerType() && (encodeIntegerAs != Theory.INTEGER)) {
@@ -118,8 +118,8 @@ final class FormulaWrappingHandler {
   }
 
   <T extends Formula> Formula unwrap(T f) {
-    if (f instanceof WrappingFormula<?, ?>) {
-      return ((WrappingFormula<?, ?>) f).getWrapped();
+    if (f instanceof WrappingFormula<?, ?> wrappingFormula) {
+      return wrappingFormula.getWrapped();
     } else {
       return f;
     }

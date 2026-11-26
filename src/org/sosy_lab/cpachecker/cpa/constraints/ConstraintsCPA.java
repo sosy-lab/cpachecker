@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -96,6 +97,7 @@ public class ConstraintsCPA
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    logger.logf(Level.INFO, "Using symbolic execution with %s.", solver.getVersion());
     FormulaManagerView formulaManager = solver.getFormulaManager();
     CtoFormulaConverter converter =
         initializeCToFormulaConverter(

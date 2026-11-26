@@ -15,7 +15,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssTestUtils;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysisTestBase;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.callstack.DssCallstackCPA;
 import org.sosy_lab.cpachecker.util.test.TestUtils;
 
 public class DistributedCallstackCPATest {
@@ -25,7 +25,7 @@ public class DistributedCallstackCPATest {
     Configuration config =
         TestUtils.configurationForTest().loadFromFile(DssTestUtils.DSS_CONFIGURATION_FILE).build();
     ConfigurableProgramAnalysis cpa =
-        CallstackCPA.factory()
+        DssCallstackCPA.factory()
             .setConfiguration(config)
             .setLogger(LogManager.createTestLogManager())
             .setShutdownNotifier(ShutdownNotifier.createDummy())

@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWrit
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -54,6 +55,10 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
       VariableTrackingPrecision pBaseline, Iterable<MemoryLocation> pRawPrecision) {
     super(pBaseline);
     rawPrecision = ImmutableSortedSet.copyOf(pRawPrecision);
+  }
+
+  public ImmutableCollection<MemoryLocation> getRawPrecision() {
+    return rawPrecision;
   }
 
   @Override

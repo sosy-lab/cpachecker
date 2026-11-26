@@ -37,7 +37,7 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
   @Override
   public ExpressionTree<LeafType> leaf(LeafType pLeafExpression, boolean pAssumeTruth) {
     ExpressionTree<LeafType> potentialResult = LeafExpression.of(pLeafExpression, pAssumeTruth);
-    return leafCache.computeIfAbsent(potentialResult, ignore -> potentialResult);
+    return leafCache.computeIfAbsent(potentialResult, _ -> potentialResult);
   }
 
   @Override
@@ -53,7 +53,7 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
       case 1 -> Iterables.getOnlyElement(pOperands);
       default -> {
         final ImmutableSet<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
-        yield andCache.computeIfAbsent(key, ignore -> And.of(key));
+        yield andCache.computeIfAbsent(key, _ -> And.of(key));
       }
     };
   }
@@ -70,7 +70,7 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
       case 1 -> Iterables.getOnlyElement(pOperands);
       default -> {
         final ImmutableSet<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
-        yield orCache.computeIfAbsent(key, ignore -> Or.of(key));
+        yield orCache.computeIfAbsent(key, _ -> Or.of(key));
       }
     };
   }

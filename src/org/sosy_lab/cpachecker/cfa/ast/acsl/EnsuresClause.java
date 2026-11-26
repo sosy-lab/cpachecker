@@ -41,6 +41,6 @@ public class EnsuresClause {
 
   @Override
   public int hashCode() {
-    return Objects.hash(predicate);
+    return Objects.hashCode(predicate);
   }
 }

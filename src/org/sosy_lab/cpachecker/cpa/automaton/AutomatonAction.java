@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * Implements an Action with side effects that has no return value. The Action can be executed
  * multiple times.
  */
-abstract class AutomatonAction {
+abstract sealed class AutomatonAction {
   private AutomatonAction() {}
 
   private static ResultValue<String> defaultResultValue = new ResultValue<>("");
@@ -50,7 +50,7 @@ abstract class AutomatonAction {
   // abstract void execute(AutomatonExpressionArguments pArgs);
 
   /** Logs a String when executed. */
-  static class Print extends AutomatonAction {
+  static sealed class Print extends AutomatonAction {
     protected final List<AutomatonExpression<?>> toPrint;
 
     public Print(List<AutomatonExpression<?>> pArgs) {
@@ -95,7 +95,7 @@ abstract class AutomatonAction {
   }
 
   /** Logs a String when executed. Prints each String only once. */
-  static class PrintOnce extends Print {
+  static final class PrintOnce extends Print {
     private final Set<String> alreadyPrintedMessages = Sets.newConcurrentHashSet();
 
     public PrintOnce(List<AutomatonExpression<?>> pArgs) {
@@ -116,7 +116,7 @@ abstract class AutomatonAction {
   }
 
   /** Assigns the value of an AutomatonIntExpr to an AutomatonVariable determined by its name. */
-  static class Assignment extends AutomatonAction {
+  static final class Assignment extends AutomatonAction {
     private final String varId;
     private final AutomatonIntExpr var;
 
@@ -158,7 +158,7 @@ abstract class AutomatonAction {
   }
 
   /** Change the value of an AutomatonSetVariable by adding or removing values. */
-  static class SetAssignment extends AutomatonAction {
+  static final class SetAssignment extends AutomatonAction {
     private final String varId;
     private final boolean action;
     private final String value;
@@ -179,12 +179,12 @@ abstract class AutomatonAction {
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
         AutomatonVariable automatonVariable = vars.get(varId);
-        if (automatonVariable instanceof AutomatonSetVariable) {
+        if (automatonVariable instanceof AutomatonSetVariable<?> automatonSetVariable) {
           String substitutedValue = pArgs.replaceVariables(value);
           if (action) {
-            ((AutomatonSetVariable<?>) automatonVariable).add(substitutedValue);
+            automatonSetVariable.add(substitutedValue);
           } else {
-            ((AutomatonSetVariable<?>) automatonVariable).remove(substitutedValue);
+            automatonSetVariable.remove(substitutedValue);
           }
         } else {
           throw new CPATransferException(
@@ -205,7 +205,7 @@ abstract class AutomatonAction {
   }
 
   /** Modifies the state of a CPA */
-  static class CPAModification extends AutomatonAction {
+  static final class CPAModification extends AutomatonAction {
     private final String cpaName;
     private final String modificationString;
 

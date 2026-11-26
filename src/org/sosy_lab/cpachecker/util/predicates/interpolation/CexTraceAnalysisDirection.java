@@ -251,12 +251,11 @@ enum CexTraceAnalysisDirection {
 
     Set<String> varNames =
         from(fmgr.extractVariableNames(formula))
-            .transform(
-                variable -> {
-                  Pair<String, OptionalInt> name = FormulaManagerView.parseName(variable);
-                  // we want only variables in our set, and ignore everything without SSA index
-                  return name.getSecond().isPresent() ? name.getFirst() : null;
-                })
+            .transform(variable -> {
+              Pair<String, OptionalInt> name = FormulaManagerView.parseName(variable);
+              // we want only variables in our set, and ignore everything without SSA index
+              return name.getSecond().isPresent() ? name.getFirst() : null;
+            })
             .filter(Predicates.notNull())
             .toSet();
 
@@ -373,7 +372,7 @@ enum CexTraceAnalysisDirection {
         loopLevelsToIndexMap.put(actLevelStack.size(), actARGState);
 
         // node itself is a loophead, too, so add it also to the levels stack
-        if (loopStructure.getAllLoopHeads().contains(actCFANode)) {
+        if (loopStructure.getAllLoopHeads().contains(actCFANode.getOriginal())) {
           actLevelStack.push(actCFANode);
         }
         createLoopDrivenStateOrdering0(
@@ -390,8 +389,10 @@ enum CexTraceAnalysisDirection {
 
   private static boolean isNodePartOfLoop(
       CFANode loopHead, CFANode potentialLoopNode, LoopStructure loopStructure) {
-    for (Loop loop : loopStructure.getLoopsForLoopHead(loopHead)) {
-      if (loop.getLoopNodes().contains(potentialLoopNode)) {
+    CFANode originalLoopHead = loopHead.getOriginal();
+    CFANode originalPotentialNode = potentialLoopNode.getOriginal();
+    for (Loop loop : loopStructure.getLoopsForLoopHead(originalLoopHead)) {
+      if (loop.getLoopNodes().contains(originalPotentialNode)) {
         return true;
       }
     }

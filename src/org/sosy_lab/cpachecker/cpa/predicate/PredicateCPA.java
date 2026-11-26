@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.SequencedSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -156,7 +159,9 @@ public class PredicateCPA
 
     solver = Solver.create(config, logger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    String libraries = solver.getVersion();
+    SequencedSet<String> libraries = new LinkedHashSet<>();
+    libraries.add(solver.getVersion());
+    libraries.add(solver.getInterpolatingVersion());
 
     PathFormulaManager pfMgr =
         new PathFormulaManagerImpl(
@@ -173,9 +178,13 @@ public class PredicateCPA
     } else {
       assert abstractionType.equals("BDD");
       regionManager = new BDDManagerFactory(config, logger).createRegionManager();
-      libraries += " and " + regionManager.getVersion();
+      libraries.add(regionManager.getVersion());
     }
-    logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
+    String librariesStr = libraries.removeLast();
+    if (!libraries.isEmpty()) {
+      librariesStr = Joiner.on(", ").join(libraries) + " and " + librariesStr;
+    }
+    logger.logf(Level.INFO, "Using predicate analysis with %s.", librariesStr);
 
     abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 

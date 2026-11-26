@@ -373,11 +373,11 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
           yield false;
         }
       }
-      case CTypeIdExpression e -> false; // e.g. sizeof
+      case CTypeIdExpression _ -> false; // e.g. sizeof
 
       case CFieldReference e when e.isPointerDereference() ->
           isExpressionUninitialized(element, e.getFieldOwner(), cfaEdge);
-      case CFieldReference e -> {
+      case CFieldReference _ -> {
         String variable = expression.toASTString();
         if (element.isUninitialized(variable)) {
           addWarning(cfaEdge, variable, expression, element);
@@ -435,7 +435,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
           yield returnUninit;
         }
       }
-      case CLiteralExpression e -> false;
+      case CLiteralExpression _ -> false;
 
       default -> throw new UnrecognizedCodeException("unknown expression", cfaEdge, expression);
     };

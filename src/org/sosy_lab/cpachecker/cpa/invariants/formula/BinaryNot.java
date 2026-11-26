@@ -47,7 +47,7 @@ final class BinaryNot<ConstantType> extends AbstractFormula<ConstantType> {
     if (this == o) {
       return true;
     }
-    return o instanceof BinaryNot<?> && getFlipped().equals(((BinaryNot<?>) o).getFlipped());
+    return o instanceof BinaryNot<?> binaryNot && getFlipped().equals(binaryNot.getFlipped());
   }
 
   @Override

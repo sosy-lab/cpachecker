@@ -382,12 +382,11 @@ public final class PredicatePrecisionBootstrapper {
           new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
       // Building this walks the whole CFA, so do it once, and only for a witness which needs it
       Supplier<Scope> programScope =
-          Suppliers.memoize(
-              () ->
-                  switch (cfa.getLanguage()) {
-                    case C -> new CProgramScope(cfa, logger);
-                    default -> DummyScope.getInstance();
-                  });
+          Suppliers.memoize(() ->
+              switch (cfa.getLanguage()) {
+                case C -> new CProgramScope(cfa, logger);
+                default -> DummyScope.getInstance();
+              });
 
       for (AbstractEntry entry : entries) {
         if (!(entry instanceof PrecisionExchangeSetEntry pExchangeSetEntry)) {
@@ -423,134 +422,134 @@ public final class PredicatePrecisionBootstrapper {
             continue;
           }
 
-          if (scope instanceof GlobalPrecisionScope) {
+          switch (scope) {
+            case GlobalPrecisionScope _ -> {
+              for (String predicateString : precisionExchangeEntry.values()) {
 
-            for (String predicateString : precisionExchangeEntry.values()) {
+                Optional<BooleanFormula> globalPredicate =
+                    parseGlobalPredicate(
+                        precisionExchangeEntry.format(),
+                        predicateString,
+                        commonDefinitions,
+                        transformer);
 
-              Optional<BooleanFormula> globalPredicate =
-                  parseGlobalPredicate(
-                      precisionExchangeEntry.format(),
+                if (globalPredicate.isEmpty()) {
+                  logger.logf(
+                      Level.WARNING,
+                      "The global predicate '%s' in witness file %s is invalid, ignoring it.",
                       predicateString,
-                      commonDefinitions,
-                      transformer);
+                      pWitnessFile);
+                  continue;
+                }
 
-              if (globalPredicate.isEmpty()) {
-                logger.logf(
-                    Level.WARNING,
-                    "The global predicate '%s' in witness file %s is invalid, ignoring it.",
-                    predicateString,
-                    pWitnessFile);
-                continue;
+                globalPredicatesBuilder.add(
+                    abstractionManager.makePredicate(globalPredicate.orElseThrow()));
               }
-
-              globalPredicatesBuilder.add(
-                  abstractionManager.makePredicate(globalPredicate.orElseThrow()));
             }
-          } else if (scope instanceof FunctionPrecisionScope pFunctionScope) {
-            for (String predicateString : precisionExchangeEntry.values()) {
+            case FunctionPrecisionScope pFunctionScope -> {
+              for (String predicateString : precisionExchangeEntry.values()) {
 
-              Optional<BooleanFormula> functionPredicate =
-                  parseFunctionPredicate(
-                      precisionExchangeEntry.format(),
-                      predicateString,
-                      commonDefinitions,
-                      pFunctionScope.getFunctionName(),
-                      transformer);
-              if (functionPredicate.isEmpty()) {
+                Optional<BooleanFormula> functionPredicate =
+                    parseFunctionPredicate(
+                        precisionExchangeEntry.format(),
+                        predicateString,
+                        commonDefinitions,
+                        pFunctionScope.getFunctionName(),
+                        transformer);
+                if (functionPredicate.isEmpty()) {
+                  logger.logf(
+                      Level.WARNING,
+                      "Witness file %s contains an invalid function predicate for function %s, "
+                          + "ignoring it.",
+                      pWitnessFile,
+                      pFunctionScope.getFunctionName());
+                  continue;
+                }
+
+                functionPredicatesBuilder.put(
+                    pFunctionScope.getFunctionName(),
+                    abstractionManager.makePredicate(functionPredicate.orElseThrow()));
+              }
+            }
+            case LocalPrecisionScope pLocalScope -> {
+              LocationRecord locationRecord = pLocalScope.getLocation();
+
+              if (locationRecord.getColumn().isEmpty()) {
                 logger.logf(
                     Level.WARNING,
-                    "Witness file %s contains an invalid function predicate for function %s, "
-                        + "ignoring it.",
+                    "Witness file %s contains a local precision scope without a column for %s, "
+                        + "which we cannot match to the CFA, ignoring it.",
                     pWitnessFile,
-                    pFunctionScope.getFunctionName());
+                    locationRecord);
                 continue;
               }
 
-              functionPredicatesBuilder.put(
-                  pFunctionScope.getFunctionName(),
-                  abstractionManager.makePredicate(functionPredicate.orElseThrow()));
-            }
-          } else if (scope instanceof LocalPrecisionScope pLocalScope) {
-            LocationRecord locationRecord = pLocalScope.getLocation();
+              Set<CFANode> location =
+                  astCfaRelation.getNodesForStatementLocation(
+                      locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
 
-            if (locationRecord.getColumn().isEmpty()) {
-              logger.logf(
-                  Level.WARNING,
-                  "Witness file %s contains a local precision scope without a column for %s, "
-                      + "which we cannot match to the CFA, ignoring it.",
+              if (location.isEmpty()) {
+                logger.logf(
+                    Level.FINE,
+                    "Witness file %s contains a local precision scope for location %s, "
+                        + "but the location is not present in the CFA, ignoring it.",
+                    pWitnessFile,
+                    locationRecord);
+                // TODO: Whenever this happens this is a bug in the AstCfaRelation
+                continue;
+              }
+
+              addLocalPrecision(
+                  locationRecord,
+                  location,
                   pWitnessFile,
-                  locationRecord);
-              continue;
+                  transformer,
+                  precisionExchangeEntry,
+                  commonDefinitions,
+                  programScope,
+                  localPredicatesBuilder);
             }
+            case LocalLoopPrecisionScope pLocalLoopPrecisionScope -> {
+              LocationRecord locationRecord = pLocalLoopPrecisionScope.getLocation();
 
-            Set<CFANode> location =
-                astCfaRelation.getNodeForStatementLocation(
-                    locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
+              if (locationRecord.getColumn().isEmpty()) {
+                logger.logf(
+                    Level.WARNING,
+                    "Witness file %s contains a local loop precision scope without a column for %s,"
+                        + " which we cannot match to the CFA, ignoring it.",
+                    pWitnessFile,
+                    locationRecord);
+                continue;
+              }
 
-            if (location.isEmpty()) {
-              logger.logf(
-                  Level.FINE,
-                  "Witness file %s contains a local precision scope for location %s, "
-                      + "but the location is not present in the CFA, ignoring it.",
+              Optional<CFANode> location =
+                  cfa.getLoopStructure()
+                      .flatMap(loopStructure ->
+                          astCfaRelation.getNodeForIterationStatementLocation(
+                              locationRecord.getLine(),
+                              locationRecord.getColumn().orElseThrow(),
+                              loopStructure));
+
+              if (location.isEmpty()) {
+                logger.logf(
+                    Level.FINE,
+                    "Witness file %s contains a local loop precision scope for location %s, "
+                        + "but the location is not present in the CFA, ignoring it.",
+                    pWitnessFile,
+                    locationRecord);
+                continue;
+              }
+
+              addLocalPrecision(
+                  locationRecord,
+                  ImmutableSet.of(location.orElseThrow()),
                   pWitnessFile,
-                  locationRecord);
-              // TODO: Whenever this happens this is a bug in the AstCfaRelation
-              continue;
+                  transformer,
+                  precisionExchangeEntry,
+                  commonDefinitions,
+                  programScope,
+                  localPredicatesBuilder);
             }
-
-            addLocalPrecision(
-                locationRecord,
-                location,
-                pWitnessFile,
-                transformer,
-                precisionExchangeEntry,
-                commonDefinitions,
-                programScope,
-                localPredicatesBuilder);
-
-          } else if (scope instanceof LocalLoopPrecisionScope pLocalLoopPrecisionScope) {
-            LocationRecord locationRecord = pLocalLoopPrecisionScope.getLocation();
-
-            if (locationRecord.getColumn().isEmpty()) {
-              logger.logf(
-                  Level.WARNING,
-                  "Witness file %s contains a local loop precision scope without a column for %s, "
-                      + "which we cannot match to the CFA, ignoring it.",
-                  pWitnessFile,
-                  locationRecord);
-              continue;
-            }
-
-            Optional<CFANode> location =
-                astCfaRelation.getNodeForIterationStatementLocation(
-                    locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
-
-            if (location.isEmpty()) {
-              logger.logf(
-                  Level.FINE,
-                  "Witness file %s contains a local loop precision scope for location %s, "
-                      + "but the location is not present in the CFA, ignoring it.",
-                  pWitnessFile,
-                  locationRecord);
-              continue;
-            }
-
-            addLocalPrecision(
-                locationRecord,
-                ImmutableSet.of(location.orElseThrow()),
-                pWitnessFile,
-                transformer,
-                precisionExchangeEntry,
-                commonDefinitions,
-                programScope,
-                localPredicatesBuilder);
-
-          } else {
-            logger.logf(
-                Level.WARNING,
-                "Witness file %s contains an unknown precision scope %s, ignoring it.",
-                pWitnessFile,
-                scope);
           }
         }
         result = result.addGlobalPredicates(globalPredicatesBuilder.build());

@@ -238,31 +238,30 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
 
     pReachedSetMapping.entrySet().parallelStream()
-        .forEach(
-            entry -> {
-              ReachedSetExecutor rse = entry.getValue();
-              CompletableFuture<Void> job = rse.getWaitingTasks();
-              try {
-                job.get(5, TimeUnit.SECONDS);
-                stats.executionCounter.insertValue(entry.getValue().execCounter);
-                stats.unfinishedRSEcounter.inc();
+        .forEach(entry -> {
+          ReachedSetExecutor rse = entry.getValue();
+          CompletableFuture<Void> job = rse.getWaitingTasks();
+          try {
+            job.get(5, TimeUnit.SECONDS);
+            stats.executionCounter.insertValue(entry.getValue().execCounter);
+            stats.unfinishedRSEcounter.inc();
 
-                if (rse.isTargetStateFound()) {
-                  if (entry.getKey() == mainReachedSet) {
-                    mainRScontainsTarget.set(true);
-                  } else {
-                    otherRScontainsTarget.set(true);
-                  }
-                }
-
-              } catch (RejectedExecutionException
-                  | ExecutionException
-                  | InterruptedException
-                  | TimeoutException e) {
-                errors.add(e);
+            if (rse.isTargetStateFound()) {
+              if (entry.getKey() == mainReachedSet) {
+                mainRScontainsTarget.set(true);
+              } else {
+                otherRScontainsTarget.set(true);
               }
-              logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
-            });
+            }
+
+          } catch (RejectedExecutionException
+              | ExecutionException
+              | InterruptedException
+              | TimeoutException e) {
+            errors.add(e);
+          }
+          logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
+        });
 
     if (!errors.isEmpty()) {
       logger.log(Level.ALL, "The following errors appeared in the analysis:", errors);

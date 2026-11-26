@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {
+public final class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {
 
   private final String variableId;
 

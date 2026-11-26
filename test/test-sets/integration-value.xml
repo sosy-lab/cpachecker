@@ -10,7 +10,7 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 3.36//EN" "https://www.sosy-lab.org/benchexec/benchmark-3.36.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
@@ -25,11 +25,27 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
   <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+  <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/Assertion.spc</propertyfile>
+    <exclude>../programs/simple/func_ptr_call_test.yml</exclude> <!-- flapping unknown/timeout -->
+  </tasks>
+  <tasks>
+    <option name="--option">analysis.preprocessing.MPOR=true</option>
+    <includesfile>../programs/simple/simple_concurrent.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
@@ -48,6 +64,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/newton_*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/float-newlib/*</exclude> <!-- only timeout -->
+    <exclude>../programs/benchmarks/neural-networks/batchnorm_0_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_0_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_2_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/neural-networks/conv1d_3_safe.c-amalgamation.yml</exclude> <!-- flapping unknown/timeout -->
@@ -59,6 +76,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c39_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c52_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c52_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
+    <exclude>../programs/benchmarks/neural-networks/prop_bool_v13_c65_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v21_c21_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c16_safe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->
     <exclude>../programs/benchmarks/neural-networks/prop_bool_v8_c16_unsafe.c-amalgamation.yml</exclude> <!-- flapping oom/timeout -->

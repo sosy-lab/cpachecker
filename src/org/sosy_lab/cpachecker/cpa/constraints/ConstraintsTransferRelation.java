@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -55,6 +56,8 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Transfer relation for Symbolic Execution Analysis. */
@@ -197,7 +200,10 @@ public class ConstraintsTransferRelation
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
       case AIdExpression aIdExpression ->
           createConstraint(aIdExpression, pFactory, pTruthAssumption);
-      default -> throw new AssertionError("Unhandled expression type " + pExpression.getClass());
+      default ->
+          throw new UnsupportedCodeException(
+              "Unhandled expression type " + pExpression.getClass(),
+              pFactory.getCfaEdgeForDebugging());
     };
   }
 
@@ -292,6 +298,12 @@ public class ConstraintsTransferRelation
 
       } else if (currStrengtheningState instanceof AutomatonState) {
         strengthenOperator = new AutomatonStrengthenOperator();
+
+      } else if (currStrengtheningState instanceof AbstractStateWithAssumptions) {
+        ValueAnalysisState valueState =
+            Iterables.getOnlyElement(
+                AbstractStates.projectToType(pStrengtheningStates, ValueAnalysisState.class));
+        strengthenOperator = new AssumptionsStrengthenOperator(valueState);
       }
 
       if (strengthenOperator != null) {
@@ -367,7 +379,7 @@ public class ConstraintsTransferRelation
       final AExpression edgeExpression = assume.getExpression();
 
       final ConstraintFactory factory =
-          ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger);
+          ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger, pCfaEdge);
 
       ConstraintsState newState;
       try {
@@ -429,6 +441,67 @@ public class ConstraintsTransferRelation
         }
       } catch (SolverException e) {
         throw new CPATransferException("Error while strengthening.", e);
+      }
+    }
+  }
+
+  /**
+   * Adds the assumptions of an {@link AbstractStateWithAssumptions} (e.g., the ones of the
+   * OverflowCPA) as constraints.
+   */
+  private final class AssumptionsStrengthenOperator implements StrengthenOperator {
+
+    private final ValueAnalysisState valueState;
+
+    private AssumptionsStrengthenOperator(ValueAnalysisState pValueState) {
+      valueState = pValueState;
+    }
+
+    @Override
+    public Optional<Collection<ConstraintsState>> strengthen(
+        final ConstraintsState pStateToStrengthen,
+        final AbstractState pStrengtheningState,
+        final String pFunctionName,
+        final CFAEdge pCfaEdge)
+        throws CPATransferException, InterruptedException {
+
+      List<? extends AExpression> assumptions =
+          ((AbstractStateWithAssumptions) pStrengtheningState).getAssumptions();
+      if (assumptions.isEmpty()) {
+        return Optional.empty();
+      }
+
+      // The assumptions are about the successor state, so they are in the scope of its function
+      final String successorFunctionName = pCfaEdge.getSuccessor().getFunctionName();
+      final ConstraintFactory factory =
+          ConstraintFactory.getInstance(
+              successorFunctionName, valueState, machineModel, logger, pCfaEdge);
+
+      try {
+        ConstraintsState newState = pStateToStrengthen;
+        for (AExpression assumption : assumptions) {
+          newState = getNewState(newState, assumption, factory, true);
+          if (newState == null) {
+            return Optional.of(ImmutableList.of());
+          }
+        }
+
+        if (newState.equals(pStateToStrengthen)) {
+          return Optional.empty();
+        }
+
+        newState = simplify(newState, valueState);
+        if (checkStrategy == CheckStrategy.AT_ASSUME) {
+          newState = getIfSatisfiable(newState, successorFunctionName, solver);
+          if (newState == null) {
+            return Optional.of(ImmutableList.of());
+          }
+        }
+        return Optional.of(ImmutableList.of(newState));
+
+      } catch (SolverException e) {
+        throw new CPATransferException(
+            "Error while strengthening ConstraintsState with assumptions", e);
       }
     }
   }

@@ -61,8 +61,9 @@ import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
 /** This class implements an AutomatonAnalysis as described in the related Documentation. */
 @Options(prefix = "cpa.automaton")
-public class ControlAutomatonCPA
-    implements StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
+public sealed class ControlAutomatonCPA
+    implements StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA
+    permits ObserverAutomatonCPA {
 
   @Option(secure = true, name = "dotExport", description = "export automaton to file")
   private boolean export = false;

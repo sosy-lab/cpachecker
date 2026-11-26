@@ -36,11 +36,12 @@ import org.sosy_lab.cpachecker.util.test.TestUtils;
  */
 public class SequentializationFieldsTest {
 
+  private static final Path BASE_PATH = Path.of("test/programs/simple/concurrent");
+
   @Test
   public void test_13_privatized_04_priv_multi_true() throws Exception {
     // this program contains multiple loops whose condition only contains local variables
-    Path path =
-        Path.of("./test/programs/mpor/sequentialization/13-privatized_04-priv_multi_true.i");
+    Path path = BASE_PATH.resolve("goblint-regression-13-privatized_04-priv_multi_true.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -66,7 +67,7 @@ public class SequentializationFieldsTest {
   @Test
   public void test_28_race_reach_45_escape_racing() throws Exception {
     // this program contains a start_routine argument passed via pthread_create
-    Path path = Path.of("./test/programs/mpor/sequentialization/28-race_reach_45-escape_racing.i");
+    Path path = BASE_PATH.resolve("goblint-regression-28-race_reach_45-escape_racing.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -98,8 +99,7 @@ public class SequentializationFieldsTest {
   public void test_36_apron_41_threadenter_no_locals_unknown_1_pos() throws Exception {
     // this program contains only local variables, no global variables
     Path path =
-        Path.of(
-            "./test/programs/mpor/sequentialization/36-apron_41-threadenter-no-locals_unknown_1_pos.i");
+        BASE_PATH.resolve("goblint-regression-36-apron_41-threadenter-no-locals_unknown_1_pos.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -128,7 +128,7 @@ public class SequentializationFieldsTest {
   @Test
   public void test_chl_match_symm_wvr() throws Exception {
     // this program contains multiple calls to the same function in a single thread
-    Path path = Path.of("./test/programs/mpor/sequentialization/chl-match-symm.wvr.c");
+    Path path = BASE_PATH.resolve("weaver-chl-match-symm.wvr.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -175,7 +175,7 @@ public class SequentializationFieldsTest {
   public void test_fib_safe7() throws Exception {
     // this example demonstrates the need to handle local variables with initializers explicitly.
     // otherwise the local variables are declared (and initialized) and then never updated in cases.
-    Path path = Path.of("./test/programs/mpor/sequentialization/fib_safe-7.i");
+    Path path = BASE_PATH.resolve("pthread-fib_safe-7.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -203,7 +203,7 @@ public class SequentializationFieldsTest {
 
   @Test
   public void test_lazy01() throws Exception {
-    Path path = Path.of("./test/programs/mpor/sequentialization/lazy01.i");
+    Path path = BASE_PATH.resolve("pthread-lazy01.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -234,7 +234,7 @@ public class SequentializationFieldsTest {
   @Test
   public void test_queue_longest() throws Exception {
     // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
-    Path path = Path.of("./test/programs/mpor/sequentialization/queue_longest.i");
+    Path path = BASE_PATH.resolve("pthread-queue_longest.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -269,7 +269,7 @@ public class SequentializationFieldsTest {
     // this program contains start_routines that start directly with a function call.
     // this forces us to reorder the thread statements, because function statements are usually
     // at the bottom of a thread simulation.
-    Path path = Path.of("./test/programs/mpor/sequentialization/function-call-entry.i");
+    Path path = BASE_PATH.resolve("function-call-entry.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -297,15 +297,15 @@ public class SequentializationFieldsTest {
   @Test
   public void test_simple_two() throws Exception {
     // this program contains no return statements for the created threads
-    Path path = Path.of("./test/programs/mpor/sequentialization/simple_two.i");
+    Path path = BASE_PATH.resolve("simple_two.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
-    assertThat(fields.numThreads).isEqualTo(4);
+    assertThat(fields.numThreads).isEqualTo(6);
     assertThat(fields.numThreads).isEqualTo(fields.substitutions.size());
     SeqPointerAliasingMap pointerAliasingMap = fields.pointerAliasingMap;
-    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(24);
-    assertThat(pointerAliasingMap.pointerAssignments).hasSize(20);
+    assertThat(pointerAliasingMap.getRelevantMemoryLocationAmount()).isEqualTo(33);
+    assertThat(pointerAliasingMap.pointerAssignments).hasSize(24);
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(SeqPointerAssignmentType.PARAMETER))
         .hasSize(5);
@@ -316,7 +316,7 @@ public class SequentializationFieldsTest {
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(
                 SeqPointerAssignmentType.START_ROUTINE_EXIT))
-        .hasSize(2);
+        .hasSize(4);
     assertThat(pointerAliasingMap.pointerDereferences).hasSize(4);
     assertThat(
             pointerAliasingMap.extractPointerAssignmentsByType(
@@ -335,8 +335,7 @@ public class SequentializationFieldsTest {
   @Test
   public void test_singleton_with_uninit_problems_b() throws Exception {
     // this program has thread creations inside a non-main thread
-    Path path =
-        Path.of("./test/programs/mpor/sequentialization/singleton_with-uninit-problems-b.i");
+    Path path = BASE_PATH.resolve("pthread-singleton_with-uninit-problems-b.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);
@@ -369,7 +368,7 @@ public class SequentializationFieldsTest {
 
   @Test
   public void test_stack_1() throws Exception {
-    Path path = Path.of("./test/programs/mpor/sequentialization/stack-1.i");
+    Path path = BASE_PATH.resolve("pthread-stack-1.i");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options = MPOROptions.getDefaultTestInstance();
     SequentializationFields fields = getSequentializationFields(path, options);

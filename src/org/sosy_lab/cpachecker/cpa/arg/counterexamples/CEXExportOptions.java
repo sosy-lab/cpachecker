@@ -173,6 +173,11 @@ public final class CEXExportOptions {
     config.inject(this);
   }
 
+  /** Whether an enabled export format requires a counterexample path connected to the CFA. */
+  public boolean hasCfaPathDependentFormats() {
+    return getSourceFile() != null || getWitnessFile() != null || getTestHarnessFile() != null;
+  }
+
   public boolean disabledCompletely() {
     return getAutomatonFile() == null
         && getCoreFile() == null
@@ -244,7 +249,7 @@ public final class CEXExportOptions {
     return exportWitness ? errorPathWitnessFile : null;
   }
 
-  @Nullable PathTemplate getYamlWitnessPathTemplate() {
+  public @Nullable PathTemplate getYamlWitnessPathTemplate() {
     if (!exportErrorPath) {
       return null;
     }
@@ -283,5 +288,9 @@ public final class CEXExportOptions {
   /** export error paths to files immediately after they were found, or after the whole analysis. */
   public boolean dumpErrorPathImmediately() {
     return dumpErrorPathImmediately;
+  }
+
+  public boolean hasYamlWitnessExport() {
+    return getYamlWitnessPathTemplate() != null;
   }
 }

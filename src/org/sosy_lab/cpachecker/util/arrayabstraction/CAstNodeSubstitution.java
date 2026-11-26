@@ -23,7 +23,7 @@ class CAstNodeSubstitution {
   }
 
   void insertSubstitute(CFAEdge pEdge, CAstNode pOriginal, CAstNode pSubstitute) {
-    substitution.computeIfAbsent(pEdge, key -> new HashMap<>()).put(pOriginal, pSubstitute);
+    substitution.computeIfAbsent(pEdge, _ -> new HashMap<>()).put(pOriginal, pSubstitute);
   }
 
   CAstNode getSubstitute(CFAEdge pEdge, CAstNode pOriginal) {

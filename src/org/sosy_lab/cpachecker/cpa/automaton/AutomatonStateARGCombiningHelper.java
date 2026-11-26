@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class AutomatonStateARGCombiningHelper {
+public final class AutomatonStateARGCombiningHelper {
 
   private final Map<String, AutomatonInternalState> qualifiedAutomatonStateNameToInternalState;
   private final Map<String, Automaton> nameToAutomaton;

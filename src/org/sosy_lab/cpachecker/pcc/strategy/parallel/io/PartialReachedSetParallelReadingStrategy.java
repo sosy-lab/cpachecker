@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -103,7 +104,11 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
     logger.log(Level.INFO, "Create and start threads");
     int threads = enableParallelCheck ? numThreads : 1;
-    ExecutorService executor = Executors.newFixedThreadPool(threads);
+    ThreadFactory threadFactory =
+        Thread.ofPlatform()
+            .name("PartialReachedSetParallelReadingStrategy.checkCertificate-", 0)
+            .factory();
+    ExecutorService executor = Executors.newFixedThreadPool(threads, threadFactory);
     try {
       for (int i = 0; i < threads; i++) {
         executor.execute(
@@ -199,7 +204,11 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       SerializationInfoStorage.clear();
     }
     // read partitions in parallel
-    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    ThreadFactory threadFactory =
+        Thread.ofPlatform()
+            .name("PartialReachedSetParallelReadingStrategy.readProofFromStream-", 0)
+            .factory();
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads, threadFactory);
     try {
       AtomicBoolean success = new AtomicBoolean(true);
       AtomicInteger nextId = new AtomicInteger(0);

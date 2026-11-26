@@ -317,7 +317,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       }
 
       switch (entry.scope()) {
-        case GlobalPrecisionScope pGlobalScope -> {
+        case GlobalPrecisionScope _ -> {
           for (String var : entry.values()) {
             Optional<MemoryLocation> memoryLocation = parseMemoryLocation(var, null, scope, pCfa);
             if (memoryLocation.isEmpty()) {
@@ -355,8 +355,12 @@ public class ValueAnalysisCPA extends AbstractCPA
           }
 
           Optional<CFANode> location =
-              astCfaRelation.getNodeForIterationStatementLocation(
-                  locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
+              pCfa.getLoopStructure()
+                  .flatMap(loopStructure ->
+                      astCfaRelation.getNodeForIterationStatementLocation(
+                          locationRecord.getLine(),
+                          locationRecord.getColumn().orElseThrow(),
+                          loopStructure));
           if (location.isEmpty()) {
             continue;
           }
@@ -379,7 +383,7 @@ public class ValueAnalysisCPA extends AbstractCPA
           }
 
           Set<CFANode> location =
-              astCfaRelation.getNodeForStatementLocation(
+              astCfaRelation.getNodesForStatementLocation(
                   locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
           if (location.isEmpty()) {
             continue;
@@ -490,9 +494,17 @@ public class ValueAnalysisCPA extends AbstractCPA
         statistics);
   }
 
+  public ValueTransferOptions getTransferOptions() {
+    return transferOptions;
+  }
+
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new ValueAnalysisState(cfa.getMachineModel());
+    return new ValueAnalysisState(
+        cfa.getMachineModel(),
+        transferOptions.isOptimizeBooleanVariables() && cfa.getVarClassification().isPresent()
+            ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+            : ImmutableSet.of());
   }
 
   @Override

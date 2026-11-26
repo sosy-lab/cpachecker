@@ -101,7 +101,8 @@ class VariableGenerator {
             variableName,
             variableName,
             pMemoryLocation.getExtendedQualifiedName(),
-            null);
+            null,
+            /* pHasThreadLocalStorage= */ false);
     CIdExpression variableNameExpression =
         new CIdExpression(FileLocation.DUMMY, pType, variableName, variableDeclaration);
 

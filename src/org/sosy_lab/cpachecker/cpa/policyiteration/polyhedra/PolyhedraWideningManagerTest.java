@@ -64,18 +64,18 @@ public class PolyhedraWideningManagerTest {
 
     Map<Template, Rational> point1 =
         ImmutableMap.of(
-            Template.of(linX), Rational.ZERO,
-            Template.of(linX.negate()), Rational.ZERO,
-            Template.of(linY), Rational.ZERO,
-            Template.of(linY.negate()), Rational.ZERO);
+            new Template(linX), Rational.ZERO,
+            new Template(linX.negate()), Rational.ZERO,
+            new Template(linY), Rational.ZERO,
+            new Template(linY.negate()), Rational.ZERO);
 
     // Point 2: (x=1 /\ y=1).
     Map<Template, Rational> point2 =
         ImmutableMap.of(
-            Template.of(linX), Rational.ONE,
-            Template.of(linX.negate()), Rational.NEG_ONE,
-            Template.of(linY), Rational.ONE,
-            Template.of(linY.negate()), Rational.NEG_ONE);
+            new Template(linX), Rational.ONE,
+            new Template(linX.negate()), Rational.NEG_ONE,
+            new Template(linY), Rational.ONE,
+            new Template(linY.negate()), Rational.NEG_ONE);
 
     Environment env = pwm.generateEnvironment(ImmutableList.of(point1, point2));
 
@@ -85,19 +85,27 @@ public class PolyhedraWideningManagerTest {
     Abstract1 union = abs1.joinCopy(pwm.getManager(), abs2);
 
     Map<Template, Rational> unionMap = pwm.toTemplates(union);
-    assertThat(unionMap).containsEntry(Template.of(linX), Rational.ONE);
-    assertThat(unionMap).containsEntry(Template.of(linX.negate()), Rational.ZERO);
-    assertThat(unionMap).containsEntry(Template.of(linX.sub(linY)), Rational.ZERO);
+    assertThat(unionMap).containsEntry(new Template(linX), Rational.ONE);
+    assertThat(unionMap).containsEntry(new Template(linX.negate()), Rational.ZERO);
+    assertThat(unionMap).containsEntry(new Template(linX.sub(linY)), Rational.ZERO);
 
     Abstract1 widened = abs1.widening(pwm.getManager(), union);
     Map<Template, Rational> widenedMap = pwm.toTemplates(widened);
-    assertThat(widenedMap).containsEntry(Template.of(linX.sub(linY)), Rational.ZERO);
+    assertThat(widenedMap).containsEntry(new Template(linX.sub(linY)), Rational.ZERO);
   }
 
   private CIdExpression makeVar(String varName, CSimpleType type) {
     return new CIdExpression(
         FileLocation.DUMMY,
         new CVariableDeclaration(
-            FileLocation.DUMMY, false, CStorageClass.AUTO, type, varName, varName, varName, null));
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            type,
+            varName,
+            varName,
+            varName,
+            null,
+            /* pHasThreadLocalStorage= */ false));
   }
 }

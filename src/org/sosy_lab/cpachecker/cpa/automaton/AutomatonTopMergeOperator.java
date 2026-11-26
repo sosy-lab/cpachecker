@@ -14,12 +14,12 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class AutomatonTopMergeOperator implements MergeOperator {
+final class AutomatonTopMergeOperator implements MergeOperator {
 
   private final AbstractDomain domain;
   private final AbstractState topState;
 
-  public AutomatonTopMergeOperator(AbstractDomain pDomain, AbstractState pTopState) {
+  AutomatonTopMergeOperator(AbstractDomain pDomain, AbstractState pTopState) {
     domain = pDomain;
     topState = pTopState;
   }

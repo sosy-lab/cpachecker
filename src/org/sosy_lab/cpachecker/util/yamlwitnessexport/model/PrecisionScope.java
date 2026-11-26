@@ -56,18 +56,16 @@ public abstract sealed class PrecisionScope
           .getTightestIterationStructureForNode(pNode)
           .map(structure -> structure.getCompleteElement().location())
           .filter(location -> isInsideFunctionOf(location, pNode))
-          .map(
-              location ->
-                  new LocalLoopPrecisionScope(
-                      LocationRecord.createLocationRecordAtStart(location, functionName)));
+          .map(location ->
+              new LocalLoopPrecisionScope(
+                  LocationRecord.createLocationRecordAtStart(location, functionName)));
     } else {
       return pAstCfaRelation
           .getStatementFileLocationForNode(pNode)
           .filter(location -> isInsideFunctionOf(location, pNode))
-          .map(
-              location ->
-                  new LocalPrecisionScope(
-                      LocationRecord.createLocationRecordAtStart(location, functionName)));
+          .map(location ->
+              new LocalPrecisionScope(
+                  LocationRecord.createLocationRecordAtStart(location, functionName)));
     }
   }
 

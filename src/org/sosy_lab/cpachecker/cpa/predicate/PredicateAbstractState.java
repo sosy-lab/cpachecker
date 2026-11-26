@@ -16,12 +16,14 @@ import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Verify;
+import com.google.common.collect.FluentIterable;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.svlib.SvLibTerm;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -38,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -170,7 +171,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public SvLibTerm asSvLibTerm(SvLibScope pScope) {
+    public SvLibTerm asSvLibTerm(SvLibScope pScope) throws InterruptedException {
       return getAbstractionFormula().asSvLibTerm(pScope);
     }
 
@@ -191,12 +192,25 @@ public abstract sealed class PredicateAbstractState
         throws InterruptedException,
             ReportingMethodNotImplementedException,
             TranslationToExpressionTreeFailedException {
+      FluentIterable<AbstractSimpleDeclaration> variablesInScope =
+          ExpressionTreeReportingState.variablesInScope(pAstCfaRelation, pLocation);
       return super.abstractionFormula.asExpressionTree(
           name ->
-              PredicateMapWriter.variableNameInFunction(name, pLocation.getFunctionName())
-                  && PredicateMapWriter.variableInOriginalProgram(name, pAstCfaRelation, pLocation)
-                  && PredicateMapWriter.notInternalVariable(name),
-          name -> useOldKeywordForVariables ? ExpressionTreeReportingState.oldValueOf(name) : name,
+              (!name.contains(FUNCTION_DELIMITER)
+                      || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
+                  && variablesInScope.anyMatch(var ->
+                      // For local variables
+                      (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
+                              .equals(name)
+                          // For global variables
+                          || var.getName().equals(name))
+                  && !name.contains("__CPAchecker_"),
+          name -> {
+            String nameInProgram = pAstCfaRelation.getNameInInputProgram(pLocation, name);
+            return useOldKeywordForVariables
+                ? ExpressionTreeReportingState.oldValueOf(nameInProgram)
+                : nameInProgram;
+          },
           pMachineModel);
     }
 

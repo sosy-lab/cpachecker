@@ -130,7 +130,8 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
             "%pc",
             "%pc",
             "%pc",
-            null /*CDefaults.forType(CNumericTypes.UNSIGNED_INT, FileLocation.DUMMY)*/);
+            null /*CDefaults.forType(CNumericTypes.UNSIGNED_INT, FileLocation.DUMMY)*/,
+            /* pHasThreadLocalStorage= */ false);
     return new CIdExpression(FileLocation.DUMMY, pc);
   }
 
