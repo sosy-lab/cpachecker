@@ -14,165 +14,164 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.errorprone.annotations.InlineMe;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.java_smt.api.Formula;
 
 abstract sealed class Expression {
+  static final class AliasedLocation extends Location {
+
+    static AliasedLocation ofAddress(final Formula address) {
+      return new AliasedLocation(checkNotNull(address));
+    }
+
+    static AliasedLocation ofAddressWithRegion(final Formula address, final MemoryRegion region) {
+      return new AliasedLocation(checkNotNull(address), checkNotNull(region));
+    }
+
+    static AliasedLocation ofBitField(
+        final Formula address, final MemoryRegion region, final int bitFieldOffset) {
+      return new AliasedLocation(checkNotNull(address), checkNotNull(region), bitFieldOffset);
+    }
+
+    private AliasedLocation(final Formula address) {
+      this(address, null);
+    }
+
+    private AliasedLocation(final Formula address, @Nullable final MemoryRegion region) {
+      this.address = address;
+      this.region = region;
+      bitFieldOffset = null;
+    }
+
+    private AliasedLocation(
+        final Formula address, final MemoryRegion region, final int bitFieldOffset) {
+      this.address = address;
+      this.region = region;
+      this.bitFieldOffset = bitFieldOffset;
+    }
+
+    Formula getAddress() {
+      return address;
+    }
+
+    boolean isBitField() {
+      return bitFieldOffset != null;
+    }
+
+    /**
+     * Returns the offset in bits from the start of the value at the address of this location to the
+     * start of the bit field.
+     */
+    int getBitFieldOffset() {
+      checkState(isBitField());
+      return bitFieldOffset;
+    }
+
+    AliasedLocation withoutBitFieldOffset() {
+      checkState(isBitField());
+      return ofAddressWithRegion(address, checkNotNull(region));
+    }
+
+    @Override
+    Kind getKind() {
+      return Kind.ALIASED_LOCATION;
+    }
+
+    @InlineMe(replacement = "this")
+    @Override
+    @Deprecated
+    AliasedLocation asAliased() {
+      return this;
+    }
+
+    @InlineMe(replacement = "this")
+    @Override
+    @Deprecated
+    AliasedLocation asAliasedLocation() {
+      return this;
+    }
+
+    @Override
+    @Deprecated
+    UnaliasedLocation asUnaliased() {
+      throw new IllegalStateException();
+    }
+
+    @Override
+    @Deprecated
+    UnaliasedLocation asUnaliasedLocation() {
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public String toString() {
+      return toStringHelper(this).add("address", address).toString();
+    }
+
+    private final Formula address;
+
+    private final @Nullable MemoryRegion region;
+
+    private final @Nullable Integer bitFieldOffset;
+
+    @Nullable MemoryRegion getMemoryRegion() {
+      return region;
+    }
+  }
+
+  static final class UnaliasedLocation extends Location {
+
+    static UnaliasedLocation ofVariableName(final String variableName) {
+      return new UnaliasedLocation(checkNotNull(variableName));
+    }
+
+    private UnaliasedLocation(final String variableName) {
+      this.variableName = variableName;
+    }
+
+    String getVariableName() {
+      return variableName;
+    }
+
+    @Override
+    Kind getKind() {
+      return Kind.UNALIASED_LOCATION;
+    }
+
+    @Override
+    @Deprecated
+    AliasedLocation asAliased() {
+      throw new IllegalStateException();
+    }
+
+    @Override
+    @Deprecated
+    AliasedLocation asAliasedLocation() {
+      throw new IllegalStateException();
+    }
+
+    @InlineMe(replacement = "this")
+    @Override
+    @Deprecated
+    UnaliasedLocation asUnaliased() {
+      return this;
+    }
+
+    @InlineMe(replacement = "this")
+    @Override
+    @Deprecated
+    UnaliasedLocation asUnaliasedLocation() {
+      return this;
+    }
+
+    @Override
+    public String toString() {
+      return toStringHelper(this).add("variable", variableName).toString();
+    }
+
+    private final String variableName;
+  }
+
   abstract static sealed class Location extends Expression {
-    static final class AliasedLocation extends Location {
-
-      static AliasedLocation ofAddress(final Formula address) {
-        return new AliasedLocation(checkNotNull(address));
-      }
-
-      static AliasedLocation ofAddressWithRegion(final Formula address, final MemoryRegion region) {
-        return new AliasedLocation(checkNotNull(address), checkNotNull(region));
-      }
-
-      static AliasedLocation ofBitField(
-          final Formula address, final MemoryRegion region, final int bitFieldOffset) {
-        return new AliasedLocation(checkNotNull(address), checkNotNull(region), bitFieldOffset);
-      }
-
-      private AliasedLocation(final Formula address) {
-        this(address, null);
-      }
-
-      private AliasedLocation(final Formula address, @Nullable final MemoryRegion region) {
-        this.address = address;
-        this.region = region;
-        bitFieldOffset = null;
-      }
-
-      private AliasedLocation(
-          final Formula address, final MemoryRegion region, final int bitFieldOffset) {
-        this.address = address;
-        this.region = region;
-        this.bitFieldOffset = bitFieldOffset;
-      }
-
-      Formula getAddress() {
-        return address;
-      }
-
-      boolean isBitField() {
-        return bitFieldOffset != null;
-      }
-
-      /**
-       * Returns the offset in bits from the start of the value at the address of this location to
-       * the start of the bit field.
-       */
-      int getBitFieldOffset() {
-        checkState(isBitField());
-        return bitFieldOffset;
-      }
-
-      AliasedLocation withoutBitFieldOffset() {
-        checkState(isBitField());
-        return ofAddressWithRegion(address, checkNotNull(region));
-      }
-
-      @Override
-      Kind getKind() {
-        return Kind.ALIASED_LOCATION;
-      }
-
-      @InlineMe(replacement = "this")
-      @Override
-      @Deprecated
-      AliasedLocation asAliased() {
-        return this;
-      }
-
-      @InlineMe(replacement = "this")
-      @Override
-      @Deprecated
-      AliasedLocation asAliasedLocation() {
-        return this;
-      }
-
-      @Override
-      @Deprecated
-      UnaliasedLocation asUnaliased() {
-        throw new IllegalStateException();
-      }
-
-      @Override
-      @Deprecated
-      UnaliasedLocation asUnaliasedLocation() {
-        throw new IllegalStateException();
-      }
-
-      @Override
-      public String toString() {
-        return toStringHelper(this).add("address", address).toString();
-      }
-
-      private final Formula address;
-
-      private final @Nullable MemoryRegion region;
-
-      private final @Nullable Integer bitFieldOffset;
-
-      @Nullable MemoryRegion getMemoryRegion() {
-        return region;
-      }
-    }
-
-    static final class UnaliasedLocation extends Location {
-
-      static UnaliasedLocation ofVariableName(final String variableName) {
-        return new UnaliasedLocation(checkNotNull(variableName));
-      }
-
-      private UnaliasedLocation(final String variableName) {
-        this.variableName = variableName;
-      }
-
-      String getVariableName() {
-        return variableName;
-      }
-
-      @Override
-      Kind getKind() {
-        return Kind.UNALIASED_LOCATION;
-      }
-
-      @Override
-      @Deprecated
-      AliasedLocation asAliased() {
-        throw new IllegalStateException();
-      }
-
-      @Override
-      @Deprecated
-      AliasedLocation asAliasedLocation() {
-        throw new IllegalStateException();
-      }
-
-      @InlineMe(replacement = "this")
-      @Override
-      @Deprecated
-      UnaliasedLocation asUnaliased() {
-        return this;
-      }
-
-      @InlineMe(replacement = "this")
-      @Override
-      @Deprecated
-      UnaliasedLocation asUnaliasedLocation() {
-        return this;
-      }
-
-      @Override
-      public String toString() {
-        return toStringHelper(this).add("variable", variableName).toString();
-      }
-
-      private final String variableName;
-    }
 
     boolean isAliased() {
       return this instanceof AliasedLocation;
@@ -195,6 +194,27 @@ abstract sealed class Expression {
     abstract UnaliasedLocation asUnaliased();
   }
 
+  private static final class Nondet extends Value {
+    private Nondet() {
+      super(null);
+    }
+
+    @Override
+    boolean isNondet() {
+      return true;
+    }
+
+    @Override
+    Kind getKind() {
+      return Kind.NONDET;
+    }
+
+    @Override
+    public String toString() {
+      return toStringHelper(this).toString();
+    }
+  }
+
   static sealed class Value extends Expression {
 
     static Value ofValue(final Formula value) {
@@ -203,27 +223,6 @@ abstract sealed class Expression {
 
     static Value nondetValue() {
       return Value.nondet;
-    }
-
-    private static final class Nondet extends Value {
-      private Nondet() {
-        super(null);
-      }
-
-      @Override
-      boolean isNondet() {
-        return true;
-      }
-
-      @Override
-      Kind getKind() {
-        return Kind.NONDET;
-      }
-
-      @Override
-      public String toString() {
-        return toStringHelper(this).toString();
-      }
     }
 
     Value(final @Nullable Formula value) {
