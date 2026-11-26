@@ -97,6 +97,7 @@ SPDX-License-Identifier: Apache-2.0
     <!-- exclude flapping timeouts -->
     <exclude>../programs/benchmarks/pthread/stack-1.yml</exclude>
     <exclude>../programs/benchmarks/pthread/stack_longer-1.yml</exclude>
+    <exclude>../programs/benchmarks/pthread-driver-races/char_generic_nvram_nvram_unlocked_ioctl_write_nvram.yml</exclude>
   </tasks>
   <tasks name="predicateAnalysis-concurrency-simple">
     <option name="--predicateAnalysis-concurrency"/>

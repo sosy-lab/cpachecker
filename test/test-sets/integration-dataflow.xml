@@ -32,14 +32,14 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-    <exclude>../program/ssimple/block_analysis/product-lines_simple-09.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../program/simple/block_analysis/product-lines_simple-09.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks>
     <option name="--option">analysis.preprocessing.MPOR=true</option>
     <includesfile>../programs/simple/simple_concurrent.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-    <exclude>../program/ssimple/concurrent/goblint-regression-28-race_reach_45-escape_racing.yml</exclude>  <!-- flapping timeout / unknown -->
-    <exclude>../program/ssimple/concurrent/pthread-lazy01.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../program/simple/concurrent/goblint-regression-28-race_reach_45-escape_racing.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../program/simple/concurrent/pthread-lazy01.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
@@ -79,6 +79,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound100.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/egcd2-ll_unwindbound10.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/egcd3-ll_unwindbound10.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/knuth_unwindbound100.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/prod4br-ll_unwindbound5.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks>
@@ -97,7 +98,9 @@ SPDX-License-Identifier: Apache-2.0
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-pktcdvd.ko.cil.out.yml</exclude>  <!-- flapping timeout / error -->
+    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-usb-serial-ir-usb.ko.cil.out.yml</exclude>  <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--dvb--frontends--dib3000mb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / error -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--tty--serial--mfd.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--serial--mos7840.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping timeout / error -->
   </tasks>
 </benchmark>

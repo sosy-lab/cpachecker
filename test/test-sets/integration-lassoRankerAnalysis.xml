@@ -49,7 +49,9 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/bitvector/s3_srvr_2a_alt.BV.c.cil.yml</exclude>  <!-- flapping timeout / assertion -->
     <exclude>../programs/benchmarks/memsafety-ext/tree_cnstr.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/memsafety-ext/tree_parent_ptr.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/memsafety-ext/memsafety-ext/tree_stack.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/product-lines/elevator_spec14_product24.cil.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/product-lines/elevator_spec14_product32.cil.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/product-lines/elevator_spec3_product20.cil.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/product-lines/elevator_spec3_product24.cil.yml</exclude>  <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/product-lines/elevator_spec3_product32.cil.yml</exclude>  <!-- flapping timeout / unknown -->

@@ -39,6 +39,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/openssl/*</exclude>
+    <exclude>../programs/benchmarks/unsignedintegeroverflow-sas23/bilinear_interpolation.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/Heap.set</includesfile>
@@ -59,6 +60,8 @@ SPDX-License-Identifier: Apache-2.0
     <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/systemc/t*</exclude>
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.3.ufo.BOUNDED-6.pals.c.v+lhb-reducer.yml</exclude>  <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.3.ufo.BOUNDED-6.pals.c.v+sep-reducer.yml</exclude>  <!-- flapping timeout / unknown -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>

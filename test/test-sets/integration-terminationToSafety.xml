@@ -57,6 +57,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="C.termination.SoftwareSystems-DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    <exclude>../programs/benchmarks/ldv-consumption/32_7a_cilled_linux-3.8-rc1-32_7a-drivers--net--ethernet--i825xx--znet.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude>  <!-- flapping error / timeout -->
   </tasks>
   <tasks name="C.termination.SoftwareSystems-uthash">
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>

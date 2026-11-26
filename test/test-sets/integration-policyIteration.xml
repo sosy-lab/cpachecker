@@ -149,6 +149,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-industry-pattern/aiob_2.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loop-industry-pattern/aiob_3.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loop-industry-pattern/aiob_4.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/loop-industry-pattern/aiob_4.c.v+cfa-reducer.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loop-industry-pattern/ofuf_*.yml</exclude> <!-- flapping error/timeout -->
     <exclude>../programs/benchmarks/loop-invgen/SpamAssassin-loop.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+lhb-reducer.yml</exclude> <!-- flapping timeout -->

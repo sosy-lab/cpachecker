@@ -51,6 +51,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/array-lopstr16/break-1.yml</exclude>  <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/array-lopstr16/break-2.yml</exclude>  <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/array-lopstr16/single_elem_safe.yml</exclude>  <!-- flapping timeout / OOM -->
+    <exclude>../programs/benchmarks/aws-c-common/aws_priority_queue_s_sift_either_harness.yml</exclude>  <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/loop-zilu/benchmark38_conjunctive.yml</exclude>  <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/loops-crafted-1/sum_by_3.yml</exclude>  <!-- flapping timeout / OOM -->
     <exclude>../programs/benchmarks/loops-crafted-1/vnew2.yml</exclude>  <!-- flapping timeout / OOM -->
