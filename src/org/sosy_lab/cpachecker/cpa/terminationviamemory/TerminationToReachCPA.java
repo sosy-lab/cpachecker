@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -244,13 +245,15 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
             invariants.getInvariantFor(loopHead, Optional.empty(), fmgr, pfmgr, null);
         logger.log(Level.FINE, "Supporting invariant at", loopHead, ":", invariant);
         if (!bfmgr.isTrue(invariant)) {
-          supportingInvariants.put(
-              loopHead, TerminationToSafetyUtils.inCurrentState(invariant, fmgr));
+          supportingInvariants.put(loopHead, invariant);
         }
       }
       ImmutableMap<CFANode, BooleanFormula> result = supportingInvariants.buildOrThrow();
       loopHeadsWithSupportingInvariants.setNextValue(result.size());
-      return result;
+      statistics.setLoopInvariants(result);
+      return ImmutableMap.copyOf(
+          Maps.transformValues(
+              result, invariant -> TerminationToSafetyUtils.inCurrentState(invariant, fmgr)));
     } finally {
       supportingInvariantsTime.stop();
     }

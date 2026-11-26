@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.terminationviamemory;
 
 import static java.util.logging.Level.WARNING;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -19,6 +21,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -32,6 +35,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.NonterminationCounterexampleToWitness;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationArgumentsToWitnessUtils;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TerminationToReachStatistics extends ARGStatistics implements Statistics {
   private final TerminationYAMLWitnessExporter terminationWitnessExporter;
@@ -39,6 +44,7 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
   private BooleanFormulaManagerView bfmgr;
   private NonterminationCounterexampleToWitness nonterminationWitnessExporter;
   private CProgramScope scope;
+  private ImmutableMap<CFANode, BooleanFormula> loopInvariants = ImmutableMap.of();
 
   public TerminationToReachStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCFA, ConfigurableProgramAnalysis pCPA)
@@ -90,11 +96,19 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
     if (terminationWitnessExporter.isExportEnabled() && pResult == Result.TRUE) {
       try {
         terminationWitnessExporter.export(
-            TerminationArgumentsToWitnessUtils.getTransitionInvariantsFromARG(
-                pReached, cfa, fmgr, bfmgr, scope));
+            ImmutableList.<AbstractInvariantEntry>builder()
+                .addAll(
+                    TerminationArgumentsToWitnessUtils.convertLoopInvariantsToInvariantEntries(
+                        loopInvariants, cfa, fmgr, bfmgr, scope))
+                .addAll(
+                    TerminationArgumentsToWitnessUtils.getTransitionInvariantsFromARG(
+                        pReached, cfa, fmgr, bfmgr, scope))
+                .build());
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "There is a problem when writing the witness into a file.");
+      } catch (InterruptedException e) {
+        logger.logUserException(WARNING, e, "Could not export witness due to interruption");
       }
     }
   }
@@ -110,5 +124,10 @@ public class TerminationToReachStatistics extends ARGStatistics implements Stati
 
   public void setBooleanFormulaManager(BooleanFormulaManagerView pBfmgr) {
     bfmgr = pBfmgr;
+  }
+
+  /** Sets the loop invariants that the witness contains besides the transition invariants. */
+  public void setLoopInvariants(ImmutableMap<CFANode, BooleanFormula> pLoopInvariants) {
+    loopInvariants = pLoopInvariants;
   }
 }

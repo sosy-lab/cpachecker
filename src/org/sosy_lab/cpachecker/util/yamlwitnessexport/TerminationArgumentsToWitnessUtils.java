@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEnt
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TerminationArgumentsToWitnessUtils {
 
@@ -413,6 +414,76 @@ public class TerminationArgumentsToWitnessUtils {
       }
     }
     return argumentsForNestedLoops;
+  }
+
+  /**
+   * Converts the loop invariants at the loop heads into invariant entries. Literals that have no C
+   * expression in scope are dropped, and the variables are cast to __int128, such that the entries
+   * keep the meaning of the invariants over unbounded integers.
+   */
+  public static ImmutableList<AbstractInvariantEntry> convertLoopInvariantsToInvariantEntries(
+      Map<CFANode, BooleanFormula> pLoopInvariants,
+      CFA pCFA,
+      FormulaManagerView pFmgr,
+      BooleanFormulaManagerView pBfmgr,
+      CProgramScope pProgramScope)
+      throws InterruptedException {
+    AstCfaRelation astCfaRelation = pCFA.getAstCfaRelation();
+    ImmutableList.Builder<AbstractInvariantEntry> entries = ImmutableList.builder();
+    for (Map.Entry<CFANode, BooleanFormula> loopInvariant : pLoopInvariants.entrySet()) {
+      CFANode loopHead = loopInvariant.getKey();
+      Optional<IterationElement> loop =
+          astCfaRelation.getTightestIterationStructureForNode(loopHead);
+      if (loop.isEmpty()) {
+        continue;
+      }
+      Scope scope = getScopeAtNode(pProgramScope, loopHead, astCfaRelation);
+      BooleanFormula invariant =
+          pFmgr.filterLiterals(
+              loopInvariant.getValue(),
+              literal ->
+                  pFmgr.extractFunctionNames(literal).stream()
+                      .allMatch(name -> isVariableInScope(name, scope)));
+      String invariantAsC;
+      try {
+        invariantAsC =
+            TransitionInvariantUtils.transformFormulaToStringWithReplacement(
+                invariant,
+                pBfmgr,
+                pFmgr,
+                scope,
+                variable ->
+                    "((__int128)"
+                        + TransitionInvariantUtils.removeFunctionFromVarsName(
+                            toNameInInputProgram(variable, scope))
+                        + ")");
+      } catch (CPAException e) {
+        continue;
+      }
+      if (invariantAsC.equals("1") || !hasOnlyIntegerConstantsOfC(invariantAsC)) {
+        continue;
+      }
+      entries.add(
+          new InvariantEntry(
+              invariantAsC,
+              InvariantRecordType.LOOP_INVARIANT.getKeyword(),
+              YAMLWitnessExpressionType.C,
+              LocationRecord.createLocationRecordAtStart(
+                  loop.orElseThrow().getCompleteElement().location(),
+                  loopHead.getFunction().getFileLocation().getFileName().toString(),
+                  loopHead.getFunctionName())));
+    }
+    return entries.build();
+  }
+
+  /**
+   * Returns whether the given name of a formula is a variable that the input program has in the
+   * given scope. Names of UFs, e.g., of overflows, are not.
+   */
+  private static boolean isVariableInScope(String pName, Scope pScope) {
+    CSimpleDeclaration variable =
+        pScope.lookupVariable(TransitionInvariantUtils.removeFunctionFromVarsName(pName));
+    return variable != null && variable.getQualifiedName().equals(pName);
   }
 
   public static ImmutableList<AbstractInvariantEntry> getTransitionInvariantsFromARG(
