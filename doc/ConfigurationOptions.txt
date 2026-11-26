@@ -1772,7 +1772,6 @@ cpa.arg.exportTrueInvariants = false
 
 # export correctness witness in YAML format
 cpa.arg.exportYamlCorrectnessWitness = true
-cpa.arg.exportYamlCorrectnessWitness = no default value
 
 # export witnesses for unknown verdicts
 cpa.arg.exportYamlWitnessesForUnknownVerdict = true
@@ -1896,7 +1895,6 @@ cpa.arg.witness.revertThreadFunctionRenaming = false
 # will be exported. Each version replaces the string '%s' with its version
 # number.
 cpa.arg.yamlProofWitness = "witness-%s.yml"
-cpa.arg.yamlProofWitness = no default value
 
 # signal the analysis to break in case the given number of error state is
 # reached. Use -1 to disable this limit.
@@ -2112,32 +2110,6 @@ cpa.composite.inCPAEnabledAnalysis = false
 cpa.composite.merge = "AGREE"
   allowed values: [PLAIN, AGREE]
 
-# Use an abstraction-aware POR algorithm. Abstraction-aware POR can ignore
-# certain variables during dependency calculation if there is no information
-# about them in the precision (e.g., no predicates referring to them).
-cpa.concurrent.abstractionAware = no default value
-
-# Aggregate basic blocks to MultiEdges. Similar to basic block aggregation
-# inthe CompositeCPA transfer relation, but only one global statement (i.e.,
-# astatement that accesses a global variable or uses heap memory) is included
-# in aMultiEdge, so that all concurrent thread interleavings are explored.
-cpa.concurrent.aggregateBasicBlocks = no default value
-
-# Merge operator: SEP never merges states; JOIN delegates to the wrapped
-# merge operator when thread states are compatible.
-cpa.concurrent.merge = no default value
-  allowed values: [SEP, JOIN]
-
-# Partial order reduction (POR) algorithm to use. Options: NOPOR, SPOR
-cpa.concurrent.partialOrderReductionAlgorithm = no default value
-
-# Seed for the pseudo-random shuffling of the enabled threads in the
-# source-set heuristic. A single random-number generator is shared by
-# reference across all states of one analysis run, so successive shuffles
-# draw fresh values instead of every state restarting the same sequence; the
-# seed is fixed only to keep runs reproducible.
-cpa.concurrent.randomSeed = no default value
-
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
@@ -2297,28 +2269,6 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
-
-# Maximum number of different assignments to collect per location for the
-# invariants of a correctness witness. If a location has more assignments
-# than this, no invariant is exported for it, because an incomplete
-# disjunction would be unsound. Use -1 for no limit (which needs memory
-# proportional to the length of the execution).
-cpa.interpreter.maxAssignmentsPerLocation = no default value
-
-# Maximum number of assignments that are sampled during one execution.
-# Sampling is intended for programs whose inputs are read outside of any
-# loop, where the number of inputs is bounded by the program. This limit
-# protects against the unbounded number of solver calls that a program with
-# inputs in a loop would need. Use -1 for no limit.
-cpa.interpreter.maxSamples = no default value
-
-# Execute programs with inputs by asking the SMT solver for one assignment of
-# the inputs instead of aborting on the first nondeterministic choice. This
-# needs symbolic values (cpa.value.unknownValueHandling=INTRODUCE_SYMBOLIC)
-# and the ConstraintsCPA in the CPA configuration. Only one of the possible
-# executions is explored, so the analysis can then only report FALSE, never
-# TRUE.
-cpa.interpreter.sampleNondeterministicValues = no default value
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
@@ -2586,9 +2536,6 @@ cpa.monitor.pathcomputationlimit = 0
 # keep tracking nondeterministically-assigned variables even if they are used
 # in assumptions
 cpa.nondeterminism.acceptConstrained = true
-
-# calls to these functions are the reachability targets
-cpa.oc.errorFunctions = no default value
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
@@ -3260,12 +3207,6 @@ cpa.predicate.refinement.useUCBRefinement = false
 
 # verify if the interpolants fulfill the interpolant properties
 cpa.predicate.refinement.verifyInterpolants = false
-
-# Reject counterexamples that depend on accesses through a character type to
-# an object of another type (e.g., a memset of a struct). The heap encoding
-# with one SMT array per type does not model such accesses precisely, so such
-# counterexamples may be infeasible.
-cpa.predicate.rejectByteAccessesToTypedObjects = no default value
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
@@ -5273,45 +5214,6 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
-# write every collected memory event before solving (debugging aid)
-oc.dumpEvents = no default value
-
-# write the enabled events and read-from choices of a found violation model
-oc.dumpViolationModel = no default value
-
-# how the ordering constraints are decided
-oc.encoding = no default value
-  enum:     [REFINEMENT, CLOCKS]
-
-# file for the collected memory-event dump
-oc.eventsDumpFile = no default value
-
-# file for the violation execution graph (DOT/graphviz)
-oc.executionGraphFile = no default value
-
-# export the found violation as an execution graph in DOT/graphviz format
-oc.exportExecutionGraph = no default value
-
-# export the found violation as a sequentialized counterexample: the enabled
-# events in a consistent execution order, with their CFA edges
-oc.exportSequentializedCounterexample = no default value
-
-# give up when the loop bound exceeds this value; a negative value deepens
-# without bound
-oc.finalLoopBound = no default value
-
-# loop bound of the first exploration round
-oc.initialLoopBound = no default value
-
-# loop bound increase between iterative-deepening rounds
-oc.loopBoundStep = no default value
-
-# file for the sequentialized counterexample trace
-oc.sequentializedCounterexampleFile = no default value
-
-# file for the violation-model dump
-oc.violationModelFile = no default value
-
 # Check for unsigned integer overflows
 overflow.checkUnsigned = false
 
@@ -5781,14 +5683,6 @@ sampling.random.samplesToBeGenerated = 10
 # Stop after finding the first counterexample. This is useful when using this
 # as an actual analysis.
 sampling.random.stopAfterFirstCounterexample = false
-
-# The simple rules to use, by name. The default lists every rule of this
-# CPAchecker version, so switching a rule off or measuring a single rule
-# means removing the others from this list. A rule is applied only if it can
-# decide a proposition of the specification, and the statistics report which
-# rules were applied. A new rule has to be added here as well, which
-# SimpleRulesTest checks.
-simplerules.rules = no default value
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
