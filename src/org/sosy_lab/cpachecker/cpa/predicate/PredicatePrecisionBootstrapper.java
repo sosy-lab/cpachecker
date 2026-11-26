@@ -34,7 +34,17 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
@@ -42,6 +52,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -78,6 +90,14 @@ public final class PredicatePrecisionBootstrapper {
       secure = true,
       description = "always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
+
+  @Option(
+      secure = true,
+      name = "abstraction.initialPredicatesFromLoops",
+      description =
+          "add global initial predicates for the integer variables assigned in loops: their signs"
+              + " (x >= 0, x > 0) and the atoms of the assume edges that use them")
+  private boolean initialPredicatesFromLoops = false;
 
   @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
   public static final class InitialPredicatesOptions {
@@ -175,6 +195,10 @@ public final class PredicatePrecisionBootstrapper {
               Collections.singleton(abstractionManager.makeFalsePredicate()));
     }
 
+    if (initialPredicatesFromLoops) {
+      result = result.addGlobalPredicates(collectPredicatesFromLoops());
+    }
+
     if (!predicatesFiles.isEmpty()) {
       PredicateMapParser parser =
           new PredicateMapParser(cfa, logger, formulaManagerView, abstractionManager, options);
@@ -225,6 +249,62 @@ public final class PredicatePrecisionBootstrapper {
     }
 
     return result;
+  }
+
+  /**
+   * Returns the signs (x >= 0, x > 0) of the integer variables that are assigned in loops, and the
+   * atoms of the assume edges that use these variables.
+   */
+  private ImmutableSet<AbstractionPredicate> collectPredicatesFromLoops()
+      throws InterruptedException {
+    ImmutableSet.Builder<AbstractionPredicate> predicates = ImmutableSet.builder();
+    Set<String> loopVariables = new HashSet<>();
+    CBinaryExpressionBuilder expressionBuilder =
+        new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+    for (CFANode loopNode :
+        cfa.getLoopStructure().map(LoopStructure::getAllLoops).orElse(ImmutableList.of()).stream()
+            .flatMap(loop -> loop.getLoopNodes().stream())
+            .collect(ImmutableSet.toImmutableSet())) {
+      // A loop exits with an assume edge, so each assignment that starts in a loop is inside it
+      for (CFAEdge edge : loopNode.getLeavingEdges()) {
+        if (edge instanceof CStatementEdge statementEdge
+            && statementEdge.getStatement() instanceof CAssignment assignment
+            && assignment.getLeftHandSide() instanceof CIdExpression variable
+            && variable.getExpressionType().getCanonicalType() instanceof CSimpleType type
+            && type.getType().isIntegerType()
+            && loopVariables.add(variable.getDeclaration().getQualifiedName())) {
+          for (BinaryOperator operator :
+              ImmutableList.of(BinaryOperator.GREATER_EQUAL, BinaryOperator.GREATER_THAN)) {
+            predicates.addAll(
+                getPredicatesForAtomsOf(
+                    expressionBuilder.buildBinaryExpressionUnchecked(
+                        variable, CIntegerLiteralExpression.ZERO, operator)));
+          }
+        }
+      }
+    }
+    for (CFAEdge edge : cfa.edges()) {
+      if (edge instanceof CAssumeEdge assumeEdge
+          && CFAUtils.getVariableNamesOfExpression(assumeEdge.getExpression())
+              .anyMatch(loopVariables::contains)) {
+        predicates.addAll(getPredicatesForAtomsOf(assumeEdge.getExpression()));
+      }
+    }
+    return predicates.build();
+  }
+
+  private ImmutableSet<AbstractionPredicate> getPredicatesForAtomsOf(CExpression pExpression)
+      throws InterruptedException {
+    try {
+      return predicateAbstractionManager.getPredicatesForAtomsOf(
+          pathFormulaManager
+              .makeAnd(pathFormulaManager.makeEmptyPathFormula(), pExpression)
+              .getFormula());
+    } catch (CPATransferException e) {
+      // Without these predicates, the abstraction is only coarser
+      logger.logDebugException(e, "Could not create predicates for " + pExpression);
+      return ImmutableSet.of();
+    }
   }
 
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(

@@ -706,13 +706,35 @@ public class CtoFormulaConverter extends LanguageToSmtConverter<CType> {
       throws UnrecognizedCodeException {
     Formula result = makeCast0(pFromType, pToType, formula, edge);
 
-    if (options.encodeOverflowsWithUFs()) {
+    if (options.encodeOverflowsWithUFs()
+        && !(options.ignoreUndefinedOverflows() && isSignedArithmetic(pFromType, pToType))) {
       // handles arithmetic overflows like  "x+y>MAX"  or  "x-y<MIN"  .
       // and also type-based overflows like  "char c = (int)i;"  or  "unsigned int j = (int)i;"  .
       result = encodeOverflowsWithUF(result, pToType, constraints);
     }
 
     return result;
+  }
+
+  /**
+   * Returns whether each value of {@code pFromType} fits into the signed integer type {@code
+   * pToType}, such that an overflow can only come from signed arithmetic, which is undefined
+   * behavior.
+   */
+  private boolean isSignedArithmetic(CType pFromType, CType pToType) {
+    return pFromType.getCanonicalType() instanceof CSimpleType fromType
+        && pToType.getCanonicalType() instanceof CSimpleType toType
+        && fromType.getType().isIntegerType()
+        && toType.getType().isIntegerType()
+        && machineModel.isSigned(toType)
+        && machineModel
+                .getMinimalIntegerValue(fromType)
+                .compareTo(machineModel.getMinimalIntegerValue(toType))
+            >= 0
+        && machineModel
+                .getMaximalIntegerValue(fromType)
+                .compareTo(machineModel.getMaximalIntegerValue(toType))
+            <= 0;
   }
 
   /**

@@ -130,6 +130,14 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
   @Option(
       secure = true,
       description =
+          "If encodeOverflowsWithUFs is set, do not encode overflows of signed arithmetic, which"
+              + " are undefined behavior, but only overflows of unsigned arithmetic and of"
+              + " conversions.")
+  private boolean ignoreUndefinedOverflows = false;
+
+  @Option(
+      secure = true,
+      description =
           "For multithreaded programs this is an overapproximation of possible values of shared"
               + " variables.")
   private boolean useHavocAbstraction = false;
@@ -201,6 +209,10 @@ public class CFormulaEncodingOptions extends FormulaEncodingOptions {
 
   public boolean encodeOverflowsWithUFs() {
     return encodeOverflowsWithUFs;
+  }
+
+  public boolean ignoreUndefinedOverflows() {
+    return ignoreUndefinedOverflows;
   }
 
   public boolean useHavocAbstraction() {

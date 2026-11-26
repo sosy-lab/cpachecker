@@ -2749,6 +2749,10 @@ cpa.predicate.abstraction.initialPredicates.ignoreLocationInfoInYMLWitness = fal
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
+# add global initial predicates for the integer variables assigned in loops:
+# their signs (x >= 0, x > 0) and the atoms of the assume edges that use them
+cpa.predicate.abstraction.initialPredicatesFromLoops = false
+
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 
@@ -2993,6 +2997,11 @@ cpa.predicate.ignoreIrrelevantVariables = true
 
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
+
+# If encodeOverflowsWithUFs is set, do not encode overflows of signed
+# arithmetic, which are undefined behavior, but only overflows of unsigned
+# arithmetic and of conversions.
+cpa.predicate.ignoreUndefinedOverflows = false
 
 # Prevent functions memset, memcopy, memmove from stopping verification if
 # there is unrecognized code. Instead, they will just be skipped (unsound).
@@ -4255,6 +4264,11 @@ cpa.terminationviamemory.checkUFsInIntegerEncoding = false
 # Disables checks for fix-point with transition invariants and performs plain
 # BMC.
 cpa.terminationviamemory.disableTransitionAbstractions = false
+
+# Generate loop invariants with the analysis of invariantGeneration.config
+# before the analysis, and use them as supporting invariants in the checks of
+# transition invariants.
+cpa.terminationviamemory.generateSupportingInvariants = false
 
 # configuration of the analysis that checks whether the supporting invariants
 # of the witness are invariants of the program before they are used, see

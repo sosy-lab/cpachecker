@@ -13,12 +13,15 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -28,7 +31,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.SupportingInvariantsChecker.InvariantCheckResult;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -40,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -50,7 +58,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.ExpressionTreeLocationTransitionInvariant;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * CPA for termination analysis of C programs. Abstract states represent a memory, where we can
@@ -84,6 +97,19 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
               + " useTransitionPredicatesFromWitness")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path supportingInvariantsConfig = null;
+
+  @Option(
+      secure = true,
+      description =
+          "Generate loop invariants with the analysis of invariantGeneration.config before the"
+              + " analysis, and use them as supporting invariants in the checks of transition"
+              + " invariants.")
+  private boolean generateSupportingInvariants = false;
+
+  private final StatTimer supportingInvariantsTime =
+      new StatTimer("Time for generating supporting invariants");
+  private final StatInt loopHeadsWithSupportingInvariants =
+      new StatInt(StatKind.SUM, "Number of loop heads with supporting invariants");
 
   public TerminationToReachCPA(
       LogManager pLogger,
@@ -161,7 +187,8 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
                 fmgr,
                 itpMgr,
                 configuration,
-                possiblyNonTerminatingLoops);
+                possiblyNonTerminatingLoops,
+                generateSupportingInvariants ? generateSupportingInvariants() : ImmutableMap.of());
 
     // Statistics need formula manager because it converts the Formula for transition invariant
     // to a CExpression for witness export.
@@ -189,6 +216,44 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
         ImmutableList.of(),
         ImmutableSet.of(),
         ImmutableSet.of());
+  }
+
+  /**
+   * Generates loop invariants with the analysis of invariantGeneration.config. They need no check,
+   * since this analysis overapproximates the program.
+   */
+  private ImmutableMap<CFANode, BooleanFormula> generateSupportingInvariants()
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    supportingInvariantsTime.start();
+    try {
+      InvariantGenerator invariantGenerator =
+          CPAInvariantGenerator.create(
+              configuration,
+              logger,
+              ShutdownManager.createWithParent(shutdownNotifier),
+              Optional.empty(),
+              cfa,
+              Specification.alwaysSatisfied(),
+              ImmutableList.of());
+      invariantGenerator.start(cfa.getMainFunction());
+      InvariantSupplier invariants = invariantGenerator.getSupplier();
+
+      ImmutableMap.Builder<CFANode, BooleanFormula> supportingInvariants = ImmutableMap.builder();
+      for (CFANode loopHead : cfa.getLoopStructure().orElseThrow().getAllLoopHeads()) {
+        BooleanFormula invariant =
+            invariants.getInvariantFor(loopHead, Optional.empty(), fmgr, pfmgr, null);
+        logger.log(Level.FINE, "Supporting invariant at", loopHead, ":", invariant);
+        if (!bfmgr.isTrue(invariant)) {
+          supportingInvariants.put(
+              loopHead, TerminationToSafetyUtils.inCurrentState(invariant, fmgr));
+        }
+      }
+      ImmutableMap<CFANode, BooleanFormula> result = supportingInvariants.buildOrThrow();
+      loopHeadsWithSupportingInvariants.setNextValue(result.size());
+      return result;
+    } finally {
+      supportingInvariantsTime.stop();
+    }
   }
 
   private ImmutableSet<ExpressionTreeLocationInvariant> collectCandidateTransitionInvariants()
@@ -235,5 +300,22 @@ public class TerminationToReachCPA extends AbstractCPA implements StatisticsProv
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+    if (generateSupportingInvariants) {
+      pStatsCollection.add(
+          new Statistics() {
+            @Override
+            public void printStatistics(
+                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+              StatisticsWriter.writingStatisticsTo(pOut)
+                  .put(supportingInvariantsTime)
+                  .put(loopHeadsWithSupportingInvariants);
+            }
+
+            @Override
+            public String getName() {
+              return "Supporting invariants of termination analysis";
+            }
+          });
+    }
   }
 }

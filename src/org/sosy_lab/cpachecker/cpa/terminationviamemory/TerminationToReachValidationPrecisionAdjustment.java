@@ -140,16 +140,7 @@ public class TerminationToReachValidationPrecisionAdjustment
     return ImmutableMap.copyOf(
         Maps.transformValues(
             invariantsAtLocations,
-            invariant ->
-                pFmgr.substitute(
-                    invariant,
-                    ImmutableMap.copyOf(
-                        Maps.asMap(
-                            ImmutableSet.copyOf(pFmgr.extractVariables(invariant).values()),
-                            variable ->
-                                pFmgr.makeVariable(
-                                    pFmgr.getFormulaType(variable),
-                                    pFmgr.uninstantiate(variable).toString() + CURR_KEYWORD))))));
+            invariant -> TerminationToSafetyUtils.inCurrentState(invariant, pFmgr)));
   }
 
   /**
