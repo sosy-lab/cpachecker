@@ -726,13 +726,13 @@ class AssignmentQuantifierHandler {
 
     // apply the modifiers now
     for (SliceModifier modifier : slice.modifiers()) {
-      if (modifier instanceof SliceIndexModifier subscriptModifier) {
-        resolved = applySubscriptModifier(resolved, subscriptModifier, resolvedIsFunctionParameter);
-      } else if (modifier instanceof SliceFieldAccessModifier fieldAccessModifier) {
-        resolved = applyFieldAccessModifier(resolved, fieldAccessModifier);
-      } else {
-        throw new IllegalStateException("Cannot apply unresolved modifier to resolved slice");
-      }
+      resolved =
+          switch (modifier) {
+            case SliceIndexModifier subscriptModifier ->
+                applySubscriptModifier(resolved, subscriptModifier, resolvedIsFunctionParameter);
+            case SliceFieldAccessModifier fieldAccessModifier ->
+                applyFieldAccessModifier(resolved, fieldAccessModifier);
+          };
       // resolved can no longer be function parameter
       resolvedIsFunctionParameter = false;
     }

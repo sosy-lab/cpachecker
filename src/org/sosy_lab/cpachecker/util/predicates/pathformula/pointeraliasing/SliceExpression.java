@@ -241,16 +241,19 @@ record SliceExpression(
     CType type = base.getExpressionType().getCanonicalType();
 
     for (SliceModifier modifier : modifiers) {
-      if (modifier instanceof SliceFieldAccessModifier fieldModifier) {
-        // replace type with field type
-        type = fieldModifier.field.getType().getCanonicalType();
-      } else {
-        assert (modifier instanceof SliceVariableIndexModifier
-            || modifier instanceof SliceConstantIndexModifier);
-        // replace type with the type of its element
-        CPointerType adjustedPointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(type);
-        type = adjustedPointerType.getType().getCanonicalType();
-      }
+      type =
+          switch (modifier) {
+            case SliceFieldAccessModifier fieldModifier ->
+                fieldModifier.field.getType().getCanonicalType(); // replace type with field type
+            case SliceIndexModifier _ -> {
+              assert (modifier instanceof SliceVariableIndexModifier
+                  || modifier instanceof SliceConstantIndexModifier);
+              // replace type with the type of its element
+              CPointerType adjustedPointerType =
+                  (CPointerType) CTypes.adjustFunctionOrArrayType(type);
+              yield adjustedPointerType.getType().getCanonicalType();
+            }
+          };
     }
 
     return type;
