@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
@@ -224,9 +225,8 @@ public final class PredicateMapWriter {
     /** The variables of the input program a scope can name, by their names there. */
     static PredicateVariables ofProgram(Map<String, AbstractSimpleDeclaration> pVariables) {
       ImmutableSet<String> qualifiedNames =
-          FluentIterable.from(pVariables.values())
-              .transform(AbstractSimpleDeclaration::getQualifiedName)
-              .toSet();
+          transformedImmutableSetCopy(
+              pVariables.values(), AbstractSimpleDeclaration::getQualifiedName);
       ImmutableMap<String, String> namesInProgram =
           pVariables.values().stream()
               .collect(

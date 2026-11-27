@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -100,7 +101,7 @@ public final class PrecisionScopeVariables {
   public ImmutableMap<String, AbstractSimpleDeclaration> variablesIn(String pFunction) {
     Set<AbstractSimpleDeclaration> declared = declaredVariablesPerFunction.get().get(pFunction);
     ImmutableSet<String> declaredNames =
-        FluentIterable.from(declared).transform(AbstractSimpleDeclaration::getOrigName).toSet();
+        transformedImmutableSetCopy(declared, AbstractSimpleDeclaration::getOrigName);
     return ImmutableMap.<String, AbstractSimpleDeclaration>builder()
         .putAll(byUniqueName(FluentIterable.from(declared)))
         .putAll(Maps.filterKeys(globalVariables(), name -> !declaredNames.contains(name)))
@@ -113,9 +114,9 @@ public final class PrecisionScopeVariables {
    */
   public Optional<ImmutableMap<String, AbstractSimpleDeclaration>> variablesAt(CFANode pNode) {
     ImmutableSet<String> declaredInFunction =
-        FluentIterable.from(declaredVariablesPerFunction.get().get(pNode.getFunctionName()))
-            .transform(AbstractSimpleDeclaration::getQualifiedName)
-            .toSet();
+        transformedImmutableSetCopy(
+            declaredVariablesPerFunction.get().get(pNode.getFunctionName()),
+            AbstractSimpleDeclaration::getQualifiedName);
     return astCfaRelation
         .getVariablesAndParametersInScope(pNode)
         .map(variables ->

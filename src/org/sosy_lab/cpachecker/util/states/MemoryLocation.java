@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.states;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
@@ -267,11 +268,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
           && member.getType().getCanonicalType() instanceof CCompositeType inner) {
         Optional<ImmutableList<CCompositeTypeMemberDeclaration>> path = pathToMember(inner, pName);
         if (path.isPresent()) {
-          return Optional.of(
-              ImmutableList.<CCompositeTypeMemberDeclaration>builder()
-                  .add(member)
-                  .addAll(path.orElseThrow())
-                  .build());
+          return Optional.of(elementAndList(member, path.orElseThrow()));
         }
       }
     }
