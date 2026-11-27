@@ -18,6 +18,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -55,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractYAMLWitnessExporter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.PrecisionScopeVariables;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
@@ -177,12 +180,12 @@ public final class PredicateMapWriter {
   private static Optional<String> getPredicateString(
       AbstractionPredicate pPredicate,
       PredicateDumpFormat pFormat,
-      Function<String, Boolean> pIncludeVariablesFilter,
+      PredicateVariables pVariables,
       FormulaManagerView pFmgr,
       MachineModel pMachineModel,
       Set<PrecisionDeclaration> pDeclarations) {
     if (!FluentIterable.from(pFmgr.extractVariableNames(pPredicate.getSymbolicAtom()))
-        .allMatch(pIncludeVariablesFilter::apply)) {
+        .allMatch(pVariables.isUsable()::apply)) {
       return Optional.empty();
     }
     return switch (pFormat) {
@@ -199,8 +202,8 @@ public final class PredicateMapWriter {
               AbstractionFormula.asExpressionTree(
                       pPredicate.getSymbolicAtom(),
                       pFmgr,
-                      pIncludeVariablesFilter,
-                      y -> y,
+                      pVariables.isUsable(),
+                      pVariables.exportedName(),
                       pMachineModel)
                   .toString());
         } catch (TranslationToExpressionTreeFailedException | InterruptedException e) {
@@ -211,7 +214,37 @@ public final class PredicateMapWriter {
     };
   }
 
-  public static boolean notInternalVariable(String pQualifiedVariableName) {
+  /**
+   * The variables a predicate may use, by the names of its formula, and the names the exported
+   * predicate gives them. The translation to C passes a name without its function.
+   */
+  private record PredicateVariables(
+      Function<String, Boolean> isUsable, Function<String, String> exportedName) {
+
+    /** The variables of the input program a scope can name, by their names there. */
+    static PredicateVariables ofProgram(Map<String, AbstractSimpleDeclaration> pVariables) {
+      ImmutableSet<String> qualifiedNames =
+          FluentIterable.from(pVariables.values())
+              .transform(AbstractSimpleDeclaration::getQualifiedName)
+              .toSet();
+      ImmutableMap<String, String> namesInProgram =
+          pVariables.values().stream()
+              .collect(
+                  ImmutableMap.toImmutableMap(
+                      AbstractSimpleDeclaration::getName,
+                      AbstractSimpleDeclaration::getOrigName,
+                      (first, _) -> first));
+      return new PredicateVariables(
+          qualifiedNames::contains, name -> namesInProgram.getOrDefault(name, name));
+    }
+
+    /** The variables CPAchecker names, as SMT-LIB uses its names. */
+    static PredicateVariables ofCPAchecker(Function<String, Boolean> pIsUsable) {
+      return new PredicateVariables(pIsUsable, Function.identity());
+    }
+  }
+
+  private static boolean notInternalVariable(String pQualifiedVariableName) {
     return !pQualifiedVariableName.contains("__CPAchecker_")
         && !pQualifiedVariableName.contains("__ADDRESS_OF_")
         // Renaming of same variables in scope is done by appending `__i` for some `i` to the
@@ -219,13 +252,13 @@ public final class PredicateMapWriter {
         && !pQualifiedVariableName.matches(".*__[1-9][0-9]*");
   }
 
-  public static boolean variableNameInFunction(
+  private static boolean variableNameInFunction(
       String pQualifiedVariableName, String pFunctionName) {
     return !pQualifiedVariableName.contains(FUNCTION_DELIMITER)
         || pQualifiedVariableName.startsWith(pFunctionName + FUNCTION_DELIMITER);
   }
 
-  public static boolean variableInOriginalProgram(
+  private static boolean variableInOriginalProgram(
       String pQualifiedVariableName, AstCfaRelation pAstCfaRelation, CFANode pLocation) {
     Optional<FluentIterable<AbstractSimpleDeclaration>> variablesInScope =
         pAstCfaRelation.getVariablesAndParametersInScope(pLocation);
@@ -264,6 +297,10 @@ public final class PredicateMapWriter {
           Level.INFO, "Currently we cannot export local predicates for programs other than C");
     }
 
+    Optional<PrecisionScopeVariables> programVariables =
+        Optional.ofNullable(astCfaRelation)
+            .map(_ -> new PrecisionScopeVariables(cfa.orElseThrow()));
+
     for (PredicateDumpFormat witnessPredicateFormat : witnessPredicateFormats) {
       if (witnessPredicateFormat == PredicateDumpFormat.PLAIN) {
         logger.log(
@@ -278,6 +315,7 @@ public final class PredicateMapWriter {
 
       YAMLWitnessExpressionType witnessExpressionType =
           YAMLWitnessExpressionType.fromPredicateFormat(witnessPredicateFormat);
+      boolean inC = witnessPredicateFormat == PredicateDumpFormat.C;
 
       // Several CFA nodes may describe the same scope, for example all nodes of one statement, so
       // collect the predicates per scope to export every scope exactly once. A scope without any
@@ -289,9 +327,12 @@ public final class PredicateMapWriter {
           new GlobalPrecisionScope(),
           pGlobal,
           witnessPredicateFormat,
-          // TODO: The ADDRESS_OF problem should not be solved here, but in the translation back
-          //  from SMT to C
-          PredicateMapWriter::notInternalVariable,
+          inC
+              ? PredicateVariables.ofProgram(
+                  programVariables
+                      .map(PrecisionScopeVariables::globalVariables)
+                      .orElse(ImmutableMap.of()))
+              : PredicateVariables.ofCPAchecker(PredicateMapWriter::notInternalVariable),
           machineModel,
           declarations);
 
@@ -301,7 +342,13 @@ public final class PredicateMapWriter {
             new FunctionPrecisionScope(functionName),
             pFunction.get(functionName),
             witnessPredicateFormat,
-            name -> notInternalVariable(name) && variableNameInFunction(name, functionName),
+            inC
+                ? PredicateVariables.ofProgram(
+                    programVariables
+                        .map(variables -> variables.variablesIn(functionName))
+                        .orElse(ImmutableMap.of()))
+                : PredicateVariables.ofCPAchecker(name ->
+                    notInternalVariable(name) && variableNameInFunction(name, functionName)),
             machineModel,
             declarations);
       }
@@ -319,11 +366,19 @@ public final class PredicateMapWriter {
               precisionScope.orElseGet(() -> new FunctionPrecisionScope(functionName)),
               pLocation.get(cfaNode),
               witnessPredicateFormat,
-              variableName ->
-                  notInternalVariable(variableName)
-                      && variableNameInFunction(variableName, functionName)
-                      && (precisionScope.isEmpty()
-                          || variableInOriginalProgram(variableName, astCfaRelation, cfaNode)),
+              inC
+                  ? PredicateVariables.ofProgram(
+                      precisionScope.isPresent()
+                          ? programVariables
+                              .orElseThrow()
+                              .variablesAt(cfaNode)
+                              .orElse(ImmutableMap.of())
+                          : programVariables.orElseThrow().variablesIn(functionName))
+                  : PredicateVariables.ofCPAchecker(variableName ->
+                      notInternalVariable(variableName)
+                          && variableNameInFunction(variableName, functionName)
+                          && (precisionScope.isEmpty()
+                              || variableInOriginalProgram(variableName, astCfaRelation, cfaNode))),
               machineModel,
               declarations);
         }
@@ -353,13 +408,12 @@ public final class PredicateMapWriter {
       PrecisionScope pScope,
       Collection<AbstractionPredicate> pPredicates,
       PredicateDumpFormat pFormat,
-      Function<String, Boolean> pIncludeVariablesFilter,
+      PredicateVariables pVariables,
       MachineModel pMachineModel,
       Set<PrecisionDeclaration> pDeclarations) {
     Set<String> predicateStrings = new LinkedHashSet<>();
     for (AbstractionPredicate predicate : pPredicates) {
-      getPredicateString(
-              predicate, pFormat, pIncludeVariablesFilter, fmgr, pMachineModel, pDeclarations)
+      getPredicateString(predicate, pFormat, pVariables, fmgr, pMachineModel, pDeclarations)
           .ifPresent(predicateStrings::add);
     }
     if (!predicateStrings.isEmpty()) {
