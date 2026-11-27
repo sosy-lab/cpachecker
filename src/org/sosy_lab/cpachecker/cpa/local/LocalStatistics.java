@@ -75,7 +75,6 @@ public class LocalStatistics implements Statistics {
       }
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write LOCALCPA precision");
-      return;
     }
   }
 
