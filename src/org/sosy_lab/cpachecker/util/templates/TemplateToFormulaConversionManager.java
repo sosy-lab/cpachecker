@@ -211,11 +211,7 @@ public final class TemplateToFormulaConversionManager {
     @Override
     public String toString() {
       return "ToFormulaCacheKey{"
-          + "pathFormulaManager="
-          + pathFormulaManager
-          + ", formulaManagerView="
-          + formulaManagerView
-          + ", template="
+          + "template="
           + template
           + ", contextFormula="
           + contextFormula
