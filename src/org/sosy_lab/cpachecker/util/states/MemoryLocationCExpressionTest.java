@@ -65,6 +65,26 @@ public class MemoryLocationCExpressionTest {
           "line",
           "line");
 
+  // struct outer { int a; struct { int b; int c; }; }, whose inner struct has no member name
+  private static final CCompositeType WITH_ANONYMOUS_STRUCT =
+      new CCompositeType(
+          CTypeQualifiers.NONE,
+          ComplexTypeKind.STRUCT,
+          ImmutableList.of(
+              new CCompositeTypeMemberDeclaration(CNumericTypes.INT, "a"),
+              new CCompositeTypeMemberDeclaration(
+                  new CCompositeType(
+                      CTypeQualifiers.NONE,
+                      ComplexTypeKind.STRUCT,
+                      ImmutableList.of(
+                          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, "b"),
+                          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, "c")),
+                      "__anon_type_0",
+                      "__anon_type_0"),
+                  "__anon_type_member_1")),
+          "outer",
+          "outer");
+
   private static void assertRoundTrip(String pExpected, MemoryLocation pLocation, CType pType) {
     assertThat(pLocation.asCExpression(pType, MACHINE_MODEL)).hasValue(pExpected);
     assertThat(
@@ -95,6 +115,11 @@ public class MemoryLocationCExpressionTest {
     assertRoundTrip("&l.points[0].x", MemoryLocation.forLocalVariable("main", "l", 0), LINE);
     assertRoundTrip("&l.points[1].y", MemoryLocation.forLocalVariable("main", "l", 12), LINE);
     assertRoundTrip("&l.label", MemoryLocation.forLocalVariable("main", "l", 16), LINE);
+  }
+
+  @Test
+  public void memberOfAnonymousStructIsNamedDirectly() {
+    assertRoundTrip("&o.c", MemoryLocation.forLocalVariable("main", "o", 8), WITH_ANONYMOUS_STRUCT);
   }
 
   @Test

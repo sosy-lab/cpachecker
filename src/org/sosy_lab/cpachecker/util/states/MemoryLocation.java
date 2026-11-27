@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.google.errorprone.annotations.Immutable;
 import java.io.Serial;
@@ -218,7 +218,12 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
           if (member.isEmpty()) {
             return Optional.empty();
           }
-          expression.append('.').append(member.orElseThrow().getName());
+          if (!isAnonymous(member.orElseThrow())) {
+            expression.append('.').append(member.orElseThrow().getName());
+          } else if (!isAggregate(member.orElseThrow().getType().getCanonicalType())) {
+            // An unnamed bit field has no address in C
+            return Optional.empty();
+          }
           rest -=
               pMachineModel
                   .getFieldOffsetInBytes(composite, member.orElseThrow().getName())
@@ -234,6 +239,42 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
 
     // A rest is left over when the offset points into a scalar, which no C expression denotes
     return rest == 0 ? Optional.of(expression.toString()) : Optional.empty();
+  }
+
+  /**
+   * Whether the member has no name in the program, e.g., a struct inside another one without a
+   * member name. C names the members of such a struct directly.
+   */
+  private static boolean isAnonymous(CCompositeTypeMemberDeclaration pMember) {
+    // The name the parser gives a member without a name
+    return pMember.getName().startsWith("__anon_type_member_");
+  }
+
+  /**
+   * Returns the members to descend through to reach the member with the given name, i.e., the
+   * anonymous members on the way and the member itself.
+   */
+  private static Optional<ImmutableList<CCompositeTypeMemberDeclaration>> pathToMember(
+      CCompositeType pComposite, String pName) {
+    for (CCompositeTypeMemberDeclaration member : pComposite.getMembers()) {
+      if (member.getName().equals(pName)) {
+        return Optional.of(ImmutableList.of(member));
+      }
+    }
+    for (CCompositeTypeMemberDeclaration member : pComposite.getMembers()) {
+      if (isAnonymous(member)
+          && member.getType().getCanonicalType() instanceof CCompositeType inner) {
+        Optional<ImmutableList<CCompositeTypeMemberDeclaration>> path = pathToMember(inner, pName);
+        if (path.isPresent()) {
+          return Optional.of(
+              ImmutableList.<CCompositeTypeMemberDeclaration>builder()
+                  .add(member)
+                  .addAll(path.orElseThrow())
+                  .build());
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   /** Whether the type is one whose parts have an address of their own. */
@@ -327,17 +368,19 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
           if (!(current instanceof CCompositeType composite)) {
             return Optional.empty();
           }
-          String member = rest.substring(index + 1, end);
-          Optional<CCompositeTypeMemberDeclaration> declaration =
-              FluentIterable.from(composite.getMembers())
-                  .firstMatch(m -> m.getName().equals(member))
-                  .toJavaUtil();
-          if (declaration.isEmpty()) {
+          Optional<ImmutableList<CCompositeTypeMemberDeclaration>> path =
+              pathToMember(composite, rest.substring(index + 1, end));
+          if (path.isEmpty()) {
             return Optional.empty();
           }
-          offset +=
-              pMachineModel.getFieldOffsetInBytes(composite, member).orElseThrow().longValueExact();
-          current = declaration.orElseThrow().getType().getCanonicalType();
+          for (CCompositeTypeMemberDeclaration member : path.orElseThrow()) {
+            offset +=
+                pMachineModel
+                    .getFieldOffsetInBytes((CCompositeType) current, member.getName())
+                    .orElseThrow()
+                    .longValueExact();
+            current = member.getType().getCanonicalType();
+          }
           index = end;
           hasDesignator = true;
         } else {
