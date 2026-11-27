@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.states;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -85,10 +84,13 @@ public class MemoryLocationCExpressionTest {
           "outer",
           "outer");
 
+  private static final MemoryLocation P = MemoryLocation.forLocalVariable("main", "p");
+
   private static void assertRoundTrip(String pExpected, MemoryLocation pLocation, CType pType) {
-    assertThat(pLocation.asCExpression(pType, MACHINE_MODEL)).hasValue(pExpected);
-    assertThat(
-            MemoryLocation.parseCExpression(pExpected, Optional.of("main"), pType, MACHINE_MODEL))
+    assertThat(pLocation.asCExpression(pLocation.getIdentifier(), pType, MACHINE_MODEL))
+        .hasValue(pExpected);
+    MemoryLocation variable = MemoryLocation.fromQualifiedName(pLocation.getQualifiedName());
+    assertThat(MemoryLocation.parseCExpression(pExpected, variable, pType, MACHINE_MODEL))
         .hasValue(pLocation);
   }
 
@@ -125,7 +127,9 @@ public class MemoryLocationCExpressionTest {
   @Test
   public void offsetInsideAScalarHasNoExpression() {
     // Half way into l.label, which no address expression of the program denotes
-    assertThat(MemoryLocation.forLocalVariable("main", "l", 18).asCExpression(LINE, MACHINE_MODEL))
+    assertThat(
+            MemoryLocation.forLocalVariable("main", "l", 18)
+                .asCExpression("l", LINE, MACHINE_MODEL))
         .isEmpty();
   }
 
@@ -134,7 +138,7 @@ public class MemoryLocationCExpressionTest {
     // '&x' would be read back as the location without an offset, which is a different one
     assertThat(
             MemoryLocation.forLocalVariable("main", "x", 0)
-                .asCExpression(CNumericTypes.INT, MACHINE_MODEL))
+                .asCExpression("x", CNumericTypes.INT, MACHINE_MODEL))
         .isEmpty();
   }
 
@@ -142,15 +146,13 @@ public class MemoryLocationCExpressionTest {
   public void offsetBeyondTheArrayHasNoExpression() {
     assertThat(
             MemoryLocation.forLocalVariable("main", "a", 16)
-                .asCExpression(INT_ARRAY, MACHINE_MODEL))
+                .asCExpression("a", INT_ARRAY, MACHINE_MODEL))
         .isEmpty();
   }
 
   @Test
   public void expressionNotMatchingTheTypeIsRejected() {
-    assertThat(MemoryLocation.parseCExpression("&p.z", Optional.of("main"), POINT, MACHINE_MODEL))
-        .isEmpty();
-    assertThat(MemoryLocation.parseCExpression("&p[0]", Optional.of("main"), POINT, MACHINE_MODEL))
-        .isEmpty();
+    assertThat(MemoryLocation.parseCExpression("&p.z", P, POINT, MACHINE_MODEL)).isEmpty();
+    assertThat(MemoryLocation.parseCExpression("&p[0]", P, POINT, MACHINE_MODEL)).isEmpty();
   }
 }

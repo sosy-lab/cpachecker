@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.io.MoreFiles;
@@ -26,7 +28,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -36,10 +37,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -77,6 +79,7 @@ import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.PrecisionScopeVariables;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
@@ -265,7 +268,7 @@ public class ValueAnalysisCPA extends AbstractCPA
             initialPrecision =
                 initialPrecision.withIncrement(
                     precisionExchangeSetToMapping(
-                        pExchangeSetEntry.getContent(), cfa, initialPrecision));
+                        pExchangeSetEntry.getContent(), cfa, initialPrecision, logger));
           } else {
             logger.logf(
                 Level.WARNING,
@@ -283,17 +286,26 @@ public class ValueAnalysisCPA extends AbstractCPA
     return initialPrecision;
   }
 
-  private Multimap<CFANode, MemoryLocation> precisionExchangeSetToMapping(
-      List<PrecisionExchangeEntry> pEntries, CFA pCfa, VariableTrackingPrecision pPrecision) {
+  /**
+   * Returns the memory locations of the given entries of a precision witness at the nodes where the
+   * given precision tracks them.
+   */
+  static Multimap<CFANode, MemoryLocation> precisionExchangeSetToMapping(
+      List<PrecisionExchangeEntry> pEntries,
+      CFA pCfa,
+      VariableTrackingPrecision pPrecision,
+      LogManager pLogger) {
     ImmutableListMultimap.Builder<CFANode, MemoryLocation> builder =
         ImmutableListMultimap.builder();
     AstCfaRelation astCfaRelation = pCfa.getAstCfaRelation();
     if (pCfa.getLanguage() != Language.C || astCfaRelation == null) {
-      logger.log(
+      pLogger.log(
           Level.WARNING,
           "A precision can only be imported from a witness for a program in C, ignoring it.");
       return builder.build();
     }
+    PrecisionScopeVariables variables = new PrecisionScopeVariables(pCfa);
+    MachineModel machineModel = pCfa.getMachineModel();
 
     // A precision which is not bound to a location has to be tracked at every location of its
     // scope, since a location-based precision only tracks what its own node is mapped to. Any
@@ -303,11 +315,10 @@ public class ValueAnalysisCPA extends AbstractCPA
         RefinablePrecision.tracksPerLocation(pPrecision)
             ? ImmutableSet.copyOf(pCfa.nodes())
             : ImmutableSet.of(getDefaultLocation(idToCfaNode));
-    CProgramScope scope = new CProgramScope(pCfa, logger);
     for (PrecisionExchangeEntry entry : pEntries) {
       if (entry.format() != YAMLWitnessExpressionType.C
           || entry.type() != PrecisionType.MEMORY_LOCATIONS) {
-        logger.log(
+        pLogger.log(
             Level.WARNING,
             "Ignoring unsupported precision entry with type "
                 + entry.type()
@@ -318,35 +329,27 @@ public class ValueAnalysisCPA extends AbstractCPA
 
       switch (entry.scope()) {
         case GlobalPrecisionScope _ -> {
-          for (String var : entry.values()) {
-            Optional<MemoryLocation> memoryLocation = parseMemoryLocation(var, null, scope, pCfa);
-            if (memoryLocation.isEmpty()) {
-              continue;
-            }
-            for (CFANode node : allNodes) {
-              builder.put(node, memoryLocation.orElseThrow());
-            }
+          ImmutableList<MemoryLocation> memoryLocations =
+              parseMemoryLocations(entry.values(), variables.globalVariables(), machineModel);
+          for (CFANode node : allNodes) {
+            builder.putAll(node, memoryLocations);
           }
         }
         case FunctionPrecisionScope pFunctionScope -> {
           String functionName = pFunctionScope.getFunctionName();
-          for (String var : entry.values()) {
-            Optional<MemoryLocation> memoryLocation =
-                parseMemoryLocation(var, functionName, scope, pCfa);
-            if (memoryLocation.isEmpty()) {
-              continue;
-            }
-            for (CFANode node : allNodes) {
-              if (node.getFunctionName().equals(functionName)) {
-                builder.put(node, memoryLocation.orElseThrow());
-              }
+          ImmutableList<MemoryLocation> memoryLocations =
+              parseMemoryLocations(
+                  entry.values(), variables.variablesIn(functionName), machineModel);
+          for (CFANode node : allNodes) {
+            if (node.getFunctionName().equals(functionName)) {
+              builder.putAll(node, memoryLocations);
             }
           }
         }
         case LocalLoopPrecisionScope pLoopScope -> {
           LocationRecord locationRecord = pLoopScope.getLocation();
           if (locationRecord.getColumn().isEmpty()) {
-            logger.logf(
+            pLogger.logf(
                 Level.WARNING,
                 "Ignoring the precision scope %s, which we cannot match to the CFA without a"
                     + " column.",
@@ -365,16 +368,18 @@ public class ValueAnalysisCPA extends AbstractCPA
             continue;
           }
 
-          for (String var : entry.values()) {
-            parseMemoryLocation(var, location.orElseThrow().getFunctionName(), scope, pCfa)
-                .ifPresent(memoryLocation -> builder.put(location.orElseThrow(), memoryLocation));
-          }
+          builder.putAll(
+              location.orElseThrow(),
+              parseMemoryLocations(
+                  entry.values(),
+                  variables.variablesAt(location.orElseThrow()).orElse(ImmutableMap.of()),
+                  machineModel));
         }
 
         case LocalPrecisionScope pLocalScope -> {
           LocationRecord locationRecord = pLocalScope.getLocation();
           if (locationRecord.getColumn().isEmpty()) {
-            logger.logf(
+            pLogger.logf(
                 Level.WARNING,
                 "Ignoring the precision scope %s, which we cannot match to the CFA without a"
                     + " column.",
@@ -385,15 +390,13 @@ public class ValueAnalysisCPA extends AbstractCPA
           Set<CFANode> location =
               astCfaRelation.getNodesForStatementLocation(
                   locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
-          if (location.isEmpty()) {
-            continue;
-          }
-
-          for (String var : entry.values()) {
-            for (CFANode node : location) {
-              parseMemoryLocation(var, node.getFunctionName(), scope, pCfa)
-                  .ifPresent(memoryLocation -> builder.put(node, memoryLocation));
-            }
+          for (CFANode node : location) {
+            builder.putAll(
+                node,
+                parseMemoryLocations(
+                    entry.values(),
+                    variables.variablesAt(node).orElse(ImmutableMap.of()),
+                    machineModel));
           }
         }
       }
@@ -432,33 +435,29 @@ public class ValueAnalysisCPA extends AbstractCPA
     return mapping;
   }
 
-  private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
+  private static CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
     return idToCfaNode.values().iterator().next();
   }
 
   /**
-   * Parses a memory location of a precision entry. The exported expression carries no function
-   * qualifier, so the variable is looked up in the given function first and in the global scope
-   * afterwards. Its declared type is needed to turn the designated address back into an offset.
+   * Returns the memory locations the given C expressions of a precision witness denote, which name
+   * the given variables. An expression naming another variable is left out.
    */
-  private static Optional<MemoryLocation> parseMemoryLocation(
-      String pVariable, @Nullable String pFunctionName, CProgramScope pScope, CFA pCfa) {
-    String identifier = MemoryLocation.baseIdentifierOfCExpression(pVariable);
-    if (pFunctionName != null) {
-      CSimpleDeclaration local = pScope.lookupVariable(pFunctionName + "::" + identifier);
-      if (local != null) {
-        return MemoryLocation.parseCExpression(
-            pVariable, Optional.of(pFunctionName), local.getType(), pCfa.getMachineModel());
+  private static ImmutableList<MemoryLocation> parseMemoryLocations(
+      Collection<String> pExpressions,
+      Map<String, AbstractSimpleDeclaration> pVariables,
+      MachineModel pMachineModel) {
+    ImmutableList.Builder<MemoryLocation> memoryLocations = ImmutableList.builder();
+    for (String expression : pExpressions) {
+      AbstractSimpleDeclaration variable =
+          pVariables.get(MemoryLocation.baseIdentifierOfCExpression(expression));
+      if (variable != null && variable.getType() instanceof CType type) {
+        MemoryLocation.parseCExpression(
+                expression, MemoryLocation.forDeclaration(variable), type, pMachineModel)
+            .ifPresent(memoryLocations::add);
       }
     }
-    CSimpleDeclaration global = pScope.lookupVariable(identifier);
-    if (global == null || global.getQualifiedName().contains("::")) {
-      // The lookup also answers with a local variable of any other function, which is not the
-      // variable this expression names
-      return Optional.empty();
-    }
-    return MemoryLocation.parseCExpression(
-        pVariable, Optional.empty(), global.getType(), pCfa.getMachineModel());
+    return memoryLocations.build();
   }
 
   public void injectRefinablePrecision() throws InvalidConfigurationException {

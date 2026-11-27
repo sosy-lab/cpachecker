@@ -10,13 +10,9 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.notInternalVariable;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableInOriginalProgram;
-import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter.variableNameInFunction;
 
-import com.google.common.base.Supplier;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -25,16 +21,18 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.PrecisionScopeVariables;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
@@ -93,11 +91,11 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   @Override
   public List<PrecisionExchangeEntry> asWitnessEntries(CFA pCfa) {
     AstCfaRelation astCfaRelation = pCfa.getAstCfaRelation();
-    Optional<Supplier<CProgramScope>> scope = scopeOf(pCfa);
-    if (astCfaRelation == null || scope.isEmpty()) {
+    if (pCfa.getLanguage() != Language.C || astCfaRelation == null) {
       // Without the relation to the AST we cannot describe the scope of any location
       return ImmutableList.of();
     }
+    PrecisionScopeVariables variables = new PrecisionScopeVariables(pCfa);
 
     // Several CFA nodes may describe the same scope, for example all nodes of one statement, so
     // collect the memory locations per scope to export every scope exactly once.
@@ -105,33 +103,21 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
 
     for (CFANode currentLocation : rawPrecision.keySet()) {
       String functionName = currentLocation.getFunctionName();
-      Optional<PrecisionScope> precisionScope =
+      Optional<PrecisionScope> localScope =
           PrecisionScope.localPrecisionScopeFor(currentLocation, astCfaRelation);
-
-      FluentIterable<@NonNull MemoryLocation> relevantVariables =
-          FluentIterable.from(rawPrecision.get(currentLocation))
-              .filter(memoryLocation ->
-                  notInternalVariable(memoryLocation.getQualifiedName())
-                      && variableNameInFunction(memoryLocation.getQualifiedName(), functionName)
-                      // Nodes without a scope of their own are overapproximated by the scope
-                      // of their function, where the variables of the node are still in scope
-                      && (precisionScope.isEmpty()
-                          || variableInOriginalProgram(
-                              memoryLocation.getQualifiedName(), astCfaRelation, currentLocation)));
+      // Nodes without a scope of their own are overapproximated by the scope of their function
+      PrecisionScope precisionScope =
+          localScope.orElseGet(() -> new FunctionPrecisionScope(functionName));
+      Map<String, AbstractSimpleDeclaration> namedVariables =
+          localScope.isPresent()
+              ? variables.variablesAt(currentLocation).orElse(ImmutableMap.of())
+              : variables.variablesIn(functionName);
 
       Set<String> expressions =
-          relevantVariables
-              .filter(variable -> !isShadowedGlobal(variable, functionName, scope.orElseThrow()))
-              .transform(
-                  variable -> asCExpression(variable, scope.orElseThrow(), pCfa.getMachineModel()))
-              .filter(Optional::isPresent)
-              .transform(Optional::orElseThrow)
-              .toSet();
+          asCExpressions(rawPrecision.get(currentLocation), namedVariables, pCfa.getMachineModel());
       if (!expressions.isEmpty()) {
         variablesPerScope
-            .computeIfAbsent(
-                precisionScope.orElseGet(() -> new FunctionPrecisionScope(functionName)),
-                _ -> new LinkedHashSet<>())
+            .computeIfAbsent(precisionScope, _ -> new LinkedHashSet<>())
             .addAll(expressions);
       }
     }
@@ -144,16 +130,6 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
                 entry.getKey(),
                 PrecisionType.MEMORY_LOCATIONS,
                 ImmutableList.copyOf(entry.getValue())));
-  }
-
-  /**
-   * Whether the memory location is a global variable which a local variable of the function hides,
-   * so that the exported expression would name the local one instead.
-   */
-  private static boolean isShadowedGlobal(
-      MemoryLocation pLocation, String pFunctionName, Supplier<CProgramScope> pScope) {
-    return !pLocation.isOnFunctionStack()
-        && pScope.get().lookupVariable(pFunctionName + "::" + pLocation.getIdentifier()) != null;
   }
 
   @Override

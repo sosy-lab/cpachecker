@@ -179,11 +179,12 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
    * the offset is resolved to the element and the member it points to. Returns nothing if it points
    * into a scalar, which no C expression denotes.
    *
+   * @param pName the name of the variable of this memory location in the program
    * @param pType the declared type of the variable of this memory location
    * @param pMachineModel the machine model of the analyzed program
    */
-  public Optional<String> asCExpression(CType pType, MachineModel pMachineModel) {
-    StringBuilder expression = new StringBuilder("&").append(identifier);
+  public Optional<String> asCExpression(String pName, CType pType, MachineModel pMachineModel) {
+    StringBuilder expression = new StringBuilder("&").append(pName);
     if (offset == null) {
       return Optional.of(expression.toString());
     }
@@ -304,8 +305,8 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   /**
-   * Returns the identifier of the variable a C expression produced by {@link #asCExpression(CType,
-   * MachineModel)} refers to, so that its declaration can be looked up.
+   * Returns the name of the variable a C expression produced by {@link #asCExpression(String,
+   * CType, MachineModel)} refers to, so that its declaration can be looked up.
    */
   public static String baseIdentifierOfCExpression(String pExpression) {
     String rest = pExpression.trim();
@@ -320,16 +321,16 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   /**
-   * Returns the memory location denoted by a C expression produced by {@link #asCExpression(CType,
-   * MachineModel)}, or nothing if it does not describe a location of the given type.
+   * Returns the memory location denoted by a C expression produced by {@link #asCExpression(String,
+   * CType, MachineModel)}, or nothing if it does not describe a location of the given type.
    *
    * @param pExpression the address expression to parse
-   * @param pFunctionName the function the variable belongs to, if it is not a global one
+   * @param pVariable the variable the expression refers to
    * @param pType the declared type of the variable of the expression
    * @param pMachineModel the machine model of the analyzed program
    */
   public static Optional<MemoryLocation> parseCExpression(
-      String pExpression, Optional<String> pFunctionName, CType pType, MachineModel pMachineModel) {
+      String pExpression, MemoryLocation pVariable, CType pType, MachineModel pMachineModel) {
     String rest = pExpression.trim();
     if (rest.startsWith("&")) {
       rest = rest.substring(1).trim();
@@ -391,9 +392,7 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
       return Optional.empty();
     }
 
-    return Optional.of(
-        new MemoryLocation(
-            pFunctionName.orElse(null), identifier, hasDesignator ? Long.valueOf(offset) : null));
+    return Optional.of(hasDesignator ? pVariable.withOffset(offset) : pVariable);
   }
 
   private static boolean isIdentifierChar(char pChar) {
