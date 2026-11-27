@@ -52,6 +52,10 @@ public class PrecisionExchangeIntegrationTest {
   private static final Path VALUE_PROGRAM =
       Path.of("test/programs/precision-exchange/value_tracked.c");
 
+  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+  private final PrintStream statisticsStream =
+      new PrintStream(ByteStreams.nullOutputStream(), true, Charset.defaultCharset());
+
   @Test(timeout = 5000)
   public void predicatePrecisionRoundTrip() throws Exception {
     runRoundtripPrecisionExchange(
@@ -116,10 +120,7 @@ public class PrecisionExchangeIntegrationTest {
 
     // The precision export is performed while the statistics are printed, so trigger them here
     // (discarding the printed statistics) to write the precision file to disk.
-    exportResult
-        .cpaCheckerResult()
-        .printStatistics(
-            new PrintStream(ByteStreams.nullOutputStream(), true, Charset.defaultCharset()));
+    exportResult.cpaCheckerResult().printStatistics(statisticsStream);
     assertThat(exportResult.cpaCheckerResult().getResult()).isEqualTo(Result.TRUE);
 
     Path precisionWitness = outputDir.resolve(pExportedPrecisionFile);
