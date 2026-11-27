@@ -310,9 +310,10 @@ public class ValueAnalysisCPA extends AbstractCPA
     // A precision which is not bound to a location has to be tracked at every location of its
     // scope, since a location-based precision only tracks what its own node is mapped to. Any
     // other precision ignores the nodes, so naming one of them is enough.
+    boolean tracksPerLocation = RefinablePrecision.tracksPerLocation(pPrecision);
     Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
     ImmutableSet<CFANode> allNodes =
-        RefinablePrecision.tracksPerLocation(pPrecision)
+        tracksPerLocation
             ? ImmutableSet.copyOf(pCfa.nodes())
             : ImmutableSet.of(getDefaultLocation(idToCfaNode));
     for (PrecisionExchangeEntry entry : pEntries) {
@@ -341,7 +342,7 @@ public class ValueAnalysisCPA extends AbstractCPA
               parseMemoryLocations(
                   entry.values(), variables.variablesIn(functionName), machineModel);
           for (CFANode node : allNodes) {
-            if (node.getFunctionName().equals(functionName)) {
+            if (!tracksPerLocation || node.getFunctionName().equals(functionName)) {
               builder.putAll(node, memoryLocations);
             }
           }

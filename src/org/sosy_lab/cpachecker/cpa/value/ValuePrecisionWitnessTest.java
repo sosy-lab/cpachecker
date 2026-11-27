@@ -144,4 +144,17 @@ public class ValuePrecisionWitnessTest {
                 .putAll("function square", "&v")
                 .build());
   }
+
+  @Test
+  public void functionScopeIsReadBackForPrecisionOfScopes() throws Exception {
+    VariableTrackingPrecision precision =
+        precision(
+            "SCOPE",
+            ImmutableSetMultimap.<CFANode, MemoryLocation>builder()
+                .putAll(inBlock, LOCAL_SHADOWED, P_Y, G, V)
+                .build());
+
+    assertThat(readBack(precision.asWitnessEntries(cfa), precision).values())
+        .containsExactly(G, LOCAL_SHADOWED, P_Y, V);
+  }
 }
