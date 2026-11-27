@@ -35,3 +35,8 @@ int main(void) {
   }
   return counter() + i + shadowed;
 }
+
+int choose(int b) {
+  int r = b ? square(b) : 0;
+  return r;
+}

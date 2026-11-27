@@ -354,10 +354,11 @@ public final class PredicateMapWriter {
       }
 
       if (astCfaRelation != null) {
+        ImmutableSet<CFANode> loopHeads = PrecisionScope.loopHeadsOf(cfa.orElseThrow());
         for (CFANode cfaNode : pLocation.keySet()) {
           String functionName = cfaNode.getFunctionName();
           Optional<PrecisionScope> precisionScope =
-              PrecisionScope.localPrecisionScopeFor(cfaNode, astCfaRelation);
+              PrecisionScope.localPrecisionScopeFor(cfaNode, cfa.orElseThrow(), loopHeads);
 
           // Nodes without a scope of their own, for example the entry node of a function, are
           // exported as function-scoped predicates. This is sound, but less precise.

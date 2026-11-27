@@ -15,8 +15,11 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -41,45 +44,46 @@ public abstract sealed class PrecisionScope
   }
 
   /**
-   * Returns the scope describing the program location of the given node, if there is one.
-   *
-   * <p>The location of a node is derived from its edges, and for the entry and the exit node of a
-   * function these are the ones of the call site, i.e., inside the calling function. The resulting
-   * record would name a function which does not contain its own location, so we only return a scope
-   * for locations inside the function of the node.
+   * Returns the nodes at which the precision of a loop holds, see {@link
+   * LocalLoopPrecisionScope#loopHeadIn}.
    */
-  public static Optional<PrecisionScope> localPrecisionScopeFor(
-      CFANode pNode, AstCfaRelation pAstCfaRelation) {
-    String functionName = pNode.getFunctionName();
-    if (pNode.isLoopStart()) {
-      return pAstCfaRelation
-          .getTightestIterationStructureForNode(pNode)
-          .map(structure -> structure.getCompleteElement().location())
-          .filter(location -> isInsideFunctionOf(location, pNode))
-          .map(location ->
-              new LocalLoopPrecisionScope(
-                  LocationRecord.createLocationRecordAtStart(location, functionName)));
-    } else {
-      return pAstCfaRelation
-          .getStatementFileLocationForNode(pNode)
-          .filter(location -> isInsideFunctionOf(location, pNode))
-          .map(location ->
-              new LocalPrecisionScope(
-                  LocationRecord.createLocationRecordAtStart(location, functionName)));
-    }
+  public static ImmutableSet<CFANode> loopHeadsOf(CFA pCfa) {
+    return pCfa.getLoopStructure()
+        .map(pCfa.getAstCfaRelation()::getLoopInvariantNodes)
+        .orElse(ImmutableSet.of());
   }
 
   /**
-   * Whether the given location lies inside the function the given node belongs to. The offsets are
-   * compared and not the lines, since the lines of an origin file say nothing about a location of
-   * another origin file which was preprocessed into the same one.
+   * Returns the scope describing the program location of the given node, if there is one: the loop
+   * whose head it is, or the statement that starts at it. This is the inverse of {@link
+   * LocalLoopPrecisionScope#loopHeadIn} and {@link LocalPrecisionScope#startNodesIn}.
+   *
+   * @param pLoopHeads the nodes given by {@link #loopHeadsOf}
    */
-  private static boolean isInsideFunctionOf(FileLocation pLocation, CFANode pNode) {
-    FileLocation functionLocation = pNode.getFunction().getFileLocation();
-    return pLocation.getFileName().equals(functionLocation.getFileName())
-        && pLocation.getNodeOffset() >= functionLocation.getNodeOffset()
-        && pLocation.getNodeOffset()
-            <= functionLocation.getNodeOffset() + functionLocation.getNodeLength();
+  public static Optional<PrecisionScope> localPrecisionScopeFor(
+      CFANode pNode, CFA pCfa, Set<CFANode> pLoopHeads) {
+    AstCfaRelation astCfaRelation = pCfa.getAstCfaRelation();
+    String functionName = pNode.getFunctionName();
+    if (pLoopHeads.contains(pNode)) {
+      Optional<FileLocation> loop =
+          astCfaRelation
+              .getTightestIterationStructureForNode(pNode)
+              .filter(structure ->
+                  pCfa.getLoopStructure()
+                      .flatMap(structure::getLoopHead)
+                      .equals(Optional.of(pNode)))
+              .map(structure -> structure.getCompleteElement().location());
+      if (loop.isPresent()) {
+        return Optional.of(
+            new LocalLoopPrecisionScope(
+                LocationRecord.createLocationRecordAtStart(loop.orElseThrow(), functionName)));
+      }
+    }
+    return astCfaRelation
+        .getStatementStartingAtNode(pNode)
+        .map(location ->
+            new LocalPrecisionScope(
+                LocationRecord.createLocationRecordAtStart(location, functionName)));
   }
 
   public static class PrecisionScopeDeserializer extends JsonDeserializer<PrecisionScope> {

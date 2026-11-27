@@ -24,8 +24,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -86,7 +84,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionSco
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalLoopPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionType;
@@ -347,51 +344,18 @@ public class ValueAnalysisCPA extends AbstractCPA
             }
           }
         }
-        case LocalLoopPrecisionScope pLoopScope -> {
-          LocationRecord locationRecord = pLoopScope.getLocation();
-          if (locationRecord.getColumn().isEmpty()) {
-            pLogger.logf(
-                Level.WARNING,
-                "Ignoring the precision scope %s, which we cannot match to the CFA without a"
-                    + " column.",
-                locationRecord);
-            continue;
-          }
-
-          Optional<CFANode> location =
-              pCfa.getLoopStructure()
-                  .flatMap(loopStructure ->
-                      astCfaRelation.getNodeForIterationStatementLocation(
-                          locationRecord.getLine(),
-                          locationRecord.getColumn().orElseThrow(),
-                          loopStructure));
-          if (location.isEmpty()) {
-            continue;
-          }
-
-          builder.putAll(
-              location.orElseThrow(),
-              parseMemoryLocations(
-                  entry.values(),
-                  variables.variablesAt(location.orElseThrow()).orElse(ImmutableMap.of()),
-                  machineModel));
-        }
-
+        case LocalLoopPrecisionScope pLoopScope ->
+            pLoopScope
+                .loopHeadIn(pCfa)
+                .ifPresent(loopHead ->
+                    builder.putAll(
+                        loopHead,
+                        parseMemoryLocations(
+                            entry.values(),
+                            variables.variablesAt(loopHead).orElse(ImmutableMap.of()),
+                            machineModel)));
         case LocalPrecisionScope pLocalScope -> {
-          LocationRecord locationRecord = pLocalScope.getLocation();
-          if (locationRecord.getColumn().isEmpty()) {
-            pLogger.logf(
-                Level.WARNING,
-                "Ignoring the precision scope %s, which we cannot match to the CFA without a"
-                    + " column.",
-                locationRecord);
-            continue;
-          }
-
-          Set<CFANode> location =
-              astCfaRelation.getNodesForStatementLocation(
-                  locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
-          for (CFANode node : location) {
+          for (CFANode node : pLocalScope.startNodesIn(astCfaRelation)) {
             builder.putAll(
                 node,
                 parseMemoryLocations(

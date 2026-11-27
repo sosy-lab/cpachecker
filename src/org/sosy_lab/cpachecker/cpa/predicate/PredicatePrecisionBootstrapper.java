@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionSco
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalLoopPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionDeclaration;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
@@ -457,30 +456,14 @@ public final class PredicatePrecisionBootstrapper {
                     pWitnessFile);
                 continue;
               }
-              LocationRecord locationRecord = pLocalScope.getLocation();
-
-              if (locationRecord.getColumn().isEmpty()) {
-                logger.logf(
-                    Level.WARNING,
-                    "Witness file %s contains a local precision scope without a column for %s, "
-                        + "which we cannot match to the CFA, ignoring it.",
-                    pWitnessFile,
-                    locationRecord);
-                continue;
-              }
-
-              Set<CFANode> location =
-                  astCfaRelation.getNodesForStatementLocation(
-                      locationRecord.getLine(), locationRecord.getColumn().orElseThrow());
-
+              Set<CFANode> location = pLocalScope.startNodesIn(astCfaRelation);
               if (location.isEmpty()) {
                 logger.logf(
                     Level.FINE,
                     "Witness file %s contains a local precision scope for location %s, "
-                        + "but the location is not present in the CFA, ignoring it.",
+                        + "but there is no statement at this location, ignoring it.",
                     pWitnessFile,
-                    locationRecord);
-                // TODO: Whenever this happens this is a bug in the AstCfaRelation
+                    pLocalScope.getLocation());
                 continue;
               }
 
@@ -509,33 +492,14 @@ public final class PredicatePrecisionBootstrapper {
                     pWitnessFile);
                 continue;
               }
-              LocationRecord locationRecord = pLocalLoopPrecisionScope.getLocation();
-
-              if (locationRecord.getColumn().isEmpty()) {
-                logger.logf(
-                    Level.WARNING,
-                    "Witness file %s contains a local loop precision scope without a column for %s,"
-                        + " which we cannot match to the CFA, ignoring it.",
-                    pWitnessFile,
-                    locationRecord);
-                continue;
-              }
-
-              Optional<CFANode> location =
-                  cfa.getLoopStructure()
-                      .flatMap(loopStructure ->
-                          astCfaRelation.getNodeForIterationStatementLocation(
-                              locationRecord.getLine(),
-                              locationRecord.getColumn().orElseThrow(),
-                              loopStructure));
-
+              Optional<CFANode> location = pLocalLoopPrecisionScope.loopHeadIn(cfa);
               if (location.isEmpty()) {
                 logger.logf(
                     Level.FINE,
                     "Witness file %s contains a local loop precision scope for location %s, "
-                        + "but the location is not present in the CFA, ignoring it.",
+                        + "but there is no loop at this location, ignoring it.",
                     pWitnessFile,
-                    locationRecord);
+                    pLocalLoopPrecisionScope.getLocation());
                 continue;
               }
 

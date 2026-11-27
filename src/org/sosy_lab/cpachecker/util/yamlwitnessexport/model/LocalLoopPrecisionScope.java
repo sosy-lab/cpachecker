@@ -11,6 +11,10 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 public final class LocalLoopPrecisionScope extends PrecisionScope {
@@ -27,6 +31,16 @@ public final class LocalLoopPrecisionScope extends PrecisionScope {
 
   public LocationRecord getLocation() {
     return location;
+  }
+
+  /**
+   * Returns the head of the loop at the location, see {@link IterationElement#getLoopHead}. A
+   * location without a column describes the first loop at its line.
+   */
+  public Optional<CFANode> loopHeadIn(CFA pCfa) {
+    return pCfa.getAstCfaRelation()
+        .getIterationStructureFollowingColumnAtTheSameLine(location.getColumn(), location.getLine())
+        .flatMap(loop -> pCfa.getLoopStructure().flatMap(loop::getLoopHead));
   }
 
   @Override

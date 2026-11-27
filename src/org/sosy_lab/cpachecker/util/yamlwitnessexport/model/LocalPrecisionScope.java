@@ -11,6 +11,10 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.ast.ASTElement;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 
 @JsonDeserialize(using = JsonDeserializer.None.class)
 public final class LocalPrecisionScope extends PrecisionScope {
@@ -27,6 +31,17 @@ public final class LocalPrecisionScope extends PrecisionScope {
 
   public LocationRecord getLocation() {
     return location;
+  }
+
+  /**
+   * Returns the nodes at which the statement at the location starts. A location without a column
+   * describes the first statement at its line.
+   */
+  public ImmutableSet<CFANode> startNodesIn(AstCfaRelation pAstCfaRelation) {
+    return pAstCfaRelation
+        .getTightestStatementForStarting(location.getLine(), location.getColumn())
+        .map(ASTElement::startNodes)
+        .orElse(ImmutableSet.of());
   }
 
   @Override

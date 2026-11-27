@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -96,6 +97,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
       return ImmutableList.of();
     }
     PrecisionScopeVariables variables = new PrecisionScopeVariables(pCfa);
+    ImmutableSet<CFANode> loopHeads = PrecisionScope.loopHeadsOf(pCfa);
 
     // Several CFA nodes may describe the same scope, for example all nodes of one statement, so
     // collect the memory locations per scope to export every scope exactly once.
@@ -104,7 +106,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
     for (CFANode currentLocation : rawPrecision.keySet()) {
       String functionName = currentLocation.getFunctionName();
       Optional<PrecisionScope> localScope =
-          PrecisionScope.localPrecisionScopeFor(currentLocation, astCfaRelation);
+          PrecisionScope.localPrecisionScopeFor(currentLocation, pCfa, loopHeads);
       // Nodes without a scope of their own are overapproximated by the scope of their function
       PrecisionScope precisionScope =
           localScope.orElseGet(() -> new FunctionPrecisionScope(functionName));
