@@ -222,8 +222,8 @@ record SliceExpression(
         transformedImmutableListCopy(
             modifiers,
             modifier ->
-                modifier instanceof SliceVariableIndexModifier quantifiedModifier
-                        && quantifiedModifier.index.equals(sliceVariable)
+                modifier instanceof SliceVariableIndexModifier(SliceVariable index)
+                        && index.equals(sliceVariable)
                     ? new SliceFormulaIndexModifier(replacementFormula)
                     : modifier);
 
@@ -243,8 +243,8 @@ record SliceExpression(
     for (SliceModifier modifier : modifiers) {
       type =
           switch (modifier) {
-            case SliceFieldAccessModifier fieldModifier ->
-                fieldModifier.field.getType().getCanonicalType(); // replace type with field type
+            case SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) ->
+                field.getType().getCanonicalType(); // replace type with field type
             case SliceIndexModifier _ -> {
               assert (modifier instanceof SliceVariableIndexModifier
                   || modifier instanceof SliceConstantIndexModifier);
@@ -348,20 +348,14 @@ record SliceExpression(
     // resolve the expression with dummy zero indices to get the type
     CExpression resolved = (CExpression) base;
     for (SliceModifier modifier : modifiers) {
-      if (modifier instanceof SliceFieldAccessModifier fieldAccess) {
+      if (modifier instanceof SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)) {
         resolved =
             new CFieldReference(
-                FileLocation.DUMMY,
-                fieldAccess.field.getType(),
-                fieldAccess.field.getName(),
-                resolved,
-                false);
+                FileLocation.DUMMY, field.getType(), field.getName(), resolved, false);
       } else {
         // subscript; unresolved indices become zero, and size_t is the type of an index
         final long index =
-            modifier instanceof SliceConstantIndexModifier constantIndex
-                ? constantIndex.index()
-                : 0;
+            modifier instanceof SliceConstantIndexModifier(long constantIndex) ? constantIndex : 0;
         CIntegerLiteralExpression indexLiteral =
             CIntegerLiteralExpression.createDummyLiteral(index, CNumericTypes.SIZE_T);
 

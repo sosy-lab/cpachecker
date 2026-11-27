@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -730,8 +731,8 @@ class AssignmentQuantifierHandler {
           switch (modifier) {
             case SliceIndexModifier subscriptModifier ->
                 applySubscriptModifier(resolved, subscriptModifier, resolvedIsFunctionParameter);
-            case SliceFieldAccessModifier fieldAccessModifier ->
-                applyFieldAccessModifier(resolved, fieldAccessModifier);
+            case SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) ->
+                applyFieldAccessModifier(resolved, field);
           };
       // resolved can no longer be function parameter
       resolvedIsFunctionParameter = false;
@@ -744,18 +745,18 @@ class AssignmentQuantifierHandler {
    * Applies a field access modifier to the resolved base.
    *
    * @param resolved Resolved base.
-   * @param modifier Field access modifier to apply.
+   * @param field Field access to apply.
    * @return Resolved slice with applied field access modifier.
    */
   private ResolvedSlice applyFieldAccessModifier(
-      ResolvedSlice resolved, SliceFieldAccessModifier modifier) {
+      ResolvedSlice resolved, CCompositeTypeMemberDeclaration field) {
 
     // the base type must be a composite type to have fields
     CCompositeType baseType = (CCompositeType) resolved.type();
-    CType fieldType = conv.typeHandler.getSimplifiedType(modifier.field());
+    CType fieldType = conv.typeHandler.getSimplifiedType(field);
 
     // add field to essential fields for use by uninterpreted functions
-    pts.addEssentialFields(ImmutableList.of(CompositeField.of(baseType, modifier.field())));
+    pts.addEssentialFields(ImmutableList.of(CompositeField.of(baseType, field)));
 
     // handle depending on type of base, normally should be either unaliased or aliased
     // also can be nondet, e.g., for extern functions returning composites
@@ -766,14 +767,14 @@ class AssignmentQuantifierHandler {
       UnaliasedLocation resultLocation =
           UnaliasedLocation.ofVariableName(
               getFieldAccessName(
-                  resolved.expression().asUnaliasedLocation().getVariableName(), modifier.field()));
+                  resolved.expression().asUnaliasedLocation().getVariableName(), field));
       return new ResolvedSlice(resultLocation, fieldType);
     } else if (base.isAliasedLocation()) {
       // no dereference needed, base type is composite, not pointer-like
       // adjust via AddressHandler
       Expression adjustedExpression =
           addressHandler.applyFieldOffset(
-              base.asAliasedLocation(), CompositeField.of(baseType, modifier.field()));
+              base.asAliasedLocation(), CompositeField.of(baseType, field));
       return new ResolvedSlice(adjustedExpression, fieldType);
     } else if (base.isNondetValue()) {
       // e.g., for extern functions returning composites, silently pass through with the new type
@@ -800,10 +801,9 @@ class AssignmentQuantifierHandler {
     // all subscript modifiers must be already resolved or constant here
     final Formula subscript =
         switch (modifier) {
-          case SliceFormulaIndexModifier resolvedModifier -> resolvedModifier.encodedVariable();
-          case SliceConstantIndexModifier constantModifier ->
-              fmgr.makeNumber(
-                  conv.getFormulaTypeFromType(pointerAsUnsignedIntType), constantModifier.index());
+          case SliceFormulaIndexModifier(Formula indexFormula) -> indexFormula;
+          case SliceConstantIndexModifier(long index) ->
+              fmgr.makeNumber(conv.getFormulaTypeFromType(pointerAsUnsignedIntType), index);
           case SliceVariableIndexModifier _ ->
               throw new IllegalStateException("Cannot apply unresolved modifier to resolved slice");
         };

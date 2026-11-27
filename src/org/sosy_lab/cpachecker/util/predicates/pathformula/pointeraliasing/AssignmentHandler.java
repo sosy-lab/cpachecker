@@ -531,22 +531,22 @@ class AssignmentHandler {
     long bitOffsetFromProgenitor = 0;
     for (SliceModifier modifier : trailingAccesses) {
       switch (modifier) {
-        case SliceFieldAccessModifier access -> {
+        case SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) -> {
           // field access, parent must be composite
           CCompositeType parentCompositeType = (CCompositeType) parentType;
 
           // add current field access to bit offset from progenitor
-          bitOffsetFromProgenitor += typeHandler.getBitOffset(parentCompositeType, access.field());
+          bitOffsetFromProgenitor += typeHandler.getBitOffset(parentCompositeType, field);
 
           // compute the parent type of next access, which is the simplified type of this field
-          parentType = typeHandler.getSimplifiedType(access.field());
+          parentType = typeHandler.getSimplifiedType(field);
         }
-        case SliceConstantIndexModifier access -> {
+        case SliceConstantIndexModifier(long index) -> {
           // constant indexing, parent must be an array
           CType elementType = typeHandler.simplifyType(((CArrayType) parentType).getType());
 
           // add current element offset to bit offset from progenitor
-          bitOffsetFromProgenitor += access.index() * typeHandler.getExactBitSizeof(elementType);
+          bitOffsetFromProgenitor += index * typeHandler.getExactBitSizeof(elementType);
 
           // the parent type of next access is the element type
           parentType = elementType;
